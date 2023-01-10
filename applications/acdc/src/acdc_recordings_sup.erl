@@ -1,7 +1,11 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2020, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(acdc_recordings_sup).
@@ -20,21 +24,21 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER_TYPE('kzc_recording', 'transient')]).
+-define(CHILDREN, [?WORKER_TYPE('kz_media_recording', 'transient')]).
 
 %%%=============================================================================
 %%% API functions
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc Starts the supervisor.
+%% @doc Starts the supervisor
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link() -> kz_types:startlink_ret().
+-spec start_link() -> kz_term:startlink_ret().
 start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
--spec new(kapps_call:call(), kz_json:object()) -> kz_types:startlink_ret().
+-spec new(kapps_call:call(), kz_json:object()) -> kz_term:startlink_ret().
 new(Call, Data) ->
     supervisor:start_child(?SERVER, [Call, Data]).
 
@@ -43,7 +47,8 @@ new(Call, Data) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc Whenever a supervisor is started using `supervisor:start_link/[2,3]',
+%% @private
+%% @doc Whenever a supervisor is started using supervisor:start_link/[2,3],
 %% this function is called by the new process to find out about
 %% restart strategy, maximum restart frequency and child
 %% specifications.
