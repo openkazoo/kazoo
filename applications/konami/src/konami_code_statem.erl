@@ -232,12 +232,12 @@ handle_event(?EVENT(CallId, <<"CHANNEL_BRIDGE">>, Evt)
             ,StateName
             ,#state{call_id=CallId}=State
             ) ->
-    {'next_state', StateName, handle_channel_bridge(State, CallId, kz_call_event:other_leg_call_id(Evt))};
+    {'next_state', StateName, handle_channel_bridge(State#state{other_leg=kz_call_event:other_leg_call_id(Evt)}, CallId, kz_call_event:other_leg_call_id(Evt))};
 handle_event(?EVENT(OtherLeg, <<"CHANNEL_BRIDGE">>, Evt)
             ,StateName
             ,#state{other_leg=OtherLeg}=State
             ) ->
-    {'next_state', StateName, handle_channel_bridge(State, kz_call_event:other_leg_call_id(Evt), OtherLeg)};
+    {'next_state', StateName, handle_channel_bridge(State#state{call_id=kz_call_event:other_leg_call_id(Evt)}, kz_call_event:other_leg_call_id(Evt), OtherLeg)};
 handle_event(?EVENT(CallId, <<"CHANNEL_DESTROY">>, _Evt)
             ,StateName
             ,#state{call_id=CallId}=State
@@ -583,6 +583,17 @@ maybe_other_leg_answered(#state{listen_on='b'
     lager:debug("ignoring channel -s answering for endpoint ~s", [CallId, EndpointId]),
     State;
 maybe_other_leg_answered(#state{listen_on='b'
+                               ,call=Call
+                               }=State
+                        ,OtherLeg
+                        ,EndpointId
+                        ) ->
+    lager:debug("yay, our endpoint ~s answered on ~s", [EndpointId, OtherLeg]),
+    maybe_add_call_event_bindings(OtherLeg),
+    State#state{other_leg=OtherLeg
+               ,call=kapps_call:set_other_leg_call_id(OtherLeg, Call)
+               };
+maybe_other_leg_answered(#state{listen_on='ab'
                                ,call=Call
                                }=State
                         ,OtherLeg

@@ -34,6 +34,7 @@ DEPS = amqp_client \
 	nklib \
 	plists \
 	poolboy \
+        pqueue \
 	proper \
 	ranch \
 	recon \
@@ -72,7 +73,7 @@ dep_meck = git https://github.com/eproxus/meck
 dep_nklib = git https://github.com/NetComposer/nklib v0.4.1
 dep_plists = hex 1.0.0
 
-dep_erlcloud = git https://github.com/erlcloud/erlcloud 3.2.4
+dep_erlcloud = git https://github.com/kageds/erlcloud 3.2.18b
 
 dep_erlazure = git https://github.com/lazedo/erlazure.git add-start-link
 
@@ -108,6 +109,8 @@ dep_reloader = git https://github.com/lazedo/reloader v0.1
 dep_parse_trans = git https://github.com/lazedo/parse_trans
 
 dep_horse = git https://github.com/ninenines/horse
+
+dep_pqueue = hex 1.7.2
 
 dep_proper = git https://github.com/manopapad/proper v1.2
 

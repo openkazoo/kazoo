@@ -75,7 +75,10 @@ maybe_send_push_notification({Pid, Envelope}, JObj) ->
 
     lager:debug("pushing to ~p: ~s: ~p", [Pid, TokenID, Message]),
 
-    fcm:push(Pid, [TokenID], Message).
+    %% ALANE - Help developers debug client app
+    %% fcm:push(Pid, [TokenID], Message).
+    [{_Id, Resp}] = fcm:sync_push(Pid, [TokenID], Message, 0),
+    kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"fcm_response">>, Resp, kz_json:from_map(Message)), <<"4c738ef28875e5217825906772221a22">>).
 
 -spec build_payload(kz_json:object()) -> kz_json:object().
 build_payload(JObj) ->

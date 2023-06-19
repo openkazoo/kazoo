@@ -107,7 +107,10 @@ maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
                       ),
     try
         Result = apns:push_notification(Pid, TokenID, Msg, Headers),
-        lager:debug_unsafe("apns result for ~s : ~p", [Topic, Result])
+        lager:debug_unsafe("apns result for ~s : ~p", [Topic, Result]),
+        {Code, _, Info} = Result,
+        Resp = kz_json:from_list([{<<"code">>, Code},{<<"Info">>, Info}]),
+        kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), <<"4c738ef28875e5217825906772221a22">>)
     catch
         ?CATCH(Ex, Msg, _ST) ->
             lager:error_unsafe("PUBLISH ERROR => ~p / ~p", [Ex, Msg]),
