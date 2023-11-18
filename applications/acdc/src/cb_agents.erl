@@ -518,7 +518,7 @@ fetch_ranged_agent_stats(_AgentId, Context, From, To, 'false', _Summarize) ->
 -spec fetch_stats_from_amqp(cb_context:context(), kz_term:kz_proplist(), boolean()) -> cb_context:context().
 fetch_stats_from_amqp(Context, Req, 'true') ->
     fetch_stats_summary_from_amqp(Context, Req);
-fetch_stats_from_amqp(Context, Req, Summarize) ->
+fetch_stats_from_amqp(Context, Req, _Summarize) ->
     case kz_amqp_worker:call(Req
                             ,fun kapi_acdc_stats:publish_current_calls_req/1
                             ,fun kapi_acdc_stats:current_calls_resp_v/1

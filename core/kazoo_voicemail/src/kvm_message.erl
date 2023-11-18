@@ -755,8 +755,7 @@ prepend_and_notify(Call, ForwardId, Metadata, SrcBoxId, Props) ->
             UpdateFuns = [fun(J) -> kz_json:set_value(<<"forward_join_error">>, ErrorMessage, J) end],
             forward_to_vmbox(Call, Metadata, SrcBoxId, Props, UpdateFuns)
     catch
-        _T:_E ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE(_T, _E, ST)
             remove_malform_vm(Call, ForwardId),
             ErrorMessage = kz_term:to_binary(io_lib:format("exception occurred during prepend and joining audio files: ~p:~p", [_T, _E])),
             lager:error(ErrorMessage),

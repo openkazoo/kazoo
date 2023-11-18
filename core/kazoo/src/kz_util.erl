@@ -80,8 +80,11 @@
 %%------------------------------------------------------------------------------
 -spec log_stacktrace() -> 'ok'.
 log_stacktrace() ->
-    ST = erlang:get_stacktrace(),
-    log_stacktrace(ST).
+    try throw('get_stacktrace')
+    catch
+        ?STACKTRACE(_E, _R, ST)
+        log_stacktrace(ST, "log_stacktrace/0 is deprecated: ", [])
+        end.
 
 -spec log_stacktrace(list()) -> ok.
 log_stacktrace(ST) ->
@@ -89,8 +92,11 @@ log_stacktrace(ST) ->
 
 -spec log_stacktrace(string(), list()) -> ok.
 log_stacktrace(Fmt, Args) ->
-    ST = erlang:get_stacktrace(),
-    log_stacktrace(ST, Fmt, Args).
+    try throw('get_stacktrace')
+    catch
+        ?STACKTRACE(_E, _R, ST)
+        log_stacktrace(ST, "log_stacktrace/2 is deprecated: " ++ Fmt, Args)
+        end.
 
 -spec log_stacktrace(list(), string(), list()) -> ok.
 log_stacktrace(ST, Fmt, Args) ->

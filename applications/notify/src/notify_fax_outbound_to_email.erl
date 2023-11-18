@@ -84,8 +84,7 @@ process_req(FaxDoc, JObj, _Props) ->
         C:R ->
             Msg = io_lib:format("failed: ~s:~p", [C, R]),
             lager:debug(Msg),
-            ST = erlang:get_stacktrace(),
-            kz_util:log_stacktrace(ST),
+            kz_util:log_stacktrace(),
             {'error', Msg}
     end.
 

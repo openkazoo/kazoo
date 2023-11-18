@@ -79,7 +79,7 @@ run_counterexample(PQC) ->
             {RequestId, 'postcondition_failed'};
         E:R ->
             #{'request_id' := RequestId} = pqc_kazoo_model:api(InitialState),
-            {RequestId, E, R, erlang:get_stacktrace()}
+            {RequestId, E, R, kz_util:log_stacktrace()}
     after
         PQC:cleanup()
     end.

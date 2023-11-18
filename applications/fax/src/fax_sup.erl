@@ -32,7 +32,6 @@
 -define(CHILDREN, [?WORKER('fax_init')
                   ,?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
                   ,?SUPER('fax_requests_sup')
-                  ,?SUPER('fax_xmpp_sup')
                   ,?SUPER('fax_jobs_sup')
                   ,?SUPER('fax_worker_sup')
                   ,?WORKER('fax_global_shared_listener')

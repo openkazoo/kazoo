@@ -57,12 +57,6 @@
                     ,{{'fax_request', 'new_request'}
                      ,[{<<"dialplan">>, <<"fax_req">>}]
                      }
-                    ,{{'fax_xmpp', 'handle_printer_start'}
-                     ,[{<<"xmpp_event">>, <<"start">>}]
-                     }
-                    ,{{'fax_xmpp', 'handle_printer_stop'}
-                     ,[{<<"xmpp_event">>, <<"stop">>}]
-                     }
                     ]).
 
 -define(BINDINGS, [{'notifications', [{'restrict_to', ?NOTIFY_RESTRICT}]}

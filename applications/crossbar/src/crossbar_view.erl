@@ -221,8 +221,7 @@ build_load_params(Context, View, Options) ->
     catch
         _E:_T ->
             lager:debug("exception occurred during building view options for ~s", [View]),
-            ST = erlang:get_stacktrace(),
-            kz_util:log_stacktrace(ST),
+            kz_util:log_stacktrace(),
             cb_context:add_system_error('datastore_fault', Context)
     end.
 
@@ -265,8 +264,7 @@ build_load_range_params(Context, View, Options) ->
     catch
         _E:_T ->
             lager:debug("exception occurred during building range view options for ~s", [View]),
-            ST = erlang:get_stacktrace(),
-            kz_util:log_stacktrace(ST),
+            kz_util:log_stacktrace(),
             cb_context:add_system_error('datastore_fault', Context)
     end.
 
@@ -839,8 +837,7 @@ process_query_results(#{databases := [Db|_]=Dbs
     catch
         _E:_T ->
             lager:warning("exception occurred during querying db ~s for view ~s : ~p:~p", [Db, View, _E, _T]),
-            ST = erlang:get_stacktrace(),
-            kz_util:log_stacktrace(ST),
+            kz_util:log_stacktrace(),
             LoadMap#{context => cb_context:add_system_error('datastore_fault', Context)}
     end.
 
