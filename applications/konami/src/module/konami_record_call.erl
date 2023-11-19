@@ -35,7 +35,9 @@ handle(_Data, Call, <<"unmask">>) ->
     kapps_call:unmask_recording(Call);
 handle(Data, Call, <<"start">>) ->
     lager:debug("starting recording, see you on the other side"),
-    kapps_call:start_recording(Data, Call);
+    Call1 = kapps_call:insert_custom_channel_var(<<"record_initiator_id">>,kapps_call:owner_id(Call),Call),
+    Call2 = kapps_call:insert_custom_channel_var(<<"record_start_at">>, os:system_time() , Call1),
+    kapps_call:start_recording(Data, Call2);
 handle(_Data, Call, <<"stop">>) ->
     _ = kapps_call:stop_recording(Call),
     lager:debug("sent command to stop recording call"),
