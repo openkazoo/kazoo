@@ -522,7 +522,9 @@ col_hangup_cause(JObj, _Timestamp, _Context) -> kzd_cdrs:hangup_cause(JObj, <<>>
 col_disposition(JObj, _Timestamp, _Context) -> kzd_cdrs:disposition(JObj, <<>>).
 col_other_leg_call_id(JObj, _Timestamp, _Context) -> kzd_cdrs:other_leg_call_id(JObj, <<>>).
 col_owner_id(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"owner_id">>], JObj, <<>>).
-col_record_initiator_id(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"record_initiator_id">>], JObj, <<>>).
+col_record_initiator_id(JObj, _Timestamp, _Context) ->
+    lager:debug("JObj :~p",[JObj]),
+    kz_json:get_value([?KEY_CCV, <<"record_initiator_id">>], JObj, <<>>).
 col_record_start_at(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"record_start_at">>], JObj, <<>>).
 col_to(JObj, _Timestamp, _Context) -> kzd_cdrs:to(JObj, <<>>).
 col_from(JObj, _Timestamp, _Context) -> kzd_cdrs:from(JObj, <<>>).
