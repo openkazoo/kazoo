@@ -35,12 +35,15 @@ handle(_Data, Call, <<"unmask">>) ->
     kapps_call:unmask_recording(Call);
 handle(Data, Call, <<"start">>) ->
     lager:debug("starting recording, see you on the other side"),
-    lager:debug("Call: ~p",[Call]),
 %%    Call1 = kapps_call:set_record_initiator_id(Call),
 %%    Call2 = kapps_call:set_record_start_at(Call1),
-    Call1 = kapps_call:insert_custom_channel_var(<<"record_initiator_id">>,kapps_call:owner_id(Call),Call),
-    Call2 = kapps_call:insert_custom_channel_var(<<"record_start_at">>, os:system_time() , Call1),
-    lager:debug("Call2 : ~p",[Call2]),
+    In = kapps_call:owner_id(Call),
+    Ts = os:system_time(),
+    Call1 = kapps_call:insert_custom_channel_var(<<"record_initiator_id">>,In,Call),
+    Call2 = kapps_call:insert_custom_channel_var(<<"record_start_at">>, Ts, Call1),
+    Call3 = kapps_call:kvs_store(<<"r_initiator_id">>,In,Call2),
+    Call4 = kapps_call:kvs_store(<<"r_start_at">>,In,Call3),
+    lager:debug("Call4 : ~p",[Call4]),
     kapps_call:start_recording(Data, Call2);
 handle(_Data, Call, <<"stop">>) ->
     _ = kapps_call:stop_recording(Call),
