@@ -89,8 +89,7 @@
         ,{<<"call_priority">>, fun col_call_priority/3}
         ,{<<"interaction_id">>, fun col_interaction_id/3}
         %% New Circle Cloud Fields
-        ,{<<"record_initiator_id">>,fun col_record_initiator_id/3}
-        ,{<<"record_start_at">>,fun col_record_start_at/3}
+        ,{<<"custom_leg_vars">>,fun col_custom_leg_vars/3}
         ]).
 
 -define(COLUMNS_RESELLER
@@ -522,10 +521,10 @@ col_hangup_cause(JObj, _Timestamp, _Context) -> kzd_cdrs:hangup_cause(JObj, <<>>
 col_disposition(JObj, _Timestamp, _Context) -> kzd_cdrs:disposition(JObj, <<>>).
 col_other_leg_call_id(JObj, _Timestamp, _Context) -> kzd_cdrs:other_leg_call_id(JObj, <<>>).
 col_owner_id(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"owner_id">>], JObj, <<>>).
-col_record_initiator_id(JObj, _Timestamp, _Context) ->
-    lager:debug("JObj :~p",[JObj]),
-    kz_json:get_value([?KEY_CCV, <<"record_initiator_id">>], JObj, <<>>).
-col_record_start_at(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"record_start_at">>], JObj, <<>>).
+col_custom_leg_vars(JObj, _Timestamp, _Context) ->
+    Result = custom_leg_vars(JObj),
+    lager:debug("custom_leg_vars Result:~p", [Result]),
+    Result.
 col_to(JObj, _Timestamp, _Context) -> kzd_cdrs:to(JObj, <<>>).
 col_from(JObj, _Timestamp, _Context) -> kzd_cdrs:from(JObj, <<>>).
 col_call_direction(JObj, _Timestamp, _Context) -> kzd_cdrs:call_direction(JObj, <<>>).
@@ -691,3 +690,25 @@ load_legs(Id, Context) ->
           kz_json:objects().
 normalize_leg_view_results(JObj, Acc) ->
     Acc ++ [kz_json:get_json_value(<<"doc">>, JObj)].
+
+custom_leg_vars(JObj)->
+    Default = kz_json:new(),
+    case kz_json:get_value([?KEY_CCV, <<"account_id">>], JObj, Default) of
+        Default ->
+            Default;
+        AccountId ->
+            case kzd_cdrs:call_id(JObj, Default) of
+                Default->
+                    Default;
+                CallId ->
+                    DbName = kz_util:format_account_db(AccountId),
+                    case kz_datamgr:open_doc(DbName, CallId) of
+                        {error, Reason } ->
+                            lager:debug("custom_leg_vars error: ~p, DbName: ~p, CallId: ~p", [Reason, DbName, CallId]),
+                            Default;
+                        {ok, Doc} ->
+                            lager:debug("custom_leg_vars Doc: ~p", [Doc]),
+                            kz_json:get_value([<<"value">>], Doc, Default)
+                    end
+            end
+    end.

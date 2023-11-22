@@ -35,16 +35,9 @@ handle(_Data, Call, <<"unmask">>) ->
     kapps_call:unmask_recording(Call);
 handle(Data, Call, <<"start">>) ->
     lager:debug("starting recording, see you on the other side"),
-%%    Call1 = kapps_call:set_record_initiator_id(Call),
-%%    Call2 = kapps_call:set_record_start_at(Call1),
-    In = kapps_call:owner_id(Call),
-    Ts = os:system_time(),
-    Call1 = kapps_call:insert_custom_channel_var(<<"record_initiator_id">>,In,Call),
-    Call2 = kapps_call:insert_custom_channel_var(<<"record_start_at">>, Ts, Call1),
-    Call3 = kapps_call:kvs_store(<<"r_initiator_id">>,In,Call2),
-    Call4 = kapps_call:kvs_store(<<"r_start_at">>,In,Call3),
-    lager:debug("Call4 : ~p",[Call4]),
-    kapps_call:start_recording(Data, Call2);
+    Result = save_record_param(Call),
+    lager:debug("result saved circle_cloud param: ~p", [Result]),
+    kapps_call:start_recording(Data, Call);
 handle(_Data, Call, <<"stop">>) ->
     _ = kapps_call:stop_recording(Call),
     lager:debug("sent command to stop recording call"),
@@ -122,3 +115,17 @@ data(Action, TimeLimit, Format, URL) ->
                       ,{<<"format">>, Format}
                       ,{<<"url">>, URL}
                       ]).
+
+-spec save_record_param(kapps_call:call()) ->
+    {'ok', kz_json:object() | kz_json:objects()} |
+    data_error().
+save_record_param(Call) ->
+    CallId = kapps_call:account_db(Call),
+    VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
+    VObj1 = kz_json:set_value(<<"record_start_at">>, kz_time:current_unix_tstamp(), VObj),
+    KObj = kz_json:set_value(<<"key">>,CallId, kz_json:new()),
+    Obj = kz_json:set_value(<<"value">>,  VObj1, KObj),
+    Doc = kz_doc:set_id(Obj, CallId),
+    lager:debug("circle_cloud doc :~p ", [Doc]),
+    kz_datamgr:save_doc(kapps_call:account_db(Call), Doc).
+
