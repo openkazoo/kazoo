@@ -120,10 +120,10 @@ data(Action, TimeLimit, Format, URL) ->
     {'ok', kz_json:object() | kz_json:objects()} |
     kz_datamgr:data_error().
 save_record_param(Call) ->
-    CallId = kapps_call:account_db(Call),
+    CallId = kapps_call:call_id(Call),
     VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
     VObj1 = kz_json:set_value(<<"record_start_at">>, kz_time:current_unix_tstamp(), VObj),
-    KObj = kz_json:set_value(<<"key">>,CallId, kz_json:new()),
+    KObj = kz_json:set_value(<<"key">>, CallId, kz_json:new()),
     Obj = kz_json:set_value(<<"value">>,  VObj1, KObj),
     Doc = kz_doc:set_id(Obj, CallId),
     lager:debug("circle_cloud doc :~p ", [Doc]),
