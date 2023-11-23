@@ -122,12 +122,13 @@ data(Action, TimeLimit, Format, URL) ->
 save_record_param(Data,Call) ->
     CallId = case source_leg_of_dtmf(Data, Call) of
                  'a' ->
-                     lager:debug("circle_cloud leg 'a': ~p",[CallId]),
+                     lager:debug("circle_cloud leg 'a' "),
                      kapps_call:call_id(Call);
                  'b' ->
-                     lager:debug("circle_cloud leg 'b': ~p",[CallId]),
+                     lager:debug("circle_cloud leg 'b' "),
                      kapps_call:other_leg_call_id(Call)
              end,
+    lager:debug("circle_cloud CallId: ~p",[CallId]),
     VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
     VObj1 = kz_json:set_value(<<"record_start_at">>, kz_time:current_unix_tstamp(), VObj),
     KObj = kz_json:set_value(<<"key">>, CallId, kz_json:new()),
