@@ -120,6 +120,7 @@ data(Action, TimeLimit, Format, URL) ->
     {'ok', kz_json:object() | kz_json:objects()} |
     kz_datamgr:data_error().
 save_record_param(Data,Call) ->
+    lager:debug(" CircleData : ~p ", [Data]),
     CallId = case source_leg_of_dtmf(Data, Call) of
                  'a' ->
                      lager:debug("circle_cloud leg 'a' "),
