@@ -118,7 +118,7 @@ data(Action, TimeLimit, Format, URL) ->
 
 -spec save_record_param(kapps_call:call()) ->
     {'ok', kz_json:object() | kz_json:objects()} |
-    data_error().
+    kz_datamgr:data_error().
 save_record_param(Call) ->
     CallId = kapps_call:account_db(Call),
     VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
