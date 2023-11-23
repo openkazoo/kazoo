@@ -35,7 +35,7 @@ handle(_Data, Call, <<"unmask">>) ->
     kapps_call:unmask_recording(Call);
 handle(Data, Call, <<"start">>) ->
     lager:debug("starting recording, see you on the other side"),
-    Result = save_record_param(Call),
+    Result = save_record_param(Data, Call),
     lager:debug("result saved circle_cloud param: ~p", [Result]),
     kapps_call:start_recording(Data, Call);
 handle(_Data, Call, <<"stop">>) ->
@@ -116,11 +116,18 @@ data(Action, TimeLimit, Format, URL) ->
                       ,{<<"url">>, URL}
                       ]).
 
--spec save_record_param(kapps_call:call()) ->
+-spec save_record_param(kz_term:ne_binary() | kz_json:object(), kapps_call:call()) ->
     {'ok', kz_json:object() | kz_json:objects()} |
     kz_datamgr:data_error().
-save_record_param(Call) ->
-    CallId = kapps_call:call_id(Call),
+save_record_param(Data,Call) ->
+    CallId = case source_leg_of_dtmf(Data, Call) of
+                 'a' ->
+                     lager:debug("circle_cloud leg 'a': ~p",[CallId]),
+                     kapps_call:call_id(Call);
+                 'b' ->
+                     lager:debug("circle_cloud leg 'b': ~p",[CallId]),
+                     kapps_call:other_leg_call_id(Call)
+             end,
     VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
     VObj1 = kz_json:set_value(<<"record_start_at">>, kz_time:current_unix_tstamp(), VObj),
     KObj = kz_json:set_value(<<"key">>, CallId, kz_json:new()),
@@ -129,3 +136,11 @@ save_record_param(Call) ->
     lager:debug("circle_cloud doc :~p ", [Doc]),
     kz_datamgr:save_doc(kapps_call:account_db(Call), Doc).
 
+-spec source_leg_of_dtmf(kz_term:ne_binary() | kz_json:object(), kapps_call:call()) -> 'a' | 'b'.
+source_leg_of_dtmf(<<_/binary>> = SourceDTMF, Call) ->
+    case kapps_call:call_id(Call) =:= SourceDTMF of
+        'true' -> 'a';
+        'false' -> 'b'
+    end;
+source_leg_of_dtmf(Data, Call) ->
+    source_leg_of_dtmf(kz_json:get_value(<<"dtmf_leg">>, Data), Call).
