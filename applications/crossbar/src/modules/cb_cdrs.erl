@@ -523,7 +523,7 @@ col_other_leg_call_id(JObj, _Timestamp, _Context) -> kzd_cdrs:other_leg_call_id(
 col_owner_id(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"owner_id">>], JObj, <<>>).
 col_custom_leg_vars(JObj, _Timestamp, _Context) ->
     Result = custom_leg_vars(JObj),
-    lager:debug("custom_leg_vars Result:~p", [Result]),
+    lager:debug("custom_leg_vars Result: ~p", [Result]),
     Result.
 col_to(JObj, _Timestamp, _Context) -> kzd_cdrs:to(JObj, <<>>).
 col_from(JObj, _Timestamp, _Context) -> kzd_cdrs:from(JObj, <<>>).
