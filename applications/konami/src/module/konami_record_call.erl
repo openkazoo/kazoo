@@ -128,7 +128,7 @@ save_record_param(Data,Call) ->
                      lager:debug("circle_cloud leg 'b': ~p",[CallId]),
                      kapps_call:other_leg_call_id(Call)
              end,
-    VObj = kz_json:set_value(<<"record_initiator_id">>, kapps_call:owner_id(Call), kz_json:new()),
+    VObj = kz_json:set_value(<<"record_initiator_id">>, CallId, kz_json:new()),
     VObj1 = kz_json:set_value(<<"record_start_at">>, kz_time:current_unix_tstamp(), VObj),
     KObj = kz_json:set_value(<<"key">>, CallId, kz_json:new()),
     Obj = kz_json:set_value(<<"value">>,  VObj1, KObj),
