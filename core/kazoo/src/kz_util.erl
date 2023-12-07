@@ -87,8 +87,9 @@ log_stacktrace() ->
         end.
 
 -spec log_stacktrace(list()) -> ok.
-log_stacktrace(ST) ->
-    log_stacktrace(ST, "", []).
+log_stacktrace(_ST) ->
+    log_stacktrace().
+%%    log_stacktrace(ST, "", []).
 
 -spec log_stacktrace(string(), list()) -> ok.
 log_stacktrace(Fmt, Args) ->

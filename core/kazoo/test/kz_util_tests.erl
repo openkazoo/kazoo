@@ -69,7 +69,7 @@ proper_test_() ->
 %% Just to please coverage :)
 log_test_() ->
     [?_assertEqual(ok, kz_util:log_stacktrace())
-    ,?_assertEqual(ok, kz_util:log_stacktrace(erlang:get_stacktrace()))
+    ,?_assertEqual(ok, kz_util:log_stacktrace([]))
     ].
 
 calling_app_test_() ->
