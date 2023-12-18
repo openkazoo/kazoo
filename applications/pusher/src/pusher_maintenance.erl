@@ -72,13 +72,25 @@ remove_apple_dev_header(AppId, Key) ->
 
 -spec add_provider_header(binary(), binary(), term(), term()) -> 'ok' | {'ok', kz_json:object()}.
 add_provider_header(AppId, Key, Value, Provider) ->
+    Value1 = case catch kz_term:to_integer(Value) of
+        {'EXIT', _ } ->
+            Value;
+        Integer ->
+            Integer
+    end,
     Headers =  kapps_config:get_json(?CONFIG_CAT, [Provider, <<"headers">>], kz_json:new(), AppId),
-    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:insert_value(Key,Value,Headers) , AppId).
+    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:insert_value(Key,Value1,Headers) , AppId).
 
 -spec update_provider_header(binary(), binary(), term(), term()) -> 'ok' | {'ok', kz_json:object()}.
 update_provider_header(AppId, Key, Value, Provider) ->
+    Value1 = case catch kz_term:to_integer(Value) of
+                 {'EXIT', _ } ->
+                     Value;
+                 Integer ->
+                     Integer
+             end,
     Headers =  kapps_config:get_json( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:new(), AppId),
-    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:set_value(Key,Value,Headers) , AppId).
+    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:set_value(Key,Value1,Headers) , AppId).
 
 -spec remove_provider_header(binary(), binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
 remove_provider_header(AppId, Key, Provider) ->
