@@ -83,7 +83,8 @@ update_provider_header(AppId, Key, Value, Provider) ->
 -spec remove_provider_header(binary(), binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
 remove_provider_header(AppId, Key, Provider) ->
     Headers =  kapps_config:get_json(?CONFIG_CAT, [Provider, <<"headers">>], kz_json:new(), AppId),
-    lager:info([Headers,Key]).
+    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:delete_key(Key, Headers) , AppId).
+%%    lager:info([Headers,Key]).
 %%    kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:kz_json:delete_key(Key, Headers) , AppId).
 
 -spec push(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
