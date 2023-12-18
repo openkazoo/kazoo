@@ -97,9 +97,11 @@ maybe_send_push_notification('undefined', _) -> 'ok';
 maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
     TokenID = kz_json:get_value(<<"Token-ID">>, JObj),
     Topic = apns_topic(JObj),
+    lager:debug("apns JObj ~p",[JObj]),
+    lager:debug("apns ExtraHeaders ~p",[ExtraHeaders]),
     Headers = kz_maps:merge(#{apns_topic => Topic}, ExtraHeaders),
     Msg = build_payload(JObj),
-    lager:debug_unsafe("pushing ~s for token-id ~s : ~s"
+    lager:debug("pushing ~s for token-id ~s : ~s"
                       ,[join_headers(Headers)
                        ,TokenID
                        ,kz_json:encode(kz_json:from_map(Msg), ['pretty'])
@@ -107,7 +109,7 @@ maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
                       ),
     try
         Result = apns:push_notification(Pid, TokenID, Msg, Headers),
-        lager:debug_unsafe("apns result for ~s : ~p", [Topic, Result]),
+        lager:debug("apns result for ~s : ~p", [Topic, Result]),
         {Code, _, Info} = Result,
         Resp = kz_json:from_list([{<<"code">>, Code},{<<"Info">>, Info}]),
         kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), <<"4c738ef28875e5217825906772221a22">>)
