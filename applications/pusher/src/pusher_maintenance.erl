@@ -44,7 +44,7 @@ update_apple_header(AppId, Key, Value) ->
 
 -spec remove_apple_header(binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
 remove_apple_header(AppId, Key) ->
-    remove_provider_header(AppId, Key, ?APPLE_DEV).
+    remove_provider_header(AppId, Key, ?APPLE).
 
 -spec add_apple_dev_app(binary(), binary(), binary()) -> 'ok' | {'error', any()}.
 add_apple_dev_app(AppId, Certfile, Host) ->
@@ -62,11 +62,11 @@ add_apple_dev_app(AppId, Certfile, Host) ->
 add_apple_dev_header(AppId, Key, Value) ->
     add_provider_header(AppId, Key, Value, ?APPLE_DEV).
 
--spec update_apple_header(binary(), binary(), term()) -> 'ok' | {'ok', kz_json:object()}.
+-spec update_apple_dev_header(binary(), binary(), term()) -> 'ok' | {'ok', kz_json:object()}.
 update_apple_dev_header(AppId, Key, Value) ->
     update_provider_header(AppId, Key, Value, ?APPLE_DEV).
 
--spec remove_apple_header(binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
+-spec remove_apple_dev_header(binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
 remove_apple_dev_header(AppId, Key) ->
     remove_provider_header(AppId, Key, ?APPLE_DEV).
 
@@ -80,10 +80,10 @@ update_provider_header(AppId, Key, Value, Provider) ->
     Headers =  kapps_config:get_json( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:new(), AppId),
     kapps_config:set_node( ?CONFIG_CAT, [Provider, <<"headers">>], kz_json:set_value(Key,Value,Headers) , AppId).
 
--spec remove_provider_header(binary(), binary(), term()) -> 'ok' | {'ok', kz_json:object()}.
+-spec remove_provider_header(binary(), binary(), binary()) -> 'ok' | {'ok', kz_json:object()}.
 remove_provider_header(AppId, Key, Provider) ->
     Headers =  kapps_config:get_json(?CONFIG_CAT, [Provider, <<"headers">>], kz_json:new(), AppId),
-    kapps_config:set_node(?CONFIG_CAT, [Provider, <<"headers">>], kz_json:kz_json:delete_key(Key,Headers) , AppId).
+    kapps_config:set_node(?CONFIG_CAT, [Provider, <<"headers">>], kz_json:kz_json:delete_key(Key, Headers) , AppId).
 
 -spec push(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 push(AccountId, DeviceId) ->
