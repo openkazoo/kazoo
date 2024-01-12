@@ -53,7 +53,8 @@ add_apple_dev_app(AppId, Certfile, Host) ->
             _ = kapps_config:set_node(?CONFIG_CAT, [?APPLE_DEV, <<"certificate">>], Binary, AppId),
             _ = kapps_config:set_node(?CONFIG_CAT, [?APPLE_DEV, <<"host">>], Host, AppId),
             AppleHeaders =  kapps_config:get_json(?CONFIG_CAT, [?APPLE, <<"headers">>], kz_json:new(), AppId),
-            kapps_config:set_node(?CONFIG_CAT, [?APPLE_DEV, <<"headers">>], AppleHeaders ,AppId),
+            kapps_config:set_node(?CONFIG_CAT, [?APPLE_DEV , <<"apns_topic">>], <<(AppId)/binary, ".voip">>, AppId ),
+kapps_config:set_node(?CONFIG_CAT, [?APPLE_DEV, <<"headers">>], AppleHeaders ,AppId),
         'ok';
         {'error', _} = Err -> Err
     end.

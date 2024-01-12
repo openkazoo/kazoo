@@ -1,6 +1,6 @@
 -module(ecallmgr_bridge_string_tests).
 
--include("src/ecallmgr.hrl").
+-include("ecallmgr.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
 simple_bridge_test() ->
@@ -41,13 +41,13 @@ sip_headers_test() ->
 
 %% dbg_test() ->
 %%     dbg:start(),
-
+%%
 %%     dbg:tracer(),
-
+%%
 %%     dbg:tpl(ecallmgr_util, [{'_', [], [$_]}]),
 %%     dbg:tpl(ecallmgr_fs_xml, [{'_', [], [$_]}]),
 %%     dbg:p(all, c),
-
+%%
 %%     Endpoint = kz_json:from_list([{<<"Invite-Format">>, <<"username">>}
 %%                                  ,{<<"To-User">>, <<"to_user">>}
 %%                                  ,{<<"To-Realm">>, <<"to_realm">>}
@@ -55,7 +55,7 @@ sip_headers_test() ->
 %%                                  ]),
 %%     Endpoints = [Endpoint],
 %%     [BS] = ecallmgr_util:build_simple_channels(Endpoints),
-
+%%
 %%     dbg:stop_clear(),
 %%     dbg:stop(),
 

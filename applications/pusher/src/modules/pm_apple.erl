@@ -148,9 +148,9 @@ get_apns(App, ETS) ->
 
 -spec maybe_load_apns(kz_term:api_binary(), ets:tid()) -> push_app().
 maybe_load_apns(App, ETS) ->
-    CertBin = kapps_config:get_ne_binary(?CONFIG_CAT, [<<"apple">>, <<"certificate">>], 'undefined', App),
-    Host = kapps_config:get_ne_binary(?CONFIG_CAT, [<<"apple">>, <<"host">>], ?DEFAULT_APNS_HOST, App),
-    ExtraHeaders = kapps_config:get_json(?CONFIG_CAT, [<<"apple">>, <<"headers">>], kz_json:new(), App),
+    CertBin = kapps_config:get_ne_binary(?CONFIG_CAT, [ ?APPLE, <<"certificate">>], 'undefined', App),
+    Host = kapps_config:get_ne_binary(?CONFIG_CAT, [ ?APPLE, <<"host">>], ?DEFAULT_APNS_HOST, App),
+    ExtraHeaders = kapps_config:get_json(?CONFIG_CAT, [ ?APPLE, <<"headers">>], kz_json:new(), App),
     Headers = kz_maps:keys_to_atoms(kz_json:to_map(ExtraHeaders)),
     maybe_load_apns(App, ETS, CertBin, Host, Headers).
 
@@ -194,7 +194,18 @@ maybe_load_apns(App, ETS, CertBin, Host, Headers) ->
         ?CATCH(_Er, _Ex,_ST) ->
             lager:error("error loading apns ~p / ~p", [_Er, _Ex]),
             ?LOGSTACK(_ST),
-            'undefined'
+            application:start(apns),
+            case catch apns:connect(Connection) of
+                {'ok', Pid} ->
+                    lager:debug("starting again apns apple push connection for ~p: ", [Connection]),
+                    ets:insert(ETS, {App, {Pid, Headers}}),
+                    Ref = erlang:monitor('process', Pid),
+                    ets:insert(ETS, {Ref, App}),
+                    {Pid, Headers};
+                {'error', Reason} ->
+                    lager:error("error loading2 apns ~p", [Reason]),
+                    'undefined'
+            end
     end.
 
 -spec apns_topic(kz_json:object()) -> binary().

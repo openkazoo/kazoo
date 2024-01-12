@@ -98,6 +98,7 @@ handle_info({'flush_channels', Node}, State) ->
     ecallmgr_fs_conferences:flush_node(Node),
     {'noreply', State};
 handle_info('check_node_status', #state{node=Node, timeout=Timeout}=State) ->
+    net_kernel:connect_node(),
     case net_adm:ping(Node) of
         'pong' ->
             %% give the node a moment to init

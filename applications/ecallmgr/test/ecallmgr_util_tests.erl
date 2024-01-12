@@ -3,6 +3,8 @@
 -include_lib("eunit/include/eunit.hrl").
 
 maybe_sanitize_fs_value_test_() ->
+    net_kernel:allowed().
+
     UTF8Bin = <<"Bör1-Goes2$%^ To4 Škofja Loka"/utf8>>,
     Expected = <<"Bör1-Goes2 To4 Škofja Loka"/utf8>>,
 
