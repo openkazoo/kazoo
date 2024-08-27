@@ -45,6 +45,8 @@
                          ,[<<"Custom-Channel-Vars">>, <<"Confirm-File">>]
                          ,[<<"Custom-Channel-Vars">>, <<"Confirm-Key">>]
                          ,[<<"Custom-Channel-Vars">>, <<"Confirm-Read-Timeout">>]
+                         ,[<<"Custom-Channel-Vars">>, <<"Call-Waiting-Disabled">>]
+                         ,[<<"Custom-Channel-Vars">>, <<"Owner-ID">>]
                          ]).
 
 -spec call_command(atom(), kz_term:ne_binary(), kz_json:object()) -> {'error', binary()} | {binary(), kz_term:proplist()}.
