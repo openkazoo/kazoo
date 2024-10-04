@@ -78,7 +78,7 @@ maybe_send_push_notification({Pid, Envelope}, JObj) ->
     %% ALANE - Help developers debug client app
     %% fcm:push(Pid, [TokenID], Message).
     [{_Id, Resp}] = fcm:sync_push(Pid, [TokenID], Message, 0),
-    kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"fcm_response">>, Resp, kz_json:from_map(Message)), <<"4c738ef28875e5217825906772221a22">>).
+    kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"fcm_response">>, Resp, kz_json:from_map(Message)), <<"e90db4c158732b6a2bdb673e95fa4246">>).
 
 -spec build_payload(kz_json:object()) -> kz_json:object().
 build_payload(JObj) ->
