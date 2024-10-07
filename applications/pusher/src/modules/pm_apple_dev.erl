@@ -151,7 +151,8 @@ maybe_load_apns(App, ETS) ->
     CertBin = kapps_config:get_ne_binary(?CONFIG_CAT, [ ?APPLE_DEV, <<"certificate">>], 'undefined', App),
     Host = kapps_config:get_ne_binary(?CONFIG_CAT, [ ?APPLE_DEV,  <<"host">>], ?DEFAULT_APNS_HOST, App),
     ExtraHeaders = kapps_config:get_json(?CONFIG_CAT, [ ?APPLE_DEV,  <<"headers">>], kz_json:new(), App),
-    Headers = kz_maps:keys_to_atoms(kz_json:to_map(ExtraHeaders)),
+    EH2 = maybe_utc_expiration_header(ExtraHeaders),
+    Headers = kz_maps:keys_to_atoms(kz_json:to_map(EH2)),
     maybe_load_apns(App, ETS, CertBin, Host, Headers).
 
 -spec maybe_load_apns(kz_term:api_binary()
@@ -227,3 +228,14 @@ apns_topic(JObj) ->
 -spec default_apns_topic(kz_term:ne_binary()) -> kz_term:ne_binary().
 default_apns_topic(TokenApp) ->
     re:replace(TokenApp, <<"\\.(?:dev|prod)$">>, <<>>, [{'return', 'binary'}]).
+
+
+%% According to Apple https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns
+%% apns-expiration should be This value is a UNIX epoch expressed in seconds (UTC).
+-spec maybe_utc_expiration_header(kz_json:object()) -> kz_json:object().
+maybe_utc_expiration_header(JObj) ->
+    case kz_json:get_value(<<"apns-expiration">>, JObj) of
+        undefined -> JObj;
+        Expiration ->
+           kz_json:set_value(<<"apns-expiration">>, kz_time:current_unix_tstamp() + Expiration, JObj)
+    end. 
