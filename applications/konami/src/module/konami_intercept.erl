@@ -108,7 +108,9 @@ build_endpoints(<<"device">>, Id, Id, _Params, _Call) ->
 build_endpoints(<<"device">>, DeviceId, _SourceDeviceId, Params, Call) ->
     lager:debug("building endpoints for ~s", [DeviceId]),
     case kz_endpoint:build(DeviceId, Params, Call) of
-        {'ok', Endpoint} -> Endpoint;
+        {'ok', [Endpoint]} ->
+		CCVs = kz_json:set_value(<<"Call-Waiting-Disabled">>, 'false', kz_json:get_value(<<"Custom-Channel-Vars">>, Endpoint)),
+		[kz_json:set_value(<<"Custom-Channel-Vars">>, CCVs, Endpoint)];
         _Else -> []
     end;
 build_endpoints(<<"user">>, OwnerId, SourceDeviceId, Params, Call) ->
@@ -119,7 +121,9 @@ build_endpoints(<<"user">>, OwnerId, SourceDeviceId, Params, Call) ->
                    (EndpointId, Acc) ->
                         lager:debug("building endpoint ~s", [EndpointId]),
                         case kz_endpoint:build(EndpointId, Params, Call) of
-                            {'ok', Endpoint} -> Endpoint ++ Acc;
+                            {'ok', [Endpoint]} ->
+				CCVs = kz_json:set_value(<<"Call-Waiting-Disabled">>, 'false', kz_json:get_value(<<"Custom-Channel-Vars">>, Endpoint)),
+				 [kz_json:set_value(<<"Custom-Channel-Vars">>, CCVs, Endpoint)] ++ Acc;
                             _Else -> Acc
                         end
                 end
