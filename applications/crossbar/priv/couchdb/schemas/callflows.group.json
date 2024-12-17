@@ -14,7 +14,10 @@
         },
         "fail_on_single_reject": {
             "description": "If any leg rejects the call, cancel all other legs",
-            "type": "boolean"
+            "type": [
+                "boolean",
+                "string"
+            ]
         },
         "id": {
             "description": "Group ID",
