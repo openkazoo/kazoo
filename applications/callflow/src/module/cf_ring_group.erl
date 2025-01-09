@@ -96,7 +96,13 @@ repeat(_Data, _Call, _N, 'fail') ->
 -spec attempt_endpoints(kz_json:objects(), kz_json:object(), kapps_call:call()) ->
           'stop' | 'fail' | 'continue'.
 attempt_endpoints(Endpoints, Data, Call) ->
-    FailOnSingleReject = kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined'),
+    FailOnSingleReject =
+    case kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined') of
+        'undefined' -> 'undefined';
+        'false' -> 'false';
+        'true' -> maybe_override_true();
+        Else -> Else
+    end,
     Timeout = kz_json:get_integer_value(<<"timeout">>, Data, ?DEFAULT_TIMEOUT_S),
     Strategy = freeswitch_strategy(Data),
     Ringback = kz_json:get_ne_binary_value(<<"ringback">>, Data),
@@ -439,3 +445,9 @@ get_member_timeout(MemberJObj) ->
 -spec get_member_timeout(kz_json:object(), timeout_t()) -> timeout_t().
 get_member_timeout(MemberJObj, Default) ->
     kz_json:get_integer_value(<<"timeout">>, MemberJObj, Default).
+
+maybe_override_true() ->
+    case kapps_config:get_boolean(?CF_CONFIG_CAT, <<"override_fail_on_single_reject">>) of
+        'true' -> kapps_config:get_ne_binary(?CF_CONFIG_CAT, <<"override_fail_on_single_reject_value">>);
+        _ -> 'true'
+    end.

@@ -55,7 +55,13 @@ bridge_to_endpoints(Data, Call) ->
     case kz_endpoint:build(EndpointId, Params, Call) of
         {'error', _}=E -> E;
         {'ok', Endpoints} ->
-            FailOnSingleReject = kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined'),
+            FailOnSingleReject =
+                case kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined') of
+                    'undefined' -> 'undefined';
+                    'false' -> 'false';
+                    'true' -> maybe_override_true();
+                Else -> Else
+            end,
             Timeout = kz_json:get_integer_value(<<"timeout">>, Data, ?DEFAULT_TIMEOUT_S),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(Endpoints),
             CustomHeaders = kz_json:get_ne_json_value(<<"custom_sip_headers">>, Data),
@@ -63,4 +69,10 @@ bridge_to_endpoints(Data, Call) ->
             kapps_call_command:b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia
                                        ,'undefined', CustomHeaders, <<"false">>, FailOnSingleReject, Call
                                        )
+    end.
+
+maybe_override_true() ->
+    case kapps_config:get_boolean(?CF_CONFIG_CAT, <<"override_fail_on_single_reject">>) of
+        'true' -> kapps_config:get_ne_binary(?CF_CONFIG_CAT, <<"override_fail_on_single_reject_value">>);
+        _ -> 'true'
     end.
