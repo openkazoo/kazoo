@@ -26,7 +26,7 @@ handle(Data, Call) ->
     case kz_json:get_value(<<"fail_on_single_reject">>, Data, 'undefined') of
         'undefined' -> 'undefined';
         'false' -> 'false';
-        'true' -> maybe_override_true();
+        'true' -> maybe_override_fail_on_single_reject();
         Else -> Else
     end,
     Timeout = kz_json:get_integer_value(<<"timeout">>, Data, ?DEFAULT_TIMEOUT_S),
@@ -71,8 +71,8 @@ get_endpoints(UserId, Data, Call) ->
     Params = kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Data),
     kz_endpoints:by_owner_id(UserId, Params, Call).
 
-maybe_override_true() ->
-    case kapps_config:get_boolean(?CF_CONFIG_CAT, <<"override_fail_on_single_reject">>) of
-        'true' -> kapps_config:get_ne_binary(?CF_CONFIG_CAT, <<"override_fail_on_single_reject_value">>);
+maybe_override_fail_on_single_reject() ->
+    case kapps_config:get_boolean(?CF_CONFIG_CAT, <<"fail_on_single_reject_override">>) of
+        'true' -> kapps_config:get_ne_binary(?CF_CONFIG_CAT, <<"fail_on_single_reject_override_value">>);
         _ -> 'true'
     end.
