@@ -23,7 +23,7 @@ handle(Data, Call) ->
     UserId = kz_json:get_ne_binary_value(<<"id">>, Data),
     Endpoints = get_endpoints(UserId, Data, Call),
     FailOnSingleReject = 
-    case kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined') of
+    case kz_json:get_value(<<"fail_on_single_reject">>, Data, 'undefined') of
         'undefined' -> 'undefined';
         'false' -> 'false';
         'true' -> maybe_override_true();

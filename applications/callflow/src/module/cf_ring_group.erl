@@ -97,7 +97,7 @@ repeat(_Data, _Call, _N, 'fail') ->
           'stop' | 'fail' | 'continue'.
 attempt_endpoints(Endpoints, Data, Call) ->
     FailOnSingleReject =
-    case kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined') of
+    case kz_json:get_value(<<"fail_on_single_reject">>, Data, 'undefined') of
         'undefined' -> 'undefined';
         'false' -> 'false';
         'true' -> maybe_override_true();
