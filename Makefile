@@ -12,14 +12,17 @@ CHANGED_SWAGGER := $(shell git --no-pager diff --name-only HEAD $(BASE_BRANCH) -
 CHANGED_ERLANG=$(filter %.erl %.beam %/ebin,$(CHANGED))
 CHANGED_JSON=$(filter %.json,$(CHANGED))
 
-# You can override this when calling make, e.g. make JOBS=1
+KZ_VERSION ?= tmp
+REL_DIR = kazoo-$(KZ_VERSION)
+TAR_FILE = ../$(REL_DIR).tgz
+
 # to prevent parallel builds, or make JOBS="8".
 JOBS ?= 1
 
 KAZOODIRS = core/Makefile applications/Makefile
 
 .PHONY: $(KAZOODIRS) kazoo deps core apps \
-	build-release build-ci-release tar-release release read-release-cookie \
+	build-tar build-release build-ci-release tar-release release read-release-cookie \
 	bump-copyright apis validate-swagger sdks coverage-report fs-headers docs validate-schemas \
 	circle circle-pre circle-fmt circle-codechecks circle-build circle-docs circle-schemas circle-dialyze circle-release circle-unstaged \
 	clean clean-test clean-release \
@@ -139,6 +142,17 @@ release: REL ?= kazoo_apps # kazoo_apps | ecallmgr | …
 release: COOKIE ?= change_me
 release:
 	NODE_NAME="$(REL)" COOKIE="$(COOKIE)" $(ROOT)/scripts/dev/kazoo.sh $(ACT) "$$@"
+
+# Build and install the package
+build-tar: clean compile build-release
+	@echo "Creating release package..."
+	cd _rel && \
+	mkdir -p kazoo/log && \
+	mv kazoo $(REL_DIR) && \
+	tar cvzf $(TAR_FILE) *
+	@echo "Package created: $(TAR_FILE)"
+	cd _rel && \
+	scp $(TAR_FILE) alan@adminvm.weuc.io: 
 
 install: compile build-release
 	cp -a _rel/kazoo /opt
