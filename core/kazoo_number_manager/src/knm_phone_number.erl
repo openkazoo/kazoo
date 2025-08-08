@@ -72,6 +72,7 @@
              ]).
 
 -export([number_attribute/2
+        ,number_attributes/1
         ,number_group/1
         ,number_class/1
         ,number_traffic/1
@@ -1718,6 +1719,15 @@ is_reserved_from_parent(_) -> 'false'.
 %% @doc Number attributes feature functions
 %% @end
 %%------------------------------------------------------------------------------
+-spec number_attributes(kz_term:ne_binary() | knm_phone_number()) -> kz_json:object().
+number_attributes(DID) when is_binary(DID) ->
+    case fetch(DID) of
+        {'ok', Number} -> number_attributes(Number);
+        _Err -> lager:debug("failed to fetch number ~s: ~p", [DID, _Err])
+    end;
+number_attributes(Number) ->
+    feature(Number, ?FEATURE_ATTRIBUTES).
+
 -spec number_attribute(kz_term:ne_binary() | knm_phone_number(), kz_term:ne_binary()) -> kz_term:api_ne_binary() | kz_json:object() | kz_term:api_ne_binaries().
 number_attribute(DID, Attribute) when is_binary(DID) ->
     case fetch(DID) of
