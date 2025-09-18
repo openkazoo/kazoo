@@ -99,13 +99,7 @@
             "type": "boolean"
         },
         "notify": {
-            "properties": {
-                "callback": {
-                    "$ref": "notify.callback"
-                }
-            },
-            "support_level": "supported",
-            "type": "object"
+            "$ref": "voicemail.notify"
         },
         "notify_email_addresses": {
             "default": [],
