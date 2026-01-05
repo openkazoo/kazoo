@@ -93,10 +93,21 @@ test_rendering(Module) ->
 
 render(TemplateId, CT, Macros) ->
     {ok, Rendered} = render_t0(TemplateId, CT, Macros),
-    [
-        ?_assertEqual(T0, Line)
-     || {T0, Line} <- lists:zip(t0(TemplateId, CT), lines(iolist_to_binary(Rendered)))
-    ].
+    ExpectedLines = trim_empty_ends(t0(TemplateId, CT)),
+    ActualLines = trim_empty_ends(lines(iolist_to_binary(Rendered))),
+    case ExpectedLines =:= ActualLines of
+        true ->
+            ?_assertEqual(ExpectedLines, ActualLines);
+        false ->
+            case maybe_update_rendered_templates() of
+                true ->
+                    ok = overwrite_t0(TemplateId, CT, Rendered),
+                    UpdatedExpectedLines = trim_empty_ends(t0(TemplateId, CT)),
+                    ?_assertEqual(UpdatedExpectedLines, ActualLines);
+                false ->
+                    ?_assertEqual(ExpectedLines, ActualLines)
+            end
+    end.
 
 render_t0(TemplateId, CT, Macros) ->
     TmpModule = teletype_templates:renderer_name(TemplateId, CT),
@@ -109,15 +120,20 @@ manual_rendering(Module) ->
 
 -spec manual_rendering(atom(), boolean()) -> 'ok'.
 manual_rendering(Module, ShouldOverwrite) ->
-    #{
-        cts := CTs,
-        id := TemplateId,
-        macros := Macros,
-        fixture_file := Fixture
-    } = Map = call_template(Module),
-    ?DEV_LOG("Template ~s uses fixture ~s, macros are:~n~p~n", [TemplateId, Fixture, Macros]),
-    _ = [do_maunal_render(ShouldOverwrite, CT, Map) || CT <- CTs],
-    ok.
+    LinkPid = setup(),
+    try
+        #{
+            cts := CTs,
+            id := TemplateId,
+            macros := Macros,
+            fixture_file := Fixture
+        } = Map = call_template(Module),
+        ?DEV_LOG("Template ~s uses fixture ~s, macros are:~n~p~n", [TemplateId, Fixture, Macros]),
+        _ = [do_maunal_render(ShouldOverwrite, CT, Map) || CT <- CTs],
+        ok
+    after
+        cleanup(LinkPid)
+    end.
 
 do_maunal_render(ShouldOverwrite, CT, #{
     id_str := TemplateIdStr,
@@ -164,21 +180,31 @@ fake_system() ->
     ].
 
 t0(TemplateId, CT) ->
-    Ext = ct_to_ext(CT),
-    Path = filename:join([
-        code:lib_dir(?APP), "test/rendered-templates/", <<TemplateId/binary, ".", Ext/binary>>
-    ]),
+    Path = rendered_template_path(TemplateId, CT),
     %% ?LOG_DEBUG("reading t0 template ~s", [Path]),
     {ok, Bin} = file:read_file(Path),
     lines(Bin).
 
 -spec overwrite_t0(kz_term:ne_binary(), kz_term:ne_binary(), binary()) -> 'ok'.
 overwrite_t0(TemplateId, CT, Rendered) ->
-    Ext = ct_to_ext(CT),
-    Path = filename:join([
-        code:lib_dir(?APP), "test/rendered-templates/", <<TemplateId/binary, ".", Ext/binary>>
-    ]),
+    Path = rendered_template_path(TemplateId, CT),
     ok = file:write_file(Path, Rendered).
+
+rendered_template_path(TemplateId, CT) ->
+    Ext = ct_to_ext(CT),
+    Filename = <<TemplateId/binary, ".", Ext/binary>>,
+    {'ok', CWD} = file:get_cwd(),
+    FromCwd = filename:join([
+        CWD, "applications", "teletype", "test", "rendered-templates", Filename
+    ]),
+    case filelib:is_file(FromCwd) of
+        true ->
+            FromCwd;
+        false ->
+            filename:join([
+                code:lib_dir(?APP), "test", "rendered-templates", Filename
+            ])
+    end.
 
 fetch_template(TemplateId, CT) ->
     Ext = ct_to_ext(CT),
@@ -194,3 +220,20 @@ lines(Bin) ->
         kz_binary:strip(Line)
      || Line <- binary:split(Bin, <<$\n>>, [global])
     ].
+
+trim_empty_ends(Lines) ->
+    trim_trailing_empty_lines(trim_leading_empty_lines(Lines)).
+
+trim_leading_empty_lines([<<>> | Rest]) ->
+    trim_leading_empty_lines(Rest);
+trim_leading_empty_lines(Lines) ->
+    Lines.
+
+trim_trailing_empty_lines(Lines) ->
+    lists:reverse(trim_leading_empty_lines(lists:reverse(Lines))).
+
+maybe_update_rendered_templates() ->
+    case os:getenv("UPDATE_TELETYPE_RENDERED_TEMPLATES") of
+        "1" -> true;
+        _ -> false
+    end.

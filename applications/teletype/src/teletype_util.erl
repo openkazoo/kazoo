@@ -77,14 +77,14 @@ send_email(Emails0, Subject, RenderedTemplates, Attachments) ->
         {<<"multipart">>, <<"mixed">>,
             email_parameters(
                 [
-                    {<<"To">>, To},
-                    {<<"Cc">>, props:get_value(<<"cc">>, Emails)},
-                    {<<"Bcc">>, props:get_value(<<"bcc">>, Emails)},
+                    {<<"To">>, join_addresses(To)},
+                    {<<"Cc">>, join_addresses(props:get_value(<<"cc">>, Emails))},
+                    {<<"Bcc">>, join_addresses(props:get_value(<<"bcc">>, Emails))},
                     {<<"X-Teletype-Log-ID">>, kz_util:get_callid()}
                 ],
                 [
-                    {<<"From">>, From},
-                    {<<"Reply-To">>, props:get_value(<<"reply_to">>, Emails)},
+                    {<<"From">>, join_addresses(From)},
+                    {<<"Reply-To">>, join_addresses(props:get_value(<<"reply_to">>, Emails))},
                     {<<"Subject">>, Subject}
                 ]
             ),
@@ -173,6 +173,16 @@ email_body(RenderedTemplates) ->
         [],
         %% ContentTypeParams
         #{}, add_rendered_templates_to_email(RenderedTemplates)}.
+
+-spec join_addresses(kz_term:api_binaries() | kz_term:api_binary()) -> kz_term:api_binary().
+join_addresses('undefined') ->
+    'undefined';
+join_addresses([]) ->
+    'undefined';
+join_addresses([Address]) when is_binary(Address) -> Address;
+join_addresses(Addresses) when is_list(Addresses) ->
+    kz_binary:join(Addresses, <<", ">>);
+join_addresses(Address) when is_binary(Address) -> Address.
 
 -spec email_parameters(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
 email_parameters([], Params) ->
