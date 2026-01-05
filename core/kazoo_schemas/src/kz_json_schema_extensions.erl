@@ -79,7 +79,7 @@ extra_validation(<<"metaflow.module">>, Value, State) ->
     Schema = <<"metaflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
     State2 =
-        case jesse_state:get_current_schema_id(State1) of
+        case kz_term:to_binary(jesse_state:get_current_schema_id(State1)) of
             Schema ->
                 State1;
             _OtherSchema ->
@@ -103,7 +103,7 @@ extra_validation(<<"callflows.action.module">>, Value, State) ->
     Schema = <<"callflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
     State2 =
-        case jesse_state:get_current_schema_id(State1) of
+        case kz_term:to_binary(jesse_state:get_current_schema_id(State1)) of
             Schema ->
                 State1;
             _OtherSchema ->
@@ -178,7 +178,7 @@ extra_validation(_Key, _Value, State) ->
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),
     State2 =
-        case jesse_state:get_current_schema_id(State1) of
+        case kz_term:to_binary(jesse_state:get_current_schema_id(State1)) of
             Schema ->
                 SchemaObj = jesse_state:get_current_schema(State1),
                 jesse_schema_validator:validate_with_state(SchemaObj, Value, State1);

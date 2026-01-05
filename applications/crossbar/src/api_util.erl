@@ -70,13 +70,19 @@
 -define(DATA_SCHEMA,
     kz_json:from_list([
         {<<"type">>, [<<"object">>, <<"array">>]},
-        {<<"description">>, <<"The request data to be processed">>},
-        {<<"required">>, 'true'}
+        {<<"description">>, <<"The request data to be processed">>}
     ])
 ).
 
 -define(ENVELOPE_SCHEMA,
-    kz_json:from_list([{<<"properties">>, kz_json:from_list([{<<"data">>, ?DATA_SCHEMA}])}])
+    kz_json:from_list([
+        {<<"type">>, <<"object">>},
+        {<<"properties">>,
+            kz_json:from_list([
+                {<<"data">>, ?DATA_SCHEMA}
+            ])},
+        {<<"required">>, [<<"data">>]}
+    ])
 ).
 
 -define(DEFAULT_JSON_ERROR_MSG, <<"All JSON must be valid">>).
