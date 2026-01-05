@@ -628,7 +628,7 @@ channel_vars_handle_asserted_identity({Props, Results} = Acc) ->
             )
     end.
 
--spec build_asserted_identity(kz_term:ne_binary(), kz_term:prolist(), iolist()) ->
+-spec build_asserted_identity(kz_term:ne_binary(), kz_term:proplist(), iolist()) ->
     channel_var_fold().
 build_asserted_identity(AssertedIdentity, Props, Results) ->
     {Props,

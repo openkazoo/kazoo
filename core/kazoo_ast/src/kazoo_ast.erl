@@ -149,7 +149,7 @@ fold_over_module(Module, Config0, Routines) ->
             Routines
         )
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             io:format("error processing ~s: '~s': ~p~n", [Module, _E, R]),
             [io:format("~p~n", [S]) || S <- ST],
             throw({'error', Module, R})

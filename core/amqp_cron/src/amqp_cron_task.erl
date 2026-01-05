@@ -347,7 +347,7 @@ apply_task(Exec) ->
                 apply(F, A)
         end
     catch
-        ?STACKTRACE(Error, Reason, Stacktrace)
+        Error:Reason:Stacktrace ->
             Format = "Task ~p in process ~p with value:~n~p",
             Message = lists:flatten(
                 io_lib:format(

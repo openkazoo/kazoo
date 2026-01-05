@@ -453,7 +453,7 @@ create_account(AccountName, Realm, Username, Password, AccountId, UserId) when
             io:format("failed to create '~s': ~s~n", [AccountName, kz_json:encode(Errors)]),
             lager:error("errors thrown when creating account: ~s", [kz_json:encode(Errors)]),
             'failed';
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:error("crashed creating account: ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
 

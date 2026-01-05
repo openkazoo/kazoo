@@ -874,7 +874,7 @@ publish(Req, F) ->
     try
         F(Req)
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:debug("failed to publish message: ~p:~p", [_E, _R]),
             kz_util:log_stacktrace(ST)
     end.
@@ -886,7 +886,7 @@ publish(Q, Req, F) ->
     try
         F(Q, Req)
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:debug("failed to publish message to ~s: ~p:~p", [Q, _E, _R]),
             kz_util:log_stacktrace(ST)
     end.

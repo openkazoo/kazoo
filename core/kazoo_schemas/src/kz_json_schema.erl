@@ -1034,7 +1034,7 @@ default_object(Schema) ->
             ),
             kz_json:new()
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:error("exception getting schema default ~p : ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             kz_json:new()

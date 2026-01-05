@@ -274,7 +274,7 @@ schema_to_table(SchemaJObj) ->
                 "\n\n"
             ]
     catch
-        ?STACKTRACE('throw', 'no_type', ST)
+        'throw':'no_type':ST ->
             io:format("failed to build table from schema ~s~n", [kz_doc:id(SchemaJObj)]),
             io:format("~p~n", [ST]),
             throw('no_type')

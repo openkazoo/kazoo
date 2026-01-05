@@ -83,7 +83,7 @@ log_stacktrace() ->
     try
         throw('get_stacktrace')
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             log_stacktrace(ST, "log_stacktrace/0 is deprecated: ", [])
     end.
 
@@ -107,7 +107,7 @@ log_stacktrace(Fmt, Args) ->
     try
         throw('get_stacktrace')
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             log_stacktrace(ST, "log_stacktrace/2 is deprecated: " ++ Fmt, Args)
     end.
 

@@ -3,25 +3,6 @@
 -define(KEY_LOG_ID, <<"System-Log-ID">>).
 -define(DEFAULT_LOG_SYSTEM_ID, <<"00000000000">>).
 
-%% From https://github.com/tomas-abrahamsson/gpb/issues/134#issuecomment-386892877
-%% Usage:
-%% try
-%%     ...
-%% catch
-%%     error:badarg ->
-%%         whatever;
-%%     ?STACKTRACE(E, R, Stack)
-%%         {error, {E,R, Stack}}
-%% end
-%% kz.mk defines the macro if OTP version is >= 21
--ifdef(OTP_RELEASE).
-%% >= OTP 21
--define(STACKTRACE(Type, Reason, Stacktrace), Type:Reason:Stacktrace ->).
--else.
-%% =< OTP 20
--define(STACKTRACE(Type, Reason, Stacktrace), Type:Reason -> Stacktrace = erlang:get_stacktrace(), ).
--endif.
-
 -ifdef(TEST).
 
 -define(LOG_ALERT(F, A), io:format('user', "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).

@@ -246,7 +246,7 @@ build_load_params(Context, View, Options) ->
         Ctx ->
             Ctx
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:debug("exception occurred during building view options for ~s", [View]),
             kz_util:log_stacktrace(ST),
             cb_context:add_system_error('datastore_fault', Context)
@@ -299,7 +299,7 @@ build_load_range_params(Context, View, Options) ->
         Ctx ->
             Ctx
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:debug("exception occurred during building range view options for ~s", [View]),
             kz_util:log_stacktrace(ST),
             cb_context:add_system_error('datastore_fault', Context)
@@ -970,7 +970,7 @@ process_query_results(
     try
         handle_query_result(LoadMap, Dbs, JObjs, LimitWithLast)
     catch
-        ?STACKTRACE(E, R, ST)
+        E:R:ST ->
             lager:warning("exception occurred during querying db ~s for view ~s : ~p:~p", [
                 Db, View, E, R
             ]),

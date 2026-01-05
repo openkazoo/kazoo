@@ -102,7 +102,7 @@ validate_schema(SchemaJObj, {Doc, ValidationErrors}, OnSuccess) ->
             ),
             maybe_fix_js_types({Doc, ValidationErrors}, SchemaErrors, SchemaJObj, OnSuccess)
     catch
-        ?STACKTRACE('error', 'function_clause', ST)
+        'error':'function_clause':ST ->
             lager:error("function clause failure"),
             kz_util:log_stacktrace(ST),
             throw(

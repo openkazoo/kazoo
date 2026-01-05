@@ -67,7 +67,7 @@ sip_headers_test() ->
 %%     Endpoints = [Endpoint],
 %%     [BS] = ecallmgr_util:build_simple_channels(Endpoints),
 
-%%     dbg:stop_clear(),
 %%     dbg:stop(),
+%%     dbg:ctp('clear'),
 
 %%     ?assertEqual(<<"sofia/", ?SIP_INTERFACE, "/to_user@to_realm">>, BS).

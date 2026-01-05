@@ -246,7 +246,7 @@ maybe_extract_multipart(Context, Req0, QS) ->
     try
         extract_multipart(Context, Req0, QS)
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:debug("failed to extract multipart ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             handle_failed_multipart(Context, Req0, QS)

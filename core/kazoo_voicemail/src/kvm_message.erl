@@ -923,7 +923,7 @@ prepend_and_notify(Call, ForwardId, Metadata, SrcBoxId, Props) ->
             ],
             forward_to_vmbox(Call, Metadata, SrcBoxId, Props, UpdateFuns)
     catch
-        ?STACKTRACE(_T, _E, ST)
+        _T:_E:ST ->
             remove_malform_vm(Call, ForwardId),
             ErrorMessage = kz_term:to_binary(
                 io_lib:format("exception occurred during prepend and joining audio files: ~p:~p", [

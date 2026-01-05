@@ -632,7 +632,7 @@ get_app(App, Acc) ->
 
 -spec process_application(atom(), callback_configs()) -> callback_configs().
 process_application(App, Acc) ->
-    EBinDir = code:lib_dir(App, 'ebin'),
+    EBinDir = filename:join(code:lib_dir(App), "ebin"),
     io:format("processing ~s modules: ", [App]),
     Processed = filelib:fold_files(EBinDir, "^cb_.*.beam\$", 'false', fun process_module/2, Acc),
     io:format(" done~n"),
@@ -674,7 +674,7 @@ process_api_module(File, Module) ->
     try
         process_api_ast(Module, AST)
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             io:format("failed to process ~p(~p): ~s: ~p\n", [File, Module, _E, _R]),
             io:format("~p\n", [ST]),
             'undefined'

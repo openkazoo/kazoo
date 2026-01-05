@@ -1613,7 +1613,7 @@ fixture(Path) ->
 
 -spec fixture(atom(), file:filename_all()) -> {'ok', object()} | {'error', 'not_found'}.
 fixture(App, Path) when is_atom(App) ->
-    fixture(filename:join(code:lib_dir(App, 'test'), Path)).
+    fixture(filename:join([code:lib_dir(App), "test", Path])).
 
 %%------------------------------------------------------------------------------
 %% @doc Normalize a JSON object for storage as a Document.

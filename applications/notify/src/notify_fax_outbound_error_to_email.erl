@@ -90,7 +90,7 @@ send(JObj, AcctObj) ->
     try
         build_and_send_email(TxtBody, HTMLBody, Subject, Emails, props:filter_empty(Props))
     catch
-        ?STACKTRACE(E, R, ST)
+        E:R:ST ->
             Msg = io_lib:format("failed: ~s:~p", [E, R]),
             lager:debug(Msg),
             kz_util:log_stacktrace(ST),

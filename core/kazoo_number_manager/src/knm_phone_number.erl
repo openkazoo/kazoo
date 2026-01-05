@@ -986,7 +986,7 @@ setters_pn(PN, Routines) ->
     catch
         'throw':{'stop', Error} ->
             Error;
-        ?STACKTRACE('error', 'function_clause', ST)
+        'error':'function_clause':ST ->
             {FName, Arg} =
                 case ST of
                     [{'lists', 'foldl', [Name | _aPN], Arg2} | _] -> {Name, Arg2};

@@ -19,7 +19,7 @@
 -define(DBG_TRACE(Module, Function, Arity),
     dbg:tpl({Module, Function, Arity}, [{'_', [], [$_]}]), dbg:p('all', 'c')
 ).
--define(DBG_STOP, dbg:stop_clear(), dbg:stop()).
+-define(DBG_STOP, dbg:stop(), dbg:ctp('clear')).
 
 -define(KAZOO_DBG_HRL, 'true').
 -endif.

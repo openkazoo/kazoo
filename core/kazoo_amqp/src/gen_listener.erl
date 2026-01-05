@@ -75,7 +75,7 @@
     handle_info/2,
     terminate/2,
     code_change/3,
-    format_status/2
+    format_status/1
 ]).
 
 %% gen_server API
@@ -1073,34 +1073,32 @@ handle_callback_info(
         {'stop', Reason, ModuleState1} ->
             {'stop', Reason, State#state{module_state = ModuleState1}}
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             lager:debug("handle_info exception: ~s: ~p", [_E, R]),
             kz_util:log_stacktrace(ST),
             {'stop', R, State}
     end.
 
--spec format_status('normal' | 'terminate', [kz_term:proplist() | state()]) -> any().
+-spec format_status(map()) -> map().
 format_status(
-    _Opt,
-    [
-        _PDict,
-        #state{
+    #{
+        state := #state{
             module = Module,
             module_state = ModuleState
         } = State
-    ]
+    } = Status
 ) ->
-    case erlang:function_exported(Module, 'format_status', 2) of
+    case erlang:function_exported(Module, 'format_status', 1) of
         'true' ->
-            Module:format_status(_Opt, [_PDict, ModuleState]);
+            Module:format_status(Status#{state => ModuleState});
         'false' ->
-            [
-                {'data', [
+            Status#{
+                data => [
                     {"Module State", ModuleState},
                     {"Module", Module},
                     {"Listener State", State}
-                ]}
-            ]
+                ]
+            }
     end.
 
 -spec distribute_event(kz_json:object(), deliver(), state()) -> kz_types:handle_info_ret().
@@ -1491,7 +1489,7 @@ handle_module_call(
         {'stop', Reason, Reply, ModuleState1} ->
             {'stop', Reason, Reply, State#state{module_state = ModuleState1}}
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             lager:debug("handle_call exception: ~s: ~p", [_E, R]),
             kz_util:log_stacktrace(ST),
             {'stop', R, State}
@@ -1521,7 +1519,7 @@ handle_module_cast(
         {'stop', Reason, ModuleState1} ->
             {'stop', Reason, State#state{module_state = ModuleState1}}
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             lager:debug("handle_cast exception: ~s: ~p", [_E, R]),
             kz_util:log_stacktrace(ST),
             {'stop', R, State}

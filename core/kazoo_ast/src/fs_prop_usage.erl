@@ -101,7 +101,8 @@ usage_keys({'props', 'set_values', _Values, _VarName, 'undefined'}, Acc) ->
 
 event_filter_filename() ->
     filename:join([
-        code:lib_dir('ecallmgr', 'src'),
+        code:lib_dir('ecallmgr'),
+        "src",
         "fs_event_filters.hrl"
     ]).
 

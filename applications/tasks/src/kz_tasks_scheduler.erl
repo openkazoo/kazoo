@@ -185,7 +185,7 @@ try_maybe_strip_columns(Columns, CSVPath) ->
     try
         maybe_strip_columns(Columns, CSVPath)
     catch
-        ?STACKTRACE(_E, _R, ST)
+        _E:_R:ST ->
             lager:warning("stripping empty columns failed: ~p:~p", [_E, _R]),
             kz_util:log_stacktrace(ST)
     end.

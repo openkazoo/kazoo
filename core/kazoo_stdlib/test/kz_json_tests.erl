@@ -367,8 +367,8 @@ start_debug(M) ->
     dbg:p(all, c).
 
 stop_debug() ->
-    dbg:stop_clear(),
-    dbg:stop().
+    dbg:stop(),
+    dbg:ctp('clear').
 
 %% Once-failing tests found by PropEr
 merge_left_test_() ->

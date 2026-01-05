@@ -1266,7 +1266,7 @@ execute_control_request(Cmd, #state{
             send_error_resp(kz_json:new(), CallId, Cmd, Msg),
             Srv ! {'force_queue_advance', CallId, kz_json:new()},
             'ok';
-        ?STACKTRACE(_A, _B, ST)
+        _A:_B:ST ->
             lager:debug("exception (~s) while executing ~s: ~p", [_A, Application, _B]),
             kz_util:log_stacktrace(ST),
             send_error_resp(kz_json:new(), CallId, Cmd),

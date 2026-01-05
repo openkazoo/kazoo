@@ -361,7 +361,7 @@ seq() ->
             ?INFO("assigned ips: ~p", [AssignedIPs]),
             lager:info("finished running IPs test")
         catch
-            ?STACKTRACE(_E, _R, ST)
+            _E:_R:ST ->
                 ?INFO("failed ~s: ~p", [_E, _R]),
                 [?INFO("st: ~p", [S]) || S <- ST]
         after
@@ -609,7 +609,7 @@ correct() ->
                             aggregate(command_names(Cmds), Result =:= 'ok')
                         )
                 catch
-                    ?STACKTRACE(_E, _R, ST)
+                    _E:_R:ST ->
                         io:format("exception running commands: ~s:~p~n", [_E, _R]),
                         [io:format("~p~n", [S]) || S <- ST],
                         _ = cleanup(),

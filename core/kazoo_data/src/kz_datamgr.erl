@@ -250,7 +250,7 @@ do_revise_docs_from_folder(DbName, Sleep, [H | T]) ->
             timer:sleep(250),
         do_revise_docs_from_folder(DbName, Sleep, T)
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             io:format("error processing ~s: '~s': ~p~n", [?MODULE, _E, R]),
             [io:format("~p~n", [S]) || S <- ST],
             do_revise_docs_from_folder(DbName, Sleep, T)

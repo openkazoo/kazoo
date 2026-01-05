@@ -162,7 +162,8 @@ write_app_src(App, Config) ->
 app_src_filename(App) ->
     AppBin = kz_term:to_binary(App),
     filename:join([
-        code:lib_dir(App, 'src'),
+        code:lib_dir(App),
+        "src",
         <<AppBin/binary, ".app.src">>
     ]).
 
@@ -370,7 +371,7 @@ remote_calls_from_module(Module, Acc, {M, AST}) ->
             ?DEBUG("  ~p~n", [Module]),
             lists:delete(M, Modules)
     catch
-        ?STACKTRACE(_E, R, ST)
+        _E:R:ST ->
             io:format("process module '~s' failed: ~s: ~p~n", [Module, _E, R]),
             [io:format("st: ~p~n", [S]) || S <- ST],
             ?DEBUG("~s failed: ~s ~r~n~p~n", [Module, _E, R, ST]),

@@ -18,6 +18,6 @@ debug_call(M, F, Args) ->
 
     Result = apply(M, F, Args),
 
-    dbg:stop_clear(),
     dbg:stop(),
+    dbg:ctp('clear'),
     Result.
