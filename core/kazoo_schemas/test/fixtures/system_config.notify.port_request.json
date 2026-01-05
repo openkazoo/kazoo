@@ -1,0 +1,20 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.notify.port_request",
+    "description": "Schema for notify.port_request system_config",
+    "properties": {
+        "default_from": {
+            "description": "notify.port_request default from",
+            "type": "string"
+        },
+        "default_to": {
+            "default": "",
+            "description": "notify.port_request default to",
+            "items": {
+                "type": "string"
+            },
+            "type": "string"
+        }
+    },
+    "type": "object"
+}

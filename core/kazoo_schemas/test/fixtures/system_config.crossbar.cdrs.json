@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.crossbar.cdrs",
+    "description": "Schema for crossbar.cdrs system_config",
+    "properties": {
+        "cdr_stale_view": {
+            "default": false,
+            "description": "force cdr to return stale records only",
+            "type": "boolean"
+        },
+        "maximum_bulk": {
+            "default": 50,
+            "description": "crossbar.cdrs maximum bulk",
+            "minimum": 1,
+            "type": "integer"
+        },
+        "maximum_range": {
+            "default": 2682000,
+            "description": "crossbar.cdrs maximum range",
+            "type": "integer"
+        },
+        "should_filter_empty_strings": {
+            "default": false,
+            "description": "crossbar cdrs should_filter_empty_strings",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}

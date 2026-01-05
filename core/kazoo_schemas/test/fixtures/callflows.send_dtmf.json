@@ -1,0 +1,27 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "callflows.send_dtmf",
+    "description": "Validator for the Send DTMF callflow action",
+    "properties": {
+        "digits": {
+            "description": "String of DTMF tones to send",
+            "type": "string"
+        },
+        "duration_ms": {
+            "default": "2000",
+            "description": "How long, in milliseconds, to send each DTMF",
+            "type": [
+                "string",
+                "integer"
+            ]
+        },
+        "skip_module": {
+            "description": "When set to true this callflow action is skipped, advancing to the wildcard branch (if any)",
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "digits"
+    ],
+    "type": "object"
+}

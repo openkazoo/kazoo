@@ -1,0 +1,39 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "storage",
+    "patternProperties": {
+        "^_": {
+            "description": "Ignores CouchDB fields prefixed by underscores",
+            "type": [
+                "string",
+                "integer",
+                "boolean",
+                "object"
+            ]
+        },
+        "^pvt_": {
+            "description": "Ignores Kazoo private fields prefixed by pvt_",
+            "type": [
+                "string",
+                "integer",
+                "boolean"
+            ]
+        }
+    },
+    "properties": {
+        "attachments": {
+            "$ref": "storage.attachments"
+        },
+        "connections": {
+            "$ref": "storage.connections"
+        },
+        "id": {
+            "description": "ID of the storage document",
+            "type": "string"
+        },
+        "plan": {
+            "$ref": "storage.plan"
+        }
+    },
+    "type": "object"
+}

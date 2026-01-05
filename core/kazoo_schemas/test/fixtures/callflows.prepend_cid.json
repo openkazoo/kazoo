@@ -1,0 +1,40 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "callflows.prepend_cid",
+    "description": "Validator for the prepend_cid callflow data object",
+    "properties": {
+        "action": {
+            "default": "prepend",
+            "description": "Action to perform",
+            "enum": [
+                "reset",
+                "prepend"
+            ],
+            "type": "string"
+        },
+        "apply_to": {
+            "default": "current",
+            "description": "Apply the prepend to which caller ID",
+            "enum": [
+                "original",
+                "current"
+            ],
+            "type": "string"
+        },
+        "caller_id_name_prefix": {
+            "default": "",
+            "description": "Prefix caller ID name",
+            "type": "string"
+        },
+        "caller_id_number_prefix": {
+            "default": "",
+            "description": "Prefix caller ID number",
+            "type": "string"
+        },
+        "skip_module": {
+            "description": "When set to true this callflow action is skipped, advancing to the wildcard branch (if any)",
+            "type": "boolean"
+        }
+    },
+    "type": "object"
+}

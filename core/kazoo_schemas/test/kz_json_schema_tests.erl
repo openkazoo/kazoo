@@ -245,7 +245,9 @@ did_duplication_test() ->
 
     JObj = kz_json:from_list([{<<"servers">>, [SrvA, SrvB, SrvC]}]),
 
-    {'ok', Schema} = kz_json_schema:fload(<<"connectivity">>),
+    {'ok', Schema} = kz_json_schema:fload(
+        <<"./core/kazoo_schemas/test/fixtures/connectivity.json">>
+    ),
 
     {'ok', Valid} = kz_json_schema:validate(Schema, JObj),
 

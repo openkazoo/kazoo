@@ -36,6 +36,7 @@
 ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("kazoo_documents/include/kazoo_documents.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
@@ -99,7 +100,9 @@ setup_extra_validator(Options) ->
     | {'error', 'not_found'}
     | kz_datamgr:data_error().
 -ifdef(TEST).
-load(Schema) -> fload(Schema).
+load(Schema) ->
+    ?LOG_DEV("TEST Load: ~s", [Schema]),
+    fload(<<"core/kazoo_schemas/test/fixtures/", Schema/binary, ".json">>).
 -else.
 -spec load(kz_term:ne_binary() | string()) -> load_return().
 load(<<"./", Schema/binary>>) ->
@@ -133,6 +136,15 @@ fload(Schema) ->
 -spec find_and_fload(kz_term:ne_binary()) ->
     {'ok', kz_json:object()}
     | {'error', 'not_found'}.
+-ifdef(TEST).
+find_and_fload(Schema) ->
+    PrivDir = "./core/kazoo_schemas/test/fixtures/",
+    SchemaPath = filename:join([PrivDir, maybe_add_ext(Schema)]),
+    case filelib:is_regular(SchemaPath) of
+        'true' -> fload_file(SchemaPath);
+        'false' -> {'error', 'not_found'}
+    end.
+-else.
 find_and_fload(Schema) ->
     PrivDir = code:priv_dir('crossbar'),
     SchemaPath = filename:join([PrivDir, "couchdb", "schemas", maybe_add_ext(Schema)]),
@@ -140,6 +152,7 @@ find_and_fload(Schema) ->
         'true' -> fload_file(SchemaPath);
         'false' -> {'error', 'not_found'}
     end.
+-endif.
 
 -spec fload_file(kz_term:ne_binary()) -> {'ok', kz_json:object()}.
 fload_file(SchemaPath) ->
@@ -1021,9 +1034,9 @@ default_object(Schema) ->
             ),
             kz_json:new()
     catch
-        _Ex:_Err ->
-            lager:error("exception getting schema default ~p : ~p", [_Ex, _Err]),
-            kz_util:log_stacktrace(erlang:get_stacktrace()),
+        ?STACKTRACE(_E, _R, ST)
+            lager:error("exception getting schema default ~p : ~p", [_E, _R]),
+            kz_util:log_stacktrace(ST),
             kz_json:new()
     end.
 

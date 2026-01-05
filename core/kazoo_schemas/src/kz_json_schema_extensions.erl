@@ -289,7 +289,7 @@ is_valid_ftp_url({'ok', {'ftps', UserPass, Host, _Port, _FullPath, _Query}}) ->
         ]
     );
 is_valid_ftp_url(<<URL/binary>>) ->
-    is_valid_ftp_url(http_uri:parse(kz_term:to_list(URL)));
+    is_valid_ftp_url(kz_http_util:uri_parse(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->
     'false'.
 

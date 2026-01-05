@@ -1,0 +1,13 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "system_config.crossbar.braintree",
+    "description": "Schema for crossbar.braintree system_config",
+    "properties": {
+        "max_account_credit": {
+            "default": 500,
+            "description": "crossbar.braintree maximum account credit",
+            "type": "number"
+        }
+    },
+    "type": "object"
+}

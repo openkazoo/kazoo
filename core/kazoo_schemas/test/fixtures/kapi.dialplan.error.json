@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "_id": "kapi.dialplan.error",
+    "description": "AMQP API for dialplan.error",
+    "properties": {
+        "Call-ID": {
+            "type": "string"
+        },
+        "Custom-Channel-Vars": {
+            "type": "object"
+        },
+        "Disposition": {
+            "type": "string"
+        },
+        "Error-Message": {
+            "type": "string"
+        },
+        "Event-Category": {
+            "enum": [
+                "error"
+            ],
+            "type": "string"
+        },
+        "Event-Name": {
+            "enum": [
+                "dialplan"
+            ],
+            "type": "string"
+        },
+        "Hangup-Cause": {
+            "type": "string"
+        },
+        "Hangup-Code": {
+            "type": "string"
+        },
+        "Request": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "Error-Message"
+    ],
+    "type": "object"
+}
