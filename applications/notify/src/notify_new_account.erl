@@ -152,7 +152,7 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
                 {<<"Subject">>, Subject}
             ],
             ContentTypeParams, [
-                {<<"multipart">>, <<"alternative">>, [], [], [
+                {<<"multipart">>, <<"alternative">>, [], #{}, [
                     {<<"text">>, <<"plain">>,
                         props:filter_undefined(
                             [
@@ -161,7 +161,7 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
                                 {<<"Content-Transfer-Encoding">>, PlainTransferEncoding}
                             ]
                         ),
-                        [], iolist_to_binary(TxtBody)},
+                        #{}, iolist_to_binary(TxtBody)},
                     {<<"text">>, <<"html">>,
                         props:filter_undefined(
                             [
@@ -170,7 +170,7 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
                                 {<<"Content-Transfer-Encoding">>, HTMLTransferEncoding}
                             ]
                         ),
-                        [], iolist_to_binary(HTMLBody)}
+                        #{}, iolist_to_binary(HTMLBody)}
                 ]}
             ]},
     notify_util:send_email(From, To, Email).

@@ -189,13 +189,13 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props, AccountDb) ->
                 {<<"Subject">>, Subject}
             ],
             ContentTypeParams, [
-                {<<"multipart">>, <<"alternative">>, [], [], [
+                {<<"multipart">>, <<"alternative">>, [], #{}, [
                     {<<"text">>, <<"plain">>,
                         [{<<"Content-Type">>, iolist_to_binary([<<"text/plain">>, CharsetString])}],
-                        [], iolist_to_binary(TxtBody)},
+                        #{}, iolist_to_binary(TxtBody)},
                     {<<"text">>, <<"html">>,
                         [{<<"Content-Type">>, iolist_to_binary([<<"text/html">>, CharsetString])}],
-                        [], iolist_to_binary(HTMLBody)}
+                        #{}, iolist_to_binary(HTMLBody)}
                 ]},
                 {ContentTypeA, ContentTypeB,
                     [
@@ -207,6 +207,6 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props, AccountDb) ->
                             ])},
                         {<<"Content-Transfer-Encoding">>, <<"base64">>}
                     ],
-                    [], AttachmentBin}
+                    #{}, AttachmentBin}
             ]},
     notify_util:send_email(From, To, Email).

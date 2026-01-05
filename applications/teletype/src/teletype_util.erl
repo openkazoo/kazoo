@@ -88,7 +88,7 @@ send_email(Emails0, Subject, RenderedTemplates, Attachments) ->
                     {<<"Subject">>, Subject}
                 ]
             ),
-            [{<<"content-type-params">>, [{<<"charset">>, <<"utf-8">>}]}], [
+            #{content_type_params => [{<<"charset">>, <<"utf-8">>}]}, [
                 email_body(RenderedTemplates)
                 | add_attachments(Attachments)
             ]},
@@ -172,7 +172,7 @@ email_body(RenderedTemplates) ->
         %% Headers
         [],
         %% ContentTypeParams
-        [], add_rendered_templates_to_email(RenderedTemplates)}.
+        #{}, add_rendered_templates_to_email(RenderedTemplates)}.
 
 -spec email_parameters(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
 email_parameters([], Params) ->
@@ -358,7 +358,7 @@ add_attachments([{ContentType, Filename, Content} | As], Acc) ->
                 {<<"Content-Type">>, <<ContentType/binary, "; name=\"", Filename/binary, "\"">>},
                 {<<"Content-Transfer-Encoding">>, <<"base64">>}
             ],
-            [], Content},
+            #{}, Content},
     lager:debug("adding attachment ~s (~s)", [Filename, ContentType]),
     add_attachments(As, [Attachment | Acc]).
 
@@ -388,7 +388,7 @@ add_rendered_templates_to_email([{ContentType, Content} | Rs], Acc) ->
                     {<<"Content-Transfer-Encoding">>, CTEncoding}
                 ]
             ),
-            [], sanitize_content(iolist_to_binary(Content))},
+            #{}, sanitize_content(iolist_to_binary(Content))},
     lager:debug("adding template ~s (encoding ~s)", [ContentType, CTEncoding]),
     add_rendered_templates_to_email(Rs, [Template | Acc]).
 

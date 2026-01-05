@@ -301,7 +301,7 @@ body_from_files(Context) ->
 -spec body_from_files(cb_context:context(), req_files()) -> cb_context:context().
 body_from_files(Context, Files) ->
     Parts = [mimepart_from_file(File) || File <- Files],
-    Encoded = mimemail:encode_part({<<"multipart">>, <<"related">>, [], [], Parts}),
+    Encoded = mimemail:encode_part({<<"multipart">>, <<"related">>, [], #{}, Parts}),
     Body = kz_binary:join(Encoded, <<"\r\n">>),
     cb_context:set_doc(Context, kz_im:set_body(cb_context:doc(Context), Body)).
 
@@ -315,7 +315,7 @@ mimepart_from_file({Filename, FileJObj}) ->
     ],
     Content = kz_json:get_value(<<"contents">>, FileJObj),
     [Type, SubType] = binary:split(ContentType, <<"/">>),
-    {Type, SubType, Headers, [], Content}.
+    {Type, SubType, Headers, #{}, Content}.
 
 -spec account_is_enabled(cb_context:context()) -> cb_context:context().
 account_is_enabled(Context) ->

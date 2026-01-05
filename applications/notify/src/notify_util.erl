@@ -522,16 +522,16 @@ qr_code_image(Text) ->
             'undefined'
     end.
 
--spec get_charset_params(kz_term:proplist()) -> {kz_term:proplist(), binary()}.
+-spec get_charset_params(kz_term:proplist()) -> {map(), binary()}.
 get_charset_params(Service) ->
     case props:get_value(<<"template_charset">>, Service) of
         <<>> ->
-            {[], <<>>};
+            {#{}, <<>>};
         <<_/binary>> = Charset ->
             {
-                [{<<"content-type-params">>, [{<<"charset">>, Charset}]}],
+                #{content_type_params => [{<<"charset">>, Charset}]},
                 iolist_to_binary([<<";charset=">>, Charset])
             };
         _ ->
-            {[], <<>>}
+            {#{}, <<>>}
     end.
