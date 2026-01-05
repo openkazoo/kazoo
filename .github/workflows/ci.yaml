@@ -33,7 +33,7 @@ jobs:
       - name: Setup Erlang/OTP
         uses: erlef/setup-beam@v1
         with:
-          otp-version: "24"
+          otp-version: "27"
           rebar3-version: "3.25.0"
 
       - name: Install Go
@@ -66,16 +66,16 @@ jobs:
             timeout=$((timeout-1))
             sleep 1
           done
-          echo "CouchDB is up and ready!"
+          echo "CouchDB started successfully!"
 
-      - name: Initialize CouchDB System Databases
+      - name: Initialize CouchDB
         run: |
-          echo "Creating system databases..."
-          curl -s -u admin:password -X PUT http://localhost:5984/_users
-          curl -s -u admin:password -X PUT http://localhost:5984/_replicator
-          curl -s -u admin:password -X PUT http://localhost:5984/_global_changes
+          echo "Initializing system databases..."
+          for db in _users _replicator _global_changes; do
+            curl -s -u admin:password -X PUT "http://localhost:5984/$db?n=1&q=1"
+          done
           echo "" # for a clean log
-          echo "System databases created."
+          echo "CouchDB initialized!"
 
       - name: Start RabbitMQ
         run: |
@@ -89,7 +89,7 @@ jobs:
             timeout=$((timeout-1))
             sleep 1
           done
-          echo "RabbitMQ is up!"
+          echo "RabbitMQ started successfully!"
 
       - name: Prepare Kazoo Config
         run: |
