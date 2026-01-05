@@ -1,6 +1,6 @@
 {application, kazoo_speech, [
     {description, "Kazoo Speech providers - TTS and ASR"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []},
     {applications, [

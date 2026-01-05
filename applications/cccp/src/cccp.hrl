@@ -6,7 +6,7 @@
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
 -define(APP_NAME, <<"cccp">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(CCCP_CONFIG_CAT, <<"cccp">>).
 

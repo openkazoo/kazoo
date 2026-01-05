@@ -7,8 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_doc_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec patch_test_() -> any().
 patch_test_() ->
     RequestData = kz_json:from_list([{<<"enabled">>, 'true'}]),
     ExistingDoc = kz_json:from_list([
@@ -21,6 +23,7 @@ patch_test_() ->
 
     [?_assert(kz_json:is_true(<<"enabled">>, PatchedJObj))].
 
+-spec patch_recursive_test_() -> any().
 patch_recursive_test_() ->
     RequestData = kz_json:from_list([
         {<<"enabled">>, 'true'},

@@ -7,8 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cf_util_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec alpha_to_dialpad_test_() -> any().
 alpha_to_dialpad_test_() ->
     [
         ?_assertEqual(<<"222">>, cf_util:alpha_to_dialpad(<<"abc">>)),
@@ -17,6 +19,7 @@ alpha_to_dialpad_test_() ->
         ?_assertEqual(<<"23456789">>, cf_util:alpha_to_dialpad(<<"1BeH@k(N$q-u+x=">>))
     ].
 
+-spec alpha_to_dialpad_nonascii_test_() -> any().
 alpha_to_dialpad_nonascii_test_() ->
     [
         ?_assertEqual(<<"8378">>, cf_util:alpha_to_dialpad(<<"teÕst">>)),

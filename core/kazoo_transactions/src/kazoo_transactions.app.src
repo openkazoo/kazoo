@@ -1,6 +1,6 @@
 {application, kazoo_transactions, [
     {description, "Abstract transactions to be sent to bookkeepers for processing"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []},
     {applications, [

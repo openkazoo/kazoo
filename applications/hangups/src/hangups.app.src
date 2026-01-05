@@ -17,5 +17,5 @@
     {mod, {hangups_app, []}},
     {modules, []},
     {registered, [hangups_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

@@ -837,7 +837,7 @@ do_launch_cf_module(
 
     {PidRef, Action} =
         case maybe_start_cf_module(Module, Data, Call) of
-            {{Pid, _Ref} = PR, _Action} = Resp ->
+            {{_Pid, _Ref} = PR, _Action} = Resp ->
                 link(get_pid(PR)),
                 Resp;
             Resp ->
@@ -901,8 +901,7 @@ cf_module_task(CFModule, Data, Call, AMQPConsumer) ->
     try
         CFModule:handle(Data, Call)
     catch
-        _E:R ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE(_E, R, ST)
             lager:info("action ~s died unexpectedly (~s): ~p", [CFModule, _E, R]),
             kz_util:log_stacktrace(ST),
             throw(R)

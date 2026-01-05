@@ -24,5 +24,5 @@
         trunkstore_sup,
         ts_onnet_sup
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

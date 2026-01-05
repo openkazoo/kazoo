@@ -92,7 +92,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
 -spec send_request(kz_term:ne_binary(), kz_term:ne_binary()) ->
     'ok' | {'error', binary(), binary() | atom() | term()}.
 send_request(Url, Contents) ->
-    case http_uri:parse(kz_term:to_list(Url)) of
+    case kz_http_util:uri_parse(kz_term:to_list(Url)) of
         {'ok', {Scheme, UserPass, Host, Port, FullPath, _Query}} ->
             send_request(Scheme, Host, Port, UserPass, FullPath, Contents);
         _ ->

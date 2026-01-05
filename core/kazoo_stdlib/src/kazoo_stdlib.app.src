@@ -9,7 +9,7 @@
         stdlib
     ]},
     {description, "Erlang Term handlers"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []}
 ]}.

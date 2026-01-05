@@ -13,6 +13,9 @@
     run_seq_module/1
 ]).
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+
 -include("kazoo_proper.hrl").
 
 -spec run_modules() -> 'no_return'.

@@ -6,7 +6,7 @@
 
 -define(APP, cdr).
 -define(APP_NAME, (atom_to_binary(?APP, utf8))).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -type account_id() :: kz_term:ne_binary().

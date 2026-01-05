@@ -2,6 +2,8 @@
 
 -export([]).
 
+-spec test() -> 'ok'.
+
 -include_lib("eunit/include/eunit.hrl").
 -include("ecallmgr.hrl").
 
@@ -77,7 +79,7 @@ filter_endpoints_10722() ->
         _Device4Id = <<"Authorizing-ID='e192d667e3abd732d802353b70c26248'">>
     ],
     UnregedNeedles = [
-        _Device1Id = <<"Authorizing-ID='14b279cdaef7d55cff7235ba2a5010e9'">>,
+        _Device5Id = <<"Authorizing-ID='14b279cdaef7d55cff7235ba2a5010e9'">>,
         _Failover = <<"loopback/+18887776666">>
     ],
 

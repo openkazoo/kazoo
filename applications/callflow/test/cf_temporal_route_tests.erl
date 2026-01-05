@@ -13,6 +13,7 @@
 -include_lib("proper/include/proper.hrl").
 -endif.
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(SORTED_WDAYS, [
@@ -55,10 +56,12 @@ proper_test_() ->
     ]}.
 -endif.
 
+-spec sort_wdays_test_() -> any().
 sort_wdays_test_() ->
     Shuffled = kz_term:shuffle_list(?SORTED_WDAYS),
     ?_assertEqual(?SORTED_WDAYS, cf_temporal_route:sort_wdays(Shuffled)).
 
+-spec daily_recurrence_test_() -> any().
 daily_recurrence_test_() ->
     %% basic increment
     [
@@ -309,6 +312,7 @@ daily_recurrence_test_() ->
         )
     ].
 
+-spec weekly_recurrence_test_() -> any().
 weekly_recurrence_test_() ->
     %% basic increment
     [
@@ -2266,6 +2270,7 @@ weekly_recurrence_test_() ->
         )
     ].
 
+-spec monthly_every_recurrence_test_() -> [any()].
 monthly_every_recurrence_test_() ->
     %% basic increment (also crosses month boundary)
     [
@@ -3343,6 +3348,7 @@ monthly_every_recurrence_test_() ->
         )
     ].
 
+-spec monthly_last_recurrence_test_() -> any().
 monthly_last_recurrence_test_() ->
     %% basic increment
     [
@@ -4409,6 +4415,7 @@ monthly_last_recurrence_test_() ->
         )
     ].
 
+-spec monthly_every_ordinal_recurrence_test_() -> any().
 monthly_every_ordinal_recurrence_test_() ->
     %% basic first
     [
@@ -6394,6 +6401,7 @@ monthly_every_ordinal_recurrence_test_() ->
         )
     ].
 
+-spec monthly_date_recurrence__basic_increment_test_() -> any().
 monthly_date_recurrence__basic_increment_test_() ->
     %% basic increment
     [
@@ -6417,6 +6425,7 @@ monthly_date_recurrence__basic_increment_test_() ->
          || D <- lists:seq(1, 29)
         ].
 
+-spec monthly_date_recurrence_test_() -> any().
 monthly_date_recurrence_test_() ->
     %% same day, before
     [
@@ -6990,6 +6999,7 @@ monthly_date_recurrence_test_() ->
         )
     ].
 
+-spec yearly_date_recurrence_test_() -> any().
 yearly_date_recurrence_test_() ->
     %% basic increment
     [
@@ -7269,14 +7279,16 @@ yearly_date_recurrence_test_() ->
         )
     ].
 
+-spec yearly_every_recurrence_test() -> any().
 yearly_every_recurrence_test() ->
     %% TODO
     'ok'.
 
+-spec yearly_last_recurrence_test() -> any().
 yearly_last_recurrence_test() ->
     %% TODO
     'ok'.
-
+-spec yearly_every_ordinal_recurrence_test_() -> any().
 yearly_every_ordinal_recurrence_test_() ->
     %% basic first
     [

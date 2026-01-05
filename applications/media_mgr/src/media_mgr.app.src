@@ -14,5 +14,5 @@
     {mod, {media_mgr_app, []}},
     {modules, []},
     {registered, [media_mgr_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

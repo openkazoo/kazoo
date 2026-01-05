@@ -1,6 +1,6 @@
 {application, amqp_cron, [
     {description, "scheduled tasks execution"},
-    {vsn, "0.2.1"},
+    {vsn, git},
     {modules, []},
     {registered, [amqp_cron_sup]},
     {applications, [

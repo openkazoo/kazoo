@@ -4,6 +4,7 @@
         kazoo_amqp,
         kazoo_caches,
         kazoo_stdlib,
+        kazoo_stats,
         kernel,
         lager,
         snmp,
@@ -14,5 +15,5 @@
     {mod, {stats_app, []}},
     {modules, []},
     {registered, [stats_cache, stats_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

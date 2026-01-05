@@ -34,7 +34,7 @@
 -endif.
 
 -include("crossbar.hrl").
--include_lib("nklib/include/nklib.hrl").
+-include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
 -define(CB_LIST, <<"conferences/crossbar_listing">>).
 -define(CB_LIST_BY_NUMBER, <<"conference/listing_by_number">>).
@@ -722,7 +722,7 @@ build_sip_endpoint(URI, ?BUILD_ACC(Endpoints, Call, Context, Element)) ->
             user = SipUsername,
             domain = SipRealm
         }
-    ] = nklib_parse_uri:uris(URI),
+    ] = kzsip_parse_uri:uris(URI),
 
     SIPSettings = kz_json:from_list([
         {<<"invite_format">>, <<"route">>},

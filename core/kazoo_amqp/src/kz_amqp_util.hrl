@@ -7,7 +7,7 @@
 -include_lib("kazoo/include/kz_api_literals.hrl").
 
 -define(APP_NAME, <<"kazoo_amqp">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(KZ_AMQP_UTIL_HRL, 'true').
 -endif.

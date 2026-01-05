@@ -6,9 +6,34 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_media_util_tests).
 
+-include("kazoo_media.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
-get_prompt_test_() ->
+all_test_() ->
+    {setup, fun setup_fixtures/0, fun cleanup/1, fun(_) ->
+        [{"Testing get prompt", get_prompt_()}]
+    end}.
+
+setup_fixtures() ->
+    ?LOG_DEBUG(":: Setting up Kazoo Media test"),
+
+    Pid =
+        case kz_fixturedb_util:start_me() of
+            {error, {already_started, P}} -> P;
+            P when is_pid(P) -> P
+        end,
+
+    meck:new(kz_datamgr, [unstick, passthrough]),
+
+    meck:new(kz_fixturedb_db, [unstick, passthrough]),
+
+    Pid.
+
+cleanup(Pid) ->
+    kz_fixturedb_util:stop_me(Pid),
+    meck:unload().
+
+get_prompt_() ->
     Tests = [
         {"untouched tone_stream", [<<"tone_stream://%(250,250,480,620);loops=25">>],
             <<"tone_stream://%(250,250,480,620);loops=25">>},

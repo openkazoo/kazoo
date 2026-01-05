@@ -10,9 +10,6 @@
 
 -ifdef(AMQP_TESTS).
 
--export([simple_task/0]).
--export([dying_task/1]).
-
 oneshot_anon_test_() ->
     Schedule = {'oneshot', 500},
     Fun = fun(T) -> timer:sleep(T) end,
@@ -43,7 +40,7 @@ oneshot_millis_test_() ->
     ].
 
 oneshot_datetime_test_() ->
-    DateTime = advance_seconds(calendar:universal_time(), 2),
+    DateTime = amqp_cron_task:advance_seconds(calendar:universal_time(), 2),
     Schedule = {'oneshot', DateTime},
     {'ok', Pid} = amqp_cron_task:start_link(Schedule, {'timer', 'sleep', [500]}),
     {_, _, TaskPid} = amqp_cron_task:status(Pid),
@@ -100,15 +97,15 @@ nominal_cron_workflow_test_() ->
             {'timer', 'sleep', [5000]}
         ),
         Current = calendar:universal_time(),
-        Next = next_valid_datetime(Schedule, Current),
-        WaitFor = time_to_wait_millis(Current, Next),
+        Next = amqp_cron_task:next_valid_datetime(Schedule, Current),
+        WaitFor = amqp_cron_task:time_to_wait_millis(Current, Next),
         [
             ?_assertMatch({'waiting', Next, _}, amqp_cron_task:status(Pid)),
             ?_assertEqual('ok', timer:sleep(WaitFor + 2000)),
             ?_assertMatch({'running', Next, _}, amqp_cron_task:status(Pid)),
             ?_assertEqual('ok', timer:sleep(4000)),
             ?_assertMatch({'waiting', Next1, _}, begin
-                Next1 = next_valid_datetime(Schedule, Next),
+                Next1 = amqp_cron_task:next_valid_datetime(Schedule, Next),
                 amqp_cron_task:status(Pid)
             end),
             ?_assertEqual('ok', amqp_cron_task:stop(Pid)),
@@ -125,25 +122,29 @@ invalid_range_test_() ->
         ?_assertException(
             'throw',
             {'error', {'out_of_range', {'min', 2}, {'value', 1}}},
-            extract_integers([], 2, 10, [1])
+            amqp_cron_task:extract_integers([], 2, 10, [1])
         ),
         ?_assertException(
             'throw',
             {'error', {'out_of_range', {'max', 2}, {'value', 3}}},
-            extract_integers([], 1, 2, [3])
+            amqp_cron_task:extract_integers([], 1, 2, [3])
         )
     ].
 
 extract_integers_test_() ->
     [
-        ?_assertException('error', 'function_clause', extract_integers([], 5, 4)),
-        ?_assertException('error', {'case_clause', 'bad'}, extract_integers(['bad'], 0, 5)),
-        ?_assertEqual([1, 2, 3, 4, 5], extract_integers([{'range', 1, 5}], 0, 10)),
-        ?_assertEqual([1, 2, 3, 4, 5], extract_integers([{1, 5}], 0, 10)),
-        ?_assertEqual([1, 2, 3, 4, 5], extract_integers([{'list', [1, 2, 3, 4, 5]}], 0, 10)),
-        ?_assertEqual([1, 2, 3, 4, 5], extract_integers([[1, 2, 3, 4, 5]], 0, 10)),
-        ?_assertEqual([5], extract_integers([{'list', [5]}], 0, 10)),
-        ?_assertEqual([5], extract_integers([5], 0, 10))
+        ?_assertException('error', 'function_clause', amqp_cron_task:extract_integers([], 5, 4)),
+        ?_assertException(
+            'error', {'case_clause', 'bad'}, amqp_cron_task:extract_integers(['bad'], 0, 5)
+        ),
+        ?_assertEqual([1, 2, 3, 4, 5], amqp_cron_task:extract_integers([{'range', 1, 5}], 0, 10)),
+        ?_assertEqual([1, 2, 3, 4, 5], amqp_cron_task:extract_integers([{1, 5}], 0, 10)),
+        ?_assertEqual(
+            [1, 2, 3, 4, 5], amqp_cron_task:extract_integers([{'list', [1, 2, 3, 4, 5]}], 0, 10)
+        ),
+        ?_assertEqual([1, 2, 3, 4, 5], amqp_cron_task:extract_integers([[1, 2, 3, 4, 5]], 0, 10)),
+        ?_assertEqual([5], amqp_cron_task:extract_integers([{'list', [5]}], 0, 10)),
+        ?_assertEqual([5], amqp_cron_task:extract_integers([5], 0, 10))
     ].
 
 next_valid_datetime_cron_test_() ->
@@ -151,7 +152,7 @@ next_valid_datetime_cron_test_() ->
     [
         ?_assertEqual(
             {{2013, 1, 1}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', 'all', 'all', 'all'}},
                 {{2012, 12, 31}, {23, 59, 48}}
             )
@@ -159,7 +160,7 @@ next_valid_datetime_cron_test_() ->
         % last second of minute (we skip a second)
         ?_assertEqual(
             {{2012, 1, 1}, {0, 1, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', 'all', 'all', 'all'}},
                 {{2012, 1, 1}, {0, 0, 59}}
             )
@@ -167,7 +168,7 @@ next_valid_datetime_cron_test_() ->
         % 12th month rolls year
         ?_assertEqual(
             {{2013, 2, 1}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', 'all', [{'list', [2]}], 'all'}},
                 {{2012, 12, 1}, {0, 0, 0}}
             )
@@ -175,7 +176,7 @@ next_valid_datetime_cron_test_() ->
         % normal month advance
         ?_assertEqual(
             {{2012, 12, 1}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', 'all', [{'list', [12]}], 'all'}},
                 {{2012, 4, 1}, {0, 0, 0}}
             )
@@ -183,7 +184,7 @@ next_valid_datetime_cron_test_() ->
         % day of month (no day of week)
         ?_assertEqual(
             {{2012, 1, 13}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', [{'list', [13]}], 'all', 'all'}},
                 {{2012, 1, 5}, {0, 0, 0}}
             )
@@ -191,7 +192,7 @@ next_valid_datetime_cron_test_() ->
         % day of week (no day of month)
         ?_assertEqual(
             {{2012, 2, 10}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 % 5 is Friday
                 {'cron', {'all', 'all', 'all', 'all', [{'list', [5]}]}},
                 {{2012, 2, 7}, {0, 0, 0}}
@@ -200,7 +201,7 @@ next_valid_datetime_cron_test_() ->
         % day of week and day of month (day of month comes first and wins)
         ?_assertEqual(
             {{2012, 2, 8}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', [{'list', [8]}], 'all', [{'list', [5]}]}},
                 {{2012, 2, 7}, {0, 0, 0}}
             )
@@ -208,7 +209,7 @@ next_valid_datetime_cron_test_() ->
         % day of week and day of month (day of week comes first and wins)
         ?_assertEqual(
             {{2012, 2, 10}, {0, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', 'all', [{'list', [12]}], 'all', [{'list', [5]}]}},
                 {{2012, 2, 7}, {0, 0, 0}}
             )
@@ -216,7 +217,7 @@ next_valid_datetime_cron_test_() ->
         % hour advance
         ?_assertEqual(
             {{2012, 1, 1}, {22, 0, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {'all', [{'list', [22]}], 'all', 'all', 'all'}},
                 {{2012, 1, 1}, {0, 0, 0}}
             )
@@ -224,7 +225,7 @@ next_valid_datetime_cron_test_() ->
         % minute advance
         ?_assertEqual(
             {{2012, 1, 1}, {0, 59, 0}},
-            next_valid_datetime(
+            amqp_cron_task:next_valid_datetime(
                 {'cron', {[{'list', [59]}], 'all', 'all', 'all', 'all'}},
                 {{2012, 1, 1}, {0, 0, 0}}
             )
@@ -234,7 +235,7 @@ next_valid_datetime_cron_test_() ->
 time_to_wait_millis_test() ->
     ?assertEqual(
         60000,
-        time_to_wait_millis(
+        amqp_cron_task:time_to_wait_millis(
             {{2012, 1, 1}, {0, 0, 0}},
             {{2012, 1, 1}, {0, 1, 0}}
         )

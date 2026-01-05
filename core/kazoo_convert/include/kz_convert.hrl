@@ -4,7 +4,7 @@
 
 -define(CHUNKSIZE, 24576).
 -define(APP_NAME, <<"kazoo_convert">>).
--define(APP_VERSION, <<"1.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(TIFF_MIME, <<"image/tiff">>).

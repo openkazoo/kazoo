@@ -7,11 +7,10 @@
         kazoo_stdlib,
         kernel,
         lager,
-        rabbit_common,
         stdlib
     ]},
     {description, "AMQP client helpers for interacting with a AMQP server"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, [
         kz_amqp_connections,

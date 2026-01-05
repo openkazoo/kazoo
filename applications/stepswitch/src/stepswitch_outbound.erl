@@ -24,9 +24,10 @@ handle_req(OffnetJObj, _Props) ->
     'true' = kapi_offnet_resource:req_v(OffnetJObj),
     OffnetReq = kapi_offnet_resource:jobj_to_req(OffnetJObj),
     _ = kapi_offnet_resource:put_callid(OffnetReq),
-    case kapi_offnet_resource:resource_type(OffnetReq) of
-        ?RESOURCE_TYPE_AUDIO -> handle_audio_req(OffnetReq);
-        ?RESOURCE_TYPE_ORIGINATE -> handle_originate_req(OffnetReq)
+    NewOffnetReq = martini:maybe_add_identity_header(OffnetJObj),
+    case kapi_offnet_resource:resource_type(NewOffnetReq) of
+        ?RESOURCE_TYPE_AUDIO -> handle_audio_req(NewOffnetReq);
+        ?RESOURCE_TYPE_ORIGINATE -> handle_originate_req(NewOffnetReq)
     end.
 
 %%------------------------------------------------------------------------------

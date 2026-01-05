@@ -5,7 +5,7 @@
 -include_lib("kazoo/include/kz_api_literals.hrl").
 
 -define(APP_NAME, <<"braintree">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 -define(BT_DEBUG, kapps_config:get_is_true(?CONFIG_CAT, <<"debug">>, 'false')).
 

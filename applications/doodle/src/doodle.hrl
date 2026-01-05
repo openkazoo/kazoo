@@ -8,7 +8,7 @@
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
 
 -define(APP_NAME, <<"doodle">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(CACHE_NAME, 'doodle_cache').

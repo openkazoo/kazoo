@@ -1,6 +1,6 @@
 {application, kazoo_translator, [
     {description, "Bridging various call control formats to the 2600hz JSON APIs"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []},
     {applications, [

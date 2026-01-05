@@ -34,7 +34,7 @@
 
 -define(EMPTY_LIST, {'nil', _}).
 -define(LIST(Head, Tail),
-    {'cons', _Line, Head, Tail}
+    {'cons', _, Head, Tail}
 ).
 
 -define(LC(Expr, Qualifiers),

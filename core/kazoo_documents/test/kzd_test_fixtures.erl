@@ -6,6 +6,7 @@
 ]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 setup() ->
     ?LOG_DEBUG(":: Setting up Kazoo FixtureDB"),

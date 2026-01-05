@@ -745,8 +745,7 @@ maybe_start_node_handlers(
             ]),
             {'error', 'failed_starting_handlers'}
     catch
-        _:Reason ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE(_, Reason, ST)
             lager:warning("exception starting node ~s handlers: ~p", [NodeName, Reason]),
             kz_util:log_stacktrace(ST),
             {'error', Reason}

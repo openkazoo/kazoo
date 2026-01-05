@@ -276,7 +276,7 @@ build_freeswitch(Pid) ->
 -spec crawl_numbers_db(kz_term:ne_binary()) -> 'ok'.
 crawl_numbers_db(NumberDb) ->
     lager:debug("getting all numbers from ~s", [NumberDb]),
-    Db = kz_term:to_binary(http_uri:encode(kz_term:to_list(NumberDb))),
+    Db = kz_term:to_binary(kz_http_util:urlencode(kz_term:to_list(NumberDb))),
     try kz_datamgr:all_docs(Db) of
         {'ok', []} ->
             lager:debug("no number docs in ~s", [NumberDb]);

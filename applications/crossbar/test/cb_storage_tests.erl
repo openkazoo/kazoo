@@ -1,5 +1,6 @@
 -module(cb_storage_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kazoo_fixturedb/include/kz_fixturedb.hrl").
 -include("cb_token_restrictions_test.hrl").
@@ -16,6 +17,7 @@
 %% @doc
 %% @end
 %%--------------------------------------------------------------------
+-spec maybe_check_storage_settings_test_() -> any().
 maybe_check_storage_settings_test_() ->
     {'setup', fun setup/0, fun cleanup/1, fun(_ReturnOfSetup) ->
         maybe_check_storage_settings()

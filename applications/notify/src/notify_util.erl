@@ -509,7 +509,7 @@ qr_code_image('undefined') ->
     'undefined';
 qr_code_image(Text) ->
     lager:debug("create qr code for ~s", [Text]),
-    CHL = kz_util:uri_encode(Text),
+    CHL = kz_http_util:urlencode(Text),
     Url =
         <<"https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=", CHL/binary, "&choe=UTF-8">>,
 

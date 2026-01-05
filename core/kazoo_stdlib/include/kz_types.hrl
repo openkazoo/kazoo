@@ -135,6 +135,8 @@
     <<"dialplan">>
 ]).
 
+-define(KZ_RECORDER, <<"kz_media_recording">>).
+
 -define(CHANNEL_LOOPBACK_HEADER_PREFIX, "Export-Loopback-").
 -define(CALL_INTERACTION_ID, "Call-Interaction-ID").
 -define(CALL_INTERACTION_DEFAULT,
@@ -198,6 +200,21 @@
         (Year):4/binary, (Month):2/binary>>
 ).
 
+-define(MATCH_YODB_SUFFIX_RAW(A, B, Rest, Year),
+    <<(A):2/binary, (B):2/binary, (Rest):28/binary, "-", (Year):4/binary>>
+).
+-define(MATCH_YODB_SUFFIX_UNENCODED(A, B, Rest, Year),
+    <<"account/", (A):2/binary, "/", (B):2/binary, "/", (Rest):28/binary, "-", (Year):4/binary>>
+).
+-define(MATCH_YODB_SUFFIX_ENCODED(A, B, Rest, Year),
+    <<"account%2F", (A):2/binary, "%2F", (B):2/binary, "%2F", (Rest):28/binary, "-",
+        (Year):4/binary>>
+).
+-define(MATCH_YODB_SUFFIX_encoded(A, B, Rest, Year),
+    <<"account%2f", (A):2/binary, "%2f", (B):2/binary, "%2f", (Rest):28/binary, "-",
+        (Year):4/binary>>
+).
+
 %% FIXME: replace these with the above ones, actually matching: "account..."
 %% FIXME: add MATCH_MODB_SUFFIX_encoded/3
 -define(MATCH_MODB_SUFFIX_RAW(Account, Year, Month),
@@ -217,6 +234,26 @@
 -define(MATCH_MODB_PREFIX_M1(Year, Month, Account),
     %% FIXME: add missing size
     <<(Year):4/binary, (Month):1/binary, "-", (Account)/binary>>
+).
+
+%% FIXME: replace these with the above ones, actually matching: "account..."
+%% FIXME: add MATCH_YODB_SUFFIX_encoded/2
+-define(MATCH_YODB_SUFFIX_RAW(Account, Year),
+    <<(Account):32/binary, "-", (Year):4/binary>>
+).
+-define(MATCH_YODB_SUFFIX_UNENCODED(Account, Year),
+    <<(Account):42/binary, "-", (Year):4/binary>>
+).
+-define(MATCH_YODB_SUFFIX_ENCODED(Account, Year),
+    <<(Account):48/binary, "-", (Year):4/binary>>
+).
+-define(MATCH_YODB_PREFIX(Year, Account),
+    %% FIXME: add missing size
+    <<(Year):4/binary, "-", (Account)/binary>>
+).
+-define(MATCH_YODB_PREFIX_M1(Year, Account),
+    %% FIXME: add missing size
+    <<(Year):4/binary, "-", (Account)/binary>>
 ).
 
 -define(MATCH_RESOURCE_SELECTORS_RAW(Account),
@@ -245,97 +282,7 @@
     <<"account%2f", (A):2/binary, "%2f", (B):2/binary, "%2f", (Rest):28/binary, "-selectors">>
 ).
 
--define(FAKE_CALLID(C), kz_term:to_hex_binary(crypto:hash(md5, C))).
-
--ifdef(TEST).
-
--define(LOG_ALERT(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_CRITICAL(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_DEBUG(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_EMERGENCY(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_ERROR(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_INFO(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_NOTICE(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_WARNING(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(LOG_DEV(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
-
--define(LOG_ALERT(F), ?LOG_ALERT(F, [])).
--define(LOG_CRITICAL(F), ?LOG_CRITICAL(F, [])).
--define(LOG_DEBUG(F), ?LOG_DEBUG(F, [])).
--define(LOG_EMERGENCY(F), ?LOG_EMERGENCY(F, [])).
--define(LOG_ERROR(F), ?LOG_ERROR(F, [])).
--define(LOG_INFO(F), ?LOG_INFO(F, [])).
--define(LOG_NOTICE(F), ?LOG_NOTICE(F, [])).
--define(LOG_WARNING(F), ?LOG_WARNING(F, [])).
--define(LOG_DEV(F), ?LOG_DEV(F, [])).
-
--else.
-
--define(LOG_ALERT(F, A), lager:alert(F, A)).
--define(LOG_CRITICAL(F, A), lager:critical(F, A)).
--define(LOG_DEBUG(F, A), lager:debug(F, A)).
--define(LOG_EMERGENCY(F, A), lager:emergency(F, A)).
--define(LOG_ERROR(F, A), lager:error(F, A)).
--define(LOG_INFO(F, A), lager:info(F, A)).
--define(LOG_NOTICE(F, A), lager:notice(F, A)).
--define(LOG_WARNING(F, A), lager:warning(F, A)).
--define(LOG_DEV(F, A), dev:debug(F, A)).
-
--define(LOG_ALERT(F), ?LOG_ALERT(F, [])).
--define(LOG_CRITICAL(F), ?LOG_CRITICAL(F, [])).
--define(LOG_DEBUG(F), ?LOG_DEBUG(F, [])).
--define(LOG_EMERGENCY(F), ?LOG_EMERGENCY(F, [])).
--define(LOG_ERROR(F), ?LOG_ERROR(F, [])).
--define(LOG_INFO(F), ?LOG_INFO(F, [])).
--define(LOG_NOTICE(F), ?LOG_NOTICE(F, [])).
--define(LOG_WARNING(F), ?LOG_WARNING(F, [])).
--define(LOG_DEV(F), ?LOG_DEV(F, [])).
-
--endif.
-
--define(SUP_LOG_DEBUG(F, A), begin
-    lager:debug(F, A),
-    io:format(F ++ "\n", A)
-end).
--define(SUP_LOG_INFO(F, A), begin
-    lager:info(F, A),
-    io:format(F ++ "\n", A)
-end).
--define(SUP_LOG_WARNING(F, A), begin
-    lager:warning(F, A),
-    io:format(F ++ "\n", A)
-end).
--define(SUP_LOG_ERROR(F, A), begin
-    lager:error(F, A),
-    io:format(F ++ "\n", A)
-end).
-
--define(SUP_LOG_DEBUG(F), ?SUP_LOG_DEBUG(F, [])).
--define(SUP_LOG_INFO(F), ?SUP_LOG_INFO(F, [])).
--define(SUP_LOG_WARNING(F), ?SUP_LOG_WARNING(F, [])).
--define(SUP_LOG_ERROR(F), ?SUP_LOG_ERROR(F, [])).
-
--define(DEV_LOG(F, A), io:format(user, "~s:~p  " ++ F ++ "\n", [?MODULE, ?LINE | A])).
--define(DEV_LOG(F), ?DEV_LOG(F, [])).
-
-%% From https://github.com/tomas-abrahamsson/gpb/issues/134#issuecomment-386892877
-%% Usage:
-%% try
-%%     ...
-%% catch
-%%     error:badarg ->
-%%         whatever;
-%%     ?STACKTRACE(E, R, Stack)
-%%         {error, {E,R, Stack}}
-%% end
-%% kz.mk defines the macro if OTP version is >= 21
--ifdef(OTP_RELEASE).
-%% >= OTP 21
--define(STACKTRACE(Type, Reason, Stacktrace), Type:Reason:Stacktrace ->).
--else.
-%% =< OTP 20
--define(STACKTRACE(Type, Reason, Stacktrace), Type:Reason -> Stacktrace = erlang:get_stacktrace(), ).
--endif.
+-define(FAKE_CALLID(C), kz_term:to_hex_binary(crypto:hash('md5', C))).
 
 -define(KAZOO_TYPES_INCLUDED, 'true').
 -endif.

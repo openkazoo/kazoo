@@ -14,6 +14,10 @@
     get_tiff_info/1
 ]).
 
+-ifdef(TEST).
+-export([run_convert_command/4]).
+-endif.
+
 -include("kz_fax_converter.hrl").
 
 -type fax_converted() ::
@@ -239,7 +243,7 @@ convert_file(Command, FromPath, Ext, #{<<"job_id">> := JobId, <<"tmp_dir">> := T
     BatchPath = filename:join(TmpDir, <<
         (filename:rootname(filename:basename(FromPath)))/binary, Ext/binary
     >>),
-    case run_convert_command(Command, FromPath, ToPath, TmpDir) of
+    case ?MODULE:run_convert_command(Command, FromPath, ToPath, TmpDir) of
         {'ok', _} -> maybe_rename_file(BatchPath, ToPath);
         Else -> Else
     end.

@@ -8,7 +8,7 @@
 
 -define(NOTIFY_CONFIG_CAT, <<"notify">>).
 
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(APP_NAME, <<"notify">>).
 -define(APP, 'notify').
 

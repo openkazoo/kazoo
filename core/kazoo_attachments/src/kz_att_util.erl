@@ -24,23 +24,23 @@
 -spec sha_mac(iodata(), iodata()) -> binary().
 sha_mac(K, S) ->
     try
-        crypto:hmac('sha', K, S)
+        crypto:mac('hmac', 'sha', K, S)
     catch
         'error':'undef' ->
-            R0 = crypto:hmac_init('sha', K),
-            R1 = crypto:hmac_update(R0, S),
-            crypto:hmac_final(R1)
+            R0 = crypto:mac_init('hmac', 'sha', K),
+            R1 = crypto:mac_update('hmac', R0, S),
+            crypto:mac_final('hmac', R1)
     end.
 
 -spec sha256_mac(iodata(), iodata()) -> binary().
 sha256_mac(K, S) ->
     try
-        crypto:hmac('sha256', K, S)
+        crypto:mac('hmac', 'sha256', K, S)
     catch
         'error':'undef' ->
-            R0 = crypto:hmac_init('sha256', K),
-            R1 = crypto:hmac_update(R0, S),
-            crypto:hmac_final(R1)
+            R0 = crypto:mac_init('hmac', 'sha256', K),
+            R1 = crypto:mac_update('hmac', R0, S),
+            crypto:mac_final('hmac', R1)
     end.
 
 -spec sha256(iodata()) -> binary().
@@ -71,7 +71,7 @@ format_url_from_metadata(Map, {DbName, DocId, AName}, Format, JObj) ->
         {<<"attachment">>, AName},
         {<<"id">>, DocId},
         {<<"account_id">>, kz_doc:account_id(JObj, <<"unknown_account">>)},
-        {<<"db">>, kz_util:uri_decode(DbName)}
+        {<<"db">>, kz_http_util:urldecode(DbName)}
     ],
     format_url(Map, kz_doc:public_fields(JObj), Args, Format).
 
@@ -114,14 +114,14 @@ format_url_field(JObj, Args, #{<<"arg">> := Arg}, Fields) ->
 format_url_field(_JObj, Args, {'arg', Arg}, Fields) ->
     case props:get_value(Arg, Args) of
         'undefined' -> Fields;
-        V -> [kz_util:uri_encode(V) | Fields]
+        V -> [kz_http_util:urlencode(V) | Fields]
     end;
 format_url_field(JObj, Args, #{<<"field">> := Field}, Fields) ->
     format_url_field(JObj, Args, {'field', Field}, Fields);
 format_url_field(JObj, _Args, {'field', Field}, Fields) ->
     case kz_json:get_ne_binary_value(Field, JObj) of
         'undefined' -> Fields;
-        V -> [kz_util:uri_encode(V) | Fields]
+        V -> [kz_http_util:urlencode(V) | Fields]
     end;
 format_url_field(JObj, Args, #{<<"const">> := Field}, Fields) ->
     format_url_field(JObj, Args, {'const', Field}, Fields);

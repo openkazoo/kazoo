@@ -15,7 +15,7 @@
         stdlib
     ]},
     {description, "Kazoo Document helper modules"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []}
 ]}.

@@ -99,10 +99,9 @@ process_req(FaxDoc, JObj, _Props) ->
             TxtBody, HTMLBody, Subject, Emails, props:filter_empty(Props), AccountDb
         )
     catch
-        C:R ->
-            Msg = io_lib:format("failed: ~s:~p", [C, R]),
+        ?STACKTRACE(E, R, ST)
+            Msg = io_lib:format("failed: ~s:~p", [E, R]),
             lager:debug(Msg),
-            ST = erlang:get_stacktrace(),
             kz_util:log_stacktrace(ST),
             {'error', Msg}
     end.

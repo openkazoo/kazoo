@@ -7,7 +7,7 @@
 -include_lib("kazoo_edr/include/edr.hrl").
 
 -define(APP_NAME, <<"edr">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -record(backend, {
     name :: kz_term:ne_binary(),

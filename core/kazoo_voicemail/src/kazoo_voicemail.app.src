@@ -16,7 +16,7 @@
         stdlib
     ]},
     {description, "Voice mail box and Voice mail messages"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []}
 ]}.

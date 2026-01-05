@@ -33,5 +33,5 @@
         stepswitch_request_sup,
         stepswitch_sup
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

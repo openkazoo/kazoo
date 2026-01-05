@@ -1,7 +1,9 @@
 -module(cb_api_endpoint_tests).
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+-include_lib("kazoo_web/include/kazoo_web.hrl").
 -include_lib("eunit/include/eunit.hrl").
--include_lib("crossbar/src/crossbar.hrl").
 
 sort_methods_test_() ->
     Tests =

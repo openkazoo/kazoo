@@ -344,4 +344,4 @@ create_attachment(AttachmentName, AttachmentJObj, AttachmentBin) ->
 fix_attachment_name(Name) when is_binary(Name) ->
     fix_attachment_name(kz_term:to_list(Name));
 fix_attachment_name(Name) ->
-    kz_term:to_binary(http_uri:encode(Name)).
+    kz_term:to_binary(kz_http_util:urlencode(Name)).

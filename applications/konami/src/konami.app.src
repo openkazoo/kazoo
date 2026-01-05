@@ -21,5 +21,5 @@
     {mod, {konami_app, []}},
     {modules, []},
     {registered, [konami_event_listener, konami_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

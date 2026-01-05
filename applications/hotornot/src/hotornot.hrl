@@ -7,7 +7,7 @@
 -include_lib("kazoo_documents/include/kzd_ratedeck.hrl").
 
 -define(APP_NAME, <<"hotornot">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(CACHE_NAME, 'hotornot_cache').
 

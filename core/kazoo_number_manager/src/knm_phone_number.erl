@@ -986,8 +986,7 @@ setters_pn(PN, Routines) ->
     catch
         'throw':{'stop', Error} ->
             Error;
-        'error':'function_clause' ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE('error', 'function_clause', ST)
             {FName, Arg} =
                 case ST of
                     [{'lists', 'foldl', [Name | _aPN], Arg2} | _] -> {Name, Arg2};
@@ -1219,7 +1218,7 @@ set_feature(PN0, Feature = ?NE_BINARY, Data) ->
         end,
     PN = set_features(PN0, kz_json:set_value(Feature, Data, Features)),
     PN#knm_phone_number.is_dirty andalso
-        ?LOG_DEBUG("setting ~s feature ~s: ~s", [number(PN), Feature, kz_json:encode(Data)]),
+        ?LOG_DEBUG("setting ~p feature ~p: ~p", [number(PN), Feature, Data]),
     PN.
 
 -spec reset_features(knm_phone_number()) -> knm_phone_number().

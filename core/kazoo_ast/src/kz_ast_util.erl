@@ -27,8 +27,10 @@
     app_modules/1
 ]).
 
--include_lib("kazoo_ast/include/kz_ast.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+
+-include_lib("kazoo_ast/include/kz_ast.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 -include_lib("kazoo_amqp/src/api/kapi_dialplan.hrl").
 -include_lib("kazoo_amqp/src/api/kapi_call.hrl").
@@ -272,8 +274,7 @@ schema_to_table(SchemaJObj) ->
                 "\n\n"
             ]
     catch
-        'throw':'no_type' ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE('throw', 'no_type', ST)
             io:format("failed to build table from schema ~s~n", [kz_doc:id(SchemaJObj)]),
             io:format("~p~n", [ST]),
             throw('no_type')

@@ -9,7 +9,7 @@
 
 -define(APP, 'tasks').
 -define(APP_NAME, <<"tasks">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(WORKER_TASK_FAILED, <<"applier crashed">>).

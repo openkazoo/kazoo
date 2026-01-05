@@ -6,7 +6,7 @@
 -include_lib("kazoo/include/kz_system_config.hrl").
 
 -define(APP_NAME, <<"kazoo_apps">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(APP, 'kazoo_apps').
 
 -define(KAPPS_CONFIG_CACHE, 'kapps_config_cache').

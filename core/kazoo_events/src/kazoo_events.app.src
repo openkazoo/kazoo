@@ -14,7 +14,7 @@
     ]},
     {description, "Kazoo shared events for Applications"},
     {id, "9fd3b140-8727-11e0-9d78-0800200c9a66"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, [
         kazoo_events_sup,

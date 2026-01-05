@@ -10,7 +10,7 @@
 
 -define(APP, 'kazoo_data').
 -define(APP_NAME, <<"datamgr">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -record(data_connection, {

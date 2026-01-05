@@ -13,6 +13,7 @@
 ]).
 
 -include("kazoo_proper.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -spec transition_if(pqc_kazoo_model:model(), [{fun(), list()}]) -> pqc_kazoo_model:model().
 transition_if(CurrentModel, Checks) ->
@@ -77,9 +78,9 @@ run_counterexample(PQC) ->
             ?INFO("call: ~s:~s(~p)", [M, F, A]),
             ?INFO("SUT resp: ~p", [Resp]),
             {RequestId, 'postcondition_failed'};
-        E:R ->
+        ?STACKTRACE(E, R, ST)
             #{'request_id' := RequestId} = pqc_kazoo_model:api(InitialState),
-            {RequestId, E, R, erlang:get_stacktrace()}
+            {RequestId, E, R, ST}
     after
         PQC:cleanup()
     end.

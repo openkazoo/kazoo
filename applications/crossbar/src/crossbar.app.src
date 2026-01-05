@@ -43,7 +43,6 @@
         kazoo_web,
         kernel,
         lager,
-        nklib,
         ssl,
         stdlib,
         tools,
@@ -59,5 +58,5 @@
         crossbar_sup,
         crossbar_module_sup
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

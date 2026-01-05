@@ -33,5 +33,5 @@
         callflow_sup,
         cf_exe_sup
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

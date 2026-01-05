@@ -9,7 +9,7 @@
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
 -define(APP_NAME, <<"kazoo_im">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(CCV(Key), [<<"Custom-Channel-Vars">>, Key]).

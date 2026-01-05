@@ -7,6 +7,7 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_filter_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(CREATED, 63599884144).
@@ -16,6 +17,7 @@
     <<"{\"foo\":\"bar\",\"level1\":{\"level2\":{\"level3\":\"value3\"}},\"pvt_created\":63599884144,\"pvt_modified\":63599885144}">>
 ).
 
+-spec filter_doc_test_() -> any().
 filter_doc_test_() ->
     {'foreach', fun init/0, fun stop/1, [
         fun filter_foo/1,

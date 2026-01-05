@@ -60,7 +60,7 @@ seq_ping() ->
 
     timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
 
-    _Send = pqc_ws_client:send(WSConn, kz_json:encode(Ping)),
+    __Send = pqc_ws_client:send(WSConn, kz_json:encode(Ping)),
     {'json', Reply2JObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("pong2: ~p", [Reply2JObj]),
 

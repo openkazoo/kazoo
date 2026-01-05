@@ -126,7 +126,7 @@ do_fetch_attachment(Authorization, Bucket, {'name', Name}, HandlerProps, DbName,
     do_fetch_attachment(Authorization, Bucket, ContentId, HandlerProps, DbName, DocId, AName);
 do_fetch_attachment(
     {'ok', #{'token' := #{'authorization' := Authorization}}},
-    Bucket,
+    _Bucket,
     ContentId,
     HandlerProps,
     DbName,

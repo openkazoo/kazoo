@@ -1,7 +1,9 @@
 -module(api_resource_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec get_range_test_() -> any().
 get_range_test_() ->
     FullBinary = <<"abcdefg">>,
     [

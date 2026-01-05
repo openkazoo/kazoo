@@ -5,10 +5,13 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(cb_cdrs_test).
+
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 %% Test handle_utc_time_offset function with different server
 %% time zones and offsets
+-spec handle_utc_time_offset_test_() -> any().
 handle_utc_time_offset_test_() ->
     Timestamp = 63687252084,
     [
@@ -20,6 +23,7 @@ handle_utc_time_offset_test_() ->
             ?_assertEqual(Timestamp, cb_cdrs:handle_utc_time_offset(Timestamp, <<"0">>))}
     ].
 
+-spec handle_utc_time_offset_1_test_() -> any().
 handle_utc_time_offset_1_test_() ->
     %% {CDR Time Stamp, Resulting Timestamp, UTC offset}
     Timestamp = 63687252084,

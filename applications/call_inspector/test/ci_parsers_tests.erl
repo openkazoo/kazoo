@@ -3,13 +3,14 @@
 
 %% ci_parsers_test: tests for module ci_chunk.
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 -include("call_inspector.hrl").
 
 -export([start_stop_parsers/0]).
 
 %% API tests.
-
+-spec start_stop_parsers() -> ok.
 start_stop_parsers() ->
     {setup,
         fun() ->

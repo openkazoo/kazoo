@@ -6,7 +6,7 @@
 -include_lib("kazoo/include/kz_system_config.hrl").
 
 -define(APP_NAME, <<"kazoo_events">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(APP, 'kazoo_events').
 
 -define(KAZOO_EVENTS_HRL, 'true').

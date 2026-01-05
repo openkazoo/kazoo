@@ -1,8 +1,11 @@
 -module(ecallmgr_bridge_string_tests).
 
+-spec test() -> 'ok'.
+
 -include("src/ecallmgr.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
+-spec simple_bridge_test() -> any().
 simple_bridge_test() ->
     Endpoint = kz_json:from_list([
         {<<"Invite-Format">>, <<"username">>},
@@ -14,6 +17,7 @@ simple_bridge_test() ->
     [BS] = ecallmgr_util:build_simple_channels(Endpoints),
     ?assertEqual(<<"sofia/", ?SIP_INTERFACE, "/to_user@to_realm">>, BS).
 
+-spec sip_headers_test() -> any().
 sip_headers_test() ->
     SIPHeaders = kz_json:from_list([
         {<<"X-Account-ID">>, <<"{account_id}">>},

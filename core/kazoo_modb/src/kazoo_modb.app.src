@@ -1,6 +1,6 @@
 {application, kazoo_modb, [
     {description, "MODb - Utilities for an account's month-only database"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []},
     {applications, [

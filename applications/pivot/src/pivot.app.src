@@ -18,5 +18,5 @@
     {mod, {pivot_app, []}},
     {modules, []},
     {registered, [pivot_cache, pivot_calls_sup, pivot_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

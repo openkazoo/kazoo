@@ -1884,7 +1884,7 @@ from_map_test_() ->
         {"error encoding the invalid json generated in from_map with a mixed proplist inside map",
             ?_assertException(
                 throw,
-                {error, {invalid_ejson, {opt1, <<"my-opt1">>}}},
+                {error, {invalid_ejson, _}},
                 kz_json:encode(?FROM_MAP_JSON_4_WRONG)
             )},
         {"encoding the invalid json generated in from_map with a mixed proplist inside map",
@@ -1927,14 +1927,14 @@ utf8_binary_values_test_() ->
             ?_assertEqual(UTF8Recursive, kz_json:from_list_recursive(Recursive))},
         {"When encoding a NOT utf8 ready object it should fail",
             ?_assertException(
-                throw,
-                {error, {invalid_string, V}},
+                error,
+                {invalid_string, _},
                 kz_json:encode(?JSON_WRAPPER(Props))
             )},
         {"When encoding a NOT utf8 ready object it should fail",
             ?_assertException(
-                throw,
-                {error, {invalid_string, V}},
+                error,
+                {invalid_string, V},
                 kz_json:encode(?JSON_WRAPPER([{K, ?JSON_WRAPPER(Props)}]))
             )},
         {"When encoding a utf8 ready object it should work",

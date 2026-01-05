@@ -13,7 +13,7 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
 -define(APP_NAME, <<"milliwatt">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(RESOURCE_TYPES_HANDLED, [<<"audio">>, <<"video">>]).

@@ -1,8 +1,6 @@
 {application, fax, [
     {applications, [
         cowboy,
-        escalus,
-        exml,
         gen_smtp,
         kazoo,
         kazoo_amqp,
@@ -33,8 +31,7 @@
         fax_cache,
         fax_worker_pool_sup,
         fax_requests_sup,
-        fax_xmpp_sup,
         fax_sup
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

@@ -315,7 +315,7 @@ get_blocks(Url, Prefix, Quantity, Options) ->
     Limit = props:get_binary_value('blocks', Options, <<"0">>),
     ReqBody = list_to_binary([
         "?prefix=",
-        kz_util:uri_encode(Prefix),
+        kz_http_util:urlencode(Prefix),
         "&size=",
         kz_term:to_binary(Quantity),
         "&offset=",

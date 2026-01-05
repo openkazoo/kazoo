@@ -10,7 +10,7 @@
 -define(CONFIG_CAT, <<"auth">>).
 
 -define(APP_NAME, <<"auth">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(OAUTH_GRANT_TYPE, <<"urn:ietf:params:oauth:grant-type:jwt-bearer">>).
 -define(OAUTH_GRANT_TYPE2, <<"http://oauth.net/grant_type/jwt/1.0/bearer">>).

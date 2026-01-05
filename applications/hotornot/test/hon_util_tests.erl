@@ -6,8 +6,10 @@
 %%%-----------------------------------------------------------------------------
 -module(hon_util_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec build_keys_test_() -> any().
 build_keys_test_() ->
     [
         ?_assertEqual([1], hon_util:build_keys(<<"1">>)),
@@ -17,6 +19,7 @@ build_keys_test_() ->
     ].
 
 %% KAZOO-5860
+-spec dollars_and_units_test_() -> any().
 dollars_and_units_test_() ->
     BaseCost = 5100,
     Charges = [
@@ -46,6 +49,7 @@ dollars_and_units_test_() ->
 ).
 -define(RATES, [?RATE_1, ?RATE_2]).
 
+-spec sort_rates_by_weight_test_() -> any().
 sort_rates_by_weight_test_() ->
     Sorted = hon_util:sort_rates_by_weight(?RATES),
     ?_assertEqual(
@@ -53,6 +57,7 @@ sort_rates_by_weight_test_() ->
         [kzd_rates:rate_name(Rate) || Rate <- Sorted]
     ).
 
+-spec sort_rates_by_cost_test_() -> any().
 sort_rates_by_cost_test_() ->
     Sorted = hon_util:sort_rates_by_cost(?RATES),
     ?_assertEqual(

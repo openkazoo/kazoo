@@ -46,9 +46,7 @@
     {{'fax_cloud', 'handle_faxbox_created'}, [{<<"configuration">>, ?DOC_CREATED}]},
     {{'fax_cloud', 'handle_faxbox_edited'}, [{<<"configuration">>, ?DOC_EDITED}]},
     {{'fax_cloud', 'handle_faxbox_deleted'}, [{<<"configuration">>, ?DOC_DELETED}]},
-    {{'fax_request', 'new_request'}, [{<<"dialplan">>, <<"fax_req">>}]},
-    {{'fax_xmpp', 'handle_printer_start'}, [{<<"xmpp_event">>, <<"start">>}]},
-    {{'fax_xmpp', 'handle_printer_stop'}, [{<<"xmpp_event">>, <<"stop">>}]}
+    {{'fax_request', 'new_request'}, [{<<"dialplan">>, <<"fax_req">>}]}
 ]).
 
 -define(BINDINGS, [

@@ -25,8 +25,10 @@
     remote_apps/1
 ]).
 
--include_lib("kazoo_ast/include/kz_ast.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+
+-include_lib("kazoo_ast/include/kz_ast.hrl").
 
 -define(DEBUG(_Fmt, _Args), 'ok').
 %%-define(DEBUG(Fmt, Args), io:format([$~, $p, $  | Fmt], [?LINE | Args])).
@@ -368,8 +370,7 @@ remote_calls_from_module(Module, Acc, {M, AST}) ->
             ?DEBUG("  ~p~n", [Module]),
             lists:delete(M, Modules)
     catch
-        _E:R ->
-            ST = erlang:get_stacktrace(),
+        ?STACKTRACE(_E, R, ST)
             io:format("process module '~s' failed: ~s: ~p~n", [Module, _E, R]),
             [io:format("st: ~p~n", [S]) || S <- ST],
             ?DEBUG("~s failed: ~s ~r~n~p~n", [Module, _E, R, ST]),

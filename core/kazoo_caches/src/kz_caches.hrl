@@ -5,7 +5,7 @@
 -include_lib("kazoo_caches/include/kazoo_caches.hrl").
 
 -define(APP_NAME, <<"kazoo_caches">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(EXPIRES, ?SECONDS_IN_HOUR).
 -define(EXPIRE_PERIOD_MS, 10 * ?MILLISECONDS_IN_SECOND).

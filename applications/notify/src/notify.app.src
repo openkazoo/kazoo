@@ -24,5 +24,5 @@
     {mod, {notify_app, []}},
     {modules, []},
     {registered, [notify_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

@@ -1,7 +1,10 @@
 -module(ecallmgr_util_tests).
 
+-spec test() -> 'ok'.
+
 -include_lib("eunit/include/eunit.hrl").
 
+-spec maybe_sanitize_fs_value_test_() -> any().
 maybe_sanitize_fs_value_test_() ->
     UTF8Bin = <<"Bör1-Goes2$%^ To4 Škofja Loka"/utf8>>,
     Expected = <<"Bör1-Goes2 To4 Škofja Loka"/utf8>>,

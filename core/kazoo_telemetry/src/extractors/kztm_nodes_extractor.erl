@@ -12,7 +12,7 @@
 
 -export([extract/0]).
 
--include("../../kazoo_stdlib/include/kz_records.hrl").
+-include_lib("kazoo_stdlib/include/kz_records.hrl").
 
 %%------------------------------------------------------------------------------
 %% @doc

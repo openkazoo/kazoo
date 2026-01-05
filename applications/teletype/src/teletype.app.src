@@ -32,5 +32,5 @@
         teletype_bindings,
         teletype_shared_listener
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

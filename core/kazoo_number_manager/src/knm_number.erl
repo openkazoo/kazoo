@@ -628,11 +628,13 @@ to_public_json(#knm_number{} = Number) ->
     | knm_phone_number_return()
     | 'true'.
 attempt(Fun, Args) ->
+    ?LOG_DEBUG("attempt: ~p:~p", [Fun, Args]),
     try apply(Fun, Args) of
         #knm_number{} = N -> {'ok', N};
         Resp -> Resp
     catch
         'throw':{'error', Reason} ->
+            ?LOG_DEBUG("attempt error: ~p", [Reason]),
             {'error', knm_errors:to_json(Reason)};
         'throw':{'error', Reason, Number} ->
             {'error', knm_errors:to_json(Reason, num_to_did(Number))};

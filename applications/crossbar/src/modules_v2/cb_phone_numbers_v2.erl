@@ -580,7 +580,7 @@ maybe_add_port_request_numbers(Context) ->
 maybe_add_port_request_numbers(_Context, 'false') ->
     kz_json:new();
 maybe_add_port_request_numbers(Context, 'true') ->
-    AccountId = cb_context:account_id(Context),
+    _AccountId = cb_context:account_id(Context),
     HasQs = crossbar_filter:is_defined(Context),
     ViewOptions = [
         {'startkey', [cb_context:account_id(Context)]},

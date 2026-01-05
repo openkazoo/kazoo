@@ -1,5 +1,6 @@
 {application, kazoo_im, [
     {applications, [
+        kernel,
         gproc,
         kazoo,
         kazoo_amqp,
@@ -16,7 +17,7 @@
     ]},
     {description, "Representing IM in Kazoo"},
     {id, []},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, []},
     {env, []},

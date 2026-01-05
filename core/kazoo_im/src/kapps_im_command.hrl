@@ -7,7 +7,7 @@
 -define(DEFAULT_TIMEOUT_S, 20).
 
 -define(APP_NAME, <<"kapps_im_command">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(KAPPS_IM_COMMAND_HRL, 'true').
 -endif.

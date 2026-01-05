@@ -8,7 +8,7 @@
 
 -define(APP, 'blackhole').
 -define(APP_NAME, <<"blackhole">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(CONFIG_CAT, <<"blackhole">>).
 
 -define(CACHE_NAME, 'blackhole_cache').

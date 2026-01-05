@@ -48,7 +48,7 @@ req_uri(ExplodedPath) ->
         'undefined' ->
             'undefined';
         Url ->
-            Uri = kz_util:uri(Url, ExplodedPath),
+            Uri = kz_http_util:uri(Url, ExplodedPath),
             kz_term:to_list(Uri)
     end.
 

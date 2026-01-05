@@ -8,6 +8,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kazoo_fixturedb/include/kz_fixturedb.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 kz_services_test_() ->
     {'setup', fun setup/0, fun cleanup/1, fun(Map) ->

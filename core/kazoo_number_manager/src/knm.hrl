@@ -3,7 +3,7 @@
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
 -define(APP, 'kazoo_number_manager').
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 -define(APP_NAME, atom_to_binary(?APP, 'utf8')).
 
 -define(CACHE_NAME, 'knm_cache').

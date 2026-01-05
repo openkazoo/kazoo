@@ -14,5 +14,5 @@
     {mod, {milliwatt_app, []}},
     {modules, []},
     {registered, [milliwatt_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

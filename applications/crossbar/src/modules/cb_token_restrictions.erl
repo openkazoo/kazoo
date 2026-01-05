@@ -26,6 +26,7 @@
 ]).
 
 -ifdef(TEST).
+-spec test() -> 'ok'.
 -export([maybe_deny_access/1]).
 
 -include_lib("eunit/include/eunit.hrl").

@@ -18,5 +18,5 @@
     {mod, {camper_app, []}},
     {modules, []},
     {registered, [camper_sup, camper_offnet_sup, camper_onnet_handler]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

@@ -14,7 +14,7 @@
     ]},
     {description, "Register processes across the cluster"},
     {id, []},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, [kz_globals, kz_nodes]},
     {mod, {kazoo_globals_app, []}}

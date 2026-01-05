@@ -7,7 +7,7 @@
 
 -define(APP, 'kazoo_documents').
 -define(APP_NAME, (atom_to_binary(?APP, 'utf8'))).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, <<"4.4.0a1">>).
 
 -define(FAX_SETTINGS_KEY, <<"fax_settings">>).
 -define(FAX_TIMEZONE_KEY, <<"fax_timezone">>).

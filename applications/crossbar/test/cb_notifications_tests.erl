@@ -7,8 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_notifications_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec merge_available_test_() -> any().
 merge_available_test_() ->
     Available = kz_json:decode(
         <<"[{\"id\":\"o1\",\"k1\":\"v1\"},{\"id\":\"o2\",\"k2\":\"v2\"},{\"id\":\"o3\",\"k3\":\"v3\"}]">>

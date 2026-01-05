@@ -37,6 +37,9 @@
     correct_parallel/0
 ]).
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+
 -include_lib("proper/include/proper.hrl").
 -include("kazoo_proper.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
@@ -285,8 +288,7 @@ correct() ->
                             aggregate(command_names(Cmds), Result =:= 'ok')
                         )
                 catch
-                    _E:_R ->
-                        ST = erlang:get_stacktrace(),
+                    ?STACKTRACE(_E, _R, ST)
                         io:format("exception running commands: ~s:~p~n", [_E, _R]),
                         [io:format("~p~n", [S]) || S <- ST],
                         _ = cleanup(),

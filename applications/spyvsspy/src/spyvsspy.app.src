@@ -15,5 +15,5 @@
     {mod, {spyvsspy_app, []}},
     {modules, []},
     {registered, [spyvsspy_sup]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

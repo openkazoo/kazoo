@@ -85,7 +85,7 @@ lookup(<<_/binary>> = Number) ->
     lookup(
         kz_json:set_values(
             [
-                {<<"phone_number">>, kz_util:uri_encode(Num)},
+                {<<"phone_number">>, kz_http_util:urlencode(Num)},
                 {<<"Caller-ID-Number">>, Num}
             ],
             kz_json:new()
@@ -110,7 +110,7 @@ lookup(JObj) ->
 
 -spec set_phone_number(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 set_phone_number(Num, JObj) ->
-    kz_json:set_value(<<"phone_number">>, kz_util:uri_encode(Num), JObj).
+    kz_json:set_value(<<"phone_number">>, kz_http_util:urlencode(Num), JObj).
 
 -spec update_request(kz_json:object(), kz_term:api_binary(), boolean()) -> kz_json:object().
 update_request(JObj, 'undefined', _) ->

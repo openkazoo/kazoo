@@ -13,7 +13,7 @@
     ]},
     {description, "Kazoo Data Access abstraction layer"},
     {id, "108013a5-95e7-4e18-5757-344d22bebce8"},
-    {vsn, "4.0.0"},
+    {vsn, git},
     {modules, []},
     {registered, [
         kazoo_data_cache,

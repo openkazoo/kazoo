@@ -6,6 +6,7 @@
 %%%-----------------------------------------------------------------------------
 -module(cf_ring_group_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(HELP_10392_ACCOUNT_ID, <<"account0000000000000000000000001">>).
@@ -13,6 +14,7 @@
 -define(HELP_10392_DEVICE_ID, <<"device00000000000000000000000001">>).
 -define(HELP_10392_GROUP_ID, <<"group000000000000000000000000001">>).
 
+-spec weighted_random_sort_test_() -> any().
 weighted_random_sort_test_() ->
     EndpointsInt = [
         {1, <<"ep1">>},
@@ -32,6 +34,7 @@ weighted_random_sort_test_() ->
     ].
 
 %% HELP-260010392
+-spec help_10392_test_() -> any().
 help_10392_test_() ->
     {'setup', fun() -> kz_fixturedb_util:start_me('true') end, fun kz_fixturedb_util:stop_me/1, fun(
             _ReturnOfSetup
