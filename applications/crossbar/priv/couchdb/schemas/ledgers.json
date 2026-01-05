@@ -19,7 +19,7 @@
         },
         "amount": {
             "description": "Ledger amount, in currency amount",
-            "minimum": 1,
+            "minimum": 0,
             "type": "number"
         },
         "description": {
