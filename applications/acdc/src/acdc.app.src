@@ -4,11 +4,13 @@
         crossbar,
         crypto,
         gproc,
+        hackney,
         kazoo,
         kazoo_amqp,
         kazoo_apps,
         kazoo_caches,
         kazoo_call,
+        kazoo_config,
         kazoo_data,
         kazoo_documents,
         kazoo_edr,
@@ -16,10 +18,12 @@
         kazoo_events,
         kazoo_media,
         kazoo_modb,
+        kazoo_number_manager,
         kazoo_stdlib,
         kazoo_web,
         kernel,
         lager,
+        pqueue,
         stdlib,
         webseq
     ]},
@@ -36,5 +40,5 @@
         acdc_stats_sup,
         acdc_agent_manager
     ]},
-    {vsn, "4.0.0"}
+    {vsn, git}
 ]}.

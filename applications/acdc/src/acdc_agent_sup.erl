@@ -1,8 +1,12 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2020, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Daniel Finke
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(acdc_agent_sup).
@@ -54,40 +58,29 @@ start_link(AcctId, AgentId, AgentJObj, Queues) ->
 status(Supervisor) ->
     case {listener(Supervisor), fsm(Supervisor)} of
         {LPid, FSM} when is_pid(LPid), is_pid(FSM) ->
-            {AcctId, AgentId, Q} = acdc_agent_listener:config(LPid),
+            {_AcctId, AgentId, _Q} = acdc_agent_listener:config(LPid),
             Status = acdc_agent_fsm:status(FSM),
-
-            ?PRINT("Agent ~s (Account ~s)", [AgentId, AcctId]),
-            ?PRINT("  Supervisor: ~p", [Supervisor]),
-            ?PRINT("  Listener: ~p (~s)", [LPid, Q]),
-            ?PRINT("  FSM: ~p", [FSM]),
-            print_status(augment_status(Status, LPid));
+            Aug_status = print_status(Status ++ augment_status(LPid)),
+            ?PRINT(" ~32s |~s", [AgentId, Aug_status]);
         _ ->
             ?PRINT("Agent Supervisor ~p is dead", [Supervisor])
     end.
 
--define(AGENT_INFO_FIELDS,
-    kapps_config:get(
-        ?CONFIG_CAT,
-        <<"agent_info_fields">>,
-        [<<"first_name">>, <<"last_name">>, <<"username">>, <<"email">>]
-    )
-).
-
-augment_status(Status, LPid) ->
+augment_status(LPid) ->
     Fs = ?AGENT_INFO_FIELDS,
-    [{F, acdc_agent_listener:agent_info(LPid, F)} || F <- Fs] ++ Status.
+    [{F, acdc_agent_listener:agent_info(LPid, F)} || F <- Fs].
 
-print_status([]) ->
-    'ok';
-print_status([{_, 'undefined'} | T]) ->
-    print_status(T);
-print_status([{K, V} | T]) when is_binary(V) ->
-    ?PRINT("  ~s: ~s", [K, V]),
-    print_status(T);
-print_status([{K, V} | T]) ->
-    ?PRINT("  ~s: ~p", [K, V]),
-    print_status(T).
+print_status(Status) ->
+    print_status(Status, []).
+
+print_status([], Acc) ->
+    lists:flatten(Acc);
+print_status([{_, 'undefined'} | T], Acc) ->
+    print_status(T, Acc);
+print_status([{_K, V} | T], Acc) when is_binary(V) ->
+    print_status(T, Acc ++ [io_lib:format(" ~20s |", [V])]);
+print_status([{_K, V} | T], Acc) ->
+    print_status(T, Acc ++ [io_lib:format(" ~20p |", [V])]).
 
 -spec listener(pid()) -> kz_term:api_pid().
 listener(Super) ->

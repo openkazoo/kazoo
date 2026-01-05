@@ -1,7 +1,11 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2020, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(acdc_util).
@@ -9,6 +13,7 @@
 -export([
     get_endpoints/2,
     bind_to_call_events/1, bind_to_call_events/2,
+    b_bind_to_call_events/2,
     unbind_from_call_events/1,
     unbind_from_call_events/2,
     agents_in_queue/2,
@@ -20,11 +25,12 @@
     send_cdr/2,
     caller_id/1,
     hangup_cause/1,
-    max_priority/2,
-    queue_remove/2
+    max_priority/2
 ]).
 
 -include("acdc.hrl").
+
+-define(CB_AGENTS_LIST, <<"queues/agents_listing">>).
 
 -define(CALL_EVENT_RESTRICTIONS, [
     'CHANNEL_CREATE',
@@ -40,31 +46,31 @@
 ]).
 
 -spec queue_presence_update(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-queue_presence_update(AcctId, QueueId) ->
-    case kapi_acdc_queue:queue_size(AcctId, QueueId) of
-        0 -> presence_update(AcctId, QueueId, ?PRESENCE_GREEN);
-        N when is_integer(N), N > 0 -> presence_update(AcctId, QueueId, ?PRESENCE_RED_FLASH);
-        _N -> lager:debug("queue size for ~s(~s): ~p", [QueueId, AcctId, _N])
+queue_presence_update(AccountId, QueueId) ->
+    case kapi_acdc_queue:queue_size(AccountId, QueueId) of
+        0 -> presence_update(AccountId, QueueId, ?PRESENCE_GREEN);
+        N when is_integer(N), N > 0 -> presence_update(AccountId, QueueId, ?PRESENCE_RED_FLASH);
+        _N -> lager:debug("queue size for ~s(~s): ~p", [QueueId, AccountId, _N])
     end.
 
 -spec agent_presence_update(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-agent_presence_update(AcctId, AgentId) ->
-    case acdc_agents_sup:find_agent_supervisor(AcctId, AgentId) of
-        'undefined' -> presence_update(AcctId, AgentId, ?PRESENCE_RED_SOLID);
-        P when is_pid(P) -> presence_update(AcctId, AgentId, ?PRESENCE_GREEN)
+agent_presence_update(AccountId, AgentId) ->
+    case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
+        'undefined' -> presence_update(AccountId, AgentId, ?PRESENCE_RED_SOLID);
+        P when is_pid(P) -> presence_update(AccountId, AgentId, ?PRESENCE_GREEN)
     end.
 
 -spec presence_update(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-presence_update(AcctId, PresenceId, State) ->
+presence_update(AccountId, PresenceId, State) ->
     presence_update(
-        AcctId, PresenceId, State, kz_term:to_hex_binary(crypto:hash('md5', PresenceId))
+        AccountId, PresenceId, State, kz_term:to_hex_binary(crypto:hash('md5', PresenceId))
     ).
 
 -spec presence_update(
     kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
 ) -> 'ok'.
-presence_update(AcctId, PresenceId, State, CallId) ->
-    {'ok', AcctDoc} = kzd_accounts:fetch(AcctId),
+presence_update(AccountId, PresenceId, State, CallId) ->
+    {'ok', AcctDoc} = kzd_accounts:fetch(AccountId),
     To = <<PresenceId/binary, "@", (kz_json:get_value(<<"realm">>, AcctDoc))/binary>>,
 
     lager:debug("sending presence update '~s' to '~s'", [State, To]),
@@ -99,10 +105,9 @@ agents_in_queue(AcctDb, QueueId) ->
     case
         kz_datamgr:get_results(
             AcctDb,
-            <<"queues/agents_listing">>,
+            ?CB_AGENTS_LIST,
             [
-                {'startkey', [QueueId]},
-                {'endkey', [QueueId, kz_json:new()]},
+                {'key', QueueId},
                 {'reduce', 'false'}
             ]
         )
@@ -129,7 +134,10 @@ agent_devices(AcctDb, AgentId) ->
 -spec get_endpoints(kapps_call:call(), kz_term:ne_binary() | kazoo_data:get_results_return()) ->
     kz_json:objects().
 get_endpoints(Call, ?NE_BINARY = AgentId) ->
-    Params = kz_json:from_list([{<<"source">>, kz_term:to_binary(?MODULE)}]),
+    Params = kz_json:from_list([
+        {<<"source">>, kz_term:to_binary(?MODULE)},
+        {<<"can_call_self">>, 'true'}
+    ]),
     kz_endpoints:by_owner_id(AgentId, Params, Call).
 
 %% Handles subscribing/unsubscribing from call events
@@ -150,6 +158,10 @@ bind_to_call_events({CallId, _}, Pid) ->
 bind_to_call_events(Call, Pid) ->
     bind_to_call_events(kapps_call:call_id(Call), Pid).
 
+-spec b_bind_to_call_events(kz_term:api_binary(), pid()) -> 'ok'.
+b_bind_to_call_events('undefined', _) -> 'ok';
+b_bind_to_call_events(CallId, Pid) -> gen_listener:b_add_binding(Pid, 'call', [{'callid', CallId}]).
+
 -spec unbind_from_call_events(
     kz_term:api_binary() | {kz_term:api_binary(), any()} | kapps_call:call()
 ) -> 'ok'.
@@ -162,7 +174,11 @@ unbind_from_call_events(Call) ->
 unbind_from_call_events('undefined', _Pid) ->
     'ok';
 unbind_from_call_events(?NE_BINARY = CallId, Pid) ->
-    gen_listener:rm_binding(Pid, 'call', [{'callid', CallId}]);
+    gen_listener:rm_binding(Pid, 'call', [{'callid', CallId}]),
+    gen_listener:rm_binding(Pid, 'acdc_agent', [
+        {'callid', CallId},
+        {'restrict_to', ['stats_req']}
+    ]);
 unbind_from_call_events({CallId, _}, Pid) ->
     unbind_from_call_events(CallId, Pid);
 unbind_from_call_events(Call, Pid) ->
@@ -188,7 +204,7 @@ caller_id(Call) ->
 
 -spec hangup_cause(kz_json:object()) -> kz_term:ne_binary().
 hangup_cause(JObj) ->
-    case kz_json:get_ne_binary_value(<<"Hangup-Cause">>, JObj) of
+    case kz_json:get_value(<<"Hangup-Cause">>, JObj) of
         'undefined' -> <<"unknown">>;
         Cause -> Cause
     end.
@@ -197,20 +213,12 @@ hangup_cause(JObj) ->
 max_priority(AccountDb, QueueId) ->
     case kz_datamgr:open_cache_doc(AccountDb, QueueId) of
         {'ok', QueueJObj} -> max_priority(QueueJObj);
-        _ -> 'undefined'
+        _ -> kapps_config:get_integer(?CONFIG_CAT, <<"default_queue_max_priority">>)
     end.
 
 -spec max_priority(kz_json:object()) -> kz_term:api_integer().
 max_priority(QueueJObj) ->
-    kz_json:get_integer_value(<<"max_priority">>, QueueJObj).
-
-%%------------------------------------------------------------------------------
-%% @doc Remove `Term' from `Queue', returning a tuple where the 1st element is
-%% true if `Term' was found and removed and the 2nd element is the updated
-%% queue.
-%% @end
-%%------------------------------------------------------------------------------
--spec queue_remove(any(), queue:queue()) -> {boolean(), queue:queue()}.
-queue_remove(Term, Queue) ->
-    Queue1 = queue:filter(fun(Elem) -> Elem =/= Term end, Queue),
-    {Queue1 =/= Queue, Queue1}.
+    case kz_json:get_integer_value(<<"max_priority">>, QueueJObj) of
+        'undefined' -> kapps_config:get_integer(?CONFIG_CAT, <<"default_queue_max_priority">>);
+        Priority -> Priority
+    end.

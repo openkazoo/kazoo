@@ -1,19 +1,27 @@
 -ifndef(ACDC_QUEUE_MANAGER_HRL).
 
-%% Used for shipping diagnostics to `acdc_queue_manager_diag'
--define(KEY_DIAGNOSTICS_PIDS, 'diagnostics_pids').
--define(DIAG(Message), ?DIAG(Message, [])).
--define(DIAG(Message, Args),
-    maybe_send_diagnostics(fun() -> io_lib:format(Message, Args) end)
-).
-
 %% rr :: Round Robin
 %% mi :: Most Idle
--type queue_strategy() :: 'rr' | 'mi'.
+-type queue_strategy() :: 'rr' | 'mi' | 'sbrr' | 'all'.
 
--type queue_strategy_state() :: queue:queue() | kz_term:ne_binaries().
+% skill keys must be alphabetically sorted
+-type sbrr_skill_map() :: #{kz_term:ne_binaries() := sets:set()}.
+-type sbrr_id_map() :: #{kz_term:ne_binary() := kz_term:ne_binary()}.
+% maps agent IDs to assigned call IDs
+-type sbrr_strategy_state() :: #{
+    agent_id_map := sbrr_id_map(),
+    % maps assigned call IDs to agent IDs
+    call_id_map := sbrr_id_map(),
+    rr_queue := pqueue4:queue(),
+    skill_map := sbrr_skill_map()
+}.
+
+-type queue_strategy_state() :: pqueue4:queue() | kz_term:ne_binaries() | sbrr_strategy_state().
+-type ss_details() :: {non_neg_integer(), 'ringing' | 'busy' | 'undefined'}.
 -record(strategy_state, {
     agents :: queue_strategy_state(),
+    %% details include # of agent processes and availability
+    details = dict:new() :: dict:dict(),
     ringing_agents = [] :: kz_term:ne_binaries(),
     busy_agents = [] :: kz_term:ne_binaries()
 }).
@@ -21,27 +29,25 @@
 
 -record(state, {
     ignored_member_calls = dict:new() :: dict:dict(),
-    account_id :: kz_term:api_ne_binary(),
-    queue_id :: kz_term:api_ne_binary(),
+    account_id :: api_kz_term:ne_binary(),
+    queue_id :: api_kz_term:ne_binary(),
     supervisor :: kz_term:api_pid(),
     % round-robin | most-idle
     strategy = 'rr' :: queue_strategy(),
     % based on the strategy
     strategy_state = #strategy_state{} :: strategy_state(),
-    % how many agent processes are available {AgentId, Count}
-    known_agents = dict:new() :: dict:dict(),
     % allow caller into queue if no agents are logged in
     enter_when_empty = 'true' :: boolean(),
-    moh :: kz_term:api_ne_binary(),
-    % list of current members waiting
-    current_member_calls = [] :: [kapps_call:call()],
+    moh :: api_kz_term:ne_binary(),
+    % ordered list of current members waiting
+    current_member_calls = [] :: list(),
     announcements_config = [] :: kz_term:proplist(),
-    announcements_pids = #{} :: announcements_pids()
+    announcements_pids = #{} :: announcements_kz_term:pids(),
+    registered_callbacks = [] :: list()
 }).
 -type mgr_state() :: #state{}.
 
--type agent_change() :: 'available' | 'ringing' | 'busy' | 'unavailable'.
--type agent_change_data() :: #{}.
+-define(ACDC_REQUIRED_SKILLS_KEY, 'acdc_required_skills').
 
 -define(ACDC_QUEUE_MANAGER_HRL, 'true').
 -endif.
