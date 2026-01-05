@@ -1,5 +1,6 @@
 .eunit
 .erlang.cookie
+_*
 *~
 .#*
 *.log*
