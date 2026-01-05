@@ -5,26 +5,42 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_missed_call).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
-
 -define(TEMPLATE_ID, <<"missed_call">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"missed_call.reason">>, <<"missed_call_reason">>, <<"Missed Call Reason">>, <<"Reason why the call is terminated without been bridged or left a voicemail message">>)
-          ,?MACRO_VALUE(<<"missed_call.is_bridged">>, <<"missed_call_is_bridged">>, <<"Was it bridged">>, <<"Was it bridged">>)
-          ,?MACRO_VALUE(<<"missed_call.is_message_left">>, <<"missed_call_is_message_left">>, <<"Was a message left">>, <<"Was a voicemail message left">>)
-           | ?DEFAULT_CALL_MACROS
-           ++ ?USER_MACROS
-           ++ ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(
+                <<"missed_call.reason">>,
+                <<"missed_call_reason">>,
+                <<"Missed Call Reason">>,
+                <<"Reason why the call is terminated without been bridged or left a voicemail message">>
+            ),
+            ?MACRO_VALUE(
+                <<"missed_call.is_bridged">>,
+                <<"missed_call_is_bridged">>,
+                <<"Was it bridged">>,
+                <<"Was it bridged">>
+            ),
+            ?MACRO_VALUE(
+                <<"missed_call.is_message_left">>,
+                <<"missed_call_is_message_left">>,
+                <<"Was a message left">>,
+                <<"Was a voicemail message left">>
+            )
+            | ?DEFAULT_CALL_MACROS ++
+                ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Missed call from {{caller_id.name_number}}">>).
 -define(TEMPLATE_CATEGORY, <<"sip">>).
@@ -39,16 +55,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"missed_call">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -75,11 +92,12 @@ handle_req(JObj, 'true') ->
 process_req(DataJObj) ->
     teletype_util:send_update(DataJObj, <<"pending">>),
 
-    Macros = [{<<"system">>, teletype_util:system_params()}
-             ,{<<"account">>, teletype_util:account_params(DataJObj)}
-             ,{<<"missed_call">>,  build_missed_call_data(DataJObj)}
-              | teletype_util:build_call_data(DataJObj, 'undefined')
-             ],
+    Macros = [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"missed_call">>, build_missed_call_data(DataJObj)}
+        | teletype_util:build_call_data(DataJObj, 'undefined')
+    ],
 
     %% Populate templates
     RenderedTemplates = teletype_templates:render(?TEMPLATE_ID, Macros, DataJObj),
@@ -89,8 +107,8 @@ process_req(DataJObj) ->
 
     Subject =
         teletype_util:render_subject(
-          kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT), Macros
-         ),
+            kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT), Macros
+        ),
 
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, ?TEMPLATE_ID),
 
@@ -101,16 +119,20 @@ process_req(DataJObj) ->
 
 -spec build_missed_call_data(kz_json:object()) -> kz_term:proplist().
 build_missed_call_data(DataJObj) ->
-    [{<<"reason">>, missed_call_reason(DataJObj)}
-    ,{<<"is_bridged">>, kz_term:is_true(kz_json:get_value(<<"call_bridged">>, DataJObj))}
-    ,{<<"is_message_left">>, kz_term:is_true(kz_json:get_value(<<"message_left">>, DataJObj))}
+    [
+        {<<"reason">>, missed_call_reason(DataJObj)},
+        {<<"is_bridged">>, kz_term:is_true(kz_json:get_value(<<"call_bridged">>, DataJObj))},
+        {<<"is_message_left">>, kz_term:is_true(kz_json:get_value(<<"message_left">>, DataJObj))}
     ].
 
 -spec missed_call_reason(kz_json:object()) -> kz_term:ne_binary().
 missed_call_reason(DataJObj) ->
-    missed_call_reason(DataJObj, kz_json:get_ne_binary_value([<<"notify">>, <<"hangup_cause">>], DataJObj)).
+    missed_call_reason(
+        DataJObj, kz_json:get_ne_binary_value([<<"notify">>, <<"hangup_cause">>], DataJObj)
+    ).
 
 -spec missed_call_reason(kz_json:object(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
-missed_call_reason(_DataJObj, 'undefined') -> <<"no voicemail message was left">>;
+missed_call_reason(_DataJObj, 'undefined') ->
+    <<"no voicemail message was left">>;
 missed_call_reason(_DataJObj, HangupCause) ->
     <<"No voicemail message was left (", HangupCause/binary, ")">>.

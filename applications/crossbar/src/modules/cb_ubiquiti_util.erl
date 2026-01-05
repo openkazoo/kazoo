@@ -6,15 +6,17 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_ubiquiti_util).
 
--export([create_api_token/1, create_api_token/2
-        ,make_api_token/4
-        ,split_api_token/1
-        ]).
+-export([
+    create_api_token/1, create_api_token/2,
+    make_api_token/4,
+    split_api_token/1
+]).
 
 -ifdef(TEST).
--export([auth_hash/4
-        ,encode_timestamp/1
-        ]).
+-export([
+    auth_hash/4,
+    encode_timestamp/1
+]).
 -endif.
 
 -include("crossbar.hrl").
@@ -37,16 +39,20 @@ create_api_token(ProviderId, <<_/binary>> = Secret) ->
 create_api_token(_ProviderId, 'undefined') ->
     throw({'error', 'no_api_secret'}).
 
--spec make_api_token(kz_term:ne_binary(), integer(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec make_api_token(kz_term:ne_binary(), integer(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 make_api_token(ProviderId, Timestamp, Salt, Secret) ->
     TimestampHex = encode_timestamp(Timestamp),
-    kz_binary:join([?VERSION % Version
-                   ,Salt
-                   ,TimestampHex
-                   ,auth_hash(ProviderId, TimestampHex, Salt, Secret)
-                   ]
-                  ,<<":">>
-                  ).
+    % Version
+    kz_binary:join(
+        [
+            ?VERSION,
+            Salt,
+            TimestampHex,
+            auth_hash(ProviderId, TimestampHex, Salt, Secret)
+        ],
+        <<":">>
+    ).
 
 -spec encode_timestamp(integer()) -> kz_term:ne_binary().
 encode_timestamp(Timestamp) when is_integer(Timestamp) ->
@@ -56,18 +62,20 @@ encode_timestamp(Timestamp) when is_integer(Timestamp) ->
 decode_timestamp(<<_/binary>> = TimestampHex) ->
     list_to_integer(binary_to_list(TimestampHex), 16).
 
--spec auth_hash(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec auth_hash(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 auth_hash(ProviderId, TimestampHex, Salt, Secret) ->
     Auth = kz_term:to_lower_binary(
-             kz_binary:hexencode(
-               crypto:hash('sha', [Salt, Secret])
-              )
-            ),
+        kz_binary:hexencode(
+            crypto:hash('sha', [Salt, Secret])
+        )
+    ),
 
-    PreHash = [ProviderId
-              ,TimestampHex
-              ,Auth
-              ],
+    PreHash = [
+        ProviderId,
+        TimestampHex,
+        Auth
+    ],
 
     Hash = crypto:hash('sha', PreHash),
 
@@ -75,5 +83,7 @@ auth_hash(ProviderId, TimestampHex, Salt, Secret) ->
 
 -spec split_api_token(kz_term:ne_binary()) -> {kz_term:ne_binary(), integer(), kz_term:ne_binary()}.
 split_api_token(Token) ->
-    [?VERSION, Salt, TimestampHex, Auth] = binary:split(kz_term:to_lower_binary(Token), <<":">>, ['global']),
+    [?VERSION, Salt, TimestampHex, Auth] = binary:split(kz_term:to_lower_binary(Token), <<":">>, [
+        'global'
+    ]),
     {Salt, decode_timestamp(TimestampHex), Auth}.

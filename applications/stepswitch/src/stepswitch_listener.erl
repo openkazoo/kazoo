@@ -11,41 +11,41 @@
 
 %% API
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -define(SERVER, ?MODULE).
 
 -record(state, {}).
 -type state() :: #state{}.
 
--define(ROUTE_RESOURCE_TYPES_HANDLED
-       ,[?RESOURCE_TYPE_AUDIO, ?RESOURCE_TYPE_SMS, ?RESOURCE_TYPE_VIDEO]
-       ).
--define(OFFNET_RESOURCE_TYPES_HANDLED
-       ,[?RESOURCE_TYPE_AUDIO, ?RESOURCE_TYPE_ORIGINATE, ?RESOURCE_TYPE_SMS, ?RESOURCE_TYPE_VIDEO]
-       ).
+-define(ROUTE_RESOURCE_TYPES_HANDLED, [
+    ?RESOURCE_TYPE_AUDIO, ?RESOURCE_TYPE_SMS, ?RESOURCE_TYPE_VIDEO
+]).
+-define(OFFNET_RESOURCE_TYPES_HANDLED, [
+    ?RESOURCE_TYPE_AUDIO, ?RESOURCE_TYPE_ORIGINATE, ?RESOURCE_TYPE_SMS, ?RESOURCE_TYPE_VIDEO
+]).
 
--define(BINDINGS, [{'route', [{'types', ?ROUTE_RESOURCE_TYPES_HANDLED}
-                             ,{'restrict_to', ['no_account']}
-                             ]
-                   }
-                  ,{'offnet_resource', [{'types', ?OFFNET_RESOURCE_TYPES_HANDLED}]}
-                  ,{'authn', []}
-                  ]).
--define(RESPONDERS, [{'stepswitch_inbound'
-                     ,[{<<"dialplan">>, <<"route_req">>}]}
-                    ,{'stepswitch_outbound'
-                     ,[{<<"resource">>, <<"offnet_req">>}]}
-                    ,{'stepswitch_authn_req'
-                     ,[{<<"directory">>, <<"authn_req">>}]}
-                    ]).
+-define(BINDINGS, [
+    {'route', [
+        {'types', ?ROUTE_RESOURCE_TYPES_HANDLED},
+        {'restrict_to', ['no_account']}
+    ]},
+    {'offnet_resource', [{'types', ?OFFNET_RESOURCE_TYPES_HANDLED}]},
+    {'authn', []}
+]).
+-define(RESPONDERS, [
+    {'stepswitch_inbound', [{<<"dialplan">>, <<"route_req">>}]},
+    {'stepswitch_outbound', [{<<"resource">>, <<"offnet_req">>}]},
+    {'stepswitch_authn_req', [{<<"directory">>, <<"authn_req">>}]}
+]).
 -define(QUEUE_NAME, <<"stepswitch_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -60,12 +60,18 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}, ?MODULE, [{'bindings', ?BINDINGS}
-                                                         ,{'responders', ?RESPONDERS}
-                                                         ,{'queue_name', ?QUEUE_NAME}
-                                                         ,{'queue_options', ?QUEUE_OPTIONS}
-                                                         ,{'consume_options', ?CONSUME_OPTIONS}
-                                                         ], []).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks

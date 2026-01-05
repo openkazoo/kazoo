@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_limits_v2).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,validate/1
-        ,post/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    validate/1,
+    post/1
+]).
 
 -include("crossbar.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
@@ -29,8 +30,12 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    _ = crossbar_bindings:bind(<<"v2_resource.allowed_methods.limits">>, ?MODULE, 'allowed_methods'),
-    _ = crossbar_bindings:bind(<<"v2_resource.resource_exists.limits">>, ?MODULE, 'resource_exists'),
+    _ = crossbar_bindings:bind(
+        <<"v2_resource.allowed_methods.limits">>, ?MODULE, 'allowed_methods'
+    ),
+    _ = crossbar_bindings:bind(
+        <<"v2_resource.resource_exists.limits">>, ?MODULE, 'resource_exists'
+    ),
     _ = crossbar_bindings:bind(<<"v2_resource.validate.limits">>, ?MODULE, 'validate'),
     _ = crossbar_bindings:bind(<<"v2_resource.execute.post.limits">>, ?MODULE, 'post'),
     'ok'.
@@ -72,15 +77,17 @@ validate_limits(Context, ?HTTP_POST) ->
     case is_allowed(Context) of
         'false' ->
             Message = <<"Please contact your phone provider to add limits.">>,
-            cb_context:add_system_error('forbidden'
-                                       ,kz_json:from_list([{<<"message">>, Message}])
-                                       ,Context
-                                       );
+            cb_context:add_system_error(
+                'forbidden',
+                kz_json:from_list([{<<"message">>, Message}]),
+                Context
+            );
         'true' ->
-            cb_context:validate_request_data(<<"limits">>
-                                            ,cleanup_leaky_keys(Context)
-                                            ,fun on_successful_validation/1
-                                            )
+            cb_context:validate_request_data(
+                <<"limits">>,
+                cleanup_leaky_keys(Context),
+                fun on_successful_validation/1
+            )
     end.
 
 -spec post(cb_context:context()) -> cb_context:context().
@@ -104,7 +111,9 @@ is_allowed(Context) ->
             lager:debug("allowing system admin to update limits"),
             'true';
         _Else ->
-            lager:debug("sub-accounts of non-master resellers must contact the reseller to change their limits"),
+            lager:debug(
+                "sub-accounts of non-master resellers must contact the reseller to change their limits"
+            ),
             'false'
     end.
 
@@ -126,30 +135,35 @@ leak_pvt_fields(Context) ->
 
 -spec leak_pvt_fields(cb_context:context(), crossbar_status()) -> cb_context:context().
 leak_pvt_fields(Context, 'success') ->
-    Routines = [fun leak_pvt_allow_postpay/1
-               ,fun leak_pvt_max_postpay_amount/1
-               ],
+    Routines = [
+        fun leak_pvt_allow_postpay/1,
+        fun leak_pvt_max_postpay_amount/1
+    ],
     cb_context:setters(Context, Routines);
 leak_pvt_fields(Context, _Status) ->
     maybe_handle_load_failure(Context).
 
 -spec leak_pvt_allow_postpay(cb_context:context()) -> cb_context:context().
 leak_pvt_allow_postpay(Context) ->
-    cb_context:set_resp_data(Context
-                            ,kz_json:set_value(<<"allow_postpay">>
-                                              ,kz_json:is_true(<<"pvt_allow_postpay">>, cb_context:doc(Context), 'false')
-                                              ,cb_context:resp_data(Context)
-                                              )
-                            ).
+    cb_context:set_resp_data(
+        Context,
+        kz_json:set_value(
+            <<"allow_postpay">>,
+            kz_json:is_true(<<"pvt_allow_postpay">>, cb_context:doc(Context), 'false'),
+            cb_context:resp_data(Context)
+        )
+    ).
 
 -spec leak_pvt_max_postpay_amount(cb_context:context()) -> cb_context:context().
 leak_pvt_max_postpay_amount(Context) ->
-    cb_context:set_resp_data(Context
-                            ,kz_json:set_value(<<"max_postpay_amount">>
-                                              ,abs(kz_json:get_number_value(<<"pvt_max_postpay_amount">>, cb_context:doc(Context), 0))
-                                              ,cb_context:resp_data(Context)
-                                              )
-                            ).
+    cb_context:set_resp_data(
+        Context,
+        kz_json:set_value(
+            <<"max_postpay_amount">>,
+            abs(kz_json:get_number_value(<<"pvt_max_postpay_amount">>, cb_context:doc(Context), 0)),
+            cb_context:resp_data(Context)
+        )
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -157,7 +171,9 @@ leak_pvt_max_postpay_amount(Context) ->
 %%------------------------------------------------------------------------------
 -spec on_successful_validation(cb_context:context()) -> cb_context:context().
 on_successful_validation(Context) ->
-    maybe_handle_load_failure(crossbar_doc:load_merge(?PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?PVT_TYPE))).
+    maybe_handle_load_failure(
+        crossbar_doc:load_merge(?PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?PVT_TYPE))
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -165,27 +181,33 @@ on_successful_validation(Context) ->
 %%------------------------------------------------------------------------------
 
 -spec maybe_handle_load_failure(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 maybe_handle_load_failure(Context) ->
     maybe_handle_load_failure(Context, cb_context:resp_error_code(Context)).
 
 -spec maybe_handle_load_failure(cb_context:context(), pos_integer()) ->
-          cb_context:context().
+    cb_context:context().
 maybe_handle_load_failure(Context, 404) ->
     Data = cb_context:req_data(Context),
-    NewLimits = kz_json:from_list([{<<"pvt_type">>, ?PVT_TYPE}
-                                  ,{<<"_id">>, ?PVT_TYPE}
-                                  ]),
-    JObj = kz_json_schema:add_defaults(kz_json:merge_jobjs(NewLimits, kz_doc:public_fields(Data))
-                                      ,<<"limits">>
-                                      ),
+    NewLimits = kz_json:from_list([
+        {<<"pvt_type">>, ?PVT_TYPE},
+        {<<"_id">>, ?PVT_TYPE}
+    ]),
+    JObj = kz_json_schema:add_defaults(
+        kz_json:merge_jobjs(NewLimits, kz_doc:public_fields(Data)),
+        <<"limits">>
+    ),
 
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, 'success'}
-                       ,{fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)}
-                       ,{fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
-                       ]);
-maybe_handle_load_failure(Context, _RespCode) -> Context.
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, 'success'},
+            {fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)},
+            {fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
+        ]
+    );
+maybe_handle_load_failure(Context, _RespCode) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -193,8 +215,9 @@ maybe_handle_load_failure(Context, _RespCode) -> Context.
 %%------------------------------------------------------------------------------
 -spec cleanup_leaky_keys(cb_context:context()) -> cb_context:context().
 cleanup_leaky_keys(Context) ->
-    RemoveKeys = [<<"allow_postpay">>
-                 ,<<"max_postpay_amount">>
-                 ],
+    RemoveKeys = [
+        <<"allow_postpay">>,
+        <<"max_postpay_amount">>
+    ],
     ReqData = kz_json:delete_keys(RemoveKeys, cb_context:req_data(Context)),
     cb_context:set_req_data(Context, ReqData).

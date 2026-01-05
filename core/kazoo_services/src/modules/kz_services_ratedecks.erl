@@ -26,9 +26,11 @@ fetch(Services) ->
     ServicesJObj = kz_services:services_jobj(Services),
     Plan = merge_all_plans(Services),
     kz_json:from_list(
-      [{<<"id">>, get_plan_ratedeck_id(ServicesJObj, Plan)}
-      ,{<<"name">>, get_plan_ratedeck_name(ServicesJObj, Plan)}
-      ]).
+        [
+            {<<"id">>, get_plan_ratedeck_id(ServicesJObj, Plan)},
+            {<<"name">>, get_plan_ratedeck_name(ServicesJObj, Plan)}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -57,10 +59,11 @@ merge_all_plans(Services) ->
         Plans -> kz_services_plans:merge(Plans)
     end.
 
--spec collect_plans_foldl(kz_term:ne_binary()
-                         ,kz_services_plans:plans_list()
-                         ,kz_services_plans:plans_list()
-                         ) -> kz_services_plans:plans_list().
+-spec collect_plans_foldl(
+    kz_term:ne_binary(),
+    kz_services_plans:plans_list(),
+    kz_services_plans:plans_list()
+) -> kz_services_plans:plans_list().
 collect_plans_foldl(_BookkeeperHash, PlansList, Plans) ->
     PlansList ++ Plans.
 

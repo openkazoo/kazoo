@@ -11,11 +11,16 @@
 -export([log_successful_attempts/1, log_successful_attempts/2, set_log_successful_attempts/2]).
 -export([multi_factor/1, multi_factor/2, set_multi_factor/2]).
 -export([multi_factor_account_id/1, multi_factor_account_id/2, set_multi_factor_account_id/2]).
--export([multi_factor_configuration_id/1, multi_factor_configuration_id/2, set_multi_factor_configuration_id/2]).
+-export([
+    multi_factor_configuration_id/1, multi_factor_configuration_id/2,
+    set_multi_factor_configuration_id/2
+]).
 -export([multi_factor_enabled/1, multi_factor_enabled/2, set_multi_factor_enabled/2]).
--export([multi_factor_include_subaccounts/1, multi_factor_include_subaccounts/2, set_multi_factor_include_subaccounts/2]).
+-export([
+    multi_factor_include_subaccounts/1, multi_factor_include_subaccounts/2,
+    set_multi_factor_include_subaccounts/2
+]).
 -export([token_auth_expiry_s/1, token_auth_expiry_s/2, set_token_auth_expiry_s/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -98,7 +103,9 @@ multi_factor_configuration_id(Doc, Default) ->
 
 -spec set_multi_factor_configuration_id(doc(), binary()) -> doc().
 set_multi_factor_configuration_id(Doc, MultiFactorConfigurationId) ->
-    kz_json:set_value([<<"multi_factor">>, <<"configuration_id">>], MultiFactorConfigurationId, Doc).
+    kz_json:set_value(
+        [<<"multi_factor">>, <<"configuration_id">>], MultiFactorConfigurationId, Doc
+    ).
 
 -spec multi_factor_enabled(doc()) -> kz_term:api_boolean().
 multi_factor_enabled(Doc) ->
@@ -122,7 +129,9 @@ multi_factor_include_subaccounts(Doc, Default) ->
 
 -spec set_multi_factor_include_subaccounts(doc(), boolean()) -> doc().
 set_multi_factor_include_subaccounts(Doc, MultiFactorIncludeSubaccounts) ->
-    kz_json:set_value([<<"multi_factor">>, <<"include_subaccounts">>], MultiFactorIncludeSubaccounts, Doc).
+    kz_json:set_value(
+        [<<"multi_factor">>, <<"include_subaccounts">>], MultiFactorIncludeSubaccounts, Doc
+    ).
 
 -spec token_auth_expiry_s(doc()) -> kz_term:api_integer().
 token_auth_expiry_s(Doc) ->

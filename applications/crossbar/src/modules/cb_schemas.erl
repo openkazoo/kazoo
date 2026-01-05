@@ -6,13 +6,14 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_schemas).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,authorize/1
-        ,authenticate/1
-        ,validate/1, validate/2, validate/3
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    authorize/1,
+    authenticate/1,
+    validate/1, validate/2, validate/3
+]).
 
 -include("crossbar.hrl").
 
@@ -40,19 +41,21 @@ authorize(Context) ->
     authorize_nouns(cb_context:req_nouns(Context)).
 
 -spec authorize_nouns(req_nouns()) -> boolean().
-authorize_nouns([{<<"schemas">>,_}]) ->
+authorize_nouns([{<<"schemas">>, _}]) ->
     lager:debug("authorizing request to fetch schema(s)"),
     'true';
-authorize_nouns(_) -> 'false'.
+authorize_nouns(_) ->
+    'false'.
 
 -spec authenticate(cb_context:context()) -> boolean().
 authenticate(Context) ->
     authenticate_nouns(cb_context:req_nouns(Context)).
 
-authenticate_nouns([{<<"schemas">>,_}]) ->
+authenticate_nouns([{<<"schemas">>, _}]) ->
     lager:debug("authenticating request to fetch schema(s)"),
     'true';
-authenticate_nouns(_) -> 'false'.
+authenticate_nouns(_) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc This function determines the verbs that are appropriate for the
@@ -81,7 +84,7 @@ allowed_methods(_SchemaName, ?VALIDATION_PATH_TOKEN) ->
 %%------------------------------------------------------------------------------
 
 -spec resource_exists() -> 'true'.
-resource_exists() ->  'true'.
+resource_exists() -> 'true'.
 
 -spec resource_exists(path_token()) -> 'true'.
 resource_exists(_SchemaName) -> 'true'.
@@ -134,9 +137,10 @@ read(Id, Context) ->
 -spec summary(cb_context:context()) -> cb_context:context().
 summary(Context) ->
     Context1 = crossbar_doc:load_docs(Context, normalize_fun(Context)),
-    cb_context:set_resp_data(Context1
-                            ,lists:sort(cb_context:resp_data(Context1))
-                            ).
+    cb_context:set_resp_data(
+        Context1,
+        lists:sort(cb_context:resp_data(Context1))
+    ).
 
 -type normalizer_fun() :: fun((kz_json:object(), kz_term:ne_binaries()) -> kz_term:ne_binaries()).
 -spec normalize_fun(cb_context:context()) -> normalizer_fun().

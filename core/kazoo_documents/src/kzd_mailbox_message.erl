@@ -19,7 +19,6 @@
 -export([transcription_result/1, transcription_result/2, set_transcription_result/2]).
 -export([transcription_text/1, transcription_text/2, set_transcription_text/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

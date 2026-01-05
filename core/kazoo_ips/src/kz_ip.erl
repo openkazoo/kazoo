@@ -7,9 +7,10 @@
 
 -include("kazoo_ips.hrl").
 
--export([to_json/1
-        ,from_json/1
-        ]).
+-export([
+    to_json/1,
+    from_json/1
+]).
 -export([create/3]).
 -export([fetch/1]).
 -export([assign/2]).
@@ -48,32 +49,35 @@ from_json(JObj) -> JObj.
 %% @end
 %%------------------------------------------------------------------------------
 -spec create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          std_return().
+    std_return().
 create(IP, Zone, Host) ->
     Timestamp = kz_time:now_s(),
     JObj = kz_json:from_list(
-             [{<<"_id">>, IP}
-             ,{<<"pvt_vsn">>, <<"1">>}
-             ,{<<"pvt_status">>, ?AVAILABLE}
-             ,{<<"pvt_type">>, ?PVT_TYPE}
-             ,{<<"pvt_zone">>, Zone}
-             ,{<<"pvt_host">>, Host}
-             ,{<<"pvt_modified">>, Timestamp}
-             ,{<<"pvt_created">>, Timestamp}
-             ]
-            ),
+        [
+            {<<"_id">>, IP},
+            {<<"pvt_vsn">>, <<"1">>},
+            {<<"pvt_status">>, ?AVAILABLE},
+            {<<"pvt_type">>, ?PVT_TYPE},
+            {<<"pvt_zone">>, Zone},
+            {<<"pvt_host">>, Host},
+            {<<"pvt_modified">>, Timestamp},
+            {<<"pvt_created">>, Timestamp}
+        ]
+    ),
     case kz_datamgr:save_doc(?KZ_DEDICATED_IP_DB, JObj) of
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun() -> create(IP, Zone, Host) end);
         {'ok', SavedJObj} ->
-            lager:debug("created dedicated ip ~s in zone ~s on host ~s"
-                       ,[IP, Zone, Host]
-                       ),
+            lager:debug(
+                "created dedicated ip ~s in zone ~s on host ~s",
+                [IP, Zone, Host]
+            ),
             {'ok', from_json(SavedJObj)};
-        {'error', _R}=E ->
-            lager:debug("unable to create dedicated ip ~s: ~p"
-                       ,[IP, _R]
-                       ),
+        {'error', _R} = E ->
+            lager:debug(
+                "unable to create dedicated ip ~s: ~p",
+                [IP, _R]
+            ),
             E
     end.
 
@@ -84,11 +88,13 @@ create(IP, Zone, Host) ->
 -spec fetch(kz_term:ne_binary()) -> std_return().
 fetch(IP) ->
     case kz_datamgr:open_cache_doc(?KZ_DEDICATED_IP_DB, IP) of
-        {'ok', JObj} -> {'ok', from_json(JObj)};
-        {'error', _R}=E ->
-            lager:debug("unable to fetch dedicated ip ~s: ~p"
-                       ,[IP, _R]
-                       ),
+        {'ok', JObj} ->
+            {'ok', from_json(JObj)};
+        {'error', _R} = E ->
+            lager:debug(
+                "unable to fetch dedicated ip ~s: ~p",
+                [IP, _R]
+            ),
             E
     end.
 
@@ -100,45 +106,51 @@ fetch(IP) ->
 assign(Account, <<_/binary>> = RawIP) ->
     case fetch(RawIP) of
         {'ok', IPDoc} -> assign(Account, IPDoc);
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 assign(Account, IPDoc) ->
     'true' = is_dedicated_ip(IPDoc),
     case is_available(IPDoc) of
-        {'error', _}=E -> E;
-        'false' -> {'error', 'already_assigned'};
+        {'error', _} = E ->
+            E;
+        'false' ->
+            {'error', 'already_assigned'};
         'true' ->
             IPJObj = to_json(IPDoc),
             AccountId = kz_util:format_account_id(Account, 'raw'),
-            Props = [{<<"pvt_assigned_to">>, AccountId}
-                    ,{<<"pvt_modified">>, kz_time:now_s()}
-                    ,{<<"pvt_status">>, ?ASSIGNED}
-                    ],
+            Props = [
+                {<<"pvt_assigned_to">>, AccountId},
+                {<<"pvt_modified">>, kz_time:now_s()},
+                {<<"pvt_status">>, ?ASSIGNED}
+            ],
             JObj = kz_json:set_values(Props, IPJObj),
             maybe_save_in_account(AccountId, save(JObj))
     end.
 
 -spec maybe_save_in_account(kz_term:ne_binary(), std_return()) -> std_return().
-maybe_save_in_account(AccountId, {'ok', JObj}=Ok) ->
+maybe_save_in_account(AccountId, {'ok', JObj} = Ok) ->
     AccountDb = kz_util:format_account_db(AccountId),
     case kz_datamgr:open_doc(AccountDb, kz_doc:id(JObj)) of
         {'error', 'not_found'} ->
             _ = kz_datamgr:save_doc(AccountDb, kz_doc:delete_revision(JObj)),
             Ok;
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:info("failed to save ip doc to accounts: ~p", [_R]),
             E;
         {'ok', CurrentJObj} ->
-            Update = [{kz_doc:path_revision(), kz_doc:revision(CurrentJObj)}
-                      | kz_json:to_proplist(JObj)
-                     ],
-            UpdateOptions = [{'update', Update}
-                            ,{'ensure_saved', 'true'}
-                            ],
+            Update = [
+                {kz_doc:path_revision(), kz_doc:revision(CurrentJObj)}
+                | kz_json:to_proplist(JObj)
+            ],
+            UpdateOptions = [
+                {'update', Update},
+                {'ensure_saved', 'true'}
+            ],
             _ = kz_datamgr:update_doc(AccountDb, kz_doc:id(JObj), UpdateOptions),
             Ok
     end;
-maybe_save_in_account(_, Return) -> Return.
+maybe_save_in_account(_, Return) ->
+    Return.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -148,28 +160,31 @@ maybe_save_in_account(_, Return) -> Return.
 release(<<_/binary>> = Ip) ->
     case fetch(Ip) of
         {'ok', IP} -> release(IP);
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 release(IP) ->
     'true' = is_dedicated_ip(IP),
     RemoveKeys = [<<"pvt_assigned_to">>],
-    Props = [{<<"pvt_status">>, ?AVAILABLE}
-            ,{<<"pvt_modified">>, kz_time:now_s()}
-            ],
+    Props = [
+        {<<"pvt_status">>, ?AVAILABLE},
+        {<<"pvt_modified">>, kz_time:now_s()}
+    ],
     IPJObj = to_json(IP),
     AccountId = kz_json:get_ne_value(<<"pvt_assigned_to">>, IPJObj),
     JObj = kz_json:delete_keys(RemoveKeys, kz_json:set_values(Props, IPJObj)),
     maybe_remove_from_account(AccountId, save(JObj)).
 
 -spec maybe_remove_from_account(kz_term:ne_binary(), std_return()) -> std_return().
-maybe_remove_from_account(AccountId, {'ok', IP}=Ok) ->
+maybe_remove_from_account(AccountId, {'ok', IP} = Ok) ->
     AccountDb = kz_util:format_account_db(AccountId),
-    _ = case kz_datamgr:open_doc(AccountDb, ip(IP)) of
+    _ =
+        case kz_datamgr:open_doc(AccountDb, ip(IP)) of
             {'ok', JObj} -> kz_datamgr:del_doc(AccountDb, JObj);
             {'error', _} -> 'ok'
         end,
     Ok;
-maybe_remove_from_account(_, Return) -> Return.
+maybe_remove_from_account(_, Return) ->
+    Return.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -179,7 +194,7 @@ maybe_remove_from_account(_, Return) -> Return.
 delete(<<_/binary>> = IP) ->
     case kz_datamgr:open_doc(?KZ_DEDICATED_IP_DB, IP) of
         {'ok', JObj} -> delete(from_json(JObj));
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 delete(IP) ->
     'true' = is_dedicated_ip(IP),
@@ -243,7 +258,7 @@ is_dedicated_ip(IP) ->
 is_available(Ip) when is_binary(Ip) ->
     case fetch(Ip) of
         {'ok', IP} -> is_available(IP);
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 is_available(IP) ->
     kz_json:get_value(<<"pvt_status">>, IP) =:= ?AVAILABLE.
@@ -255,8 +270,9 @@ is_available(IP) ->
 -spec save(kz_json:object()) -> std_return().
 save(JObj) ->
     case kz_datamgr:save_doc(?KZ_DEDICATED_IP_DB, JObj) of
-        {'ok', J} -> {'ok', from_json(J)};
-        {'error', _R}=E ->
+        {'ok', J} ->
+            {'ok', from_json(J)};
+        {'error', _R} = E ->
             lager:debug("failed to save dedicated ip ~s: ~p", [kz_doc:id(JObj), _R]),
             E
     end.

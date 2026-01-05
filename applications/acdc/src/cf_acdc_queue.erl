@@ -22,7 +22,8 @@
 -spec handle(kz_json:object(), kapps_call:call()) -> 'ok'.
 handle(Data, Call) ->
     kapps_call_command:answer(Call),
-    _ = case cf_acdc_agent:find_agent(Call) of
+    _ =
+        case cf_acdc_agent:find_agent(Call) of
             {'ok', 'undefined'} ->
                 lager:info("not an agent calling in"),
                 cf_acdc_agent:play_not_an_agent(Call);
@@ -34,7 +35,9 @@ handle(Data, Call) ->
                 update_queues(Call, AgentId, QueueId, Action),
                 maybe_update_status(Call, AgentId, QueueId, Status, Action);
             {'error', 'multiple_owners'} ->
-                lager:info("too many owners of device ~s, not logging in", [kapps_call:authorizing_id(Call)]),
+                lager:info("too many owners of device ~s, not logging in", [
+                    kapps_call:authorizing_id(Call)
+                ]),
                 cf_acdc_agent:play_agent_invalid(Call)
         end,
     cf_exe:continue(Call).
@@ -60,31 +63,38 @@ maybe_update_status(Call, _AgentId, _QueueId, _Status, _Action) ->
     cf_acdc_agent:play_agent_invalid(Call).
 
 update_status(Call, AgentId, Status) ->
-    Extra = [{<<"call_id">>, kapps_call:call_id(Call)}
-            ,{<<"method">>, <<"callflow">>}
-            ],
+    Extra = [
+        {<<"call_id">>, kapps_call:call_id(Call)},
+        {<<"method">>, <<"callflow">>}
+    ],
 
     'ok' = acdc_agent_util:update_status(kapps_call:account_id(Call), AgentId, Status, Extra).
 
 send_agent_message(Call, AgentId, QueueId, PubFun) ->
     Prop = props:filter_undefined(
-             [{<<"Account-ID">>, kapps_call:account_id(Call)}
-             ,{<<"Agent-ID">>, AgentId}
-             ,{<<"Queue-ID">>, QueueId}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]),
+        [
+            {<<"Account-ID">>, kapps_call:account_id(Call)},
+            {<<"Agent-ID">>, AgentId},
+            {<<"Queue-ID">>, QueueId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     PubFun(Prop).
 
--spec update_queues(kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()}
-              | kz_datamgr:data_error().
+-spec update_queues(
+    kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) ->
+    {'ok', kz_json:object()}
+    | kz_datamgr:data_error().
 update_queues(Call, AgentId, QueueId, <<"login">>) ->
-    kz_datamgr:update_cache_doc(kapps_call:account_db(Call)
-                               ,AgentId
-                               ,fun (JObj) -> kzd_agent:maybe_add_queue(JObj, QueueId, 'skip') end
-                               );
+    kz_datamgr:update_cache_doc(
+        kapps_call:account_db(Call),
+        AgentId,
+        fun(JObj) -> kzd_agent:maybe_add_queue(JObj, QueueId, 'skip') end
+    );
 update_queues(Call, AgentId, QueueId, <<"logout">>) ->
-    kz_datamgr:update_cache_doc(kapps_call:account_db(Call)
-                               ,AgentId
-                               ,fun (JObj) -> kzd_agent:maybe_rm_queue(JObj, QueueId, 'skip') end
-                               ).
+    kz_datamgr:update_cache_doc(
+        kapps_call:account_db(Call),
+        AgentId,
+        fun(JObj) -> kzd_agent:maybe_rm_queue(JObj, QueueId, 'skip') end
+    ).

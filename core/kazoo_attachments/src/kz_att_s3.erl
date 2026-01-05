@@ -22,10 +22,10 @@
 -define(AMAZON_S3_HTTP_DEFAULT_CLIENT, 'lhttpc').
 %% httpc seems broken in otp 21.2.5
 
--type s3_error() :: {'aws_error'
-                    ,{'socket_error', binary()} |
-                     {'http_error', pos_integer(), string(), binary()}
-                    }.
+-type s3_error() ::
+    {'aws_error',
+        {'socket_error', binary()}
+        | {'http_error', pos_integer(), string(), binary()}}.
 
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
@@ -35,38 +35,48 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec put_attachment(gen_attachment:settings()
-                    ,gen_attachment:db_name()
-                    ,gen_attachment:doc_id()
-                    ,gen_attachment:att_name()
-                    ,gen_attachment:contents()
-                    ,gen_attachment:options()
-                    ) -> gen_attachment:put_response().
+-spec put_attachment(
+    gen_attachment:settings(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name(),
+    gen_attachment:contents(),
+    gen_attachment:options()
+) -> gen_attachment:put_response().
 put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
     {Bucket, FilePath, Config} = aws_bpc(Params, {DbName, DocId, AName}),
     case put_object(Bucket, FilePath, Contents, Config) of
         {'ok', RespHeaders} ->
             Metadata = create_metadata(RespHeaders),
             S3Key = encode_retrieval(Params, FilePath),
-            {'ok', [{'attachment', [{<<"S3">>, S3Key}
-                                   ,{<<"metadata">>, kz_json:from_list(Metadata)}
-                                   ]}
-                   ,{'headers', RespHeaders}
-                   ]};
+            {'ok', [
+                {'attachment', [
+                    {<<"S3">>, S3Key},
+                    {<<"metadata">>, kz_json:from_list(Metadata)}
+                ]},
+                {'headers', RespHeaders}
+            ]};
         {'error', _FilePath, Error} ->
-            Routines = [{fun kz_att_error:set_req_url/2, FilePath}
-                        | kz_att_error:put_routines(Params, DbName, DocId, AName
-                                                   ,<<>>, Options
-                                                   )
-                       ],
+            Routines = [
+                {fun kz_att_error:set_req_url/2, FilePath}
+                | kz_att_error:put_routines(
+                    Params,
+                    DbName,
+                    DocId,
+                    AName,
+                    <<>>,
+                    Options
+                )
+            ],
             handle_s3_error(Error, Routines)
     end.
 
--spec fetch_attachment(gen_attachment:handler_props()
-                      ,gen_attachment:db_name()
-                      ,gen_attachment:doc_id()
-                      ,gen_attachment:att_name()
-                      ) -> gen_attachment:fetch_response().
+-spec fetch_attachment(
+    gen_attachment:handler_props(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name()
+) -> gen_attachment:fetch_response().
 fetch_attachment(Conn, DbName, DocId, AName) ->
     HandlerProps = kz_json:get_value(<<"handler_props">>, Conn, 'undefined'),
     Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
@@ -79,9 +89,10 @@ fetch_attachment(Conn, DbName, DocId, AName) ->
                 {'ok', RespHeaders} ->
                     {'ok', props:get_value('content', RespHeaders)};
                 {'error', FilePath, Error} ->
-                    NewRoutines = [{fun kz_att_error:set_req_url/2, FilePath}
-                                   | Routines
-                                  ],
+                    NewRoutines = [
+                        {fun kz_att_error:set_req_url/2, FilePath}
+                        | Routines
+                    ],
                     handle_s3_error(Error, NewRoutines)
             end
     end.
@@ -124,7 +135,7 @@ aws_default_host(Map) ->
 
 -spec aws_host(map()) -> kz_term:ne_binary().
 aws_host(Map) ->
-    maps:get('host', Map,  aws_default_host(Map)).
+    maps:get('host', Map, aws_default_host(Map)).
 
 -spec aws_default_bucket_access(map()) -> atom().
 aws_default_bucket_access(Map) ->
@@ -138,41 +149,48 @@ aws_bucket_access(Map) ->
     kz_term:to_atom(maps:get('bucket_access_method', Map, aws_default_bucket_access(Map)), 'true').
 
 -spec aws_config(gen_attachment:settings()) -> aws_config().
-aws_config(#{'key' := Key
-            ,'secret' := Secret
-            }=Map
-          ) ->
+aws_config(
+    #{
+        'key' := Key,
+        'secret' := Secret
+    } = Map
+) ->
     Region = aws_region(Map),
     BucketAfterHost = kz_term:is_true(maps:get('bucket_after_host', Map, 'false')),
     BucketAccess = aws_bucket_access(Map),
     Timeout = kz_term:to_integer(maps:get('upload_timeout', Map, ?AMAZON_S3_UPLOAD_TIMEOUT)),
-    HttpClient = kz_term:to_atom(maps:get('http_client', Map, ?AMAZON_S3_HTTP_DEFAULT_CLIENT), 'true'),
+    HttpClient = kz_term:to_atom(
+        maps:get('http_client', Map, ?AMAZON_S3_HTTP_DEFAULT_CLIENT), 'true'
+    ),
 
     Host = aws_host(Map),
-    Scheme = fix_scheme(maps:get('scheme', Map,  <<"https://">>)),
+    Scheme = fix_scheme(maps:get('scheme', Map, <<"https://">>)),
     DefaultPort = aws_default_port(Scheme),
-    Port = kz_term:to_integer(maps:get('port', Map,  DefaultPort)),
-    #aws_config{access_key_id=kz_term:to_list(Key)
-               ,secret_access_key=kz_term:to_list(Secret)
-               ,s3_scheme=kz_term:to_list(Scheme)
-               ,s3_host=kz_term:to_list(Host)
-               ,s3_port=Port
-               ,s3_bucket_after_host=BucketAfterHost
-               ,s3_bucket_access_method=BucketAccess
-               ,s3_follow_redirect=true
-               ,s3_follow_redirect_count=3
-               ,timeout=Timeout
-               ,http_client=HttpClient
-               ,aws_region=Region
-               }.
+    Port = kz_term:to_integer(maps:get('port', Map, DefaultPort)),
+    #aws_config{
+        access_key_id = kz_term:to_list(Key),
+        secret_access_key = kz_term:to_list(Secret),
+        s3_scheme = kz_term:to_list(Scheme),
+        s3_host = kz_term:to_list(Host),
+        s3_port = Port,
+        s3_bucket_after_host = BucketAfterHost,
+        s3_bucket_access_method = BucketAccess,
+        s3_follow_redirect = true,
+        s3_follow_redirect_count = 3,
+        timeout = Timeout,
+        http_client = HttpClient,
+        aws_region = Region
+    }.
 
 -spec aws_default_fields() -> url_fields().
 aws_default_fields() ->
-    [{'arg', <<"db">>}
-    ,{'group', [{'arg', <<"id">>}
-               ,{'const', <<"_">>}
-               ,{'arg', <<"attachment">>}
-               ]}
+    [
+        {'arg', <<"db">>},
+        {'group', [
+            {'arg', <<"id">>},
+            {'const', <<"_">>},
+            {'arg', <<"attachment">>}
+        ]}
     ].
 
 -spec aws_format_url(gen_attachment:settings(), attachment_info()) -> kz_term:ne_binary().
@@ -184,20 +202,23 @@ merge_params(#{bucket := Bucket, host := Host} = M1, #{bucket := Bucket, host :=
     kz_maps:merge(M1, M2);
 merge_params(#{bucket := Bucket} = M1, #{bucket := Bucket} = M2) ->
     kz_maps:merge(M1, M2);
-merge_params(#{}= Map, #{}) ->
+merge_params(#{} = Map, #{}) ->
     Map;
-merge_params(#{}= Map, _M2) ->
+merge_params(#{} = Map, _M2) ->
     Map;
-merge_params(S3, M2)
-  when is_binary(S3)->
+merge_params(S3, M2) when
+    is_binary(S3)
+->
     M1 = decode_retrieval(S3),
     merge_params(M1, M2).
 
--spec aws_bpc(gen_attachment:settings(), attachment_info()) -> {string(), kz_term:api_ne_binary(), aws_config()}.
+-spec aws_bpc(gen_attachment:settings(), attachment_info()) ->
+    {string(), kz_term:api_ne_binary(), aws_config()}.
 aws_bpc(Map, AttInfo) ->
     {bucket(Map), aws_format_url(Map, AttInfo), aws_config(Map)}.
 
--spec aws_bpc(kz_term:ne_binary(), map() | 'undefined', attachment_info()) -> {string(), kz_term:api_ne_binary(), aws_config()}.
+-spec aws_bpc(kz_term:ne_binary(), map() | 'undefined', attachment_info()) ->
+    {string(), kz_term:api_ne_binary(), aws_config()}.
 aws_bpc(S3, Handler, Attinfo) ->
     aws_bpc(merge_params(S3, Handler), Attinfo).
 
@@ -209,60 +230,70 @@ encode_retrieval(Map, FilePath) ->
 decode_retrieval(S3) ->
     case binary_to_term(base64:decode(S3)) of
         {Key, Secret, Bucket, Path} ->
-            #{key => Key
-             ,secret => Secret
-             ,host => ?AMAZON_S3_HOST
-             ,bucket => Bucket
-             ,path => Path
-             };
+            #{
+                key => Key,
+                secret => Secret,
+                host => ?AMAZON_S3_HOST,
+                bucket => Bucket,
+                path => Path
+            };
         {Key, Secret, {Scheme, Host, Port}, Bucket, Path} ->
-            #{key => Key
-             ,secret => Secret
-             ,host => Host
-             ,scheme => Scheme
-             ,port => Port
-             ,bucket => Bucket
-             ,path => Path
-             };
+            #{
+                key => Key,
+                secret => Secret,
+                host => Host,
+                scheme => Scheme,
+                port => Port,
+                bucket => Bucket,
+                path => Path
+            };
         {Key, Secret, Host, Bucket, Path} ->
-            #{key => Key
-             ,secret => Secret
-             ,host => Host
-             ,bucket => Bucket
-             ,path => Path
-             };
+            #{
+                key => Key,
+                secret => Secret,
+                host => Host,
+                bucket => Bucket,
+                path => Path
+            };
         {#{} = Map, FilePath} ->
             Map#{file => FilePath};
-        #{} = Map -> Map
+        #{} = Map ->
+            Map
     end.
 
 -spec create_metadata(kz_term:proplist()) -> kz_term:proplist().
 create_metadata(RespHeaders) ->
-    [convert_kv(KV) || KV <- RespHeaders,
-                       filter_kv(KV)
+    [
+        convert_kv(KV)
+     || KV <- RespHeaders,
+        filter_kv(KV)
     ].
 
 filter_kv({"x-amz" ++ _, _V}) -> 'true';
 filter_kv({"etag", _V}) -> 'true';
 filter_kv(_KV) -> 'false'.
 
-convert_kv({K, V})
-  when is_list(K) ->
+convert_kv({K, V}) when
+    is_list(K)
+->
     convert_kv({kz_term:to_binary(K), V});
-convert_kv({K, V})
-  when is_list(V) ->
+convert_kv({K, V}) when
+    is_list(V)
+->
     convert_kv({K, kz_term:to_binary(V)});
 convert_kv({<<"etag">> = K, V}) ->
     {K, binary:replace(V, <<$">>, <<>>, ['global'])};
-convert_kv(KV) -> KV.
+convert_kv(KV) ->
+    KV.
 
 -spec put_object(string(), string() | kz_term:ne_binary(), binary(), aws_config()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', string() | kz_term:ne_binary(), s3_error()}.
-put_object(Bucket, FilePath, Contents,Config)
-  when is_binary(FilePath) ->
-    put_object(Bucket, kz_term:to_list(FilePath), Contents,Config);
-put_object(Bucket, FilePath, Contents, #aws_config{s3_host=Host} = Config) ->
+    {'ok', kz_term:proplist()}
+    | {'error', string() | kz_term:ne_binary(), s3_error()}.
+put_object(Bucket, FilePath, Contents, Config) when
+    is_binary(FilePath)
+->
+    put_object(Bucket, kz_term:to_list(FilePath), Contents, Config);
+put_object(Bucket, FilePath, Contents, #aws_config{s3_host = Host} = Config) ->
     lager:debug("storing ~s to ~s", [FilePath, Host]),
     Options = ['return_all_headers'],
     CT = kz_mime:from_filename(FilePath),
@@ -274,9 +305,9 @@ put_object(Bucket, FilePath, Contents, #aws_config{s3_host=Host} = Config) ->
     end.
 
 -spec get_object(string(), kz_term:ne_binary(), aws_config()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', kz_term:ne_binary(), s3_error()}.
-get_object(Bucket, FilePath, #aws_config{s3_host=Host} = Config) ->
+    {'ok', kz_term:proplist()}
+    | {'error', kz_term:ne_binary(), s3_error()}.
+get_object(Bucket, FilePath, #aws_config{s3_host = Host} = Config) ->
     lager:debug("retrieving ~s from ~s", [FilePath, Host]),
     Options = [],
     try erlcloud_s3:get_object(Bucket, kz_term:to_list(FilePath), Options, Config) of
@@ -290,17 +321,17 @@ get_object(Bucket, FilePath, #aws_config{s3_host=Host} = Config) ->
 %% within `erlcloud_aws:request_to_return/1' and the return is also modified at
 %% `erlcloud_s3:s3_request2/8'.
 -spec handle_s3_error(s3_error(), kz_att_error:update_routines()) -> kz_att_error:error().
-handle_s3_error({'aws_error'
-                ,{'http_error', RespCode, _RespStatusLine, RespBody}
-                } = _E
-               ,Routines
-               ) ->
+handle_s3_error(
+    {'aws_error', {'http_error', RespCode, _RespStatusLine, RespBody}} = _E,
+    Routines
+) ->
     Reason = get_reason(RespCode, RespBody),
-    NewRoutines = [{fun kz_att_error:set_resp_code/2, RespCode}
-                  ,{fun kz_att_error:set_resp_body/2, RespBody}
-                  ,{fun kz_att_error:set_resp_headers/2, []}
-                   | Routines
-                  ],
+    NewRoutines = [
+        {fun kz_att_error:set_resp_code/2, RespCode},
+        {fun kz_att_error:set_resp_body/2, RespBody},
+        {fun kz_att_error:set_resp_headers/2, []}
+        | Routines
+    ],
     lager:error("S3 error: ~p (code: ~p)", [_E, RespCode]),
     kz_att_error:new(Reason, NewRoutines);
 handle_s3_error({'aws_error', {'socket_error', RespBody}} = _E, Routines) ->

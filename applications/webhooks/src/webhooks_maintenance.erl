@@ -6,17 +6,18 @@
 %%%-----------------------------------------------------------------------------
 -module(webhooks_maintenance).
 
--export([hooks_configured/0, hooks_configured/1
-        ,set_failure_expiry/1, set_failure_expiry/2
-        ,set_disable_threshold/1, set_disable_threshold/2
-        ,failure_status/0, failure_status/1
-        ,enable_account_hooks/1
-        ,enable_descendant_hooks/1
-        ,flush_account_failures/1
-        ,flush_hook_failures/2
+-export([
+    hooks_configured/0, hooks_configured/1,
+    set_failure_expiry/1, set_failure_expiry/2,
+    set_disable_threshold/1, set_disable_threshold/2,
+    failure_status/0, failure_status/1,
+    enable_account_hooks/1,
+    enable_descendant_hooks/1,
+    flush_account_failures/1,
+    flush_hook_failures/2,
 
-        ,register_views/0
-        ]).
+    register_views/0
+]).
 
 -include("webhooks.hrl").
 
@@ -47,7 +48,9 @@ set_failure_expiry(Account, Expires) ->
     try kz_term:to_integer(Expires) of
         I ->
             kapps_account_config:set(AccountId, ?APP_NAME, ?ATTEMPT_EXPIRY_KEY, I),
-            io:format("set default expiry for failure attempts to ~pms on account ~s~n", [I, AccountId])
+            io:format("set default expiry for failure attempts to ~pms on account ~s~n", [
+                I, AccountId
+            ])
     catch
         _:_ ->
             io:format("error in expiry time, must be an integer (milliseconds)~n")
@@ -91,7 +94,10 @@ failure_status(Account) ->
 
     Sorted = lists:keysort(1, Failed),
     print_failure_header(),
-    _ = [print_failure_count(AID, HookId, Count) || {{AID, HookId}, Count} <- Sorted, AccountId =:= AID],
+    _ = [
+        print_failure_count(AID, HookId, Count)
+     || {{AID, HookId}, Count} <- Sorted, AccountId =:= AID
+    ],
     print_failure_footer().
 
 -define(FORMAT_FAILURE_STRING, "| ~-32s | ~-32s | ~5s |~n").
@@ -117,15 +123,17 @@ enable_descendant_hooks(AccountId) ->
 
 -spec flush_account_failures(kz_term:ne_binary()) -> 'ok'.
 flush_account_failures(AccountId) ->
-    io:format("flushed ~p failure entries~n"
-             ,[webhooks_disabler:flush_failures(AccountId)]
-             ).
+    io:format(
+        "flushed ~p failure entries~n",
+        [webhooks_disabler:flush_failures(AccountId)]
+    ).
 
 -spec flush_hook_failures(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 flush_hook_failures(AccountId, HookId) ->
-    io:format("flushed ~p failure entries for ~s~n"
-             ,[webhooks_disabler:flush_failures(AccountId, HookId), HookId]
-             ).
+    io:format(
+        "flushed ~p failure entries for ~s~n",
+        [webhooks_disabler:flush_failures(AccountId, HookId), HookId]
+    ).
 
 -spec register_views() -> 'ok'.
 register_views() ->

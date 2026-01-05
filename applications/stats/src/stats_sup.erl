@@ -15,9 +15,10 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER('stats_listener')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER('stats_listener')
+]).
 
 %%==============================================================================
 %% API functions

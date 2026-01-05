@@ -7,7 +7,6 @@
 
 -export([new/0]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

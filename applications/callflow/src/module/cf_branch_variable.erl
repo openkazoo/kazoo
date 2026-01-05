@@ -38,7 +38,9 @@
 handle(Data, Call) ->
     Scope = kz_json:get_ne_binary_value(<<"scope">>, Data, <<"custom_channel_vars">>),
     Variable = normalize_variable(kz_json:get_ne_value(<<"variable">>, Data)),
-    lager:info("looking for variable '~p' value in scope '~s' to find next callflow branch", [Variable, Scope]),
+    lager:info("looking for variable '~p' value in scope '~s' to find next callflow branch", [
+        Variable, Scope
+    ]),
     ChildName = find_child_in_scope(Scope, Variable, Call),
     maybe_branch_to_named_child(ChildName, Call).
 
@@ -56,17 +58,22 @@ maybe_branch_to_named_child(ChildName, Call) ->
 %% user and device, it search in merged attributes in endpoint.
 %% @end
 %%------------------------------------------------------------------------------
--spec find_child_in_scope(kz_term:ne_binary(), variable_key(), kapps_call:call()) -> kz_term:api_binary().
+-spec find_child_in_scope(kz_term:ne_binary(), variable_key(), kapps_call:call()) ->
+    kz_term:api_binary().
 find_child_in_scope(_Scope, 'undefined', _Call) ->
     lager:warning("no variable is specified"),
     'undefined';
 find_child_in_scope(<<"custom_channel_vars">>, Variable, Call) ->
-    ChildName = kz_json:get_ne_value(Variable, kz_json:normalize(kapps_call:custom_channel_vars(Call))),
+    ChildName = kz_json:get_ne_value(
+        Variable, kz_json:normalize(kapps_call:custom_channel_vars(Call))
+    ),
     find_child_in_branch(ChildName, Call);
 find_child_in_scope(<<"account">>, Variable, Call) ->
     find_child_in_doc(kapps_call:account_id(Call), Variable, Call);
-find_child_in_scope(Scope, Variable, Call) when Scope =:= <<"user">>;
-                                                Scope =:= <<"device">> ->
+find_child_in_scope(Scope, Variable, Call) when
+    Scope =:= <<"user">>;
+    Scope =:= <<"device">>
+->
     case kapps_call:authorizing_type(Call) of
         <<"device">> when Scope =:= <<"user">> ->
             find_child_in_doc(device_owner(Call), Variable, Call);
@@ -80,14 +87,17 @@ find_child_in_scope(Scope, Variable, Call) when Scope =:= <<"user">>;
     end;
 find_child_in_scope(<<"merged">>, Variable, Call) ->
     {'branch_keys', Keys} = cf_exe:get_branch_keys(Call),
-    CCVsChild = kz_json:get_ne_value(Variable, kz_json:normalize(kapps_call:custom_channel_vars(Call))),
+    CCVsChild = kz_json:get_ne_value(
+        Variable, kz_json:normalize(kapps_call:custom_channel_vars(Call))
+    ),
     case kz_endpoint:get(Call) of
         {'ok', JObj} ->
             EndPointChildName = kz_json:get_ne_value(Variable, JObj),
             case find_child_in_branch(EndPointChildName, Call, Keys) of
                 'undefined' ->
                     find_child_in_branch(CCVsChild, Call, Keys);
-                ChildName -> ChildName
+                ChildName ->
+                    ChildName
             end;
         _Else ->
             lager:debug("failed to lookup endpoint"),
@@ -99,7 +109,8 @@ find_child_in_scope(<<"merged">>, Variable, Call) ->
 %% name of the callflow branch.
 %% @end
 %%------------------------------------------------------------------------------
--spec find_child_in_doc(kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binary().
+-spec find_child_in_doc(kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()) ->
+    kz_term:api_binary().
 find_child_in_doc('undefined', _Variable, _Call) ->
     lager:debug("could not find document for current scope"),
     'undefined';
@@ -108,7 +119,9 @@ find_child_in_doc(DocId, Variable, Call) ->
         {'ok', JObj} ->
             find_child_in_branch(kz_json:get_ne_value(Variable, JObj), Call);
         _Else ->
-            lager:debug("failed to open device doc ~s in account ~s", [DocId, kapps_call:account_id(Call)]),
+            lager:debug("failed to open device doc ~s in account ~s", [
+                DocId, kapps_call:account_id(Call)
+            ]),
             'undefined'
     end.
 
@@ -124,7 +137,8 @@ find_child_in_branch(ChildName, Call) ->
     find_child_in_branch(ChildName, Call, Keys).
 
 -spec find_child_in_branch(any(), kapps_call:call(), kz_json:paths()) -> kz_term:api_binary().
-find_child_in_branch('undefined', _Call, _Keys) -> 'undefined';
+find_child_in_branch('undefined', _Call, _Keys) ->
+    'undefined';
 find_child_in_branch(?NE_BINARY = ChildName, _Call, Keys) ->
     case lists:member(ChildName, Keys) of
         'true' -> ChildName;
@@ -148,9 +162,10 @@ device_owner(Call) ->
     case kz_datamgr:open_cache_doc(kapps_call:account_db(Call), DeviceId) of
         {'ok', JObj} ->
             maybe_hotdesked_device(JObj);
-
         _Else ->
-            lager:debug("failed to open device doc ~s in account ~s", [DeviceId, kapps_call:account_id(Call)]),
+            lager:debug("failed to open device doc ~s in account ~s", [
+                DeviceId, kapps_call:account_id(Call)
+            ]),
             'undefined'
     end.
 
@@ -158,10 +173,9 @@ device_owner(Call) ->
 maybe_hotdesked_device(Doc) ->
     case kzd_devices:is_hotdesked(Doc) of
         'true' ->
-            [UseId|_] = kzd_devices:hotdesk_ids(Doc),
+            [UseId | _] = kzd_devices:hotdesk_ids(Doc),
             lager:info("using hotdesked id ~p", [UseId]),
             UseId;
-
         'false' ->
             Owner = kzd_devices:owner_id(Doc),
             lager:info("using owner id ~p", [Owner]),
@@ -181,11 +195,11 @@ normalize_variable('undefined') ->
 normalize_variable(?NE_BINARY = Variable) ->
     kz_json:normalize_key(Variable);
 normalize_variable(Variable) when is_list(Variable) ->
-    lists:reverse([kz_json:normalize_key(V)
-                   || V <- Variable,
-                      not kz_term:is_empty(V)
-                  ]
-                 );
+    lists:reverse([
+        kz_json:normalize_key(V)
+     || V <- Variable,
+        not kz_term:is_empty(V)
+    ]);
 normalize_variable(_JObj) ->
     lager:debug("unsupported variable name"),
     'undefined'.

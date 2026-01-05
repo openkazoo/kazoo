@@ -14,9 +14,10 @@
 
 -define(SERVER, ?MODULE).
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('ananke_tasks_sup')
-                  ,?WORKER('ananke_listener')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('ananke_tasks_sup'),
+    ?WORKER('ananke_listener')
+]).
 
 %%==============================================================================
 %% API functions

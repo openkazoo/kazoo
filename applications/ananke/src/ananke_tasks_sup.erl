@@ -7,11 +7,12 @@
 -module(ananke_tasks_sup).
 -behaviour(supervisor).
 
--export([start_link/0
-        ,start_task/3
-        ,delete_child/1
-        ,delete_child/2
-        ]).
+-export([
+    start_link/0,
+    start_task/3,
+    delete_child/1,
+    delete_child/2
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -20,8 +21,9 @@
 
 -define(SERVER, ?MODULE).
 -define(CHILDREN, []).
--define(TASK_WORKER_SPEC(N, I, Args)
-       ,{N, {I, 'start_link', Args}, 'transient', 'brutal_kill', 'worker', [I]}).
+-define(TASK_WORKER_SPEC(N, I, Args),
+    {N, {I, 'start_link', Args}, 'transient', 'brutal_kill', 'worker', [I]}
+).
 
 %%==============================================================================
 %% API functions
@@ -41,18 +43,24 @@ start_task(Id, Module, Args) ->
         {'error', 'already_present'} ->
             _ = supervisor:delete_child(?SERVER, Id),
             start_task(Id, Module, Args);
-        {'ok', _P} -> lager:debug("child ~p started", [_P]);
-        {'ok', _P, _} -> lager:debug("child ~p started", [_P]);
-        {'error', {'already_started', _P}} -> lager:info("child ~p already started", [_P]);
-        {'error', Error} -> lager:warning("error start child: ~p", [Error])
+        {'ok', _P} ->
+            lager:debug("child ~p started", [_P]);
+        {'ok', _P, _} ->
+            lager:debug("child ~p started", [_P]);
+        {'error', {'already_started', _P}} ->
+            lager:info("child ~p already started", [_P]);
+        {'error', Error} ->
+            lager:warning("error start child: ~p", [Error])
     end.
-
 
 -spec delete_child(any()) -> 'ok' | {'error', any()}.
 delete_child(Pid) when is_pid(Pid) ->
-    case [Id || {Id, Child, _Type, _Modules} <- supervisor:which_children(?SERVER),
-                Child =:= Pid
-         ]
+    case
+        [
+            Id
+         || {Id, Child, _Type, _Modules} <- supervisor:which_children(?SERVER),
+            Child =:= Pid
+        ]
     of
         [] -> 'ok';
         [Id] -> delete_child(Id)
@@ -95,9 +103,9 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec delete_child_after_timeout(any(), non_neg_integer()) ->
-          fun(() -> 'ok' | {'error', any()}).
+    fun(() -> 'ok' | {'error', any()}).
 delete_child_after_timeout(Id, Timeout) ->
     fun() ->
-            timer:sleep(Timeout),
-            delete_child(Id)
+        timer:sleep(Timeout),
+        delete_child(Id)
     end.

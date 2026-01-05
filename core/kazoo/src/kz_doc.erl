@@ -10,102 +10,119 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
--export([id/1, id/2
-        ,set_id/2
-        ,path_id/0
-        ]).
--export([revision/1
-        ,revision_id/1
-        ,set_revision/2
-        ,delete_revision/1
-        ,path_revision/0
-        ]).
--export([type/1, type/2
-        ,set_type/2
-        ,path_type/0
-        ]).
--export([account_id/1, account_id/2
-        ,set_account_id/2
-        ,path_account_id/0
-        ]).
--export([account_db/1, account_db/2
-        ,set_account_db/2
-        ,path_account_db/0
-        ]).
--export([created/1
-        ,created/2
-        ,set_created/2
-        ,path_created/0
-        ]).
--export([modified/1
-        ,modified/2
-        ,set_modified/2
-        ,path_modified/0
-        ]).
--export([vsn/1, vsn/2
-        ,set_vsn/2
-        ,path_vsn/0
-        ]).
--export([document_hash/1
-        ,set_document_hash/2
-        ]).
--export([is_soft_deleted/1
-        ,set_soft_deleted/2
-        ]).
--export([is_deleted/1
-        ,set_deleted/1
-        ,set_deleted/2
-        ]).
--export([attachments/1
-        ,attachments/2
-        ,stub_attachments/1
-        ,stub_attachments/2
-        ,external_attachments/1
-        ,external_attachments/2
-        ,attachment_names/1
-        ,delete_attachments/1
-        ,path_attachments/0
-        ,path_external_attachments/0
-        ]).
--export([attachment/1
-        ,attachment/2
-        ,attachment/3
-        ,attachment_revision/1
-        ,attachment_length/2
-        ,attachment_length/3
-        ,attachment_content_type/1
-        ,attachment_content_type/2
-        ,attachment_content_type/3
-        ,attachment_property/3
-        ,attachment_property/4
-        ,delete_attachment/2
-        ]).
+-export([
+    id/1, id/2,
+    set_id/2,
+    path_id/0
+]).
+-export([
+    revision/1,
+    revision_id/1,
+    set_revision/2,
+    delete_revision/1,
+    path_revision/0
+]).
+-export([
+    type/1, type/2,
+    set_type/2,
+    path_type/0
+]).
+-export([
+    account_id/1, account_id/2,
+    set_account_id/2,
+    path_account_id/0
+]).
+-export([
+    account_db/1, account_db/2,
+    set_account_db/2,
+    path_account_db/0
+]).
+-export([
+    created/1,
+    created/2,
+    set_created/2,
+    path_created/0
+]).
+-export([
+    modified/1,
+    modified/2,
+    set_modified/2,
+    path_modified/0
+]).
+-export([
+    vsn/1, vsn/2,
+    set_vsn/2,
+    path_vsn/0
+]).
+-export([
+    document_hash/1,
+    set_document_hash/2
+]).
+-export([
+    is_soft_deleted/1,
+    set_soft_deleted/2
+]).
+-export([
+    is_deleted/1,
+    set_deleted/1,
+    set_deleted/2
+]).
+-export([
+    attachments/1,
+    attachments/2,
+    stub_attachments/1,
+    stub_attachments/2,
+    external_attachments/1,
+    external_attachments/2,
+    attachment_names/1,
+    delete_attachments/1,
+    path_attachments/0,
+    path_external_attachments/0
+]).
+-export([
+    attachment/1,
+    attachment/2,
+    attachment/3,
+    attachment_revision/1,
+    attachment_length/2,
+    attachment_length/3,
+    attachment_content_type/1,
+    attachment_content_type/2,
+    attachment_content_type/3,
+    attachment_property/3,
+    attachment_property/4,
+    delete_attachment/2
+]).
 
--export([update_pvt_parameters/2
-        ,update_pvt_parameters/3
-        ,update_pvt_modified/1
-        ,get_pvt_updates/3
-        ]).
+-export([
+    update_pvt_parameters/2,
+    update_pvt_parameters/3,
+    update_pvt_modified/1,
+    get_pvt_updates/3
+]).
 
--export([public_fields/1
-        ,public_fields/2
-        ,get_public_keys/1
-        ,private_fields/1
-        ,is_private_key/1
-        ,leak_private_fields/1
-        ]).
+-export([
+    public_fields/1,
+    public_fields/2,
+    get_public_keys/1,
+    private_fields/1,
+    is_private_key/1,
+    leak_private_fields/1
+]).
 
 -export([calculate_document_hash/1]).
 
--export([maybe_remove_attachments/1
-        ,maybe_remove_attachments/2
-        ,latest_attachment_id/1
-        ,compare_attachments/2
-        ]).
+-export([
+    maybe_remove_attachments/1,
+    maybe_remove_attachments/2,
+    latest_attachment_id/1,
+    compare_attachments/2
+]).
 
--export([setters/1
-        ,setters/2
-        ]).
+-export([
+    setters/1,
+    setters/2
+]).
 
 -export([are_equal/2]).
 
@@ -113,16 +130,17 @@
 -export([remove_pvt/1]).
 -endif.
 
--define(PVT_FUNS, [fun add_pvt_vsn/4
-                  ,fun add_pvt_account_id/4
-                  ,fun add_pvt_account_db/4
-                  ,fun add_pvt_created/4
-                  ,fun add_pvt_modified/4
-                  ,fun add_pvt_type/4
-                  ,fun add_pvt_node/4
-                  ,fun add_id/4
-                  ,fun add_pvt_document_hash/4
-                  ]).
+-define(PVT_FUNS, [
+    fun add_pvt_vsn/4,
+    fun add_pvt_account_id/4,
+    fun add_pvt_account_db/4,
+    fun add_pvt_created/4,
+    fun add_pvt_modified/4,
+    fun add_pvt_type/4,
+    fun add_pvt_node/4,
+    fun add_id/4,
+    fun add_pvt_document_hash/4
+]).
 
 %% CouchDB Keys
 -define(KEY_ATTACHMENTS, <<"_attachments">>).
@@ -146,15 +164,16 @@
 
 %% Helper Macros
 -define(KEYS_ATTACHMENTS, [?KEY_ATTACHMENTS, ?KEY_EXTERNAL_ATTACHMENTS]).
--define(KEYS_ATTACHMENTS(A), [ [Key, A] || Key <- ?KEYS_ATTACHMENTS]).
+-define(KEYS_ATTACHMENTS(A), [[Key, A] || Key <- ?KEYS_ATTACHMENTS]).
 
 -type doc() :: kz_json:object().
 -type setter_fun() :: {fun((doc(), Value) -> doc()), Value}.
 -type setter_funs() :: [setter_fun()].
--export_type([doc/0
-             ,setter_fun/0
-             ,setter_funs/0
-             ]).
+-export_type([
+    doc/0,
+    setter_fun/0,
+    setter_funs/0
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -166,15 +185,17 @@ id(JObj) ->
 
 -spec id(doc(), Default) -> kz_term:ne_binary() | Default.
 id(JObj, Default) ->
-    Id = kz_json:get_first_defined([?KEY_ID
-                                   ,<<"id">>
-                                   ,<<"ID">>
-                                   ,[<<"value">>, <<"id">>]
-                                   ,[<<"doc">>, <<"_id">>]
-                                   ]
-                                  ,JObj
-                                  ,Default
-                                  ),
+    Id = kz_json:get_first_defined(
+        [
+            ?KEY_ID,
+            <<"id">>,
+            <<"ID">>,
+            [<<"value">>, <<"id">>],
+            [<<"doc">>, <<"_id">>]
+        ],
+        JObj,
+        Default
+    ),
     case kz_term:is_empty(Id) of
         'true' -> Default;
         'false' -> Id
@@ -201,7 +222,8 @@ revision(JObj) ->
     kz_json:get_first_defined([?KEY_REV, <<"rev">>], JObj).
 
 -spec revision_id(doc() | kz_term:api_ne_binary()) -> non_neg_integer().
-revision_id('undefined') -> 0;
+revision_id('undefined') ->
+    0;
 revision_id(<<Rev/binary>>) ->
     [Id, _] = binary:split(Rev, <<"-">>),
     kz_term:to_integer(Id);
@@ -238,8 +260,10 @@ type(JObj) ->
 
 -spec type(doc(), Default) -> kz_term:ne_binary() | Default.
 type(JObj, Default) ->
-    try kz_json:get_ne_binary_value(?KEY_PVT_TYPE, JObj, Default)
-    catch 'error':'badarg' ->
+    try
+        kz_json:get_ne_binary_value(?KEY_PVT_TYPE, JObj, Default)
+    catch
+        'error':'badarg' ->
             kz_util:log_stacktrace("~s:type(~s)", [?MODULE, kz_json:encode(JObj)]),
             Default
     end.
@@ -509,8 +533,9 @@ delete_attachments(JObj) ->
 -spec attachment(doc()) -> kz_term:api_object().
 attachment(JObj) ->
     case kz_json:get_values(attachments(JObj, kz_json:new())) of
-        {[], []} -> 'undefined';
-        {[Attachment|_], [AttachmentName|_]} ->
+        {[], []} ->
+            'undefined';
+        {[Attachment | _], [AttachmentName | _]} ->
             kz_json:from_list([{AttachmentName, Attachment}])
     end.
 
@@ -555,8 +580,7 @@ attachment_length(JObj, AName, Default) ->
 attachment_content_type(JObj) ->
     case kz_json:get_values(attachments(JObj, kz_json:new())) of
         {[], []} -> 'undefined';
-        {[_Attachment|_], [AName|_]} ->
-            attachment_content_type(JObj, AName)
+        {[_Attachment | _], [AName | _]} -> attachment_content_type(JObj, AName)
     end.
 
 -spec attachment_content_type(doc(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
@@ -565,24 +589,28 @@ attachment_content_type(JObj, AName) ->
 
 -spec attachment_content_type(doc(), kz_term:ne_binary(), Default) -> Default | kz_term:ne_binary().
 attachment_content_type(JObj, AName, Default) ->
-    attachment_property(JObj, AName, <<"content_type">>, Default, fun kz_json:get_ne_binary_value/3).
+    attachment_property(
+        JObj, AName, <<"content_type">>, Default, fun kz_json:get_ne_binary_value/3
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec attachment_property(doc(), kz_term:ne_binary(), kz_json:get_key()) ->
-                                 kz_json:api_json_term().
+    kz_json:api_json_term().
 attachment_property(JObj, AName, Key) ->
     attachment_property(JObj, AName, Key, 'undefined').
 
 -spec attachment_property(doc(), kz_term:ne_binary(), kz_json:get_key(), Default) ->
-                                 Default | kz_json:json_term().
+    Default | kz_json:json_term().
 attachment_property(JObj, AName, Key, Default) ->
     attachment_property(JObj, AName, Key, Default, fun kz_json:get_value/3).
 
--spec attachment_property(doc(), kz_term:ne_binary(), kz_json:get_key(), Default, fun((kz_json:get_key(), doc(), Default) -> Default | kz_json:json_term())) ->
-                                 Default | kz_json:json_term().
+-spec attachment_property(doc(), kz_term:ne_binary(), kz_json:get_key(), Default, fun(
+    (kz_json:get_key(), doc(), Default) -> Default | kz_json:json_term()
+)) ->
+    Default | kz_json:json_term().
 attachment_property(JObj, AName, Key, Default, Get) when is_function(Get, 3) ->
     Get(Key, attachment(JObj, AName, kz_json:new()), Default).
 
@@ -600,30 +628,32 @@ delete_attachment(JObj, AName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec update_pvt_parameters(doc(), kz_term:api_binary()) ->
-                                   doc().
+    doc().
 update_pvt_parameters(JObj0, DBName) ->
     update_pvt_parameters(JObj0, DBName, []).
 
 -spec update_pvt_parameters(doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
-                                   doc().
+    doc().
 update_pvt_parameters(JObj, DbName, Options) ->
     Opts = props:insert_value('now', kz_time:now_s(), Options),
     Updates = get_pvt_updates(JObj, DbName, Opts),
     kz_json:set_values(Updates, JObj).
 
 -spec get_pvt_updates(kz_json:object(), kz_term:api_ne_binary(), kz_term:proplist()) ->
-                             kz_term:proplist().
+    kz_term:proplist().
 get_pvt_updates(JObj, DbName, Options) ->
     lists:foldl(fun(Fun, Acc) -> Fun(Acc, JObj, DbName, Options) end, [], ?PVT_FUNS).
 
--spec add_pvt_vsn(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_vsn(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_vsn(Acc, _JObj, _, Options) ->
     case props:get_value('crossbar_doc_vsn', Options) of
         'undefined' -> Acc;
         Vsn -> [{?KEY_VSN, Vsn} | Acc]
     end.
 
--spec add_pvt_account_db(kz_term:proplist(), doc(), kz_term:api_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_account_db(kz_term:proplist(), doc(), kz_term:api_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_account_db(Acc, _JObj, 'undefined', Opts) ->
     case props:get_value('account_db', Opts) of
         'undefined' -> Acc;
@@ -637,7 +667,8 @@ add_pvt_account_db(Acc, _JObj, DBName, Opts) ->
             [{?KEY_ACCOUNT_DB, Db} | Acc]
     end.
 
--spec add_pvt_account_id(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_account_id(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_account_id(Acc, _JObj, 'undefined', Opts) ->
     case props:get_value('account_id', Opts) of
         'undefined' -> Acc;
@@ -651,14 +682,16 @@ add_pvt_account_id(Acc, _JObj, DBName, Opts) ->
             [{?KEY_ACCOUNT_ID, Id} | Acc]
     end.
 
--spec add_pvt_type(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_type(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_type(Acc, _JObj, _, Options) ->
     case props:get_value('type', Options) of
         'undefined' -> Acc;
         Type -> [{?KEY_PVT_TYPE, Type} | Acc]
     end.
 
--spec add_pvt_node(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_node(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_node(Acc, _JObj, _, Options) ->
     case props:get_value('node', Options) of
         'undefined' ->
@@ -667,15 +700,18 @@ add_pvt_node(Acc, _JObj, _, Options) ->
             [{?KEY_NODE, kz_term:to_binary(Node)} | Acc]
     end.
 
--spec add_pvt_created(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_created(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_created(Acc, JObj, _, Opts) ->
     case kz_json:get_ne_binary_value(?KEY_REV, JObj) of
         'undefined' ->
             [{?KEY_CREATED, props:get_value('now', Opts, kz_time:now_s())} | Acc];
-        _Rev -> Acc
+        _Rev ->
+            Acc
     end.
 
--spec add_pvt_modified(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_modified(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_modified(Acc, _JObj, _, Opts) ->
     [{?KEY_MODIFIED, props:get_value('now', Opts, kz_time:now_s())} | Acc].
 
@@ -686,7 +722,8 @@ add_id(Acc, _JObj, _, Opts) ->
         Id -> [{?KEY_ID, Id} | Acc]
     end.
 
--spec add_pvt_document_hash(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) -> kz_term:proplist().
+-spec add_pvt_document_hash(kz_term:proplist(), doc(), kz_term:api_ne_binary(), kz_term:proplist()) ->
+    kz_term:proplist().
 add_pvt_document_hash(Acc, JObj, _, _) ->
     Hash = calculate_document_hash(JObj),
     [{?KEY_DOCUMENT_HASH, Hash} | Acc].
@@ -705,12 +742,12 @@ update_pvt_modified(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec public_fields(doc() | kz_json:objects()) ->
-                           doc() | kz_json:objects().
+    doc() | kz_json:objects().
 public_fields(Thing) ->
     public_fields(Thing, 'true').
 
 -spec public_fields(doc() | kz_json:objects(), boolean()) ->
-                           doc() | kz_json:objects().
+    doc() | kz_json:objects().
 public_fields(JObjs, IncludeId) when is_list(JObjs) ->
     [public_fields(J, IncludeId) || J <- JObjs];
 public_fields(JObj, 'true') ->
@@ -728,8 +765,10 @@ filter_public_fields(JObj) ->
 %%------------------------------------------------------------------------------
 -spec get_public_keys(doc()) -> kz_json:keys().
 get_public_keys(JObj) ->
-    [Key || Key <- kz_json:get_keys(JObj),
-            not is_private_key(Key)
+    [
+        Key
+     || Key <- kz_json:get_keys(JObj),
+        not is_private_key(Key)
     ].
 
 %%------------------------------------------------------------------------------
@@ -738,7 +777,7 @@ get_public_keys(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec private_fields(doc() | kz_json:objects()) ->
-                            doc() | kz_json:objects().
+    doc() | kz_json:objects().
 private_fields(JObjs) when is_list(JObjs) ->
     [private_fields(JObj) || JObj <- JObjs];
 private_fields(JObj) ->
@@ -762,15 +801,18 @@ is_private_key(_) -> 'false'.
 leak_private_fields(JObj) ->
     kz_json:foldl(fun leak_private_field/3, JObj, JObj).
 
-leak_private_field(<<"_read_only">>, _Value, JObj) -> JObj;
+leak_private_field(<<"_read_only">>, _Value, JObj) ->
+    JObj;
 leak_private_field(Key, Value, JObj) ->
     case is_private_key(Key) of
-        'false' -> JObj;
+        'false' ->
+            JObj;
         'true' ->
-            kz_json:set_value([<<"_read_only">>, remove_pvt(Key)]
-                             ,Value
-                             ,kz_json:delete_key(Key, JObj)
-                             )
+            kz_json:set_value(
+                [<<"_read_only">>, remove_pvt(Key)],
+                Value,
+                kz_json:delete_key(Key, JObj)
+            )
     end.
 
 remove_pvt(<<"_", Key/binary>>) -> Key;
@@ -785,9 +827,10 @@ remove_pvt(Key) -> Key.
 calculate_document_hash(JObj) ->
     PublicJObj = public_fields(JObj),
     Attachments = kz_json:get_json_value(?KEY_ATTACHMENTS, JObj),
-    Props = [{<<"public">>, PublicJObj}
-            ,{<<"attachments">>, Attachments}
-            ],
+    Props = [
+        {<<"public">>, PublicJObj},
+        {<<"attachments">>, Attachments}
+    ],
     kz_binary:md5(kz_json:encode(kz_json:from_list(Props))).
 
 %%------------------------------------------------------------------------------
@@ -803,13 +846,11 @@ maybe_remove_attachments(JObj) ->
 
 -spec maybe_remove_attachments(doc(), kz_term:api_object()) -> doc().
 maybe_remove_attachments(JObj, 'undefined') -> JObj;
-maybe_remove_attachments(JObj, _Attachments) ->
-    kz_json:delete_keys(?KEYS_ATTACHMENTS, JObj).
+maybe_remove_attachments(JObj, _Attachments) -> kz_json:delete_keys(?KEYS_ATTACHMENTS, JObj).
 
 -spec maybe_remove_attachment(doc(), kz_term:ne_binary(), kz_term:api_object()) -> doc().
 maybe_remove_attachment(JObj, _AName, 'undefined') -> JObj;
-maybe_remove_attachment(JObj, AName, _AMeta) ->
-    kz_json:delete_keys(?KEYS_ATTACHMENTS(AName), JObj).
+maybe_remove_attachment(JObj, AName, _AMeta) -> kz_json:delete_keys(?KEYS_ATTACHMENTS(AName), JObj).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -818,7 +859,8 @@ maybe_remove_attachment(JObj, AName, _AMeta) ->
 -spec latest_attachment_id(doc()) -> kz_term:ne_binary() | 'undefined'.
 latest_attachment_id(Doc) ->
     case attachments(Doc) of
-        'undefined' -> 'undefined';
+        'undefined' ->
+            'undefined';
         JObj ->
             JObjs = [kz_json:from_list([KV]) || KV <- kz_json:to_proplist(JObj)],
             Latest = lists:last(lists:sort(fun compare_attachments/2, JObjs)),
@@ -849,12 +891,13 @@ setters(Routines) ->
 %%------------------------------------------------------------------------------
 -spec setters(doc(), setter_funs()) -> doc().
 setters(JObj, Routines) ->
-    lists:foldl(fun({Setter, Value}, J) ->
-                        Setter(J, Value)
-                end
-               ,JObj
-               ,Routines
-               ).
+    lists:foldl(
+        fun({Setter, Value}, J) ->
+            Setter(J, Value)
+        end,
+        JObj,
+        Routines
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Compare documents for equality
@@ -865,11 +908,13 @@ setters(JObj, Routines) ->
 %%------------------------------------------------------------------------------
 -spec are_equal(doc(), doc()) -> boolean().
 are_equal(FirstDoc, SecondDoc) ->
-    lists:all(fun(F) -> F(FirstDoc, SecondDoc) end
-             ,[fun are_equal_public/2
-              ,fun are_equal_attachments/2
-              ]
-             ).
+    lists:all(
+        fun(F) -> F(FirstDoc, SecondDoc) end,
+        [
+            fun are_equal_public/2,
+            fun are_equal_attachments/2
+        ]
+    ).
 
 -spec are_equal_public(doc(), doc()) -> boolean().
 are_equal_public(FirstDoc, SecondDoc) ->

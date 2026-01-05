@@ -46,15 +46,17 @@
 -include("callflow.hrl").
 
 %% API to send hooks
--export([maybe_hook_call/1
-        ,send_init_hook/1
-        ,send_end_hook/2
-        ]).
+-export([
+    maybe_hook_call/1,
+    send_init_hook/1,
+    send_end_hook/2
+]).
 
 %% Helper functions
--export([is_enabled/0
-        ,get_hook_url/0
-        ]).
+-export([
+    is_enabled/0,
+    get_hook_url/0
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc First we check if this feature is enabled - if not, we return false.
@@ -72,7 +74,8 @@ maybe_hook_call(Call) ->
             %% start event listener, which will be responsible for sending all hooks,
             %% including the init hook (we want to do it this way to make sure we are listening)
             cf_exe:add_event_listener(Call, {'cf_singular_call_hooks_listener', []});
-        'false' -> 'false'
+        'false' ->
+            'false'
     end.
 
 %%------------------------------------------------------------------------------
@@ -92,20 +95,24 @@ send_init_hook(Call) ->
     lager:debug("================", []),
 
     JObj = kz_json:from_list(
-             [{<<"Event">>, <<"init">>}
-             ,{<<"Call-ID">>, kapps_call:call_id(Call)}
-             ,{<<"To">>, knm_converters:normalize(kapps_call:to_user(Call))}
-             ,{<<"From">>, knm_converters:normalize(kapps_call:caller_id_number(Call))}
-             ,{<<"Inception">>, get_inception(Call)}
-             ]),
+        [
+            {<<"Event">>, <<"init">>},
+            {<<"Call-ID">>, kapps_call:call_id(Call)},
+            {<<"To">>, knm_converters:normalize(kapps_call:to_user(Call))},
+            {<<"From">>, knm_converters:normalize(kapps_call:caller_id_number(Call))},
+            {<<"Inception">>, get_inception(Call)}
+        ]
+    ),
 
     URI = binary_to_list(get_hook_url()),
 
-    case kz_http:post(URI
-                     ,[{"Content-Type", "application/json"}]
-                     ,kz_json:encode(JObj)
-                     ,[{'connect_timeout', 5000}, {'timeout', 5000}]
-                     )
+    case
+        kz_http:post(
+            URI,
+            [{"Content-Type", "application/json"}],
+            kz_json:encode(JObj),
+            [{'connect_timeout', 5000}, {'timeout', 5000}]
+        )
     of
         {'error', Reason} ->
             lager:warning("Error when sending singular call init hook: ~p", [Reason]),
@@ -137,28 +144,32 @@ send_end_hook(Call, Event) ->
     CallID =
         case ReferredBy of
             'undefined' -> kapps_call:call_id_direct(Call);
-                                                % if we were a forwarded call, refer to the original call id (bridge id)
+            % if we were a forwarded call, refer to the original call id (bridge id)
             _ -> kapps_call:custom_channel_var(<<"Bridge-ID">>, Call)
         end,
 
     JObj = kz_json:from_list(
-             [{<<"Event">>, <<"destroy">>}
-             ,{<<"Call-ID">>, CallID}
-             ,{<<"To">>, knm_converters:normalize(kapps_call:to_user(Call))}
-             ,{<<"From">>, knm_converters:normalize(kapps_call:caller_id_number(Call))}
-             ,{<<"Inception">>, get_inception(Call)}
-             ,{<<"Duration-Seconds">>, kz_json:get_value(<<"Duration-Seconds">>, Event)}
-             ,{<<"Hangup-Cause">>, kz_json:get_value(<<"Hangup-Cause">>, Event)}
-             ,{<<"Disposition">>, kz_json:get_value(<<"Disposition">>, Event)}
-             ]),
+        [
+            {<<"Event">>, <<"destroy">>},
+            {<<"Call-ID">>, CallID},
+            {<<"To">>, knm_converters:normalize(kapps_call:to_user(Call))},
+            {<<"From">>, knm_converters:normalize(kapps_call:caller_id_number(Call))},
+            {<<"Inception">>, get_inception(Call)},
+            {<<"Duration-Seconds">>, kz_json:get_value(<<"Duration-Seconds">>, Event)},
+            {<<"Hangup-Cause">>, kz_json:get_value(<<"Hangup-Cause">>, Event)},
+            {<<"Disposition">>, kz_json:get_value(<<"Disposition">>, Event)}
+        ]
+    ),
 
     URI = binary_to_list(get_hook_url()),
 
-    case kz_http:post(URI
-                     ,[{"Content-Type", "application/json"}]
-                     ,kz_json:encode(JObj)
-                     ,[{'connect_timeout', 5000}, {'timeout', 5000}]
-                     )
+    case
+        kz_http:post(
+            URI,
+            [{"Content-Type", "application/json"}],
+            kz_json:encode(JObj),
+            [{'connect_timeout', 5000}, {'timeout', 5000}]
+        )
     of
         {'error', Reason} ->
             lager:warning("Error when sending singular end of call hook: ~p", [Reason]),
@@ -173,8 +184,8 @@ send_end_hook(Call, Event) ->
 %%------------------------------------------------------------------------------
 -spec should_hook(kapps_call:call()) -> boolean().
 should_hook(Call) ->
-    is_enabled()
-        andalso call_is_singular(Call).
+    is_enabled() andalso
+        call_is_singular(Call).
 
 %%------------------------------------------------------------------------------
 %% @doc Checks if the singular call hook is enabled in the callflow system config.
@@ -199,9 +210,9 @@ call_is_singular(Call) ->
     BridgeID = kapps_call:custom_channel_var(<<"Bridge-ID">>, Call),
     ReferredBy = kapps_call:custom_channel_var(<<"Referred-By">>, Call),
     CallID = kapps_call:call_id_direct(Call),
-    (BridgeID =:= 'undefined')
-        orelse (BridgeID =:= CallID)
-        orelse (ReferredBy =/= 'undefined').
+    (BridgeID =:= 'undefined') orelse
+        (BridgeID =:= CallID) orelse
+        (ReferredBy =/= 'undefined').
 
 %%------------------------------------------------------------------------------
 %% @doc Gets where the call was started. If kapps_call returns undefined, it was on net.

@@ -11,20 +11,21 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_vmboxes).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/3, allowed_methods/4
-        ,resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3, resource_exists/4
-        ,validate/1, validate/2, validate/3, validate/4, validate/5
-        ,content_types_accepted/3, content_types_accepted/4, content_types_accepted/5
-        ,content_types_provided/3, content_types_provided/4, content_types_provided/5
-        ,put/1, put/3, put/5
-        ,post/2, post/3, post/4
-        ,patch/2
-        ,delete/2, delete/3, delete/4
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/3, allowed_methods/4,
+    resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3, resource_exists/4,
+    validate/1, validate/2, validate/3, validate/4, validate/5,
+    content_types_accepted/3, content_types_accepted/4, content_types_accepted/5,
+    content_types_provided/3, content_types_provided/4, content_types_provided/5,
+    put/1, put/3, put/5,
+    post/2, post/3, post/4,
+    patch/2,
+    delete/2, delete/3, delete/4,
 
-        ,migrate/1
-        ,acceptable_content_types/0
-        ]).
+    migrate/1,
+    acceptable_content_types/0
+]).
 
 -include("crossbar.hrl").
 -include_lib("kazoo_documents/include/kazoo_documents.hrl").
@@ -37,17 +38,20 @@
 -define(MESSAGES_RESOURCE, ?VM_KEY_MESSAGES).
 -define(BIN_DATA, <<"raw">>).
 
--define(UPLOAD_MIME_TYPES, [{<<"application">>, <<"octet-stream">>}
-                            | ?AUDIO_CONTENT_TYPES
-                            ++ ?MULTIPART_CONTENT_TYPES
-                            ++ ?JSON_CONTENT_TYPES
-                           ]).
+-define(UPLOAD_MIME_TYPES, [
+    {<<"application">>, <<"octet-stream">>}
+    | ?AUDIO_CONTENT_TYPES ++
+        ?MULTIPART_CONTENT_TYPES ++
+        ?JSON_CONTENT_TYPES
+]).
 -define(DOWNLOAD_MIME_TYPES, ?UPLOAD_MIME_TYPES -- ?JSON_CONTENT_TYPES).
 -define(BULK_DOWNLOAD_MIME_TYPE, [{<<"application">>, <<"zip">>}]).
 -define(ALL_MIME_TYPES, ?UPLOAD_MIME_TYPES ++ ?BULK_DOWNLOAD_MIME_TYPE).
 
 -define(MOD_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".voicemail">>).
--define(NORMALIZATION_FORMAT, kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"normalization_format">>, <<"mp3">>)).
+-define(NORMALIZATION_FORMAT,
+    kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"normalization_format">>, <<"mp3">>)
+).
 -define(TRANSCRIBE_FORMAT, kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"transcribe_format">>)).
 
 %%%=============================================================================
@@ -60,8 +64,12 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    _ = crossbar_bindings:bind(<<"*.content_types_accepted.vmboxes">>, ?MODULE, 'content_types_accepted'),
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.vmboxes">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_accepted.vmboxes">>, ?MODULE, 'content_types_accepted'
+    ),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.vmboxes">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.vmboxes">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.vmboxes">>, ?MODULE, 'resource_exists'),
     _ = crossbar_bindings:bind(<<"*.validate.vmboxes">>, ?MODULE, 'validate'),
@@ -75,30 +83,47 @@ init() ->
 -spec sync_config_to_schema() -> 'ok'.
 sync_config_to_schema() ->
     %% [{ConfigPath, SchemaPath, CastFun}]
-    SyncFields = [{[<<"voicemail">>, <<"max_pin_length">>]
-                  ,[<<"properties">>, <<"pin">>, <<"maxLength">>]
-                  ,fun(ConfigV, SchemaV) -> kz_term:safe_cast(ConfigV, SchemaV, fun kz_term:to_integer/1) end
-                  }
-                 ],
+    SyncFields = [
+        {
+            [<<"voicemail">>, <<"max_pin_length">>],
+            [<<"properties">>, <<"pin">>, <<"maxLength">>],
+            fun(ConfigV, SchemaV) ->
+                kz_term:safe_cast(ConfigV, SchemaV, fun kz_term:to_integer/1)
+            end
+        }
+    ],
     lists:foreach(fun sync_field/1, SyncFields).
 
--spec sync_field({kz_json:get_key(), kz_json:get_key(), fun((kz_json:json_term(), kz_json:json_term()) -> kz_json:json_term())}) -> 'ok'.
+-spec sync_field(
+    {kz_json:get_key(), kz_json:get_key(), fun(
+        (kz_json:json_term(), kz_json:json_term()) -> kz_json:json_term()
+    )}
+) -> 'ok'.
 sync_field({ConfigPath, SchemaPath, CastFun}) ->
     {'ok', SchemaJObj} = kz_json_schema:load(<<"vmboxes">>),
     SchemaV = kz_json:get_value(SchemaPath, SchemaJObj),
 
     case kapps_config:get(<<"callflow">>, ConfigPath) of
         'undefined' ->
-            lager:debug("config ~s undefined, no schema change necessary", [kz_binary:join(ConfigPath, <<".">>)]);
+            lager:debug("config ~s undefined, no schema change necessary", [
+                kz_binary:join(ConfigPath, <<".">>)
+            ]);
         ConfigV ->
             case CastFun(ConfigV, SchemaV) of
-                SchemaV -> lager:debug("config ~s unchanged from schema", [kz_binary:join(ConfigPath, <<".">>)]);
+                SchemaV ->
+                    lager:debug("config ~s unchanged from schema", [
+                        kz_binary:join(ConfigPath, <<".">>)
+                    ]);
                 ConfigValue ->
-                    lager:info("config ~s(~p) differs from schema ~s(~p), updating schema"
-                              ,[kz_binary:join(ConfigPath, <<".">>), ConfigValue
-                               ,kz_binary:join(SchemaPath, <<".">>), SchemaV
-                               ]
-                              ),
+                    lager:info(
+                        "config ~s(~p) differs from schema ~s(~p), updating schema",
+                        [
+                            kz_binary:join(ConfigPath, <<".">>),
+                            ConfigValue,
+                            kz_binary:join(SchemaPath, <<".">>),
+                            SchemaV
+                        ]
+                    ),
                     UpdatedSchema = kz_json:set_value(SchemaPath, ConfigValue, SchemaJObj),
                     {'ok', _} = kz_datamgr:save_doc(?KZ_SCHEMA_DB, UpdatedSchema),
                     lager:info("saved vmboxes schema")
@@ -165,20 +190,26 @@ resource_exists(_, ?MESSAGES_RESOURCE, _, ?BIN_DATA) -> 'true'.
 -spec acceptable_content_types() -> kz_term:proplist().
 acceptable_content_types() -> ?ALL_MIME_TYPES.
 
--spec content_types_accepted(cb_context:context(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_accepted(cb_context:context(), path_token(), path_token()) ->
+    cb_context:context().
 content_types_accepted(Context, _VMBox, ?MESSAGES_RESOURCE) ->
     maybe_add_types_accepted(Context, ?MESSAGES_RESOURCE, cb_context:req_verb(Context)).
 
--spec content_types_accepted(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_accepted(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 content_types_accepted(Context, _VMBox, ?MESSAGES_RESOURCE, ?BIN_DATA) ->
     maybe_add_types_accepted(Context, ?BIN_DATA, cb_context:req_verb(Context));
-content_types_accepted(Context, _VMBox, ?MESSAGES_RESOURCE, _) -> Context.
+content_types_accepted(Context, _VMBox, ?MESSAGES_RESOURCE, _) ->
+    Context.
 
--spec content_types_accepted(cb_context:context(), path_token(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_accepted(
+    cb_context:context(), path_token(), path_token(), path_token(), path_token()
+) -> cb_context:context().
 content_types_accepted(Context, _VMBox, ?MESSAGES_RESOURCE, _MsgId, ?BIN_DATA) ->
     maybe_add_types_accepted(Context, ?BIN_DATA, cb_context:req_verb(Context)).
 
--spec maybe_add_types_accepted(cb_context:context(), kz_term:ne_binary(), http_method()) -> cb_context:context().
+-spec maybe_add_types_accepted(cb_context:context(), kz_term:ne_binary(), http_method()) ->
+    cb_context:context().
 maybe_add_types_accepted(Context, _, ?HTTP_PUT) ->
     CTA = [{'from_binary', ?UPLOAD_MIME_TYPES}],
     cb_context:set_content_types_accepted(Context, CTA);
@@ -188,34 +219,43 @@ maybe_add_types_accepted(Context, ?BIN_DATA, ?HTTP_POST) ->
 maybe_add_types_accepted(Context, ?BIN_DATA, ?HTTP_GET) ->
     CTA = [{'from_binary', ?DOWNLOAD_MIME_TYPES}],
     cb_context:set_content_types_accepted(Context, CTA);
-maybe_add_types_accepted(Context, _, _) -> Context.
+maybe_add_types_accepted(Context, _, _) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc Add content types provided by this module
 %% @end
 %%------------------------------------------------------------------------------
--spec content_types_provided(cb_context:context(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_provided(cb_context:context(), path_token(), path_token()) ->
+    cb_context:context().
 content_types_provided(Context, _VMBox, ?MESSAGES_RESOURCE) ->
     maybe_add_types_provided(Context, ?MESSAGES_RESOURCE, cb_context:req_verb(Context)).
 
--spec content_types_provided(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_provided(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 content_types_provided(Context, _VMBox, ?MESSAGES_RESOURCE, ?BIN_DATA) ->
     maybe_add_types_provided(Context, ?BIN_DATA, cb_context:req_verb(Context));
-content_types_provided(Context, _VMBox, ?MESSAGES_RESOURCE, _) -> Context.
+content_types_provided(Context, _VMBox, ?MESSAGES_RESOURCE, _) ->
+    Context.
 
--spec content_types_provided(cb_context:context(), path_token(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_provided(
+    cb_context:context(), path_token(), path_token(), path_token(), path_token()
+) -> cb_context:context().
 content_types_provided(Context, _VMBox, ?MESSAGES_RESOURCE, _MsgID, ?BIN_DATA) ->
     maybe_add_types_provided(Context, ?BIN_DATA, cb_context:req_verb(Context)).
 
--spec maybe_add_types_provided(cb_context:context(), kz_term:ne_binary(), http_method()) -> cb_context:context().
-maybe_add_types_provided(Context, _, ?HTTP_PUT) -> Context;
+-spec maybe_add_types_provided(cb_context:context(), kz_term:ne_binary(), http_method()) ->
+    cb_context:context().
+maybe_add_types_provided(Context, _, ?HTTP_PUT) ->
+    Context;
 maybe_add_types_provided(Context, ?BIN_DATA, ?HTTP_POST) ->
     CTP = [{'send_file', ?BULK_DOWNLOAD_MIME_TYPE}],
     cb_context:set_content_types_provided(Context, CTP);
 maybe_add_types_provided(Context, ?BIN_DATA, ?HTTP_GET) ->
     CTP = [{'to_binary', ?DOWNLOAD_MIME_TYPES}],
     cb_context:set_content_types_provided(Context, CTP);
-maybe_add_types_provided(Context, _, _) -> Context.
+maybe_add_types_provided(Context, _, _) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc This function determines if the parameters and content are correct
@@ -259,7 +299,9 @@ validate_messages(Context, BoxId, ?HTTP_GET) ->
 validate_messages(Context, BoxId, ?HTTP_POST) ->
     case kz_json:get_list_value(?VM_KEY_MESSAGES, cb_context:req_data(Context), []) of
         [] ->
-            Message = kz_json:from_list([{<<"message">>, <<"No array of message ids are specified">>}]),
+            Message = kz_json:from_list([
+                {<<"message">>, <<"No array of message ids are specified">>}
+            ]),
             cb_context:add_validation_error(<<"messages">>, <<"required">>, Message, Context);
         _ ->
             NewBoxId = kz_json:get_list_value(<<"source_id">>, cb_context:req_data(Context)),
@@ -270,39 +312,48 @@ validate_messages(Context, BoxId, ?HTTP_PUT) ->
     case cb_context:resp_status(C1) of
         'success' ->
             validate_media_binary(C1, cb_context:req_files(Context), 'false');
-        _ -> C1
+        _ ->
+            C1
     end;
 validate_messages(Context, BoxId, ?HTTP_DELETE) ->
     Messages = kvm_messages:get(cb_context:account_id(Context), BoxId),
 
-    Filter = kz_json:get_list_value(?VM_KEY_MESSAGES, cb_context:req_data(Context), get_folder_filter(Context, <<"all">>)),
+    Filter = kz_json:get_list_value(
+        ?VM_KEY_MESSAGES, cb_context:req_data(Context), get_folder_filter(Context, <<"all">>)
+    ),
     ToDelete = filter_messages(Messages, Filter, Context),
     cb_context:set_resp_data(cb_context:set_resp_status(Context, 'success'), ToDelete).
 
--spec validate(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 validate(Context, BoxId, ?MESSAGES_RESOURCE, ?BIN_DATA) ->
     load_messages_binaries(BoxId, Context);
 validate(Context, BoxId, ?MESSAGES_RESOURCE, MediaId) ->
     validate_message(Context, BoxId, MediaId, cb_context:req_verb(Context)).
 
--spec validate_message(cb_context:context(), path_token(), path_token(), http_method()) -> cb_context:context().
+-spec validate_message(cb_context:context(), path_token(), path_token(), http_method()) ->
+    cb_context:context().
 validate_message(Context, BoxId, MessageId, ?HTTP_GET) ->
     load_message(MessageId, BoxId, Context, 'true');
 validate_message(Context, BoxId, MessageId, ?HTTP_POST) ->
-    RetentionTimestamp = kz_time:now_s() - kvm_util:retention_seconds(cb_context:account_id(Context)),
+    RetentionTimestamp =
+        kz_time:now_s() - kvm_util:retention_seconds(cb_context:account_id(Context)),
     case kvm_message:fetch(cb_context:account_id(Context), MessageId, BoxId) of
         {'ok', Msg} ->
             case kzd_box_message:utc_seconds(Msg) < RetentionTimestamp of
                 'true' ->
                     ErrMsg = <<"cannot make changes to messages prior to retention duration">>,
-                    cb_context:add_validation_error(MessageId
-                                                   ,<<"date_range">>
-                                                   ,kz_json:from_list(
-                                                      [{<<"message">>, ErrMsg}
-                                                      ,{<<"cause">>, RetentionTimestamp}
-                                                      ])
-                                                   ,Context
-                                                   );
+                    cb_context:add_validation_error(
+                        MessageId,
+                        <<"date_range">>,
+                        kz_json:from_list(
+                            [
+                                {<<"message">>, ErrMsg},
+                                {<<"cause">>, RetentionTimestamp}
+                            ]
+                        ),
+                        Context
+                    );
                 'false' ->
                     NewBoxId = kz_json:get_value(<<"source_id">>, cb_context:req_data(Context)),
                     maybe_load_vmboxes(NewBoxId, Context)
@@ -313,17 +364,20 @@ validate_message(Context, BoxId, MessageId, ?HTTP_POST) ->
 validate_message(Context, BoxId, MessageId, ?HTTP_DELETE) ->
     load_message(MessageId, BoxId, Context).
 
--spec validate(cb_context:context(), path_token(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 validate(Context, BoxId, ?MESSAGES_RESOURCE, MediaId, ?BIN_DATA) ->
     load_or_upload(BoxId, MediaId, Context, cb_context:req_verb(Context)).
 
--spec load_or_upload(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), http_method()) -> cb_context:context().
+-spec load_or_upload(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), http_method()) ->
+    cb_context:context().
 load_or_upload(BoxId, MediaId, Context, ?HTTP_PUT) ->
     C1 = load_message(MediaId, BoxId, Context),
     case cb_context:resp_status(C1) of
         'success' ->
             validate_media_binary(C1, cb_context:req_files(Context), 'true');
-        _ -> C1
+        _ ->
+            C1
     end;
 load_or_upload(BoxId, MediaId, Context, ?HTTP_GET) ->
     load_message_binary(BoxId, MediaId, Context).
@@ -349,15 +403,21 @@ post(Context, OldBoxId, ?MESSAGES_RESOURCE) ->
 
     case kz_json:get_value(<<"source_id">>, cb_context:req_data(Context)) of
         'undefined' ->
-            Result = kvm_messages:change_folder(Folder, MsgIds, AccountId, OldBoxId, add_pvt_auth_funs(Context)),
+            Result = kvm_messages:change_folder(
+                Folder, MsgIds, AccountId, OldBoxId, add_pvt_auth_funs(Context)
+            ),
             C = crossbar_util:response(Result, Context),
             update_mwi(C, OldBoxId);
         ?NE_BINARY = NewBoxId ->
-            Moved = kvm_messages:move_to_vmbox(AccountId, MsgIds, OldBoxId, NewBoxId, add_pvt_auth_funs(Context)),
+            Moved = kvm_messages:move_to_vmbox(
+                AccountId, MsgIds, OldBoxId, NewBoxId, add_pvt_auth_funs(Context)
+            ),
             C = crossbar_util:response(Moved, Context),
             update_mwi(C, [OldBoxId, NewBoxId]);
         NewBoxIds ->
-            Copied = kvm_messages:copy_to_vmboxes(AccountId, MsgIds, OldBoxId, NewBoxIds, add_pvt_auth_funs(Context)),
+            Copied = kvm_messages:copy_to_vmboxes(
+                AccountId, MsgIds, OldBoxId, NewBoxIds, add_pvt_auth_funs(Context)
+            ),
             C = crossbar_util:response(Copied, Context),
             update_mwi(C, [OldBoxId | NewBoxIds])
     end.
@@ -370,7 +430,11 @@ post(Context, OldBoxId, ?MESSAGES_RESOURCE, MediaId) ->
     case kz_json:get_value(<<"source_id">>, cb_context:req_data(Context)) of
         'undefined' ->
             Folder = get_folder_filter(Context, ?VM_FOLDER_SAVED),
-            case kvm_message:change_folder(Folder, MediaId, AccountId, OldBoxId, add_pvt_auth_funs(Context)) of
+            case
+                kvm_message:change_folder(
+                    Folder, MediaId, AccountId, OldBoxId, add_pvt_auth_funs(Context)
+                )
+            of
                 {'ok', Message} ->
                     C = crossbar_util:response(Message, Context),
                     update_mwi(C, OldBoxId);
@@ -378,7 +442,11 @@ post(Context, OldBoxId, ?MESSAGES_RESOURCE, MediaId) ->
                     crossbar_doc:handle_datamgr_errors(Error, MediaId, Context)
             end;
         ?NE_BINARY = NewBoxId ->
-            case kvm_message:move_to_vmbox(AccountId, MediaId, OldBoxId, NewBoxId, add_pvt_auth_funs(Context)) of
+            case
+                kvm_message:move_to_vmbox(
+                    AccountId, MediaId, OldBoxId, NewBoxId, add_pvt_auth_funs(Context)
+                )
+            of
                 {'ok', Moved} ->
                     C = crossbar_util:response(Moved, Context),
                     update_mwi(C, [OldBoxId, NewBoxId]);
@@ -386,7 +454,9 @@ post(Context, OldBoxId, ?MESSAGES_RESOURCE, MediaId) ->
                     crossbar_doc:handle_datamgr_errors(Error, MediaId, Context)
             end;
         NewBoxIds ->
-            Copied = kvm_message:copy_to_vmboxes(AccountId, MediaId, OldBoxId, NewBoxIds, add_pvt_auth_funs(Context)),
+            Copied = kvm_message:copy_to_vmboxes(
+                AccountId, MediaId, OldBoxId, NewBoxIds, add_pvt_auth_funs(Context)
+            ),
             C = crossbar_util:response(Copied, Context),
             update_mwi(C, [OldBoxId | NewBoxIds])
     end.
@@ -404,9 +474,12 @@ put(Context, _BoxId, ?MESSAGES_RESOURCE) ->
     Context1 = crossbar_doc:save(Context),
     maybe_save_attachment(Context1).
 
--spec put(cb_context:context(), path_token(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec put(cb_context:context(), path_token(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 put(Context, _BoxId, ?MESSAGES_RESOURCE, MsgID, ?BIN_DATA) ->
-    maybe_save_attachment(cb_context:set_account_db(Context, kvm_util:get_db(cb_context:account_id(Context), MsgID))).
+    maybe_save_attachment(
+        cb_context:set_account_db(Context, kvm_util:get_db(cb_context:account_id(Context), MsgID))
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -419,7 +492,9 @@ delete(Context, BoxId) ->
     Msgs = kvm_messages:get(AccountId, BoxId),
     MsgIds = [kzd_box_message:media_id(M) || M <- Msgs],
     'ok' = maybe_publish_voicemail_deleted(AccountId, BoxId, MsgIds),
-    _ = kvm_messages:change_folder(?VM_FOLDER_DELETED, MsgIds, AccountId, BoxId, add_pvt_auth_funs(Context)),
+    _ = kvm_messages:change_folder(
+        ?VM_FOLDER_DELETED, MsgIds, AccountId, BoxId, add_pvt_auth_funs(Context)
+    ),
     C = crossbar_doc:delete(Context),
     update_mwi(C, BoxId).
 
@@ -428,15 +503,22 @@ delete(Context, BoxId, ?MESSAGES_RESOURCE) ->
     AccountId = cb_context:account_id(Context),
     MsgIds = cb_context:resp_data(Context),
     'ok' = maybe_publish_voicemail_deleted(AccountId, BoxId, MsgIds),
-    Result = kvm_messages:change_folder({?VM_FOLDER_DELETED, 'true'}, MsgIds, AccountId, BoxId, add_pvt_auth_funs(Context)),
+    Result = kvm_messages:change_folder(
+        {?VM_FOLDER_DELETED, 'true'}, MsgIds, AccountId, BoxId, add_pvt_auth_funs(Context)
+    ),
     C = crossbar_util:response(Result, Context),
     update_mwi(C, BoxId).
 
--spec delete(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec delete(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 delete(Context, BoxId, ?MESSAGES_RESOURCE, MediaId) ->
     AccountId = cb_context:account_id(Context),
     'ok' = maybe_publish_voicemail_deleted(AccountId, BoxId, [MediaId]),
-    case kvm_message:change_folder({?VM_FOLDER_DELETED, 'true'}, MediaId, AccountId, BoxId, add_pvt_auth_funs(Context)) of
+    case
+        kvm_message:change_folder(
+            {?VM_FOLDER_DELETED, 'true'}, MediaId, AccountId, BoxId, add_pvt_auth_funs(Context)
+        )
+    of
         {'ok', Message} ->
             C = crossbar_util:response(Message, Context),
             update_mwi(C, BoxId);
@@ -480,22 +562,23 @@ add_pvt_auth(JObj, Context) ->
 %%------------------------------------------------------------------------------
 -spec maybe_publish_voicemail_deleted(kz_term:ne_binary(), path_token(), path_tokens()) -> 'ok'.
 maybe_publish_voicemail_deleted(AccountId, BoxId, MessageIds) ->
-    Messages = kz_json:get_list_value(<<"succeeded">>, kvm_messages:fetch(AccountId, MessageIds, BoxId), []),
+    Messages = kz_json:get_list_value(
+        <<"succeeded">>, kvm_messages:fetch(AccountId, MessageIds, BoxId), []
+    ),
     maybe_publish_voicemail_deleted(BoxId, Messages).
 
 -spec maybe_publish_voicemail_deleted(path_token(), kz_json:objects()) -> 'ok'.
 maybe_publish_voicemail_deleted(_BoxId, []) -> 'ok';
-maybe_publish_voicemail_deleted(BoxId, JObjs) ->
-    publish_voicemail_deleted(BoxId, JObjs).
+maybe_publish_voicemail_deleted(BoxId, JObjs) -> publish_voicemail_deleted(BoxId, JObjs).
 
 -spec publish_voicemail_deleted(path_token(), kz_json:objects()) -> 'ok'.
 publish_voicemail_deleted(BoxId, JObjs) ->
     lists:foreach(
-      fun(JObj) ->
-              kvm_util:publish_voicemail_deleted(BoxId, JObj, 'crossbar_action')
-      end,
-      JObjs
-     ).
+        fun(JObj) ->
+            kvm_util:publish_voicemail_deleted(BoxId, JObj, 'crossbar_action')
+        end,
+        JObjs
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc disallow vmbox messages array changing.
@@ -503,19 +586,22 @@ publish_voicemail_deleted(BoxId, JObjs) ->
 %% and inform client to do migrate their vmbox
 %% @end
 %%------------------------------------------------------------------------------
--spec check_mailbox_for_messages_array(cb_context:context(), kz_term:api_objects()) -> cb_context:context().
-check_mailbox_for_messages_array(Context, 'undefined') -> Context;
-check_mailbox_for_messages_array(Context, []) -> Context;
+-spec check_mailbox_for_messages_array(cb_context:context(), kz_term:api_objects()) ->
+    cb_context:context().
+check_mailbox_for_messages_array(Context, 'undefined') ->
+    Context;
+check_mailbox_for_messages_array(Context, []) ->
+    Context;
 check_mailbox_for_messages_array(Context, VMBoxMsgs) ->
     Props = [{?VM_KEY_MESSAGES, VMBoxMsgs}],
     NewDoc = kz_json:set_values(Props, cb_context:doc(Context)),
-    Envelope = kz_json:from_list([{<<"message">>
-                                  ,<<"Please migrate your voicemail box messages to MODB">>
-                                  }
-                                 ]),
-    Setters = [{fun cb_context:set_doc/2, NewDoc}
-              ,{fun cb_context:set_resp_envelope/2, Envelope}
-              ],
+    Envelope = kz_json:from_list([
+        {<<"message">>, <<"Please migrate your voicemail box messages to MODB">>}
+    ]),
+    Setters = [
+        {fun cb_context:set_doc/2, NewDoc},
+        {fun cb_context:set_resp_envelope/2, Envelope}
+    ],
     cb_context:setters(Context, Setters).
 
 -spec maybe_save_attachment(cb_context:context()) -> cb_context:context().
@@ -529,7 +615,8 @@ maybe_save_attachment(Context, _Error) ->
     Context.
 
 -spec save_attachment(cb_context:context(), req_files()) -> cb_context:context().
-save_attachment(Context, []) -> Context;
+save_attachment(Context, []) ->
+    Context;
 save_attachment(Context, [{Filename, FileJObj} | _Others]) ->
     save_attachment(Context, Filename, FileJObj).
 
@@ -542,10 +629,11 @@ save_attachment(Context, Filename, FileJObj) ->
 
     CT = kz_json:get_ne_binary_value([<<"headers">>, <<"content_type">>], FileJObj),
 
-    Options = [{'content_type', CT}
-              ,{'rev', kz_doc:revision(JObj)}
-               | ?TYPE_CHECK_OPTION(<<"mailbox_message">>)
-              ],
+    Options = [
+        {'content_type', CT},
+        {'rev', kz_doc:revision(JObj)}
+        | ?TYPE_CHECK_OPTION(<<"mailbox_message">>)
+    ],
     AttName = cb_modules_util:attachment_name(Filename, CT),
     C1 = crossbar_doc:save_attachment(MessageId, AttName, Contents, Context, Options),
     case cb_context:resp_status(C1) of
@@ -553,14 +641,16 @@ save_attachment(Context, Filename, FileJObj) ->
             lager:info("saved attachment to message ~s", [MessageId]),
             C2 = crossbar_util:response(kzd_box_message:metadata(JObj), C1),
             update_mwi(C2, kzd_box_message:source_id(JObj));
-        _ -> C1
+        _ ->
+            C1
     end.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_folder_filter(cb_context:context(), kz_term:api_ne_binary()) -> kvm_message:vm_folder() | 'undefined'.
+-spec get_folder_filter(cb_context:context(), kz_term:api_ne_binary()) ->
+    kvm_message:vm_folder() | 'undefined'.
 get_folder_filter(Context, Default) ->
     ReqData = cb_context:req_data(Context),
     QS = cb_context:query_string(Context),
@@ -582,7 +672,8 @@ get_folder_filter(Context, Default) ->
 %%------------------------------------------------------------------------------
 -type filter_options() :: kvm_message:vm_folder() | kz_term:api_ne_binaries().
 
--spec filter_messages(kz_json:objects(), filter_options(), cb_context:context()) -> kz_term:ne_binaries().
+-spec filter_messages(kz_json:objects(), filter_options(), cb_context:context()) ->
+    kz_term:ne_binaries().
 filter_messages(_, 'undefined', _) ->
     [];
 filter_messages(Messages, {?VM_FOLDER_DELETED, _}, Context) ->
@@ -593,52 +684,67 @@ filter_messages(Messages, Filters, Context) ->
 
 %% Filter by folder
 
--spec filter_messages(kz_json:objects(), filter_options(), cb_context:context(), kz_term:ne_binaries(), boolean()) -> kz_term:ne_binaries().
+-spec filter_messages(
+    kz_json:objects(), filter_options(), cb_context:context(), kz_term:ne_binaries(), boolean()
+) -> kz_term:ne_binaries().
 filter_messages([], _Filters, _Context, Selected, _) ->
     Selected;
-filter_messages([Mess|Messages], <<"all">> = Filter, Context, Selected, HasQSFilter) ->
-    filter_messages(Messages, Filter, Context, [kzd_box_message:media_id(Mess)|Selected], HasQSFilter);
-filter_messages([Mess|Messages], <<_/binary>> = Filter, Context, Selected, HasQSFilter) when Filter =:= ?VM_FOLDER_NEW;
-                                                                                             Filter =:= ?VM_FOLDER_SAVED;
-                                                                                             Filter =:= ?VM_FOLDER_DELETED ->
-    case (HasQSFilter
-          andalso crossbar_filter:by_doc(Mess, Context, HasQSFilter)
-         )
-        orelse kzd_box_message:folder(Mess) =:= Filter
+filter_messages([Mess | Messages], <<"all">> = Filter, Context, Selected, HasQSFilter) ->
+    filter_messages(
+        Messages, Filter, Context, [kzd_box_message:media_id(Mess) | Selected], HasQSFilter
+    );
+filter_messages([Mess | Messages], <<_/binary>> = Filter, Context, Selected, HasQSFilter) when
+    Filter =:= ?VM_FOLDER_NEW;
+    Filter =:= ?VM_FOLDER_SAVED;
+    Filter =:= ?VM_FOLDER_DELETED
+->
+    case
+        (HasQSFilter andalso
+            crossbar_filter:by_doc(Mess, Context, HasQSFilter)) orelse
+            kzd_box_message:folder(Mess) =:= Filter
     of
-        'true' -> filter_messages(Messages, Filter, Context, [kzd_box_message:media_id(Mess)|Selected], HasQSFilter);
-        'false' -> filter_messages(Messages, Filter, Context, Selected, HasQSFilter)
+        'true' ->
+            filter_messages(
+                Messages, Filter, Context, [kzd_box_message:media_id(Mess) | Selected], HasQSFilter
+            );
+        'false' ->
+            filter_messages(Messages, Filter, Context, Selected, HasQSFilter)
     end;
 %% Filter by Ids
-filter_messages(_, [], _Context, Selected, _) -> Selected;
-filter_messages([Mess|Messages], Filters, Context, Selected, HasQSFilter) ->
+filter_messages(_, [], _Context, Selected, _) ->
+    Selected;
+filter_messages([Mess | Messages], Filters, Context, Selected, HasQSFilter) ->
     Id = kzd_box_message:media_id(Mess),
 
-    case (HasQSFilter
-          andalso crossbar_filter:by_doc(Mess, Context, HasQSFilter)
-         )
-        orelse lists:member(Id, Filters)
+    case
+        (HasQSFilter andalso
+            crossbar_filter:by_doc(Mess, Context, HasQSFilter)) orelse
+            lists:member(Id, Filters)
     of
-        'true' -> filter_messages(Messages, Filters, Context, [Id|Selected], HasQSFilter);
+        'true' -> filter_messages(Messages, Filters, Context, [Id | Selected], HasQSFilter);
         'false' -> filter_messages(Messages, Filters, Context, Selected, HasQSFilter)
     end.
 
--spec validate_media_binary(cb_context:context(), kz_term:proplist(), boolean()) -> cb_context:context().
-validate_media_binary(Context, [], 'false') -> Context;
+-spec validate_media_binary(cb_context:context(), kz_term:proplist(), boolean()) ->
+    cb_context:context().
+validate_media_binary(Context, [], 'false') ->
+    Context;
 validate_media_binary(Context, [], 'true') ->
-    cb_context:add_validation_error(<<"file">>
-                                   ,<<"required">>
-                                   ,kz_json:from_list([{<<"message">>, <<"Please provide a media file">>}])
-                                   ,Context
-                                   );
+    cb_context:add_validation_error(
+        <<"file">>,
+        <<"required">>,
+        kz_json:from_list([{<<"message">>, <<"Please provide a media file">>}]),
+        Context
+    );
 validate_media_binary(Context, [{_Filename, FileObj}], _) ->
     maybe_normalize_upload(Context, FileObj);
 validate_media_binary(Context, _MultiFiles, _) ->
-    cb_context:add_validation_error(<<"file">>
-                                   ,<<"maxItems">>
-                                   ,kz_json:from_list([{<<"message">>, <<"Please provide a single media file">>}])
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"file">>,
+        <<"maxItems">>,
+        kz_json:from_list([{<<"message">>, <<"Please provide a single media file">>}]),
+        Context
+    ).
 
 -spec maybe_normalize_upload(cb_context:context(), kz_json:object()) -> cb_context:context().
 maybe_normalize_upload(Context, FileJObj) ->
@@ -653,19 +759,27 @@ maybe_normalize_upload(Context, FileJObj) ->
 
 -spec normalize_upload(cb_context:context(), kz_json:object()) -> cb_context:context().
 normalize_upload(Context, FileJObj) ->
-    normalize_upload(Context, FileJObj, kz_json:get_ne_binary_value([<<"headers">>, <<"content_type">>], FileJObj)).
+    normalize_upload(
+        Context,
+        FileJObj,
+        kz_json:get_ne_binary_value([<<"headers">>, <<"content_type">>], FileJObj)
+    ).
 
--spec normalize_upload(cb_context:context(), kz_json:object(), kz_term:api_binary()) -> cb_context:context().
+-spec normalize_upload(cb_context:context(), kz_json:object(), kz_term:api_binary()) ->
+    cb_context:context().
 normalize_upload(Context, FileJObj, UploadContentType) ->
     FromExt = kz_mime:to_extension(UploadContentType),
-    ToExt =  normalization_format(Context),
+    ToExt = normalization_format(Context),
 
-    lager:info("upload is of type '~s', normalizing from ~s to ~s"
-              ,[UploadContentType, FromExt, ToExt]
-              ),
+    lager:info(
+        "upload is of type '~s', normalizing from ~s to ~s",
+        [UploadContentType, FromExt, ToExt]
+    ),
 
     {UpdatedContext, _UpdatedFileJObj} =
-        cb_modules_util:normalize_media_upload(Context, FromExt, ToExt, FileJObj, [{'to_args', <<"-r 16000">>}]),
+        cb_modules_util:normalize_media_upload(Context, FromExt, ToExt, FileJObj, [
+            {'to_args', <<"-r 16000">>}
+        ]),
     UpdatedContext.
 
 -spec normalization_format(cb_context:context()) -> kz_term:ne_binary().
@@ -694,14 +808,18 @@ validate_request(VMBoxId, Context) ->
 validate_unique_vmbox(VMBoxId, Context) ->
     validate_unique_vmbox(VMBoxId, Context, cb_context:account_db(Context)).
 
--spec validate_unique_vmbox(kz_term:api_binary(), cb_context:context(), kz_term:api_binary()) -> cb_context:context().
+-spec validate_unique_vmbox(kz_term:api_binary(), cb_context:context(), kz_term:api_binary()) ->
+    cb_context:context().
 validate_unique_vmbox(VMBoxId, Context, 'undefined') ->
     check_vmbox_schema(VMBoxId, Context);
 validate_unique_vmbox(VMBoxId, Context, _AccountDb) ->
     case check_uniqueness(VMBoxId, Context) of
-        'true' -> check_vmbox_schema(VMBoxId, Context);
+        'true' ->
+            check_vmbox_schema(VMBoxId, Context);
         'false' ->
-            Msg = kz_json:from_list([{<<"message">>, <<"Invalid mailbox number or already exists">>}]),
+            Msg = kz_json:from_list([
+                {<<"message">>, <<"Invalid mailbox number or already exists">>}
+            ]),
             C = cb_context:add_validation_error(<<"mailbox">>, <<"unique">>, Msg, Context),
             check_vmbox_schema(VMBoxId, C)
     end.
@@ -720,12 +838,12 @@ check_vmbox_schema(VMBoxId, Context) ->
 find_schema() ->
     case kz_json_schema:load(<<"vmboxes">>) of
         {'ok', SchemaJObj} ->
-            Props = [{[<<"properties">>, <<"transcribe">>, <<"default">>]
-                     ,kvm_util:transcribe_default()
-                     }
-                    ],
+            Props = [
+                {[<<"properties">>, <<"transcribe">>, <<"default">>], kvm_util:transcribe_default()}
+            ],
             kz_json:set_values(Props, SchemaJObj);
-        {'error', _E} -> 'undefined'
+        {'error', _E} ->
+            'undefined'
     end.
 
 %%------------------------------------------------------------------------------
@@ -737,15 +855,19 @@ maybe_migrate_notification_emails(Context) ->
     ReqData = cb_context:req_data(Context),
     case maybe_migrate_vm_box(ReqData) of
         {'true', ReqData1} ->
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_req_data/2, ReqData1}
-                               ,{fun cb_context:add_resp_header/3
-                                ,<<"Warning">>
-                                ,<<"214 Transformation applied: attribute notify_email_address replaced">>
-                                }
-                               ]
-                              );
-        'false' -> Context
+            cb_context:setters(
+                Context,
+                [
+                    {fun cb_context:set_req_data/2, ReqData1},
+                    {
+                        fun cb_context:add_resp_header/3,
+                        <<"Warning">>,
+                        <<"214 Transformation applied: attribute notify_email_address replaced">>
+                    }
+                ]
+            );
+        'false' ->
+            Context
     end.
 
 %%------------------------------------------------------------------------------
@@ -755,13 +877,22 @@ maybe_migrate_notification_emails(Context) ->
 -spec validate_media_extension(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
 validate_media_extension(VMBoxId, Context) ->
     MediaExt = ?TRANSCRIBE_FORMAT,
-    case MediaExt /= 'undefined'
-        andalso cb_context:req_value(Context, <<"transcribe">>, 'false')
-        andalso cb_context:req_value(Context, <<"media_extension">>) /= MediaExt of
+    case
+        MediaExt /= 'undefined' andalso
+            cb_context:req_value(Context, <<"transcribe">>, 'false') andalso
+            cb_context:req_value(Context, <<"media_extension">>) /= MediaExt
+    of
         'true' ->
-            Resp = [{<<"message">>, <<"if you want transcribe message, then use '", MediaExt/binary, "' media extension">>}],
-            cb_context:add_validation_error(<<"media_extension">>, <<"invalid">>, kz_json:from_list(Resp), Context);
-        'false' -> on_successful_validation(VMBoxId, Context)
+            Resp = [
+                {<<"message">>,
+                    <<"if you want transcribe message, then use '", MediaExt/binary,
+                        "' media extension">>}
+            ],
+            cb_context:add_validation_error(
+                <<"media_extension">>, <<"invalid">>, kz_json:from_list(Resp), Context
+            );
+        'false' ->
+            on_successful_validation(VMBoxId, Context)
     end.
 
 %%------------------------------------------------------------------------------
@@ -769,7 +900,7 @@ validate_media_extension(VMBoxId, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec on_successful_validation(kz_term:api_binary(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 on_successful_validation('undefined', Context) ->
     Props = [{<<"pvt_type">>, kzd_voicemail_box:type()}],
     cb_context:set_doc(Context, kz_json:set_values(Props, cb_context:doc(Context)));
@@ -781,7 +912,7 @@ on_successful_validation(VMBoxId, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate_patch(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
-validate_patch(Context, BoxId)->
+validate_patch(Context, BoxId) ->
     crossbar_doc:patch_and_validate(BoxId, Context, fun validate_request/2).
 
 %%------------------------------------------------------------------------------
@@ -797,13 +928,13 @@ load_vmbox_summary(Context) ->
 
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_json_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_json_value(<<"value">>, JObj) | Acc].
 
 -spec add_counts_to_summary_results(kz_json:objects(), map()) -> kz_json:objects().
 add_counts_to_summary_results(BoxSummaries, CountMap) ->
     MergeFun = fun(BoxSummary, Acc) ->
-                       [merge_summary_fold(BoxSummary, CountMap) | Acc]
-               end,
+        [merge_summary_fold(BoxSummary, CountMap) | Acc]
+    end,
     lists:foldl(MergeFun, [], BoxSummaries).
 
 -spec merge_summary_fold(kz_json:object(), map()) -> kz_json:object().
@@ -816,10 +947,11 @@ merge_summary_fold(BoxSummary, CountMap) ->
             MsgsArrayCount = kz_json:get_integer_value(?VM_KEY_MESSAGES, BoxSummary, 0),
             New = maps:get(?VM_FOLDER_NEW, BoxCountMap, 0),
             Saved = maps:get(?VM_FOLDER_SAVED, BoxCountMap, 0),
-            Summary = [{?VM_KEY_MESSAGES, MsgsArrayCount + New + Saved}
-                      ,{[<<"folders">>, ?VM_FOLDER_NEW], New}
-                      ,{[<<"folders">>, ?VM_FOLDER_SAVED], Saved}
-                      ],
+            Summary = [
+                {?VM_KEY_MESSAGES, MsgsArrayCount + New + Saved},
+                {[<<"folders">>, ?VM_FOLDER_NEW], New},
+                {[<<"folders">>, ?VM_FOLDER_SAVED], Saved}
+            ],
             kz_json:set_values(Summary, BoxSummary)
     end.
 
@@ -837,14 +969,19 @@ maybe_load_vmboxes([], Context) -> empty_source_id(Context);
 maybe_load_vmboxes(Ids, Context) -> maybe_load_vmboxes_fold(Ids, Context).
 
 -spec maybe_load_vmboxes_fold(source_id(), cb_context:context()) -> cb_context:context().
-maybe_load_vmboxes_fold('undefined', Context) -> Context;
-maybe_load_vmboxes_fold(?NE_BINARY = Id, Context) -> load_vmbox(Id, Context);
-maybe_load_vmboxes_fold(<<>>, Context) -> empty_source_id(Context);
-maybe_load_vmboxes_fold([], Context) -> Context;
-maybe_load_vmboxes_fold([<<>>|_], Context) -> empty_source_id(Context);
-maybe_load_vmboxes_fold(['undefined'|Ids], Context) ->
+maybe_load_vmboxes_fold('undefined', Context) ->
+    Context;
+maybe_load_vmboxes_fold(?NE_BINARY = Id, Context) ->
+    load_vmbox(Id, Context);
+maybe_load_vmboxes_fold(<<>>, Context) ->
+    empty_source_id(Context);
+maybe_load_vmboxes_fold([], Context) ->
+    Context;
+maybe_load_vmboxes_fold([<<>> | _], Context) ->
+    empty_source_id(Context);
+maybe_load_vmboxes_fold(['undefined' | Ids], Context) ->
     maybe_load_vmboxes_fold(Ids, Context);
-maybe_load_vmboxes_fold([Id|Ids], Context) ->
+maybe_load_vmboxes_fold([Id | Ids], Context) ->
     C1 = load_vmbox(Id, Context),
     case cb_context:resp_status(C1) of
         'success' ->
@@ -860,7 +997,10 @@ load_vmbox(BoxId, Context) ->
 
 -spec empty_source_id(cb_context:context()) -> cb_context:context().
 empty_source_id(Context) ->
-    Message = kz_json:from_list([{<<"message">>, <<"empty source_id is specified. please set a single or a list of source_ids.">>}]),
+    Message = kz_json:from_list([
+        {<<"message">>,
+            <<"empty source_id is specified. please set a single or a list of source_ids.">>}
+    ]),
     cb_context:add_validation_error(<<"source_id">>, <<"required">>, Message, Context).
 
 %%------------------------------------------------------------------------------
@@ -869,31 +1009,38 @@ empty_source_id(Context) ->
 %%------------------------------------------------------------------------------
 -spec load_message_summary(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
 load_message_summary('undefined', Context) ->
-    Options = [{'range_start_keymap', []}
-              ,{'range_end_keymap', crossbar_view:suffix_key_fun([kz_json:new()])}
-              ],
-    load_message_summary('undefined', Context, <<"mailbox_messages/listing_by_timestamp">>, Options);
+    Options = [
+        {'range_start_keymap', []},
+        {'range_end_keymap', crossbar_view:suffix_key_fun([kz_json:new()])}
+    ],
+    load_message_summary(
+        'undefined', Context, <<"mailbox_messages/listing_by_timestamp">>, Options
+    );
 load_message_summary(BoxId, Context) ->
     load_message_summary(BoxId, Context, ?MSG_LISTING_BY_MAILBOX, [{'range_keymap', [BoxId]}]).
 
--spec load_message_summary(kz_term:api_binary(), cb_context:context(), kz_term:ne_binary(), crossbar_view:options()) -> cb_context:context().
+-spec load_message_summary(
+    kz_term:api_binary(), cb_context:context(), kz_term:ne_binary(), crossbar_view:options()
+) -> cb_context:context().
 load_message_summary(BoxId, Context, ViewName, Options) ->
     {MaxRange, RetentionSeconds} = get_max_range(Context),
     RetentionTimestamp = kz_time:now_s() - RetentionSeconds,
 
     Mapper = fun(JObj, Acc) -> message_summary_normalizer(BoxId, JObj, Acc, RetentionTimestamp) end,
 
-    ViewOptions = [{'mapper', Mapper}
-                  ,{'max_range', MaxRange}
-                   | Options
-                  ],
+    ViewOptions = [
+        {'mapper', Mapper},
+        {'max_range', MaxRange}
+        | Options
+    ],
     crossbar_view:load_modb(prefix_qs_filter_keys(Context), ViewName, ViewOptions).
 
 -spec prefix_qs_filter_keys(cb_context:context()) -> cb_context:context().
 prefix_qs_filter_keys(Context) ->
-    NewQs = kz_json:map(fun(K, V) -> prefix_filter_key(K, V) end
-                       ,cb_context:query_string(Context)
-                       ),
+    NewQs = kz_json:map(
+        fun(K, V) -> prefix_filter_key(K, V) end,
+        cb_context:query_string(Context)
+    ),
     cb_context:set_query_string(Context, NewQs).
 
 -spec prefix_filter_key(kz_term:ne_binary(), any()) -> {kz_term:ne_binary(), any()}.
@@ -912,19 +1059,28 @@ prefix_filter_key(<<"value_missing">>, Key) ->
 prefix_filter_key(Key, Value) ->
     {Key, Value}.
 
--spec message_summary_normalizer(kz_term:api_binary(), kz_json:object(), kz_json:objects(), kz_time:gregorian_seconds()) ->
-          kz_json:objects().
+-spec message_summary_normalizer(
+    kz_term:api_binary(), kz_json:object(), kz_json:objects(), kz_time:gregorian_seconds()
+) ->
+    kz_json:objects().
 message_summary_normalizer('undefined', JObj, Acc, RetentionTimestamp) ->
-    [kz_json:from_list(
-       [{kz_json:get_value([<<"key">>, ?BOX_ID_KEY_INDEX], JObj)
-        ,kvm_util:enforce_retention(kz_json:get_json_value(<<"value">>, JObj), RetentionTimestamp)
-        }
-       ])
-     | Acc
+    [
+        kz_json:from_list(
+            [
+                {
+                    kz_json:get_value([<<"key">>, ?BOX_ID_KEY_INDEX], JObj),
+                    kvm_util:enforce_retention(
+                        kz_json:get_json_value(<<"value">>, JObj), RetentionTimestamp
+                    )
+                }
+            ]
+        )
+        | Acc
     ];
 message_summary_normalizer(_BoxId, JObj, Acc, RetentionTimestamp) ->
-    [kvm_util:enforce_retention(kz_json:get_json_value(<<"value">>, JObj), RetentionTimestamp)
-     | Acc
+    [
+        kvm_util:enforce_retention(kz_json:get_json_value(<<"value">>, JObj), RetentionTimestamp)
+        | Acc
     ].
 
 %%------------------------------------------------------------------------------
@@ -948,11 +1104,13 @@ get_max_range(Context) ->
 %% @doc Get message by its media ID and its context
 %% @end
 %%------------------------------------------------------------------------------
--spec load_message(kz_term:api_binary(), kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
+-spec load_message(kz_term:api_binary(), kz_term:ne_binary(), cb_context:context()) ->
+    cb_context:context().
 load_message(MessageId, BoxId, Context) ->
     load_message(MessageId, BoxId, Context, 'false').
 
--spec load_message(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), boolean()) -> cb_context:context().
+-spec load_message(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), boolean()) ->
+    cb_context:context().
 load_message(MessageId, BoxId, Context, ReturnMetadata) ->
     case kvm_message:fetch(cb_context:account_id(Context), MessageId, BoxId) of
         {'ok', Msg} when ReturnMetadata ->
@@ -972,7 +1130,8 @@ validate_new_message(BoxId, Context) ->
             OnSuccess = fun(C) -> create_new_message_document(C, BoxJObj) end,
             C2 = cb_context:store(Context, 'vmbox', BoxJObj),
             cb_context:validate_request_data(<<"vm_message_metadata">>, C2, OnSuccess);
-        _ -> C1
+        _ ->
+            C1
     end.
 
 -spec create_new_message_document(cb_context:context(), kz_json:object()) -> cb_context:context().
@@ -982,15 +1141,20 @@ create_new_message_document(Context, BoxJObj) ->
 
     Doc = cb_context:doc(Context),
 
-    Props = [{<<"Message-Timestamp">>, kz_json:get_integer_value(<<"timestamp">>, Doc)}
-            ,{<<"Box-Num">>, BoxNum}
-            ,{<<"Timezone">>, kzd_voicemail_box:timezone(BoxJObj)}
-            ,{<<"Box-Id">>, kz_doc:id(BoxJObj)}
-            ],
+    Props = [
+        {<<"Message-Timestamp">>, kz_json:get_integer_value(<<"timestamp">>, Doc)},
+        {<<"Box-Num">>, BoxNum},
+        {<<"Timezone">>, kzd_voicemail_box:timezone(BoxJObj)},
+        {<<"Box-Id">>, kz_doc:id(BoxJObj)}
+    ],
     JObj = kzd_box_message:new(AccountId, Props),
     MsgId = kz_doc:id(JObj),
 
-    AccountRealm = case kzd_accounts:fetch_realm(AccountId) of 'undefined' -> <<"nodomain">>; R -> R end,
+    AccountRealm =
+        case kzd_accounts:fetch_realm(AccountId) of
+            'undefined' -> <<"nodomain">>;
+            R -> R
+        end,
     DefaultCID = kz_privacy:anonymous_caller_id_number(AccountId),
     CallerNumber = kz_json:get_ne_binary_value(<<"caller_id_number">>, Doc, DefaultCID),
     CallerName = kz_json:get_ne_binary_value(<<"caller_id_name">>, Doc, DefaultCID),
@@ -1001,14 +1165,20 @@ create_new_message_document(Context, BoxJObj) ->
 
     Timestamp = kz_doc:created(JObj),
 
-    Routines = [{fun kapps_call:set_to/2, <<To/binary, "@", AccountRealm/binary>>}
-               ,{fun kapps_call:set_from/2, <<From/binary, "@", AccountRealm/binary>>}
-               ,{fun kapps_call:set_call_id/2, kz_json:get_ne_binary_value(<<"call_id">>, Doc, kz_binary:rand_hex(12))}
-               ,{fun kapps_call:set_caller_id_number/2, CallerNumber}
-               ,{fun kapps_call:set_caller_id_name/2, CallerName}
-               ],
+    Routines = [
+        {fun kapps_call:set_to/2, <<To/binary, "@", AccountRealm/binary>>},
+        {fun kapps_call:set_from/2, <<From/binary, "@", AccountRealm/binary>>},
+        {
+            fun kapps_call:set_call_id/2,
+            kz_json:get_ne_binary_value(<<"call_id">>, Doc, kz_binary:rand_hex(12))
+        },
+        {fun kapps_call:set_caller_id_number/2, CallerNumber},
+        {fun kapps_call:set_caller_id_name/2, CallerName}
+    ],
     Call = kapps_call:exec(Routines, kapps_call:new()),
-    Metadata = kzd_box_message:build_metadata_object(Length, Call, MsgId, CallerNumber, CallerName, Timestamp, Folder),
+    Metadata = kzd_box_message:build_metadata_object(
+        Length, Call, MsgId, CallerNumber, CallerName, Timestamp, Folder
+    ),
 
     Message = kzd_box_message:update_media_id(MsgId, kzd_box_message:set_metadata(Metadata, JObj)),
     cb_context:set_doc(cb_context:set_account_db(Context, kz_doc:account_db(Message)), Message).
@@ -1019,23 +1189,28 @@ create_new_message_document(Context, BoxJObj) ->
 %% VMId is the id for the voicemail document, containing the binary data
 %% @end
 %%------------------------------------------------------------------------------
--spec load_message_binary(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
+-spec load_message_binary(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context()) ->
+    cb_context:context().
 load_message_binary(BoxId, MediaId, Context) ->
     case kvm_message:fetch(cb_context:account_id(Context), MediaId, BoxId) of
         {'ok', JObj} ->
-            case kz_term:is_not_empty(kz_doc:attachment_names(JObj))
-                andalso kz_datamgr:open_cache_doc(cb_context:account_db(Context), BoxId)
+            case
+                kz_term:is_not_empty(kz_doc:attachment_names(JObj)) andalso
+                    kz_datamgr:open_cache_doc(cb_context:account_db(Context), BoxId)
             of
                 'false' ->
                     Msg = <<"voicemail message does not have any audio file">>,
-                    cb_context:add_system_error('bad_identifier', kz_json:from_list([{<<"cause">>, Msg}]), Context);
+                    cb_context:add_system_error(
+                        'bad_identifier', kz_json:from_list([{<<"cause">>, Msg}]), Context
+                    );
                 {'error', Error} ->
                     crossbar_doc:handle_datamgr_errors(Error, BoxId, Context);
                 {'ok', BoxJObj} ->
                     Timezone = kzd_voicemail_box:timezone(BoxJObj),
                     load_attachment_from_message(JObj, Context, Timezone)
             end;
-        {'error', Err} -> crossbar_doc:handle_datamgr_errors(Err, MediaId, Context)
+        {'error', Err} ->
+            crossbar_doc:handle_datamgr_errors(Err, MediaId, Context)
     end.
 
 %%------------------------------------------------------------------------------
@@ -1043,17 +1218,18 @@ load_message_binary(BoxId, MediaId, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec load_attachment_from_message(kz_json:object(), cb_context:context(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 load_attachment_from_message(Doc, Context, Timezone) ->
     MediaId = kz_doc:id(Doc),
     VMMetaJObj = kzd_box_message:metadata(Doc),
 
     [AttachmentId] = kz_doc:attachment_names(Doc),
-    Filename = generate_media_name(kz_json:get_value(<<"caller_id_number">>, VMMetaJObj)
-                                  ,kz_json:get_value(<<"timestamp">>, VMMetaJObj)
-                                  ,filename:extension(AttachmentId)
-                                  ,Timezone
-                                  ),
+    Filename = generate_media_name(
+        kz_json:get_value(<<"caller_id_number">>, VMMetaJObj),
+        kz_json:get_value(<<"timestamp">>, VMMetaJObj),
+        filename:extension(AttachmentId),
+        Timezone
+    ),
 
     Options = ?TYPE_CHECK_OPTION(<<"mailbox_message">>),
 
@@ -1062,15 +1238,15 @@ load_attachment_from_message(Doc, Context, Timezone) ->
             crossbar_doc:handle_datamgr_errors(Error, MediaId, Context);
         {'ok', AttachBin} ->
             lager:debug("Sending file with filename ~s", [Filename]),
-            Setters = [{fun cb_context:set_resp_status/2, 'success'}
-                      ,{fun cb_context:set_resp_data/2, AttachBin}
-                      ,{fun cb_context:set_resp_etag/2, 'undefined'}
-                      ,{fun cb_context:add_resp_headers/2
-                       ,#{<<"content-type">> => kz_doc:attachment_content_type(Doc, AttachmentId)
-                         ,<<"content-disposition">> => <<"attachment; filename=", Filename/binary>>
-                         }
-                       }
-                      ],
+            Setters = [
+                {fun cb_context:set_resp_status/2, 'success'},
+                {fun cb_context:set_resp_data/2, AttachBin},
+                {fun cb_context:set_resp_etag/2, 'undefined'},
+                {fun cb_context:add_resp_headers/2, #{
+                    <<"content-type">> => kz_doc:attachment_content_type(Doc, AttachmentId),
+                    <<"content-disposition">> => <<"attachment; filename=", Filename/binary>>
+                }}
+            ],
             cb_context:setters(Context, Setters)
     end.
 
@@ -1078,11 +1254,14 @@ load_attachment_from_message(Doc, Context, Timezone) ->
 load_messages_binaries(BoxId, Context) ->
     WorkDir = kz_term:to_list(<<"/tmp/", (cb_context:req_id(Context))/binary, "/">>),
     Ids = kz_json:get_value(?VM_KEY_MESSAGES, cb_context:req_data(Context), []),
-    case Ids =/= []
-        andalso kz_datamgr:open_cache_doc(cb_context:account_db(Context), BoxId)
+    case
+        Ids =/= [] andalso
+            kz_datamgr:open_cache_doc(cb_context:account_db(Context), BoxId)
     of
         'false' ->
-            Message = kz_json:from_list([{<<"message">>, <<"No array of message ids are specified">>}]),
+            Message = kz_json:from_list([
+                {<<"message">>, <<"No array of message ids are specified">>}
+            ]),
             cb_context:add_validation_error(<<"messages">>, <<"required">>, Message, Context);
         {'error', Error} ->
             crossbar_doc:handle_datamgr_errors(Error, BoxId, Context);
@@ -1092,13 +1271,17 @@ load_messages_binaries(BoxId, Context) ->
             maybe_create_zip_file(WorkDir, Context)
     end.
 
--spec save_attachments_to_file(kz_term:ne_binaries(), kz_term:ne_binary(), cb_context:context(), kz_term:ne_binary(), string()) ->
-          cb_context:context().
-save_attachments_to_file([], _, Context, _, _) -> Context;
-save_attachments_to_file([Id|Ids], BoxId, Context, Timezone, WorkDir) ->
+-spec save_attachments_to_file(
+    kz_term:ne_binaries(), kz_term:ne_binary(), cb_context:context(), kz_term:ne_binary(), string()
+) ->
+    cb_context:context().
+save_attachments_to_file([], _, Context, _, _) ->
+    Context;
+save_attachments_to_file([Id | Ids], BoxId, Context, Timezone, WorkDir) ->
     _ = file:make_dir(WorkDir),
     try save_attachment_to_file(Id, BoxId, Context, Timezone, WorkDir) of
-        'ok' -> save_attachments_to_file(Ids, BoxId, Context, Timezone, WorkDir);
+        'ok' ->
+            save_attachments_to_file(Ids, BoxId, Context, Timezone, WorkDir);
         {'error', Error} ->
             _ = del_dir(WorkDir),
             crossbar_doc:handle_datamgr_errors(Error, Id, Context)
@@ -1108,37 +1291,46 @@ save_attachments_to_file([Id|Ids], BoxId, Context, Timezone, WorkDir) ->
             cb_context:add_system_error('unspecified_fault', Context)
     end.
 
--spec save_attachment_to_file(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), kz_term:ne_binary(), string()) ->
-          'ok' | {'error', any()}.
+-spec save_attachment_to_file(
+    kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context(), kz_term:ne_binary(), string()
+) ->
+    'ok' | {'error', any()}.
 save_attachment_to_file(MsgId, BoxId, Context, Timezone, WorkDir) ->
     case kvm_message:fetch(cb_context:account_id(Context), MsgId, BoxId) of
         {'ok', Doc} ->
             VMMetaJObj = kzd_box_message:metadata(Doc),
 
             [AttachmentId] = kz_doc:attachment_names(Doc),
-            Filename = generate_media_name(kz_json:get_value(<<"caller_id_number">>, VMMetaJObj)
-                                          ,kz_json:get_value(<<"timestamp">>, VMMetaJObj)
-                                          ,filename:extension(AttachmentId)
-                                          ,Timezone
-                                          ),
+            Filename = generate_media_name(
+                kz_json:get_value(<<"caller_id_number">>, VMMetaJObj),
+                kz_json:get_value(<<"timestamp">>, VMMetaJObj),
+                filename:extension(AttachmentId),
+                Timezone
+            ),
             case kz_datamgr:fetch_attachment(kz_doc:account_db(Doc), MsgId, AttachmentId) of
-                {'error', _} = E -> E;
+                {'error', _} = E ->
+                    E;
                 {'ok', AttachBin} ->
-                    'ok' = file:write_file(lists:concat([WorkDir, kz_term:to_list(Filename)]), AttachBin)
+                    'ok' = file:write_file(
+                        lists:concat([WorkDir, kz_term:to_list(Filename)]), AttachBin
+                    )
             end;
-        {'error', _}=E -> E
+        {'error', _} = E ->
+            E
     end.
 
 -spec maybe_create_zip_file(string(), cb_context:context()) -> cb_context:context().
 maybe_create_zip_file(WorkDir, Context) ->
     Files = [kz_term:to_list(F) || F <- filelib:wildcard("*", WorkDir)],
-    try Files =/= []
-             andalso create_zip_file(WorkDir, Files, Context)
+    try
+        Files =/= [] andalso
+            create_zip_file(WorkDir, Files, Context)
     of
         'false' ->
             _ = del_dir(WorkDir),
             cb_context:add_system_error('not_found', Context);
-        C -> C
+        C ->
+            C
     catch
         _T:_E ->
             lager:debug("failed to generate a zip file of voicemail messages: ~p:~p", [_T, _E]),
@@ -1150,17 +1342,18 @@ maybe_create_zip_file(WorkDir, Context) ->
 create_zip_file(WorkDir, Files, Context) ->
     ZipName = lists:concat([kz_term:to_list(cb_context:req_id(Context)), ".zip"]),
     ZipPath = ["/tmp/", ZipName],
-    {'ok', _} = zip:zip(ZipPath , Files, [{'cwd', WorkDir}]),
+    {'ok', _} = zip:zip(ZipPath, Files, [{'cwd', WorkDir}]),
     _ = del_dir(WorkDir),
-    Setters = [{fun cb_context:set_resp_status/2, 'success'}
-              ,{fun cb_context:set_resp_etag/2, 'undefined'}
-              ,{fun cb_context:set_resp_file/2, kz_term:to_binary(ZipPath)}
-              ,{fun cb_context:add_resp_headers/2
-               ,#{<<"content-type">> => <<"application/zip">>
-                 ,<<"content-disposition">> => <<"attachment; filename=", (kz_term:to_binary(ZipName))/binary>>
-                 }
-               }
-              ],
+    Setters = [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_etag/2, 'undefined'},
+        {fun cb_context:set_resp_file/2, kz_term:to_binary(ZipPath)},
+        {fun cb_context:add_resp_headers/2, #{
+            <<"content-type">> => <<"application/zip">>,
+            <<"content-disposition">> =>
+                <<"attachment; filename=", (kz_term:to_binary(ZipName))/binary>>
+        }}
+    ],
     cb_context:setters(Context, Setters).
 
 -spec del_dir(string()) -> 'ok' | {'error', any()}.
@@ -1178,19 +1371,25 @@ del_all_files(Dir) ->
 %% CallerID_YYYY-MM-DD_HH-MM-SS.ext
 %% @end
 %%------------------------------------------------------------------------------
--spec generate_media_name(kz_term:api_ne_binary(), kz_time:gregorian_seconds() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec generate_media_name(
+    kz_term:api_ne_binary(),
+    kz_time:gregorian_seconds() | kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary()
+) -> kz_term:ne_binary().
 generate_media_name('undefined', GregorianSeconds, Ext, Timezone) ->
     generate_media_name(<<"unknown">>, GregorianSeconds, Ext, Timezone);
 generate_media_name(CallerId, GregorianSeconds, Ext, Timezone) ->
     UTCDateTime = calendar:gregorian_seconds_to_datetime(kz_term:to_integer(GregorianSeconds)),
-    LocalTime = case localtime:utc_to_local(UTCDateTime, kz_term:to_list(Timezone)) of
-                    {{_,_,_},{_,_,_}}=LT ->
-                        lager:debug("converted to TZ: ~s", [Timezone]),
-                        LT;
-                    _ ->
-                        lager:debug("bad TZ: ~p", [Timezone]),
-                        UTCDateTime
-                end,
+    LocalTime =
+        case localtime:utc_to_local(UTCDateTime, kz_term:to_list(Timezone)) of
+            {{_, _, _}, {_, _, _}} = LT ->
+                lager:debug("converted to TZ: ~s", [Timezone]),
+                LT;
+            _ ->
+                lager:debug("bad TZ: ~p", [Timezone]),
+                UTCDateTime
+        end,
     Date = kz_time:pretty_print_datetime(LocalTime),
     list_to_binary([CallerId, "_", Date, Ext]).
 
@@ -1213,12 +1412,15 @@ check_uniqueness(VMBoxId, Context) ->
 -spec check_uniqueness(kz_term:api_binary(), cb_context:context(), pos_integer()) -> boolean().
 check_uniqueness(VMBoxId, Context, Mailbox) ->
     ViewOptions = [{'key', Mailbox}],
-    case kz_datamgr:get_results(cb_context:account_db(Context)
-                               ,<<"vmboxes/listing_by_mailbox">>
-                               ,ViewOptions
-                               )
+    case
+        kz_datamgr:get_results(
+            cb_context:account_db(Context),
+            <<"vmboxes/listing_by_mailbox">>,
+            ViewOptions
+        )
     of
-        {'ok', []} -> 'true';
+        {'ok', []} ->
+            'true';
         {'ok', [VMBox]} ->
             VMBoxId =:= kz_doc:id(VMBox);
         {'ok', _} ->
@@ -1234,15 +1436,18 @@ check_uniqueness(VMBoxId, Context, Mailbox) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec update_mwi(cb_context:context(), kz_term:ne_binary() | kz_term:ne_binaries()) -> cb_context:context().
+-spec update_mwi(cb_context:context(), kz_term:ne_binary() | kz_term:ne_binaries()) ->
+    cb_context:context().
 update_mwi(Context, BoxId) when is_binary(BoxId) ->
     update_mwi(Context, [BoxId]);
-update_mwi(Context, []) -> Context;
+update_mwi(Context, []) ->
+    Context;
 update_mwi(Context, [BoxId | BoxIds]) ->
     _ = update_mwi(Context, BoxId, cb_context:resp_status(Context)),
     update_mwi(Context, BoxIds).
 
--spec update_mwi(cb_context:context(), kz_term:ne_binary() | kz_term:ne_binaries(), atom()) -> cb_context:context().
+-spec update_mwi(cb_context:context(), kz_term:ne_binary() | kz_term:ne_binaries(), atom()) ->
+    cb_context:context().
 update_mwi(Context, BoxId, 'success') ->
     AccountId = cb_context:account_id(Context),
     _ = kvm_mwi:notify_vmbox(AccountId, BoxId),
@@ -1255,13 +1460,12 @@ update_mwi(Context, _BoxId, _Status) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_migrate_vm_box(kzd_voicemail_box:doc()) ->
-          {'true', kzd_voicemail_box:doc()} |
-          'false'.
+    {'true', kzd_voicemail_box:doc()}
+    | 'false'.
 maybe_migrate_vm_box(Box) ->
     case kz_json:get_value(<<"notify_email_address">>, Box) of
         'undefined' -> 'false';
-        Emails ->
-            {'true', kzd_voicemail_box:set_notification_emails(Box, Emails)}
+        Emails -> {'true', kzd_voicemail_box:set_notification_emails(Box, Emails)}
     end.
 
 %%------------------------------------------------------------------------------
@@ -1272,8 +1476,10 @@ maybe_migrate_vm_box(Box) ->
 migrate(Account) ->
     AccountDb = kz_util:format_account_id(Account, 'encoded'),
     case kz_datamgr:get_results(AccountDb, ?CB_LIST, ['include_docs']) of
-        {'ok', []} -> 'ok';
-        {'error', _E} -> io:format("failed to check account ~s for voicemail boxes: ~p~n", [Account, _E]);
+        {'ok', []} ->
+            'ok';
+        {'error', _E} ->
+            io:format("failed to check account ~s for voicemail boxes: ~p~n", [Account, _E]);
         {'ok', Boxes} ->
             maybe_migrate_boxes(AccountDb, Boxes)
     end.
@@ -1285,16 +1491,17 @@ migrate(Account) ->
 -spec maybe_migrate_boxes(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
 maybe_migrate_boxes(AccountDb, Boxes) ->
     ToUpdate =
-        lists:foldl(fun(View, Acc) ->
-                            Box = kz_json:get_value(<<"doc">>, View),
-                            case maybe_migrate_vm_box(Box) of
-                                'false' -> Acc;
-                                {'true', Box1} -> [Box1 | Acc]
-                            end
-                    end
-                   ,[]
-                   ,Boxes
-                   ),
+        lists:foldl(
+            fun(View, Acc) ->
+                Box = kz_json:get_value(<<"doc">>, View),
+                case maybe_migrate_vm_box(Box) of
+                    'false' -> Acc;
+                    {'true', Box1} -> [Box1 | Acc]
+                end
+            end,
+            [],
+            Boxes
+        ),
     io:format("migrating ~p out of ~p boxes~n", [length(ToUpdate), length(Boxes)]),
     maybe_update_boxes(AccountDb, ToUpdate).
 
@@ -1303,9 +1510,10 @@ maybe_migrate_boxes(AccountDb, Boxes) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_update_boxes(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
-maybe_update_boxes(_AccountDb, []) -> 'ok';
+maybe_update_boxes(_AccountDb, []) ->
+    'ok';
 maybe_update_boxes(AccountDb, Boxes) ->
     case kz_datamgr:save_docs(AccountDb, Boxes) of
         {'ok', _Saved} -> io:format("  updated ~p boxes in ~s~n", [length(_Saved), AccountDb]);
-        {'error', _E}-> io:format("  failed to update boxes: ~p~n", [_E])
+        {'error', _E} -> io:format("  failed to update boxes: ~p~n", [_E])
     end.

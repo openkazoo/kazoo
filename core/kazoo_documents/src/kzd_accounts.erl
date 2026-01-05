@@ -14,8 +14,13 @@
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
 -export([caller_id/1, caller_id/2, set_caller_id/2]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
--export([caller_id_options_outbound_privacy/1, caller_id_options_outbound_privacy/2, set_caller_id_options_outbound_privacy/2]).
--export([caller_id_options_show_rate/1, caller_id_options_show_rate/2, set_caller_id_options_show_rate/2]).
+-export([
+    caller_id_options_outbound_privacy/1, caller_id_options_outbound_privacy/2,
+    set_caller_id_options_outbound_privacy/2
+]).
+-export([
+    caller_id_options_show_rate/1, caller_id_options_show_rate/2, set_caller_id_options_show_rate/2
+]).
 -export([dial_plan/1, dial_plan/2, set_dial_plan/2]).
 -export([do_not_disturb/1, do_not_disturb/2, set_do_not_disturb/2]).
 -export([do_not_disturb_enabled/1, do_not_disturb_enabled/2, set_do_not_disturb_enabled/2]).
@@ -28,14 +33,42 @@
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([name/1, name/2, set_name/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
--export([notifications_first_occurrence/1, notifications_first_occurrence/2, set_notifications_first_occurrence/2]).
--export([notifications_first_occurrence_sent_initial_call/1, notifications_first_occurrence_sent_initial_call/2, set_notifications_first_occurrence_sent_initial_call/2]).
--export([notifications_first_occurrence_sent_initial_registration/1, notifications_first_occurrence_sent_initial_registration/2, set_notifications_first_occurrence_sent_initial_registration/2]).
--export([notifications_low_balance/1, notifications_low_balance/2, set_notifications_low_balance/2, path_notifications_low_balance/0]).
--export([notifications_low_balance_enabled/1, notifications_low_balance_enabled/2, set_notifications_low_balance_enabled/2]).
--export([notifications_low_balance_last_notification/1, notifications_low_balance_last_notification/2, set_notifications_low_balance_last_notification/2]).
--export([notifications_low_balance_sent_low_balance/1, notifications_low_balance_sent_low_balance/2, set_notifications_low_balance_sent_low_balance/2, path_notifications_low_balance_sent_low_balance/0]).
--export([notifications_low_balance_threshold/1, notifications_low_balance_threshold/2, set_notifications_low_balance_threshold/2]).
+-export([
+    notifications_first_occurrence/1, notifications_first_occurrence/2,
+    set_notifications_first_occurrence/2
+]).
+-export([
+    notifications_first_occurrence_sent_initial_call/1,
+    notifications_first_occurrence_sent_initial_call/2,
+    set_notifications_first_occurrence_sent_initial_call/2
+]).
+-export([
+    notifications_first_occurrence_sent_initial_registration/1,
+    notifications_first_occurrence_sent_initial_registration/2,
+    set_notifications_first_occurrence_sent_initial_registration/2
+]).
+-export([
+    notifications_low_balance/1, notifications_low_balance/2,
+    set_notifications_low_balance/2,
+    path_notifications_low_balance/0
+]).
+-export([
+    notifications_low_balance_enabled/1, notifications_low_balance_enabled/2,
+    set_notifications_low_balance_enabled/2
+]).
+-export([
+    notifications_low_balance_last_notification/1, notifications_low_balance_last_notification/2,
+    set_notifications_low_balance_last_notification/2
+]).
+-export([
+    notifications_low_balance_sent_low_balance/1, notifications_low_balance_sent_low_balance/2,
+    set_notifications_low_balance_sent_low_balance/2,
+    path_notifications_low_balance_sent_low_balance/0
+]).
+-export([
+    notifications_low_balance_threshold/1, notifications_low_balance_threshold/2,
+    set_notifications_low_balance_threshold/2
+]).
 -export([org/1, org/2, set_org/2]).
 -export([preflow/1, preflow/2, set_preflow/2]).
 -export([preflow_always/1, preflow_always/2, set_preflow_always/2]).
@@ -53,69 +86,101 @@
 -export([zones/1, zones/2, set_zones/2]).
 -export([zones_home/1, zones_home/2, set_zones_home/2]).
 
+-export([
+    type/0,
+    fetch/1, fetch/2,
+    fetch_name/1,
+    fetch_realm/1,
+    save/1,
+    save_accounts_doc/1,
+    update/2,
 
--export([type/0
-        ,fetch/1, fetch/2
-        ,fetch_name/1, fetch_realm/1
-        ,save/1, save_accounts_doc/1
-        ,update/2
+    api_key/1,
+    set_api_key/2,
+    is_enabled/1,
+    enable/1,
+    disable/1,
+    path_enabled/0,
+    is_expired/1,
 
-        ,api_key/1, set_api_key/2
-        ,is_enabled/1, enable/1, disable/1
-        ,path_enabled/0
-        ,is_expired/1
+    tree/1, tree/2,
+    set_tree/2,
+    path_tree/0,
+    default_timezone/0,
+    notification_preference/1,
+    set_notification_preference/2,
+    path_notification_preference/0,
+    allow_number_additions/1,
+    set_allow_number_additions/2,
+    path_allow_number_additions/0,
+    is_superduper_admin/1,
+    set_superduper_admin/2,
+    path_superduper_admin/0,
 
-        ,tree/1, tree/2, set_tree/2, path_tree/0
-        ,default_timezone/0
-        ,notification_preference/1, set_notification_preference/2, path_notification_preference/0
-        ,allow_number_additions/1, set_allow_number_additions/2, path_allow_number_additions/0
-        ,is_superduper_admin/1, set_superduper_admin/2, path_superduper_admin/0
+    trial_expiration/1, trial_expiration/2,
+    set_trial_expiration/2,
+    trial_time_left/1, trial_time_left/2,
+    trial_has_expired/2,
 
-        ,trial_expiration/1, trial_expiration/2, set_trial_expiration/2
-        ,trial_time_left/1, trial_time_left/2
-        ,trial_has_expired/2
+    demote/1,
+    promote/1,
+    path_reseller/0,
 
-        ,demote/1, promote/1, path_reseller/0
+    fax_settings/1,
+    get_inherited_value/3,
+    get_parent_account_id/1,
+    get_authoritative_parent_id/1, get_authoritative_parent_id/2,
 
-        ,fax_settings/1
-        ,get_inherited_value/3
-        ,get_parent_account_id/1
-        ,get_authoritative_parent_id/1, get_authoritative_parent_id/2
+    reseller_id/1,
+    set_reseller_id/2,
+    is_reseller/1,
+    path_reseller_id/0,
+    is_trial_account/1,
+    low_balance_enabled/1,
+    low_balance_enabled_exists/1,
+    set_low_balance_enabled/1,
+    reset_low_balance_enabled/1,
 
-        ,reseller_id/1, set_reseller_id/2, is_reseller/1, path_reseller_id/0
-        ,is_trial_account/1
-        ,low_balance_enabled/1, low_balance_enabled_exists/1, set_low_balance_enabled/1, reset_low_balance_enabled/1
+    low_balance_sent/1,
+    reset_low_balance_sent/1,
+    path_low_balance_sent/0,
 
-        ,low_balance_sent/1, reset_low_balance_sent/1, path_low_balance_sent/0
+    low_balance_threshold/1, low_balance_threshold/2,
+    set_low_balance_threshold/2,
+    low_balance_tstamp/1,
+    remove_low_balance_tstamp/1,
+    path_low_balance_tstamp/0,
+    parent_account_id/1,
+    preflow_id/1,
 
+    bill_early_task_timestamp/1,
+    set_bill_early_task_timestamp/2,
+    path_bill_early_task_timestamp/0,
 
-        ,low_balance_threshold/1, low_balance_threshold/2, set_low_balance_threshold/2
-        ,low_balance_tstamp/1, remove_low_balance_tstamp/1, path_low_balance_tstamp/0
-        ,parent_account_id/1
-        ,preflow_id/1
+    home_zone/1, home_zone/2,
+    set_home_zone/2,
 
-        ,bill_early_task_timestamp/1, set_bill_early_task_timestamp/2, path_bill_early_task_timestamp/0
+    sent_initial_call/1,
+    sent_initial_registration/1,
+    set_initial_call_sent/2,
+    path_initial_call_sent/0,
+    set_initial_registration_sent/2,
+    path_initial_registration_sent/0,
+    set_low_balance_sent/1,
+    set_low_balance_tstamp/1,
 
-        ,home_zone/1, home_zone/2, set_home_zone/2
+    is_in_account_hierarchy/2, is_in_account_hierarchy/3,
+    normalize_name/1,
 
-        ,sent_initial_call/1
-        ,sent_initial_registration/1
-        ,set_initial_call_sent/2, path_initial_call_sent/0
-        ,set_initial_registration_sent/2, path_initial_registration_sent/0
-        ,set_low_balance_sent/1
-        ,set_low_balance_tstamp/1
+    validate/3,
+    add_pvt_api_key/1,
 
-        ,is_in_account_hierarchy/2, is_in_account_hierarchy/3
-        ,normalize_name/1
+    cpaas_token/1,
+    set_cpaas_token/1, set_cpaas_token/2,
+    maybe_set_cpaas_token/1,
 
-        ,validate/3
-        ,add_pvt_api_key/1
-
-        ,cpaas_token/1
-        ,set_cpaas_token/1, set_cpaas_token/2, maybe_set_cpaas_token/1
-
-        ,is_unique_realm/2
-        ]).
+    is_unique_realm/2
+]).
 
 -include("kz_documents.hrl").
 
@@ -128,12 +193,12 @@
 
 -define(ACCOUNTS_CONFIG_CAT, <<"crossbar.accounts">>).
 
--define(ACCOUNT_REALM_SUFFIX
-       ,kapps_config:get_binary(?ACCOUNTS_CONFIG_CAT, <<"account_realm_suffix">>, <<"sip.2600hz.com">>)
-       ).
--define(RANDOM_REALM_STRENGTH
-       ,kapps_config:get_integer(?ACCOUNTS_CONFIG_CAT, <<"random_realm_strength">>, 3)
-       ).
+-define(ACCOUNT_REALM_SUFFIX,
+    kapps_config:get_binary(?ACCOUNTS_CONFIG_CAT, <<"account_realm_suffix">>, <<"sip.2600hz.com">>)
+).
+-define(RANDOM_REALM_STRENGTH,
+    kapps_config:get_integer(?ACCOUNTS_CONFIG_CAT, <<"random_realm_strength">>, 3)
+).
 
 -define(REMOVE_SPACES, [<<"realm">>]).
 
@@ -247,7 +312,9 @@ caller_id_options_outbound_privacy(Doc, Default) ->
 
 -spec set_caller_id_options_outbound_privacy(doc(), binary()) -> doc().
 set_caller_id_options_outbound_privacy(Doc, CallerIdOptionsOutboundPrivacy) ->
-    kz_json:set_value([<<"caller_id_options">>, <<"outbound_privacy">>], CallerIdOptionsOutboundPrivacy, Doc).
+    kz_json:set_value(
+        [<<"caller_id_options">>, <<"outbound_privacy">>], CallerIdOptionsOutboundPrivacy, Doc
+    ).
 
 -spec caller_id_options_show_rate(doc()) -> boolean().
 caller_id_options_show_rate(Doc) ->
@@ -303,8 +370,8 @@ enabled(Doc) ->
 
 -spec enabled(doc(), Default) -> boolean() | Default.
 enabled(Doc, Default) ->
-    kz_json:get_boolean_value([<<"enabled">>], Doc, Default)
-        andalso kz_json:get_boolean_value([<<"pvt_enabled">>], Doc, Default).
+    kz_json:get_boolean_value([<<"enabled">>], Doc, Default) andalso
+        kz_json:get_boolean_value([<<"pvt_enabled">>], Doc, Default).
 
 -spec set_enabled(doc(), boolean()) -> doc().
 set_enabled(Doc, Enabled) ->
@@ -416,7 +483,9 @@ notifications_first_occurrence(Doc, Default) ->
 
 -spec set_notifications_first_occurrence(doc(), kz_json:object()) -> doc().
 set_notifications_first_occurrence(Doc, NotificationsFirstOccurrence) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>], NotificationsFirstOccurrence, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>], NotificationsFirstOccurrence, Doc
+    ).
 
 -spec notifications_first_occurrence_sent_initial_call(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_call(Doc) ->
@@ -424,23 +493,40 @@ notifications_first_occurrence_sent_initial_call(Doc) ->
 
 -spec notifications_first_occurrence_sent_initial_call(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_call(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], Doc, Default
+    ).
 
 -spec set_notifications_first_occurrence_sent_initial_call(doc(), boolean()) -> doc().
-set_notifications_first_occurrence_sent_initial_call(Doc, NotificationsFirstOccurrenceSentInitialCall) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], NotificationsFirstOccurrenceSentInitialCall, Doc).
+set_notifications_first_occurrence_sent_initial_call(
+    Doc, NotificationsFirstOccurrenceSentInitialCall
+) ->
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>],
+        NotificationsFirstOccurrenceSentInitialCall,
+        Doc
+    ).
 
 -spec notifications_first_occurrence_sent_initial_registration(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_registration(Doc) ->
     notifications_first_occurrence_sent_initial_registration(Doc, false).
 
--spec notifications_first_occurrence_sent_initial_registration(doc(), Default) -> boolean() | Default.
+-spec notifications_first_occurrence_sent_initial_registration(doc(), Default) ->
+    boolean() | Default.
 notifications_first_occurrence_sent_initial_registration(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], Doc, Default
+    ).
 
 -spec set_notifications_first_occurrence_sent_initial_registration(doc(), boolean()) -> doc().
-set_notifications_first_occurrence_sent_initial_registration(Doc, NotificationsFirstOccurrenceSentInitialRegistration) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], NotificationsFirstOccurrenceSentInitialRegistration, Doc).
+set_notifications_first_occurrence_sent_initial_registration(
+    Doc, NotificationsFirstOccurrenceSentInitialRegistration
+) ->
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>],
+        NotificationsFirstOccurrenceSentInitialRegistration,
+        Doc
+    ).
 
 -spec notifications_low_balance(doc()) -> kz_term:api_object().
 notifications_low_balance(Doc) ->
@@ -464,11 +550,15 @@ notifications_low_balance_enabled(Doc) ->
 
 -spec notifications_low_balance_enabled(doc(), Default) -> boolean() | Default.
 notifications_low_balance_enabled(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"low_balance">>, <<"enabled">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"low_balance">>, <<"enabled">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_enabled(doc(), boolean()) -> doc().
 set_notifications_low_balance_enabled(Doc, NotificationsLowBalanceEnabled) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"enabled">>], NotificationsLowBalanceEnabled, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"enabled">>], NotificationsLowBalanceEnabled, Doc
+    ).
 
 -spec notifications_low_balance_last_notification(doc()) -> kz_term:api_integer().
 notifications_low_balance_last_notification(Doc) ->
@@ -476,11 +566,17 @@ notifications_low_balance_last_notification(Doc) ->
 
 -spec notifications_low_balance_last_notification(doc(), Default) -> integer() | Default.
 notifications_low_balance_last_notification(Doc, Default) ->
-    kz_json:get_integer_value([<<"notifications">>, <<"low_balance">>, <<"last_notification">>], Doc, Default).
+    kz_json:get_integer_value(
+        [<<"notifications">>, <<"low_balance">>, <<"last_notification">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_last_notification(doc(), integer()) -> doc().
 set_notifications_low_balance_last_notification(Doc, NotificationsLowBalanceLastNotification) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"last_notification">>], NotificationsLowBalanceLastNotification, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"last_notification">>],
+        NotificationsLowBalanceLastNotification,
+        Doc
+    ).
 
 -spec notifications_low_balance_sent_low_balance(doc()) -> kz_term:api_boolean().
 notifications_low_balance_sent_low_balance(Doc) ->
@@ -488,11 +584,17 @@ notifications_low_balance_sent_low_balance(Doc) ->
 
 -spec notifications_low_balance_sent_low_balance(doc(), Default) -> boolean() | Default.
 notifications_low_balance_sent_low_balance(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_sent_low_balance(doc(), boolean()) -> doc().
 set_notifications_low_balance_sent_low_balance(Doc, NotificationsLowBalanceSentLowBalance) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], NotificationsLowBalanceSentLowBalance, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>],
+        NotificationsLowBalanceSentLowBalance,
+        Doc
+    ).
 
 -spec path_notifications_low_balance_sent_low_balance() -> kz_json:path().
 path_notifications_low_balance_sent_low_balance() ->
@@ -504,11 +606,17 @@ notifications_low_balance_threshold(Doc) ->
 
 -spec notifications_low_balance_threshold(doc(), Default) -> number() | Default.
 notifications_low_balance_threshold(Doc, Default) ->
-    kz_json:get_float_value([<<"notifications">>, <<"low_balance">>, <<"threshold">>], Doc, Default).
+    kz_json:get_float_value(
+        [<<"notifications">>, <<"low_balance">>, <<"threshold">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_threshold(doc(), number()) -> doc().
 set_notifications_low_balance_threshold(Doc, NotificationsLowBalanceThreshold) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"threshold">>], NotificationsLowBalanceThreshold, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"threshold">>],
+        NotificationsLowBalanceThreshold,
+        Doc
+    ).
 
 -spec org(doc()) -> kz_term:api_binary().
 org(Doc) ->
@@ -595,12 +703,16 @@ set_ringtones_internal(Doc, RingtonesInternal) ->
     kz_json:set_value([<<"ringtones">>, <<"internal">>], RingtonesInternal, Doc).
 
 -spec timezone(kz_term:api_ne_binary() | doc()) -> kz_term:ne_binary().
-timezone('undefined') -> default_timezone();
+timezone('undefined') ->
+    default_timezone();
 timezone(AccountId) when is_binary(AccountId) ->
     case fetch(AccountId) of
-        {'ok', JObj} -> timezone(JObj);
+        {'ok', JObj} ->
+            timezone(JObj);
         {'error', _R} ->
-            lager:debug("failed to open account ~s definition, returning system's default timezone"),
+            lager:debug(
+                "failed to open account ~s definition, returning system's default timezone"
+            ),
             default_timezone()
     end;
 timezone(JObj) ->
@@ -609,23 +721,31 @@ timezone(JObj) ->
 -spec timezone(kz_term:api_ne_binary() | doc(), Default) -> kz_term:ne_binary() | Default.
 timezone('undefined', 'undefined') ->
     default_timezone();
-timezone('undefined', <<"inherit">>) -> %% UI-1808
+%% UI-1808
+timezone('undefined', <<"inherit">>) ->
     default_timezone();
 timezone('undefined', Default) ->
     Default;
 timezone(AccountId, Default) when is_binary(AccountId) ->
     case fetch(AccountId) of
-        {'ok', JObj} -> timezone(JObj, Default);
-        {'error', _R} when Default =:= 'undefined';
-                           Default =:= <<"inherit">> -> %% UI-1808
-            lager:debug("failed to open account ~s definition, returning system's default timezone"),
+        {'ok', JObj} ->
+            timezone(JObj, Default);
+        {'error', _R} when
+            Default =:= 'undefined';
+            %% UI-1808
+            Default =:= <<"inherit">>
+        ->
+            lager:debug(
+                "failed to open account ~s definition, returning system's default timezone"
+            ),
             default_timezone();
         {'error', _} ->
             Default
     end;
 timezone(JObj, Default) ->
     case kz_json:get_value([<<"timezone">>], JObj, Default) of
-        <<"inherit">> -> parent_timezone(kz_doc:account_id(JObj), parent_account_id(JObj)); %% UI-1808
+        %% UI-1808
+        <<"inherit">> -> parent_timezone(kz_doc:account_id(JObj), parent_account_id(JObj));
         'undefined' -> parent_timezone(kz_doc:account_id(JObj), parent_account_id(JObj));
         TZ -> TZ
     end.
@@ -720,7 +840,9 @@ voicemail_notify_callback(Doc, Default) ->
 
 -spec set_voicemail_notify_callback(doc(), kz_json:object()) -> doc().
 set_voicemail_notify_callback(Doc, VoicemailNotifyCallback) ->
-    kz_json:set_value([<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc).
+    kz_json:set_value(
+        [<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc
+    ).
 
 -spec zones(doc()) -> kz_term:api_object().
 zones(Doc) ->
@@ -746,21 +868,20 @@ zones_home(Doc, Default) ->
 set_zones_home(Doc, ZonesHome) ->
     kz_json:set_value([<<"zones">>, <<"home">>], ZonesHome, Doc).
 
-
 -spec type() -> kz_term:ne_binary().
 type() -> <<"account">>.
 
 -spec fetch(kz_term:api_ne_binary()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 fetch('undefined') ->
     {'error', 'invalid_db_name'};
-fetch(Account=?NE_BINARY) ->
+fetch(Account = ?NE_BINARY) ->
     fetch(Account, 'account').
 
 -spec fetch(kz_term:api_ne_binary(), 'account' | 'accounts') ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 fetch('undefined', _) ->
     {'error', 'invalid_db_name'};
 fetch(Account, 'account') ->
@@ -771,12 +892,13 @@ fetch(AccountId, 'accounts') ->
     open_cache_doc(?KZ_ACCOUNTS_DB, AccountId).
 
 -spec open_cache_doc(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 open_cache_doc(Db, AccountId) ->
-    Options = [{'cache_failures', 'false'}
-              ,{'deleted', 'true'}
-              ],
+    Options = [
+        {'cache_failures', 'false'},
+        {'deleted', 'true'}
+    ],
     kz_datamgr:open_cache_doc(Db, AccountId, Options).
 
 -spec fetch_name(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
@@ -788,11 +910,13 @@ fetch_realm(Account) ->
     fetch_value(Account, fun realm/1).
 
 -spec fetch_value(kz_term:api_ne_binary(), fun((doc()) -> kz_json:json_term())) ->
-          kz_json:api_json_term().
-fetch_value('undefined', _Getter) -> 'undefined';
+    kz_json:api_json_term().
+fetch_value('undefined', _Getter) ->
+    'undefined';
 fetch_value(Account, Getter) ->
     case fetch(Account) of
-        {'ok', Doc} -> Getter(Doc);
+        {'ok', Doc} ->
+            Getter(Doc);
         {'error', _R} ->
             lager:error("error opening account doc ~p", [Account]),
             'undefined'
@@ -807,7 +931,8 @@ set_api_key(JObj, ApiKey) ->
     kz_json:set_value([<<"pvt_api_key">>], ApiKey, JObj).
 
 -spec is_enabled(doc() | kz_term:api_ne_binary()) -> boolean().
-is_enabled('undefined') -> 'false';
+is_enabled('undefined') ->
+    'false';
 is_enabled(?NE_BINARY = Id) ->
     case fetch(Id) of
         {'ok', JObj} -> is_enabled(JObj);
@@ -846,21 +971,22 @@ set_tree(JObj, Tree) ->
 
 -spec notification_preference(doc()) -> kz_term:api_binary().
 notification_preference(JObj) ->
-    Pref = notification_preference(JObj, [[<<"pvt_notification_preference">>]
-                                         ,[<<"notifications">>, <<"voicemail_to_email">>]
-                                         ,[<<"notifications">>, <<"fax_to_email">>]
-                                         ]),
+    Pref = notification_preference(JObj, [
+        [<<"pvt_notification_preference">>],
+        [<<"notifications">>, <<"voicemail_to_email">>],
+        [<<"notifications">>, <<"fax_to_email">>]
+    ]),
 
     case Pref of
-        'undefined'    -> 'undefined';
+        'undefined' -> 'undefined';
         <<"teletype">> -> <<"teletype">>;
-        _Default       -> <<"notify">>
+        _Default -> <<"notify">>
     end.
 
 -spec notification_preference(doc(), list()) -> kz_term:api_binary().
 notification_preference(_JObj, []) ->
     'undefined';
-notification_preference(JObj, [H|T]) ->
+notification_preference(JObj, [H | T]) ->
     case kz_json:get_ne_value(H, JObj) of
         'undefined' -> notification_preference(JObj, T);
         Value -> Value
@@ -891,7 +1017,8 @@ path_allow_number_additions() ->
     [<<"pvt_wnm_allow_additions">>].
 
 -spec is_superduper_admin(kz_term:api_ne_binary() | doc()) -> boolean().
-is_superduper_admin('undefined') -> 'false';
+is_superduper_admin('undefined') ->
+    'false';
 is_superduper_admin(?NE_BINARY = Id) ->
     case fetch(Id) of
         {'ok', JObj} -> is_superduper_admin(JObj);
@@ -938,11 +1065,13 @@ trial_has_expired(JObj) ->
 
 -spec trial_has_expired(doc(), kz_time:gregorian_seconds()) -> boolean().
 trial_has_expired(JObj, Now) ->
-    trial_expiration(JObj) =/= 'undefined'
-        andalso trial_time_left(JObj, Now) =< 0.
+    trial_expiration(JObj) =/= 'undefined' andalso
+        trial_time_left(JObj, Now) =< 0.
 
--spec is_expired(doc() | kz_types:api_ne_binary()) -> 'false' | {'true', kz_time:gregorian_seconds()}.
-is_expired('undefined') -> 'false';
+-spec is_expired(doc() | kz_types:api_ne_binary()) ->
+    'false' | {'true', kz_time:gregorian_seconds()}.
+is_expired('undefined') ->
+    'false';
 is_expired(?NE_BINARY = Id) ->
     case fetch(Id) of
         {'ok', JObj} -> is_expired(JObj);
@@ -960,8 +1089,8 @@ is_trial_account(JObj) ->
 
 -spec is_reseller(doc()) -> boolean().
 is_reseller(JObj) ->
-    kz_json:is_true([<<"pvt_reseller">>], JObj)
-        orelse is_superduper_admin(JObj).
+    kz_json:is_true([<<"pvt_reseller">>], JObj) orelse
+        is_superduper_admin(JObj).
 
 -spec promote(doc()) -> doc().
 promote(JObj) ->
@@ -991,8 +1120,9 @@ path_reseller_id() ->
     [<<"pvt_reseller_id">>].
 
 -spec fax_settings(doc() | kz_term:ne_binary()) -> doc().
-fax_settings(AccountId)
-  when is_binary(AccountId) ->
+fax_settings(AccountId) when
+    is_binary(AccountId)
+->
     case fetch(AccountId) of
         {'ok', JObj} -> fax_settings(JObj);
         {'error', _} -> ?SYSTEM_FAX_SETTINGS
@@ -1019,7 +1149,8 @@ get_inherited_value(Account, ValueFun, Default) ->
     case check_account(Account, ValueFun) of
         'undefined' ->
             check_reseller(Account, ValueFun, Default);
-        Value -> Value
+        Value ->
+            Value
     end.
 
 -spec check_account(kz_term:api_binary(), fun()) -> any().
@@ -1040,7 +1171,8 @@ check_reseller(Account, ValueFun, Default) ->
 -spec get_parent_account_id(kz_term:api_ne_binary()) -> kz_term:api_binary().
 get_parent_account_id(AccountId) ->
     case fetch(AccountId) of
-        {'ok', JObj} -> parent_account_id(JObj);
+        {'ok', JObj} ->
+            parent_account_id(JObj);
         {'error', _R} ->
             lager:debug("failed to open account's ~s parent: ~p", [AccountId, _R]),
             'undefined'
@@ -1067,8 +1199,10 @@ get_authoritative_parent_id(AccountId) ->
 %% heirarchy and then use this function just to get the parent id!
 %% @end
 %%------------------------------------------------------------------------------
--spec get_authoritative_parent_id(kz_term:api_ne_binary(), {'ok', kz_term:ne_binary()} | {'error', any()} | kz_term:ne_binary()) ->
-          kz_term:api_ne_binary().
+-spec get_authoritative_parent_id(
+    kz_term:api_ne_binary(), {'ok', kz_term:ne_binary()} | {'error', any()} | kz_term:ne_binary()
+) ->
+    kz_term:api_ne_binary().
 get_authoritative_parent_id(AccountId, {'ok', MasterAccountId}) ->
     get_authoritative_parent_id(AccountId, MasterAccountId);
 get_authoritative_parent_id(_AccountId, {'error', _}) ->
@@ -1080,8 +1214,7 @@ get_authoritative_parent_id('undefined', _MasterAccountId) ->
 get_authoritative_parent_id(AccountId, MasterAccountId) ->
     case kz_services_reseller:is_reseller(AccountId) of
         'true' -> MasterAccountId;
-        'false' ->
-            get_parent_account_id(AccountId)
+        'false' -> get_parent_account_id(AccountId)
     end.
 
 -spec low_balance_threshold(kz_term:ne_binary() | doc()) -> kz_term:api_float().
@@ -1195,9 +1328,8 @@ path_low_balance_tstamp() ->
 home_zone(AccountId) when is_binary(AccountId) ->
     case fetch(AccountId) of
         {'error', _R} -> 'undefined';
-        {'ok', JObj}  -> home_zone(JObj, 'undefined')
+        {'ok', JObj} -> home_zone(JObj, 'undefined')
     end;
-
 home_zone(JObj) ->
     home_zone(JObj, 'undefined').
 
@@ -1205,9 +1337,8 @@ home_zone(JObj) ->
 home_zone(AccountId, Default) when is_binary(AccountId) ->
     case fetch(AccountId) of
         {'error', _R} -> Default;
-        {'ok', JObj}  -> home_zone(JObj, Default)
+        {'ok', JObj} -> home_zone(JObj, Default)
     end;
-
 home_zone(JObj, Default) ->
     zones_home(JObj, Default).
 
@@ -1246,39 +1377,44 @@ path_initial_call_sent() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec save(doc()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 save(AccountJObj) ->
     AccountDb = kz_doc:account_db(AccountJObj),
     case kz_datamgr:save_doc(AccountDb, AccountJObj) of
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:info("failed to save account doc: ~p", [_R]),
             E;
-        {'ok', SavedJObj} -> save_accounts_doc(SavedJObj)
+        {'ok', SavedJObj} ->
+            save_accounts_doc(SavedJObj)
     end.
 
 -spec save_accounts_doc(doc()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 save_accounts_doc(AccountDoc) ->
     case kz_datamgr:open_doc(?KZ_ACCOUNTS_DB, kz_doc:id(AccountDoc)) of
         {'error', 'not_found'} ->
-            handle_saved_accounts_doc(AccountDoc, kz_datamgr:save_doc(?KZ_ACCOUNTS_DB, kz_doc:delete_revision(AccountDoc)));
-        {'error', _R}=E ->
+            handle_saved_accounts_doc(
+                AccountDoc, kz_datamgr:save_doc(?KZ_ACCOUNTS_DB, kz_doc:delete_revision(AccountDoc))
+            );
+        {'error', _R} = E ->
             lager:info("failed to save account doc to accounts: ~p", [_R]),
             E;
         {'ok', AccountsDoc} ->
-            NewAccountDoc = kz_json:set_value(kz_doc:path_revision()
-                                             ,kz_doc:revision(AccountsDoc)
-                                             ,AccountDoc
-                                             ),
-            handle_saved_accounts_doc(AccountDoc
-                                     ,kz_datamgr:save_doc(?KZ_ACCOUNTS_DB, NewAccountDoc)
-                                     )
+            NewAccountDoc = kz_json:set_value(
+                kz_doc:path_revision(),
+                kz_doc:revision(AccountsDoc),
+                AccountDoc
+            ),
+            handle_saved_accounts_doc(
+                AccountDoc,
+                kz_datamgr:save_doc(?KZ_ACCOUNTS_DB, NewAccountDoc)
+            )
     end.
 
 -spec handle_saved_accounts_doc(doc(), kz_datamgr:data_error() | {'ok', doc()}) ->
-          kz_datamgr:data_error() | {'ok', doc()}.
+    kz_datamgr:data_error() | {'ok', doc()}.
 handle_saved_accounts_doc(AccountDoc, {'ok', _}) ->
     lager:debug("saved account ~s(~s)", [kz_doc:id(AccountDoc), kz_doc:revision(AccountDoc)]),
     {'ok', AccountDoc};
@@ -1287,22 +1423,25 @@ handle_saved_accounts_doc(_AccountDoc, Error) ->
     Error.
 
 -spec update(kz_term:ne_binary(), kz_json:flat_proplist()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 update(?NE_BINARY = Account, UpdateProps) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     AccountDb = kz_util:format_account_db(AccountId),
 
-    UpdateOptions = [{'update', UpdateProps}
-                    ,{'ensure_saved', 'true'}
-                    ],
+    UpdateOptions = [
+        {'update', UpdateProps},
+        {'ensure_saved', 'true'}
+    ],
 
     case kz_datamgr:update_doc(AccountDb, AccountId, UpdateOptions) of
-        {'error', _}=E -> E;
+        {'error', _} = E ->
+            E;
         {'ok', AccountDoc} ->
-            handle_saved_accounts_doc(AccountDoc
-                                     ,kz_datamgr:update_doc(?KZ_ACCOUNTS_DB, AccountId, UpdateOptions)
-                                     )
+            handle_saved_accounts_doc(
+                AccountDoc,
+                kz_datamgr:update_doc(?KZ_ACCOUNTS_DB, AccountId, UpdateOptions)
+            )
     end.
 
 %% @equiv is_in_account_hierarchy(CheckFor, InAccount, false)
@@ -1319,18 +1458,22 @@ is_in_account_hierarchy(CheckFor, InAccount) ->
 %%------------------------------------------------------------------------------
 
 -spec is_in_account_hierarchy(kz_term:api_binary(), kz_term:api_binary(), boolean()) -> boolean().
-is_in_account_hierarchy('undefined', _, _) -> 'false';
-is_in_account_hierarchy(_, 'undefined', _) -> 'false';
+is_in_account_hierarchy('undefined', _, _) ->
+    'false';
+is_in_account_hierarchy(_, 'undefined', _) ->
+    'false';
 is_in_account_hierarchy(CheckFor, InAccount, IncludeSelf) ->
     CheckId = kz_util:format_account_id(CheckFor),
     AccountId = kz_util:format_account_id(InAccount),
-    case (IncludeSelf
-          andalso AccountId =:= CheckId
-         )
-        orelse fetch(AccountId)
+    case
+        (IncludeSelf andalso
+            AccountId =:= CheckId) orelse
+            fetch(AccountId)
     of
         'true' ->
-            lager:debug("account ~s is the same as the account to fetch the hierarchy from", [CheckId]),
+            lager:debug("account ~s is the same as the account to fetch the hierarchy from", [
+                CheckId
+            ]),
             'true';
         {'ok', JObj} ->
             Tree = tree(JObj),
@@ -1339,7 +1482,9 @@ is_in_account_hierarchy(CheckFor, InAccount, IncludeSelf) ->
                     lager:debug("account ~s is in the account hierarchy of ~s", [CheckId, AccountId]),
                     'true';
                 'false' ->
-                    lager:debug("account ~s was not found in the account hierarchy of ~s", [CheckId, AccountId]),
+                    lager:debug("account ~s was not found in the account hierarchy of ~s", [
+                        CheckId, AccountId
+                    ]),
                     'false'
             end;
         {'error', _R} ->
@@ -1355,20 +1500,24 @@ is_in_account_hierarchy(CheckFor, InAccount, IncludeSelf) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_name(kz_term:api_binary()) -> kz_term:api_binary().
-normalize_name('undefined') -> 'undefined';
+normalize_name('undefined') ->
+    'undefined';
 normalize_name(AccountName) ->
-    << <<Char>>
-       || <<Char>> <= kz_term:to_lower_binary(AccountName),
-          is_alphanumeric(Char)
+    <<
+        <<Char>>
+     || <<Char>> <= kz_term:to_lower_binary(AccountName),
+        is_alphanumeric(Char)
     >>.
 
-is_alphanumeric(Char)
-  when Char >= $a,
-       Char =< $z ->
+is_alphanumeric(Char) when
+    Char >= $a,
+    Char =< $z
+->
     'true';
-is_alphanumeric(Char)
-  when Char >= $0,
-       Char =< $9 ->
+is_alphanumeric(Char) when
+    Char >= $0,
+    Char =< $9
+->
     'true';
 is_alphanumeric(_) ->
     'false'.
@@ -1380,17 +1529,19 @@ is_alphanumeric(_) ->
 %% or returns the validation error {Path, ErrorType, ErrorMessage}
 %% @end
 %%------------------------------------------------------------------------------
--spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) -> kazoo_documents:doc_validation_return().
+-spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) ->
+    kazoo_documents:doc_validation_return().
 validate(ParentId, AccountId, ReqJObj) ->
-    ValidateFuns = [fun ensure_account_has_realm/2
-                   ,fun ensure_account_has_timezone/2
-                   ,fun remove_spaces/2
-                   ,fun cleanup_leaky_keys/2
-                   ,fun validate_realm_is_unique/2
-                   ,fun validate_account_name_is_unique/2
-                   ,fun(AID, Acc) ->  validate_schema(ParentId, AID, Acc) end
-                   ,fun normalize_alphanum_name/2
-                   ],
+    ValidateFuns = [
+        fun ensure_account_has_realm/2,
+        fun ensure_account_has_timezone/2,
+        fun remove_spaces/2,
+        fun cleanup_leaky_keys/2,
+        fun validate_realm_is_unique/2,
+        fun validate_account_name_is_unique/2,
+        fun(AID, Acc) -> validate_schema(ParentId, AID, Acc) end,
+        fun normalize_alphanum_name/2
+    ],
     try do_validation(AccountId, ReqJObj, ValidateFuns) of
         {AccountDoc, []} -> {'true', AccountDoc};
         {_AccountDoc, ValidationErrors} -> {'validation_errors', ValidationErrors}
@@ -1399,15 +1550,17 @@ validate(ParentId, AccountId, ReqJObj) ->
     end.
 
 -spec do_validation(kz_term:api_ne_binary(), doc(), [kazoo_documents:doc_validation_fun()]) ->
-          {'true', doc()} |
-          {'validation_errors', kazoo_documents:doc_validation_errors()}.
+    {'true', doc()}
+    | {'validation_errors', kazoo_documents:doc_validation_errors()}.
 do_validation(AccountId, ReqJObj, ValidateFuns) ->
-    lists:foldl(fun(F, Acc) -> F(AccountId, Acc) end
-               ,{ReqJObj, []}
-               ,ValidateFuns
-               ).
+    lists:foldl(
+        fun(F, Acc) -> F(AccountId, Acc) end,
+        {ReqJObj, []},
+        ValidateFuns
+    ).
 
--spec ensure_account_has_realm(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec ensure_account_has_realm(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 ensure_account_has_realm(_AccountId, {Doc, Errors}) ->
     case realm(Doc) of
         'undefined' ->
@@ -1419,7 +1572,8 @@ ensure_account_has_realm(_AccountId, {Doc, Errors}) ->
             {Doc, Errors}
     end.
 
--spec ensure_account_has_timezone(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec ensure_account_has_timezone(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 ensure_account_has_timezone(_AccountId, {Doc, Errors}) ->
     Timezone = timezone(Doc),
     lager:debug("selected timezone: ~s", [Timezone]),
@@ -1429,32 +1583,33 @@ ensure_account_has_timezone(_AccountId, {Doc, Errors}) ->
 random_realm() ->
     <<(kz_binary:rand_hex(?RANDOM_REALM_STRENGTH))/binary, ".", (?ACCOUNT_REALM_SUFFIX)/binary>>.
 
--spec remove_spaces(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec remove_spaces(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 remove_spaces(_AccountId, {Doc, Errors}) ->
-    {lists:foldl(fun remove_spaces_fold/2, Doc, ?REMOVE_SPACES)
-    ,Errors
-    }.
+    {lists:foldl(fun remove_spaces_fold/2, Doc, ?REMOVE_SPACES), Errors}.
 
 -spec remove_spaces_fold(kz_json:path(), doc()) -> doc().
 remove_spaces_fold(Key, Doc) ->
     case kz_json:get_ne_binary_value(Key, Doc) of
-        'undefined' -> Doc;
+        'undefined' ->
+            Doc;
         Value ->
             NoSpaces = binary:replace(Value, <<" ">>, <<>>, ['global']),
             kz_json:set_value(Key, NoSpaces, Doc)
     end.
 
--spec cleanup_leaky_keys(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec cleanup_leaky_keys(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 cleanup_leaky_keys(_AccountId, {Doc, Errors}) ->
-    RemoveKeys = [<<"wnm_allow_additions">>
-                 ,<<"superduper_admin">>
-                 ,<<"billing_mode">>
-                 ],
-    {kz_json:delete_keys(RemoveKeys, Doc)
-    ,Errors
-    }.
+    RemoveKeys = [
+        <<"wnm_allow_additions">>,
+        <<"superduper_admin">>,
+        <<"billing_mode">>
+    ],
+    {kz_json:delete_keys(RemoveKeys, Doc), Errors}.
 
--spec validate_realm_is_unique(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec validate_realm_is_unique(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 validate_realm_is_unique(AccountId, {Doc, Errors}) ->
     Realm = realm(Doc),
     case is_unique_realm(AccountId, Realm) of
@@ -1463,12 +1618,13 @@ validate_realm_is_unique(AccountId, {Doc, Errors}) ->
             {Doc, Errors};
         'false' ->
             Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Account realm already in use">>}
-                    ,{<<"cause">>, Realm}
-                    ]),
+                [
+                    {<<"message">>, <<"Account realm already in use">>},
+                    {<<"cause">>, Realm}
+                ]
+            ),
             {Doc, [{[<<"realm">>], <<"unique">>, Msg} | Errors]}
     end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc This function will determine if the realm in the request is
@@ -1485,7 +1641,9 @@ is_unique_realm(AccountId, Realm) ->
         _Else -> 'false'
     end.
 
--spec validate_account_name_is_unique(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec validate_account_name_is_unique(
+    kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) -> kazoo_documents:doc_validation_acc().
 validate_account_name_is_unique(AccountId, {Doc, Errors}) ->
     Name = name(Doc),
     case maybe_is_unique_account_name(AccountId, Name) of
@@ -1494,9 +1652,11 @@ validate_account_name_is_unique(AccountId, {Doc, Errors}) ->
             {Doc, Errors};
         'false' ->
             Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Account name already in use">>}
-                    ,{<<"cause">>, Name}
-                    ]),
+                [
+                    {<<"message">>, <<"Account name already in use">>},
+                    {<<"cause">>, Name}
+                ]
+            ),
             {Doc, [{[<<"name">>], <<"unique">>, Msg} | Errors]}
     end.
 
@@ -1516,9 +1676,12 @@ is_unique_account_name(AccountId, Name) ->
     AccountName = normalize_name(Name),
     ViewOptions = [{'key', AccountName}],
     case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, ?AGG_VIEW_NAME, ViewOptions) of
-        {'ok', []} -> 'true';
-        {'error', 'not_found'} -> 'true';
-        {'ok', [JObj|_]} -> kz_doc:id(JObj) =:= AccountId;
+        {'ok', []} ->
+            'true';
+        {'error', 'not_found'} ->
+            'true';
+        {'ok', [JObj | _]} ->
+            kz_doc:id(JObj) =:= AccountId;
         _Else ->
             lager:error("error ~p checking view ~p in ~p", [_Else, ?AGG_VIEW_NAME, ?KZ_ACCOUNTS_DB]),
             'false'
@@ -1528,29 +1691,35 @@ is_unique_account_name(AccountId, Name) ->
 %% @doc Verify the account doc against the account doc schema
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_schema(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec validate_schema(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 validate_schema(ParentId, AccountId, {Doc, Errors}) ->
-    OnSuccess = fun(ValidateAcc) -> on_successful_schema_validation(ParentId, AccountId, ValidateAcc) end,
+    OnSuccess = fun(ValidateAcc) ->
+        on_successful_schema_validation(ParentId, AccountId, ValidateAcc)
+    end,
     kzd_module_utils:validate_schema(<<"accounts">>, {Doc, Errors}, OnSuccess).
 
 %%------------------------------------------------------------------------------
 %% @doc Executed after `validate_user_schema/3' if it passes schema validation.
 %% @end
 %%------------------------------------------------------------------------------
--spec on_successful_schema_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec on_successful_schema_validation(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 on_successful_schema_validation(ParentId, 'undefined', {Doc, Errors}) ->
     lager:info("schema validation passed for new account: ~s", [kz_json:encode(Doc)]),
     {set_private_properties(ParentId, Doc), Errors};
-on_successful_schema_validation(_ParentId, _AccountId, ValidateAcc) -> ValidateAcc.
+on_successful_schema_validation(_ParentId, _AccountId, ValidateAcc) ->
+    ValidateAcc.
 
--spec normalize_alphanum_name(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec normalize_alphanum_name(kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 normalize_alphanum_name(_AccountId, {Doc, Errors}) ->
     Normalized = normalize_name(name(Doc)),
-    {kz_json:set_value(<<"pvt_alphanum_name">>, Normalized, Doc)
-    ,Errors
-    }.
+    {kz_json:set_value(<<"pvt_alphanum_name">>, Normalized, Doc), Errors}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function returns the private fields to be added to a new account
@@ -1559,13 +1728,14 @@ normalize_alphanum_name(_AccountId, {Doc, Errors}) ->
 %%------------------------------------------------------------------------------
 -spec set_private_properties(kz_term:api_ne_binary(), doc()) -> doc().
 set_private_properties(ParentId, Doc) ->
-    PvtFuns = [fun add_pvt_type/1
-              ,fun add_pvt_vsn/1
-              ,fun maybe_add_pvt_api_key/1
-              ,fun(D) ->  maybe_add_pvt_tree(ParentId, D) end
-              ,fun maybe_set_cpaas_token/1
-              ,fun add_pvt_enabled/1
-              ],
+    PvtFuns = [
+        fun add_pvt_type/1,
+        fun add_pvt_vsn/1,
+        fun maybe_add_pvt_api_key/1,
+        fun(D) -> maybe_add_pvt_tree(ParentId, D) end,
+        fun maybe_set_cpaas_token/1,
+        fun add_pvt_enabled/1
+    ],
     lists:foldl(fun(F, D) -> F(D) end, Doc, PvtFuns).
 
 -spec add_pvt_type(doc()) -> doc().
@@ -1580,20 +1750,21 @@ add_pvt_vsn(Doc) ->
 add_pvt_enabled(Doc) ->
     case lists:reverse(tree(Doc)) of
         [] -> Doc;
-        [ParentId | _] ->
-            add_pvt_enabled(Doc, ParentId, (not kz_term:is_empty(ParentId)))
+        [ParentId | _] -> add_pvt_enabled(Doc, ParentId, (not kz_term:is_empty(ParentId)))
     end.
 
 -spec add_pvt_enabled(doc(), kz_term:api_ne_binary(), boolean()) -> doc().
-add_pvt_enabled(Doc, _ParentId, 'false') -> Doc;
+add_pvt_enabled(Doc, _ParentId, 'false') ->
+    Doc;
 add_pvt_enabled(Doc, ParentId, 'true') ->
     case fetch(ParentId) of
         {'ok', Parent} ->
             case is_enabled(Parent) of
-                'true'  -> enable(Doc);
+                'true' -> enable(Doc);
                 'false' -> disable(Doc)
             end;
-        _Else -> Doc
+        _Else ->
+            Doc
     end.
 
 -spec maybe_add_pvt_api_key(doc()) -> doc().
@@ -1631,7 +1802,7 @@ set_cpaas_token(AccountDoc, Token) ->
 -spec maybe_add_pvt_tree(kz_term:api_ne_binary(), doc()) -> doc().
 maybe_add_pvt_tree(ParentId, Doc) ->
     case tree(Doc) of
-        [_|_]=_Tree ->
+        [_ | _] = _Tree ->
             lager:info("tree already defined: ~p", [_Tree]),
             Doc;
         _Else ->

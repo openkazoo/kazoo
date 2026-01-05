@@ -8,14 +8,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("reg.hrl").
 
@@ -24,20 +25,18 @@
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{'reg_authn_req'
-                     ,[{<<"directory">>, <<"authn_req">>}]
-                     }
-                    ,{{'reg_route_req', 'handle_route_req'}
-                     ,[{<<"dialplan">>, <<"route_req">>}]
-                     }
-                    ]).
--define(BINDINGS, [{'authn', []}
-                  ,{'route', [{'types', ?RESOURCE_TYPES_HANDLED}
-                             ,{'restrict_to', ['no_account']}
-                             ]
-                   }
-                  ,{'self', []}
-                  ]).
+-define(RESPONDERS, [
+    {'reg_authn_req', [{<<"directory">>, <<"authn_req">>}]},
+    {{'reg_route_req', 'handle_route_req'}, [{<<"dialplan">>, <<"route_req">>}]}
+]).
+-define(BINDINGS, [
+    {'authn', []},
+    {'route', [
+        {'types', ?RESOURCE_TYPES_HANDLED},
+        {'restrict_to', ['no_account']}
+    ]},
+    {'self', []}
+]).
 -define(REG_QUEUE_NAME, <<"registrar_listener">>).
 -define(REG_QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(REG_CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -52,15 +51,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'responders', ?RESPONDERS}
-                            ,{'bindings', ?BINDINGS}
-                            ,{'queue_name', ?REG_QUEUE_NAME}
-                            ,{'queue_options', ?REG_QUEUE_OPTIONS}
-                            ,{'consume_options', ?REG_CONSUME_OPTIONS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?REG_QUEUE_NAME},
+            {'queue_options', ?REG_QUEUE_OPTIONS},
+            {'consume_options', ?REG_CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_listener callbacks

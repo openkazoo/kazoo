@@ -14,57 +14,78 @@
 
 %% API
 -export([start_link/0]).
--export([start_tracking_job/3
-        ,start_tracking_job/4
-        ,stop_tracking_job/1
-        ,set_job_dbs/2
-        ,current_db/2
-        ,skipped_db/2
-        ,finished_db/3
-        ,add_found_shards/2
-        ,finished_shard/2
-        ]).
+-export([
+    start_tracking_job/3,
+    start_tracking_job/4,
+    stop_tracking_job/1,
+    set_job_dbs/2,
+    current_db/2,
+    skipped_db/2,
+    finished_db/3,
+    add_found_shards/2,
+    finished_shard/2
+]).
 %% "Mirrors" for SUP commands
 -export([status/0, history/0, history/2, job_info/1]).
 
 %% gen_server's callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,code_change/3
-        ,terminate/2
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    code_change/3,
+    terminate/2
+]).
 
 -define(SERVER, ?MODULE).
 -define(COMPACTION_VIEW, <<"compaction_jobs/crossbar_listing">>).
 
 -type call_id() :: kz_term:ne_binary().
--type compaction_stats() :: #{%% Databases
-                              'id' => kz_term:ne_binary()
-                             ,'found_dbs' => pos_integer() %% Number of dbs found to be compacted
-                             ,'compacted_dbs' => non_neg_integer() %% Number of dbs compacted so far
-                             ,'queued_dbs' => non_neg_integer() %% remaining dbs to be compacted
-                             ,'skipped_dbs' => non_neg_integer() %% dbs skipped because not data_size nor disk-data's ratio thresholds are met.
-                             ,'current_db' => kz_term:api_ne_binary()
-                             ,'processed_dbs' => kz_term:ne_binaries() %% `Encoded' DBs already processed, avoids processing duplicated events like skipped, finished, etc.
-                              %% Shards
-                             ,'found_shards' => non_neg_integer() %% Number of shards found so far
-                             ,'compacted_shards' => non_neg_integer() %% Number of shards compacted so far
-                              %% Storage
-                             ,'disk_start' => non_neg_integer() %% disk_size sum of all dbs in bytes before compaction (for history command)
-                             ,'disk_end' => non_neg_integer() %% disk_size sum of all dbs in bytes after compaction (for history command)
-                             ,'data_start' => non_neg_integer() %% data_size sum of all dbs in bytes before compaction (for history command)
-                             ,'data_end' => non_neg_integer() %% data_size sum of all dbs in bytes after compaction (for history command)
-                             ,'recovered_disk' => non_neg_integer() %% bytes recovered so far (for status command)
-                              %% Worker
-                             ,'pid' => pid() %% worker's pid
-                             ,'node' => node() %% node where the worker is running
-                             ,'started' => kz_time:gregorian_seconds() %% datetime (in seconds) when the compaction started
-                             ,'finished' => 'undefined' | kz_time:gregorian_seconds() %% datetime (in seconds) when the compaction ended
-                             }.
--type state() :: #{call_id() => compaction_stats()}.
+%% Databases
+-type compaction_stats() :: #{
+    'id' => kz_term:ne_binary(),
+    %% Number of dbs found to be compacted
+    'found_dbs' => pos_integer(),
+    %% Number of dbs compacted so far
+    'compacted_dbs' => non_neg_integer(),
+    %% remaining dbs to be compacted
+    'queued_dbs' => non_neg_integer(),
+    %% dbs skipped because not data_size nor disk-data's ratio thresholds are met.
+    'skipped_dbs' => non_neg_integer(),
+    'current_db' => kz_term:api_ne_binary(),
+    %% `Encoded' DBs already processed, avoids processing duplicated events like skipped, finished, etc.
+    'processed_dbs' => kz_term:ne_binaries(),
+    %% Shards
 
+    %% Number of shards found so far
+    'found_shards' => non_neg_integer(),
+    %% Number of shards compacted so far
+    'compacted_shards' => non_neg_integer(),
+    %% Storage
+
+    %% disk_size sum of all dbs in bytes before compaction (for history command)
+    'disk_start' => non_neg_integer(),
+    %% disk_size sum of all dbs in bytes after compaction (for history command)
+    'disk_end' => non_neg_integer(),
+    %% data_size sum of all dbs in bytes before compaction (for history command)
+    'data_start' => non_neg_integer(),
+    %% data_size sum of all dbs in bytes after compaction (for history command)
+    'data_end' => non_neg_integer(),
+    %% bytes recovered so far (for status command)
+    'recovered_disk' => non_neg_integer(),
+    %% Worker
+
+    %% worker's pid
+    'pid' => pid(),
+    %% node where the worker is running
+    'node' => node(),
+    %% datetime (in seconds) when the compaction started
+    'started' => kz_time:gregorian_seconds(),
+    %% datetime (in seconds) when the compaction ended
+    'finished' => 'undefined' | kz_time:gregorian_seconds()
+}.
+-type state() :: #{call_id() => compaction_stats()}.
 
 %%%=============================================================================
 %%% API
@@ -175,10 +196,13 @@ history() ->
 %% @doc Return compaction history for the given year and month (YYYY, MM).
 %% @end
 %%------------------------------------------------------------------------------
--spec history(kz_time:year(), kz_time:month()) -> {'ok', kz_json:json_terms()} |
-          {'error', atom()}.
-history(Year, Month) when is_integer(Year)
-                          andalso is_integer(Month) ->
+-spec history(kz_time:year(), kz_time:month()) ->
+    {'ok', kz_json:json_terms()}
+    | {'error', atom()}.
+history(Year, Month) when
+    is_integer(Year) andalso
+        is_integer(Month)
+->
     {'ok', AccountId} = kapps_util:get_master_account_id(),
     Opts = [{'year', Year}, {'month', Month}, 'include_docs'],
     kazoo_modb:get_results(AccountId, ?COMPACTION_VIEW, Opts).
@@ -198,24 +222,23 @@ job_info(<<JobId/binary>>) ->
             DiskEnd = Int([<<"storage">>, <<"disk">>, <<"end">>]),
             Start = Int([<<"worker">>, <<"started">>]),
             End = Int([<<"worker">>, <<"finished">>]),
-            [{<<"id">>, kz_doc:id(JObj)}
-            ,{<<"found_dbs">>, Str([<<"databases">>, <<"found">>])}
-            ,{<<"compacted_dbs">>, Str([<<"databases">>, <<"compacted">>])}
-            ,{<<"skipped_dbs">>, Str([<<"databases">>, <<"skipped">>])}
-            ,{<<"found_shards">>, Str([<<"shards">>, <<"found">>])}
-            ,{<<"compacted_shards">>, Str([<<"shards">>, <<"compacted">>])}
-            ,{<<"disk_start">>, kz_term:to_binary(DiskStart)}
-            ,{<<"disk_end">>, kz_term:to_binary(DiskEnd)}
-            ,{<<"data_start">>, Str([<<"storage">>, <<"data">>, <<"start">>])}
-            ,{<<"data_end">>, Str([<<"storage">>, <<"data">>, <<"end">>])}
-            ,{<<"recovered_disk">>, kz_util:pretty_print_bytes(DiskStart - DiskEnd)}
-            ,{<<"node">>, Str([<<"worker">>, <<"node">>])}
-            ,{<<"pid">>, Str([<<"worker">>, <<"pid">>])}
-            ,{<<"started">>, kz_term:to_list(kz_time:pretty_print_datetime(Start))}
-            ,{<<"finished">>, kz_term:to_list(kz_time:pretty_print_datetime(End))}
-            ,{<<"exec_time">>
-             ,kz_term:to_list(kz_time:pretty_print_elapsed_s(End - Start))
-             }
+            [
+                {<<"id">>, kz_doc:id(JObj)},
+                {<<"found_dbs">>, Str([<<"databases">>, <<"found">>])},
+                {<<"compacted_dbs">>, Str([<<"databases">>, <<"compacted">>])},
+                {<<"skipped_dbs">>, Str([<<"databases">>, <<"skipped">>])},
+                {<<"found_shards">>, Str([<<"shards">>, <<"found">>])},
+                {<<"compacted_shards">>, Str([<<"shards">>, <<"compacted">>])},
+                {<<"disk_start">>, kz_term:to_binary(DiskStart)},
+                {<<"disk_end">>, kz_term:to_binary(DiskEnd)},
+                {<<"data_start">>, Str([<<"storage">>, <<"data">>, <<"start">>])},
+                {<<"data_end">>, Str([<<"storage">>, <<"data">>, <<"end">>])},
+                {<<"recovered_disk">>, kz_util:pretty_print_bytes(DiskStart - DiskEnd)},
+                {<<"node">>, Str([<<"worker">>, <<"node">>])},
+                {<<"pid">>, Str([<<"worker">>, <<"pid">>])},
+                {<<"started">>, kz_term:to_list(kz_time:pretty_print_datetime(Start))},
+                {<<"finished">>, kz_term:to_list(kz_time:pretty_print_datetime(End))},
+                {<<"exec_time">>, kz_term:to_list(kz_time:pretty_print_elapsed_s(End - Start))}
             ];
         {'error', Reason} ->
             Reason
@@ -242,7 +265,6 @@ init([]) ->
 handle_call('status', _From, State) ->
     Ret = maps:fold(fun stats_to_status_fold/3, [], State),
     {'reply', Ret, State};
-
 handle_call(_Request, _From, State) ->
     lager:debug("unhandled call ~p from ~p", [_Request, _From]),
     {'reply', {'error', 'not_implemented'}, State}.
@@ -255,27 +277,27 @@ handle_call(_Request, _From, State) ->
 handle_cast({'new_job', Pid, Node, CallId, DbsAndSizes}, State) ->
     lager:info("start collecting data for compaction job ~p", [CallId]),
     TotalDbs = length(DbsAndSizes),
-    Stats = #{'id' => CallId
-             ,'found_dbs' => TotalDbs
-             ,'compacted_dbs' => 0
-             ,'queued_dbs' => TotalDbs
-             ,'skipped_dbs' => 0
-             ,'current_db' => 'undefined'
-             ,'processed_dbs' => []
-             ,'found_shards' => 0
-             ,'compacted_shards' => 0
-             ,'disk_start' => 0
-             ,'disk_end' => 0
-             ,'data_start' => 0
-             ,'data_end' => 0
-             ,'recovered_disk' => 0
-             ,'pid' => Pid
-             ,'node' => Node
-             ,'started' => kz_time:now_s()
-             ,'finished' => 'undefined'
-             },
+    Stats = #{
+        'id' => CallId,
+        'found_dbs' => TotalDbs,
+        'compacted_dbs' => 0,
+        'queued_dbs' => TotalDbs,
+        'skipped_dbs' => 0,
+        'current_db' => 'undefined',
+        'processed_dbs' => [],
+        'found_shards' => 0,
+        'compacted_shards' => 0,
+        'disk_start' => 0,
+        'disk_end' => 0,
+        'data_start' => 0,
+        'data_end' => 0,
+        'recovered_disk' => 0,
+        'pid' => Pid,
+        'node' => Node,
+        'started' => kz_time:now_s(),
+        'finished' => 'undefined'
+    },
     {'noreply', State#{CallId => Stats}};
-
 handle_cast({'stop_job', CallId}, State) ->
     NewState =
         case maps:take(CallId, State) of
@@ -285,14 +307,14 @@ handle_cast({'stop_job', CallId}, State) ->
             {Stats = #{'started' := Started}, State1} ->
                 Finished = kz_time:now_s(),
                 Elapsed = Finished - Started,
-                lager:debug("~s finished, took ~s (~ps)"
-                           ,[CallId, kz_time:pretty_print_elapsed_s(Elapsed), Elapsed]
-                           ),
+                lager:debug(
+                    "~s finished, took ~s (~ps)",
+                    [CallId, kz_time:pretty_print_elapsed_s(Elapsed), Elapsed]
+                ),
                 'ok' = save_compaction_stats(Stats#{'finished' => Finished}),
                 State1
         end,
     {'noreply', NewState};
-
 handle_cast({'set_job_dbs', CallId, DbsAndSizes}, State) ->
     NewState =
         case maps:get(CallId, State, 'undefined') of
@@ -300,12 +322,14 @@ handle_cast({'set_job_dbs', CallId, DbsAndSizes}, State) ->
                 State;
             Stats ->
                 TotalDbs = length(DbsAndSizes),
-                State#{CallId => Stats#{'found_dbs' => TotalDbs
-                                       ,'queued_dbs' => TotalDbs
-                                       }}
+                State#{
+                    CallId => Stats#{
+                        'found_dbs' => TotalDbs,
+                        'queued_dbs' => TotalDbs
+                    }
+                }
         end,
     {'noreply', NewState};
-
 handle_cast({'current_db', CallId, Db}, State) ->
     NewState =
         case maps:get(CallId, State, 'undefined') of
@@ -313,12 +337,12 @@ handle_cast({'current_db', CallId, Db}, State) ->
             Stats -> State#{CallId => Stats#{'current_db' => Db}}
         end,
     {'noreply', NewState};
-
 handle_cast({'skipped_db', CallId, Db}, State) ->
     Stats = maps:get(CallId, State, 'undefined'),
     NewState =
-        case Stats =/= 'undefined'
-            andalso not lists:member(Db, maps:get('processed_dbs', Stats))
+        case
+            Stats =/= 'undefined' andalso
+                not lists:member(Db, maps:get('processed_dbs', Stats))
         of
             'false' ->
                 State;
@@ -327,43 +351,46 @@ handle_cast({'skipped_db', CallId, Db}, State) ->
                 State#{CallId => Stats#{'skipped_dbs' => maps:get('skipped_dbs', Stats) + 1}}
         end,
     {'noreply', NewState};
-
 handle_cast({'finished_db', CallId, Db, [FRow | _]}, State) ->
     Stats = maps:get(CallId, State, 'undefined'),
     NewState =
-        case Stats =/= 'undefined'
-            andalso not lists:member(Db, maps:get('processed_dbs', Stats))
+        case
+            Stats =/= 'undefined' andalso
+                not lists:member(Db, maps:get('processed_dbs', Stats))
         of
             'false' ->
                 State;
             'true' ->
-                #{'recovered_disk' := CurrentRec
-                 ,'disk_start' := DiskStart
-                 ,'disk_end' := DiskEnd
-                 ,'data_start' := DataStart
-                 ,'data_end' := DataEnd
-                 ,'found_dbs' := Found
-                 ,'skipped_dbs' := Skipped
-                 ,'queued_dbs' := Queued
-                 ,'processed_dbs' := ProcessedDBs
-                 } = Stats,
+                #{
+                    'recovered_disk' := CurrentRec,
+                    'disk_start' := DiskStart,
+                    'disk_end' := DiskEnd,
+                    'data_start' := DataStart,
+                    'data_end' := DataEnd,
+                    'found_dbs' := Found,
+                    'skipped_dbs' := Skipped,
+                    'queued_dbs' := Queued,
+                    'processed_dbs' := ProcessedDBs
+                } = Stats,
                 [_, _, OldDisk, OldData, NewDisk, NewData] = FRow,
-                Recovered = (OldDisk-NewDisk),
+                Recovered = (OldDisk - NewDisk),
                 NewQueued = Queued - 1,
                 lager:debug("recovered ~p bytes after compacting ~p db", [Recovered, Db]),
-                State#{CallId => Stats#{'recovered_disk' => CurrentRec + Recovered
-                                       ,'disk_start' => DiskStart + OldDisk
-                                       ,'disk_end' => DiskEnd + NewDisk
-                                       ,'data_start' => DataStart + OldData
-                                       ,'data_end' => DataEnd + NewData
-                                       ,'compacted_dbs' => Found - NewQueued - Skipped
-                                       ,'queued_dbs' => NewQueued
-                                       ,'current_db' => 'undefined'
-                                       ,'processed_dbs' => [Db | ProcessedDBs]
-                                       }}
+                State#{
+                    CallId => Stats#{
+                        'recovered_disk' => CurrentRec + Recovered,
+                        'disk_start' => DiskStart + OldDisk,
+                        'disk_end' => DiskEnd + NewDisk,
+                        'data_start' => DataStart + OldData,
+                        'data_end' => DataEnd + NewData,
+                        'compacted_dbs' => Found - NewQueued - Skipped,
+                        'queued_dbs' => NewQueued,
+                        'current_db' => 'undefined',
+                        'processed_dbs' => [Db | ProcessedDBs]
+                    }
+                }
         end,
     {'noreply', NewState};
-
 handle_cast({'add_found_shards', CallId, ShardsCount}, State) ->
     NewState =
         case maps:get(CallId, State, 'undefined') of
@@ -375,7 +402,6 @@ handle_cast({'add_found_shards', CallId, ShardsCount}, State) ->
                 State#{CallId => Stats#{'found_shards' => CurrentShards + ShardsCount}}
         end,
     {'noreply', NewState};
-
 handle_cast({'finished_shard', CallId, _Shard}, State) ->
     NewState =
         case maps:get(CallId, State, 'undefined') of
@@ -386,7 +412,6 @@ handle_cast({'finished_shard', CallId, _Shard}, State) ->
                 State#{CallId => Stats#{'compacted_shards' => Compacted + 1}}
         end,
     {'noreply', NewState};
-
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast ~p", [_Msg]),
     {'noreply', State}.
@@ -409,9 +434,10 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
 terminate(_Reason, _State) ->
-    lager:debug("~s terminating with reason: ~p~n when state was: ~p"
-               ,[?SERVER, _Reason, _State]
-               ).
+    lager:debug(
+        "~s terminating with reason: ~p~n when state was: ~p",
+        [?SERVER, _Reason, _State]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Convert process state when code is changed.
@@ -430,10 +456,22 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec stats_to_status_fold(kz_term:ne_binary(), compaction_stats(), [kz_term:proplist()]) ->
-          [kz_term:proplist()].
+    [kz_term:proplist()].
 stats_to_status_fold(_CallId, Stats = #{'found_dbs' := FoundDBs}, Acc) ->
-    Keys = ['id', 'found_dbs', 'compacted_dbs', 'queued_dbs', 'skipped_dbs', 'current_db',
-            'found_shards', 'compacted_shards', 'recovered_disk', 'pid', 'node', 'started'],
+    Keys = [
+        'id',
+        'found_dbs',
+        'compacted_dbs',
+        'queued_dbs',
+        'skipped_dbs',
+        'current_db',
+        'found_shards',
+        'compacted_shards',
+        'recovered_disk',
+        'pid',
+        'node',
+        'started'
+    ],
     StatsProp = [{kz_term:to_binary(Key), kz_term:to_binary(maps:get(Key, Stats))} || Key <- Keys],
     case FoundDBs of
         0 ->
@@ -451,48 +489,58 @@ stats_to_status_fold(_CallId, Stats = #{'found_dbs' := FoundDBs}, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec save_compaction_stats(compaction_stats()) -> 'ok'.
-save_compaction_stats(#{'id' := Id
-                       ,'found_dbs' := FoundDBs
-                       ,'compacted_dbs' := CompactedDBs
-                       ,'queued_dbs' := QueuedDBs
-                       ,'skipped_dbs' := SkippedDBs
-                       ,'found_shards' := FoundShards
-                       ,'compacted_shards' := CompactedShards
-                       ,'disk_start' := DiskStart
-                       ,'disk_end' := DiskEnd
-                       ,'data_start' := DataStart
-                       ,'data_end' := DataEnd
-                       ,'pid' := Pid
-                       ,'node' := Node
-                       ,'started' := Started
-                       ,'finished' := Finished
-                       } = Stats) ->
-    Map = #{<<"_id">> => Id
-           ,<<"databases">> => #{<<"found">> => FoundDBs
-                                ,<<"compacted">> => CompactedDBs
-                                ,<<"queued">> => QueuedDBs
-                                ,<<"skipped">> => SkippedDBs
-                                }
-           ,<<"shards">> => #{<<"found">> => FoundShards
-                             ,<<"compacted">> => CompactedShards
-                             }
-           ,<<"storage">> => #{<<"disk">> =>
-                                   #{<<"start">> => DiskStart
-                                    ,<<"end">> => DiskEnd
-                                    }
-                              ,<<"data">> =>
-                                   #{<<"start">> => DataStart
-                                    ,<<"end">> => DataEnd
-                                    }
-                              }
-           ,<<"worker">> => #{<<"pid">> => kz_term:to_binary(Pid)
-                             ,<<"node">> => kz_term:to_binary(Node)
-                             ,<<"started">> => Started
-                             ,<<"finished">> => Finished
-                             }
-           ,<<"pvt_type">> => <<"compaction_job">>
-           ,<<"pvt_created">> => kz_time:now_s()
-           },
+save_compaction_stats(
+    #{
+        'id' := Id,
+        'found_dbs' := FoundDBs,
+        'compacted_dbs' := CompactedDBs,
+        'queued_dbs' := QueuedDBs,
+        'skipped_dbs' := SkippedDBs,
+        'found_shards' := FoundShards,
+        'compacted_shards' := CompactedShards,
+        'disk_start' := DiskStart,
+        'disk_end' := DiskEnd,
+        'data_start' := DataStart,
+        'data_end' := DataEnd,
+        'pid' := Pid,
+        'node' := Node,
+        'started' := Started,
+        'finished' := Finished
+    } = Stats
+) ->
+    Map = #{
+        <<"_id">> => Id,
+        <<"databases">> => #{
+            <<"found">> => FoundDBs,
+            <<"compacted">> => CompactedDBs,
+            <<"queued">> => QueuedDBs,
+            <<"skipped">> => SkippedDBs
+        },
+        <<"shards">> => #{
+            <<"found">> => FoundShards,
+            <<"compacted">> => CompactedShards
+        },
+        <<"storage">> => #{
+            <<"disk">> =>
+                #{
+                    <<"start">> => DiskStart,
+                    <<"end">> => DiskEnd
+                },
+            <<"data">> =>
+                #{
+                    <<"start">> => DataStart,
+                    <<"end">> => DataEnd
+                }
+        },
+        <<"worker">> => #{
+            <<"pid">> => kz_term:to_binary(Pid),
+            <<"node">> => kz_term:to_binary(Node),
+            <<"started">> => Started,
+            <<"finished">> => Finished
+        },
+        <<"pvt_type">> => <<"compaction_job">>,
+        <<"pvt_created">> => kz_time:now_s()
+    },
     lager:debug("saving stats after compaction job completion: ~p", [Stats]),
     {'ok', AccountId} = kapps_util:get_master_account_id(),
     {'ok', Doc} = kazoo_modb:save_doc(AccountId, kz_json:from_map(Map)),

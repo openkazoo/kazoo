@@ -15,7 +15,11 @@
 -export([handle/2]).
 
 -define(DEFAULT_FAX_DETECT_DURATION, 5).
--define(FAX_DETECT_DURATION, kapps_config:get_integer(?CF_CONFIG_CAT, <<"fax_detect_duration_s">>, ?DEFAULT_FAX_DETECT_DURATION)).
+-define(FAX_DETECT_DURATION,
+    kapps_config:get_integer(
+        ?CF_CONFIG_CAT, <<"fax_detect_duration_s">>, ?DEFAULT_FAX_DETECT_DURATION
+    )
+).
 
 %%------------------------------------------------------------------------------
 %% @doc Entry point for this module

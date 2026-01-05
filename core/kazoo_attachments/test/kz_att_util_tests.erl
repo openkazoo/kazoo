@@ -13,15 +13,17 @@
 -define(SEPARATOR, "/").
 
 empty_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = [],
 
@@ -32,15 +34,17 @@ empty_url_test_() ->
     [?_assertEqual(<<>>, URLSeg)].
 
 default_format_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_util:default_format_url_fields(),
 
@@ -48,25 +52,25 @@ default_format_url_test_() ->
 
     URLSeg = kz_att_util:format_url(Params, Metadata, Args, Format),
 
-    [?_assertEqual(<<?ACCOUNT_ID, ?SEPARATOR
-                    ,?DOC_ID, ?SEPARATOR
-                    ,?ANAME
-                   >>
-                  ,URLSeg
-                  )
+    [
+        ?_assertEqual(
+            <<?ACCOUNT_ID, ?SEPARATOR, ?DOC_ID, ?SEPARATOR, ?ANAME>>,
+            URLSeg
+        )
     ].
 
-
 azure_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_azure:azure_default_fields(),
 
@@ -77,15 +81,17 @@ azure_url_test_() ->
     [?_assertEqual(<<?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 dropbox_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_dropbox:dropbox_default_fields(),
 
@@ -96,15 +102,17 @@ dropbox_url_test_() ->
     [?_assertEqual(<<?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 gdrive_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_google_drive:gdrive_default_fields(),
 
@@ -115,15 +123,17 @@ gdrive_url_test_() ->
     [?_assertEqual(<<?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 gstorage_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_google_storage:gstorage_default_fields(),
 
@@ -134,15 +144,17 @@ gstorage_url_test_() ->
     [?_assertEqual(<<?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 onedrive_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_onedrive:onedrive_default_fields(),
 
@@ -153,15 +165,17 @@ onedrive_url_test_() ->
     [?_assertEqual(<<?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 s3_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
     Format = kz_att_s3:aws_default_fields(),
 
@@ -172,48 +186,61 @@ s3_url_test_() ->
     [?_assertEqual(<<?ACCOUNT_DB_ENC, ?SEPARATOR, ?DOC_ID, "_", ?ANAME>>, URLSeg)].
 
 http_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
-    Format = [{'const', <<"?path=">>}
-             ,{'arg', <<"account_id">>}
-             ,{'arg', <<"id">>}
-             ,{'arg', <<"attachment">>}
-             ],
+    Format = [
+        {'const', <<"?path=">>},
+        {'arg', <<"account_id">>},
+        {'arg', <<"id">>},
+        {'arg', <<"attachment">>}
+    ],
 
     Params = #{'field_separator' => <<?SEPARATOR>>},
 
     URLSeg = kz_att_util:format_url(Params, Metadata, Args, Format),
 
-    [?_assertEqual(<<"?path=", ?SEPARATOR, ?ACCOUNT_ID, ?SEPARATOR, ?DOC_ID, ?SEPARATOR, ?ANAME>>, URLSeg)].
-
+    [
+        ?_assertEqual(
+            <<"?path=", ?SEPARATOR, ?ACCOUNT_ID, ?SEPARATOR, ?DOC_ID, ?SEPARATOR, ?ANAME>>, URLSeg
+        )
+    ].
 
 field_url_test_() ->
-    Args = [{<<"attachment">>, <<?ANAME>>}
-           ,{<<"id">>, <<?DOC_ID>>}
-           ,{<<"account_id">>, <<?ACCOUNT_ID>>}
-           ,{<<"db">>, <<?ACCOUNT_DB>>}
-           ],
+    Args = [
+        {<<"attachment">>, <<?ANAME>>},
+        {<<"id">>, <<?DOC_ID>>},
+        {<<"account_id">>, <<?ACCOUNT_ID>>},
+        {<<"db">>, <<?ACCOUNT_DB>>}
+    ],
 
-    Metadata = kz_json:from_list([{<<"_id">>, <<?DOC_ID>>}
-                                 ,{<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
-                                 ]),
+    Metadata = kz_json:from_list([
+        {<<"_id">>, <<?DOC_ID>>},
+        {<<?FIELD_KEY>>, <<?FIELD_VALUE>>}
+    ]),
 
-    Format = [{'field', <<?FIELD_KEY>>}
-             ,{'arg', <<"id">>}
-             ,{'const', <<"foo">>}
-             ,{'arg', <<"attachment">>}
-             ],
+    Format = [
+        {'field', <<?FIELD_KEY>>},
+        {'arg', <<"id">>},
+        {'const', <<"foo">>},
+        {'arg', <<"attachment">>}
+    ],
 
     Params = #{'field_separator' => <<?SEPARATOR>>},
 
     URLSeg = kz_att_util:format_url(Params, Metadata, Args, Format),
 
-    [?_assertEqual(<<?FIELD_VALUE, ?SEPARATOR, ?DOC_ID, ?SEPARATOR, "foo", ?SEPARATOR, ?ANAME>>, URLSeg)].
+    [
+        ?_assertEqual(
+            <<?FIELD_VALUE, ?SEPARATOR, ?DOC_ID, ?SEPARATOR, "foo", ?SEPARATOR, ?ANAME>>, URLSeg
+        )
+    ].

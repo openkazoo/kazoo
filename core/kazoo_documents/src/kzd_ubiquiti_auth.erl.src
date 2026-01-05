@@ -9,7 +9,6 @@
 -export([password/1, password/2, set_password/2]).
 -export([username/1, username/2, set_username/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

@@ -8,21 +8,26 @@
 -include("kazoo_ips.hrl").
 
 -export([refresh/0]).
--export([add/0
-        ,add/3
-        ]).
--export([assign/0
-        ,assign/2
-        ]).
--export([release/0
-        ,release/1
-        ]).
--export([delete/0
-        ,delete/1
-        ]).
--export([summary/0
-        ,summary/1
-        ]).
+-export([
+    add/0,
+    add/3
+]).
+-export([
+    assign/0,
+    assign/2
+]).
+-export([
+    release/0,
+    release/1
+]).
+-export([
+    delete/0,
+    delete/1
+]).
+-export([
+    summary/0,
+    summary/1
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -43,8 +48,9 @@ refresh_assigned() ->
     end.
 
 -spec refresh_assigned(kz_json:objects()) -> 'no_return'.
-refresh_assigned([]) -> 'no_return';
-refresh_assigned([IP|IPs]) ->
+refresh_assigned([]) ->
+    'no_return';
+refresh_assigned([IP | IPs]) ->
     AssignedTo = kz_ip:assigned_to(IP),
     AccountDb = kz_util:format_account_db(AssignedTo),
     JObj = kz_json:delete_key(<<"_rev">>, kz_ip:to_json(IP)),
@@ -64,9 +70,10 @@ add() ->
 add(IPAddress, Zone, Host) ->
     case kz_ip:create(IPAddress, Zone, Host) of
         {'ok', _IP} ->
-            io:format("added IP ~s to available dedicated ips~n"
-                     ,[IPAddress]
-                     );
+            io:format(
+                "added IP ~s to available dedicated ips~n",
+                [IPAddress]
+            );
         {'error', _R} ->
             io:format("unable to add IP ~s: ~p~n", [IPAddress, _R])
     end.
@@ -84,8 +91,7 @@ assign() ->
 assign(IP, Account) ->
     case kzd_accounts:fetch(Account) of
         {'ok', _} -> do_assignment(Account, IP);
-        {'error', _R} ->
-            io:format("unable to find account: ~p~n", [_R])
+        {'error', _R} -> io:format("unable to find account: ~p~n", [_R])
     end,
     'no_return'.
 
@@ -109,7 +115,8 @@ release() ->
 
 -spec release(kz_term:ne_binary()) -> 'no_return'.
 release(IP) ->
-    _ = case kz_ip:release(IP) of
+    _ =
+        case kz_ip:release(IP) of
             {'ok', _} ->
                 io:format("released IP ~s~n", [IP]);
             {'error', _R} ->
@@ -128,7 +135,8 @@ delete() ->
 
 -spec delete(kz_term:ne_binary()) -> 'no_return'.
 delete(IP) ->
-    _ = case kz_ip:delete(IP) of
+    _ =
+        case kz_ip:delete(IP) of
             {'ok', _} ->
                 io:format("deleted IP ~s~n", [IP]);
             {'error', _R} ->
@@ -145,44 +153,61 @@ summary() -> summary('undefined').
 
 -spec summary(kz_term:api_binary()) -> 'no_return'.
 summary(Host) ->
-    _ = case kz_ips:summary(Host) of
+    _ =
+        case kz_ips:summary(Host) of
             {'ok', []} ->
                 io:format("No IPs found~n", []);
-            {'ok', JObjs} -> print_summary(JObjs);
+            {'ok', JObjs} ->
+                print_summary(JObjs);
             {'error', _Reason} ->
-                io:format("Unable to list IPs assigned to host ~s: ~p~n"
-                         ,[Host, _Reason]
-                         )
+                io:format(
+                    "Unable to list IPs assigned to host ~s: ~p~n",
+                    [Host, _Reason]
+                )
         end,
     'no_return'.
 
 -spec print_summary(kz_json:objects()) -> 'ok'.
 print_summary(JObjs) ->
     FormatString = "| ~-15s | ~-10s | ~-10s | ~-30s | ~-32s |~n",
-    io:format("+-----------------+------------+------------+--------------------------------+----------------------------------+~n", []),
+    io:format(
+        "+-----------------+------------+------------+--------------------------------+----------------------------------+~n",
+        []
+    ),
     print_summary_headers(FormatString),
-    io:format("+=================+============+============+================================+==================================+~n", []),
+    io:format(
+        "+=================+============+============+================================+==================================+~n",
+        []
+    ),
     print_summary_row(JObjs, FormatString),
-    io:format("+-----------------+------------+------------+--------------------------------+----------------------------------+~n", []).
+    io:format(
+        "+-----------------+------------+------------+--------------------------------+----------------------------------+~n",
+        []
+    ).
 
 -spec print_summary_headers(string()) -> 'ok'.
 print_summary_headers(FormatString) ->
-    Headers = [<<"IP">>
-              ,<<"Status">>
-              ,<<"Zone">>
-              ,<<"Host">>
-              ,<<"Account">>
-              ],
+    Headers = [
+        <<"IP">>,
+        <<"Status">>,
+        <<"Zone">>,
+        <<"Host">>,
+        <<"Account">>
+    ],
     io:format(FormatString, Headers).
 
 -spec print_summary_row(kz_json:objects(), string()) -> 'ok'.
-print_summary_row([], _) -> 'ok';
-print_summary_row([JObj|JObjs], FormatString) ->
-    io:format(FormatString,
-              [kz_json:get_value(<<"ip">>, JObj)
-              ,kz_json:get_value(<<"status">>, JObj)
-              ,kz_json:get_value(<<"zone">>, JObj)
-              ,kz_json:get_value(<<"host">>, JObj)
-              ,kz_json:get_value(<<"assigned_to">>, JObj)
-              ]),
+print_summary_row([], _) ->
+    'ok';
+print_summary_row([JObj | JObjs], FormatString) ->
+    io:format(
+        FormatString,
+        [
+            kz_json:get_value(<<"ip">>, JObj),
+            kz_json:get_value(<<"status">>, JObj),
+            kz_json:get_value(<<"zone">>, JObj),
+            kz_json:get_value(<<"host">>, JObj),
+            kz_json:get_value(<<"assigned_to">>, JObj)
+        ]
+    ),
     print_summary_row(JObjs, FormatString).

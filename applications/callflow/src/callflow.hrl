@@ -6,25 +6,27 @@
 -include_lib("kazoo_call/include/kapps_call_command_types.hrl").
 -include_lib("kazoo_documents/include/kazoo_documents.hrl").
 
--type cf_exe_response() :: {'stop'} |
-                           {'continue'} |
-                           {'continue', integer()} |
-                           {'heartbeat'}.
--type cf_api_error() :: {'error'
-                        ,'channel_hungup' |
-                         'channel_unbridge' |
-                         'timeout' |
-                         'invalid_endpoint_id' |
-                         'not_found' |
-                         kz_json:object()
-                        }.
+-type cf_exe_response() ::
+    {'stop'}
+    | {'continue'}
+    | {'continue', integer()}
+    | {'heartbeat'}.
+-type cf_api_error() ::
+    {'error',
+        'channel_hungup'
+        | 'channel_unbridge'
+        | 'timeout'
+        | 'invalid_endpoint_id'
+        | 'not_found'
+        | kz_json:object()}.
 -type cf_api_std_return() :: cf_api_error() | {'ok', kz_json:object()}.
--type cf_api_bridge_return() :: {'error', 'invalid_endpoint' | 'timeout' | kz_json:object()} |
-                                {'fail', kz_json:object()} |
-                                {'ok', kz_json:object()}.
+-type cf_api_bridge_return() ::
+    {'error', 'invalid_endpoint' | 'timeout' | kz_json:object()}
+    | {'fail', kz_json:object()}
+    | {'ok', kz_json:object()}.
 
 -define(APP_NAME, <<"callflow">>).
--define(APP_VERSION, <<"4.0.0">> ).
+-define(APP_VERSION, <<"4.0.0">>).
 -define(CF_CONFIG_CAT, ?APP_NAME).
 
 -define(DEFAULT_CHILD_KEY, <<"_">>).

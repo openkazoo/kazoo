@@ -8,22 +8,25 @@
 
 -include("braintree.hrl").
 
--export([sync_all_accounts_payments_info/0
-        ,sync_account_services_payments_info/1
-        ,sync_payment_info/2
-        ]).
+-export([
+    sync_all_accounts_payments_info/0,
+    sync_account_services_payments_info/1,
+    sync_payment_info/2
+]).
 
 -spec sync_all_accounts_payments_info() -> 'ok'.
 sync_all_accounts_payments_info() ->
     Accounts = kazoo_services_maintenance:get_accounts_with_plans(),
     TotalLength = length(Accounts),
     Fun = fun(Account, Count) ->
-                  sync_all_accounts_payments_info_fold(Account, Count, TotalLength)
-          end,
+        sync_all_accounts_payments_info_fold(Account, Count, TotalLength)
+    end,
     _ = lists:foldl(Fun, 1, Accounts),
     'ok'.
 
--spec sync_all_accounts_payments_info_fold(kz_term:ne_binary(), non_neg_integer(), non_neg_integer()) -> integer().
+-spec sync_all_accounts_payments_info_fold(
+    kz_term:ne_binary(), non_neg_integer(), non_neg_integer()
+) -> integer().
 sync_all_accounts_payments_info_fold(Account, Count, TotalLength) ->
     AccountId = kz_util:format_account_id(Account),
     io:format(" (~b/~b) ", [Count, TotalLength]),
@@ -50,8 +53,9 @@ sync_account_services_payments_info(AccountId, Services) ->
         'throw':{_, ErrJObj} -> io:format("braintree failed with ~s ~n", [kz_json:encode(ErrJObj)])
     end.
 
-format_errors([]) -> <<"unknown">>;
-format_errors([#bt_error{code = Code, message = Msg}|_]) ->
+format_errors([]) ->
+    <<"unknown">>;
+format_errors([#bt_error{code = Code, message = Msg} | _]) ->
     <<"code: ", (kz_term:to_binary(Code))/binary, " msg: ", (kz_term:to_binary(Msg))/binary>>.
 
 -spec sync_payment_info(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.

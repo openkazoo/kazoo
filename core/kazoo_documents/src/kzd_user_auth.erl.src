@@ -12,7 +12,6 @@
 -export([method/1, method/2, set_method/2]).
 -export([phone_number/1, phone_number/2, set_phone_number/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

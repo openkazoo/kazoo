@@ -8,19 +8,21 @@
 
 -export([start_link/0]).
 
--export([handle_start_req/2
-        ,handle_stop_req/2
-        ,handle_remove_req/2
-        ]).
+-export([
+    handle_start_req/2,
+    handle_stop_req/2,
+    handle_remove_req/2
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("tasks.hrl").
 
@@ -32,23 +34,16 @@
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
 
--define(BINDINGS, [{'self', []}
-                  ,{'tasks', []}
-                  ]).
--define(RESPONDERS, [{{'kz_tasks_help', 'handle_lookup_req'}
-                     ,[{<<"tasks">>, <<"lookup_req">>}]
-                     }
-                    ,{{?MODULE, 'handle_start_req'}
-                     ,[{<<"tasks">>, <<"start_req">>}]
-                     }
-                    ,{{?MODULE, 'handle_stop_req'}
-                     ,[{<<"tasks">>, <<"stop_req">>}]
-                     }
-                    ,{{?MODULE, 'handle_remove_req'}
-                     ,[{<<"tasks">>, <<"remove_req">>}]
-                     }
-                    ]).
-
+-define(BINDINGS, [
+    {'self', []},
+    {'tasks', []}
+]).
+-define(RESPONDERS, [
+    {{'kz_tasks_help', 'handle_lookup_req'}, [{<<"tasks">>, <<"lookup_req">>}]},
+    {{?MODULE, 'handle_start_req'}, [{<<"tasks">>, <<"start_req">>}]},
+    {{?MODULE, 'handle_stop_req'}, [{<<"tasks">>, <<"stop_req">>}]},
+    {{?MODULE, 'handle_remove_req'}, [{<<"tasks">>, <<"remove_req">>}]}
+]).
 
 %%%=============================================================================
 %%% API
@@ -60,16 +55,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            ]
-                           ,[]
-                           ).
-
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% AMQP API
@@ -89,11 +85,12 @@ handle_start_req(JObj, _Props) ->
             {error, not_found} -> <<"not_found">>
         end,
     Resp = kz_json:from_list(
-             [{<<"Reply">>, Help}
-             ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]
-            ),
+        [
+            {<<"Reply">>, Help},
+            {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_tasks:publish_start_resp(kz_api:server_id(JObj), Resp).
 
 %%------------------------------------------------------------------------------
@@ -110,10 +107,12 @@ handle_stop_req(JObj, _Props) ->
             {error, not_found} -> <<"not_found">>
         end,
     Resp = kz_json:from_list(
-             [{<<"Reply">>, Help}
-             ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]),
+        [
+            {<<"Reply">>, Help},
+            {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_tasks:publish_stop_resp(kz_api:server_id(JObj), Resp).
 
 %%------------------------------------------------------------------------------
@@ -130,13 +129,13 @@ handle_remove_req(JObj, _Props) ->
             {error, not_found} -> <<"not_found">>
         end,
     Resp = kz_json:from_list(
-             [{<<"Reply">>, Help}
-             ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]
-            ),
+        [
+            {<<"Reply">>, Help},
+            {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_tasks:publish_remove_resp(kz_api:server_id(JObj), Resp).
-
 
 %%%=============================================================================
 %%% gen_server callbacks

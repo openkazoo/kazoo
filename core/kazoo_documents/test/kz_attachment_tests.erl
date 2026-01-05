@@ -13,8 +13,9 @@ decode_plain_text_test_() ->
     Base64Data = base64:encode(Data),
     InlineData = <<"data:text/plain;base64,", Base64Data/binary>>,
 
-    [?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data))
-    ,?_assertEqual({<<"text/plain">>, Data}, kz_attachment:decode_base64(InlineData))
+    [
+        ?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data)),
+        ?_assertEqual({<<"text/plain">>, Data}, kz_attachment:decode_base64(InlineData))
     ].
 
 decode_image_png_test_() ->
@@ -23,8 +24,9 @@ decode_image_png_test_() ->
     Base64Data = base64:encode(Data),
     InlineData = <<"data:image/png;base64,", Base64Data/binary>>,
 
-    [?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data))
-    ,?_assertEqual({<<"image/png">>, Data}, kz_attachment:decode_base64(InlineData))
+    [
+        ?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data)),
+        ?_assertEqual({<<"image/png">>, Data}, kz_attachment:decode_base64(InlineData))
     ].
 
 decode_application_pdf_test_() ->
@@ -34,6 +36,7 @@ decode_application_pdf_test_() ->
     Base64Data = base64:encode(Data),
     InlineData = <<"data:application/pdf;base64,", Base64Data/binary>>,
 
-    [?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data))
-    ,?_assertEqual({<<"application/pdf">>, Data}, kz_attachment:decode_base64(InlineData))
+    [
+        ?_assertEqual({'undefined', Data}, kz_attachment:decode_base64(Base64Data)),
+        ?_assertEqual({<<"application/pdf">>, Data}, kz_attachment:decode_base64(InlineData))
     ].

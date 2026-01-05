@@ -8,28 +8,29 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0
-        ,stop/0
-        ]).
+-export([
+    start_link/0,
+    stop/0
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("tasks.hrl").
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
--define(CLEANUP_ROUNDTRIP_TIME
-       ,kapps_config:get_integer(?CONFIG_CAT, <<"crawler_delay_time_ms">>, ?MILLISECONDS_IN_MINUTE)
-       ).
+-define(CLEANUP_ROUNDTRIP_TIME,
+    kapps_config:get_integer(?CONFIG_CAT, <<"crawler_delay_time_ms">>, ?MILLISECONDS_IN_MINUTE)
+).
 
--record(state, {cleanup_ref :: reference()
-               }).
+-record(state, {cleanup_ref :: reference()}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -63,7 +64,7 @@ cleanup_timer() ->
 init([]) ->
     kz_util:put_callid(?MODULE),
     lager:debug("started ~s", [?MODULE]),
-    {'ok', #state{cleanup_ref=cleanup_timer()}}.
+    {'ok', #state{cleanup_ref = cleanup_timer()}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -90,9 +91,9 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref=Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref = Ref} = State) ->
     _ = kz_util:spawn(fun crawl_port_requests/0),
-    {'noreply', State#state{cleanup_ref=cleanup_timer()}, 'hibernate'};
+    {'noreply', State#state{cleanup_ref = cleanup_timer()}, 'hibernate'};
 handle_info(_Msg, State) ->
     lager:debug("unhandled msg: ~p", [_Msg]),
     {'noreply', State}.

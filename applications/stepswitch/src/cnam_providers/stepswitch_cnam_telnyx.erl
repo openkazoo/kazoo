@@ -24,7 +24,7 @@ request(Number, JObj) ->
         {'ok', Status, _, <<>>} ->
             lager:debug("cnam lookup for ~s returned as ~p and empty body", [Number, Status]),
             'undefined';
-        {'ok', 200=Status, _, ResponseBody} ->
+        {'ok', 200 = Status, _, ResponseBody} ->
             lager:debug("cnam lookup for ~s returned ~p: ~s", [Number, Status, ResponseBody]),
             handle_ok_resp(ResponseBody);
         {'ok', Status, _, ResponseBody} ->
@@ -43,20 +43,22 @@ get_http_url(JObj) ->
 
 -spec get_http_headers() -> [{nonempty_string(), nonempty_string()}].
 get_http_headers() ->
-    Headers = [{"Accept", ?HTTP_ACCEPT_HEADER}
-              ,{"User-Agent", ?HTTP_USER_AGENT}
-              ,{"Content-Type", ?HTTP_CONTENT_TYPE}
-              ],
+    Headers = [
+        {"Accept", ?HTTP_ACCEPT_HEADER},
+        {"User-Agent", ?HTTP_USER_AGENT},
+        {"Content-Type", ?HTTP_CONTENT_TYPE}
+    ],
     maybe_enable_auth(Headers).
 
 -spec get_http_options() -> kz_term:proplist().
 get_http_options() ->
-    [{'connect_timeout', ?HTTP_CONNECT_TIMEOUT_MS}
-    ,{'timeout', 1500}
+    [
+        {'connect_timeout', ?HTTP_CONNECT_TIMEOUT_MS},
+        {'timeout', 1500}
     ].
 
 -spec maybe_enable_auth([{nonempty_string(), nonempty_string()}]) ->
-                               [{nonempty_string(), nonempty_string()}].
+    [{nonempty_string(), nonempty_string()}].
 maybe_enable_auth(Props) ->
     Token = kapps_config:get_string(?CNAM_CONFIG_CAT, <<"http_token_auth_token">>, <<>>),
     case kz_term:is_empty(Token) of
@@ -75,4 +77,5 @@ handle_ok_resp(ResponseBody) ->
 -spec maybe_truncate(binary()) -> binary().
 maybe_truncate(CallerInformation) when size(CallerInformation) > 18 ->
     kz_binary:truncate_right(CallerInformation, 18);
-maybe_truncate(CallerInformation) -> CallerInformation.
+maybe_truncate(CallerInformation) ->
+    CallerInformation.

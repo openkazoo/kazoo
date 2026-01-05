@@ -9,7 +9,6 @@
 -export([account/1, account/2, set_account/2]).
 -export([device/1, device/2, set_device/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

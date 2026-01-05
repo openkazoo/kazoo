@@ -6,23 +6,24 @@
 %%%-----------------------------------------------------------------------------
 -module(notify_util).
 
--export([send_email/3
-        ,send_update/3, send_update/4
-        ,maybe_send_update/3
-        ,render_template/3
-        ,normalize_proplist/1
-        ,json_to_template_props/1
-        ,get_service_props/2, get_service_props/3
-        ,get_rep_email/1
-        ,compile_default_text_template/2
-        ,compile_default_html_template/2
-        ,compile_default_subject_template/2
-        ,compile_default_template/3
-        ,find_admin/1
-        ,get_account_doc/1
-        ,qr_code_image/1
-        ,get_charset_params/1
-        ]).
+-export([
+    send_email/3,
+    send_update/3, send_update/4,
+    maybe_send_update/3,
+    render_template/3,
+    normalize_proplist/1,
+    json_to_template_props/1,
+    get_service_props/2, get_service_props/3,
+    get_rep_email/1,
+    compile_default_text_template/2,
+    compile_default_html_template/2,
+    compile_default_subject_template/2,
+    compile_default_template/3,
+    find_admin/1,
+    get_account_doc/1,
+    qr_code_image/1,
+    get_charset_params/1
+]).
 
 -include("notify.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
@@ -32,8 +33,10 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_email(kz_term:ne_binary(), kz_term:api_binary(), any()) -> 'ok' | {'error', any()}.
-send_email(_, 'undefined', _) -> lager:debug("no email to send to");
-send_email(_, <<>>, _) -> lager:debug("empty email to send to");
+send_email(_, 'undefined', _) ->
+    lager:debug("no email to send to");
+send_email(_, <<>>, _) ->
+    lager:debug("empty email to send to");
 send_email(From, To, Email) ->
     Encoded = mimemail:encode(Email),
     ReqId = get('callid'),
@@ -42,13 +45,15 @@ send_email(From, To, Email) ->
 
     lager:debug("sending email to ~s from ~s with options ~p", [To, From, Options]),
 
-    _ = gen_smtp_client:send({From, [To], Encoded}
-                            ,Options
-                            ,fun(X) ->
-                                     kz_util:put_callid(ReqId),
-                                     lager:debug("email relay responded: ~p, send to ~p", [X, Self]),
-                                     Self ! {'relay_response', X}
-                             end),
+    _ = gen_smtp_client:send(
+        {From, [To], Encoded},
+        Options,
+        fun(X) ->
+            kz_util:put_callid(ReqId),
+            lager:debug("email relay responded: ~p, send to ~p", [X, Self]),
+            Self ! {'relay_response', X}
+        end
+    ),
     %% The callback will receive either `{ok, Receipt}' where Receipt is the SMTP server's receipt
     %% identifier,  `{error, Type, Message}' or `{exit, ExitReason}', as the single argument.
     receive
@@ -62,30 +67,41 @@ send_email(From, To, Email) ->
 send_update(RespQ, MsgId, Status) ->
     send_update(RespQ, MsgId, Status, 'undefined').
 
--spec send_update(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) -> 'ok'.
-send_update('undefined', _, _, _) -> lager:debug("no response queue to send update");
+-spec send_update(
+    kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()
+) -> 'ok'.
+send_update('undefined', _, _, _) ->
+    lager:debug("no response queue to send update");
 send_update(RespQ, MsgId, Status, Msg) ->
     Prop = props:filter_undefined(
-             [{<<"Status">>, Status}
-             ,{<<"Failure-Message">>, Msg}
-             ,{<<"Msg-ID">>, MsgId}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]),
+        [
+            {<<"Status">>, Status},
+            {<<"Failure-Message">>, Msg},
+            {<<"Msg-ID">>, MsgId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     lager:debug("notification update (~s) sending to ~s", [Status, RespQ]),
     kz_amqp_worker:cast(Prop, fun(P) -> kapi_notifications:publish_notify_update(RespQ, P) end).
 
 -spec maybe_send_update(send_email_return(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-maybe_send_update('ok', RespQ, MsgId) -> send_update(RespQ, MsgId, <<"completed">>);
-maybe_send_update({'error', Reason}, RespQ, MsgId) -> send_update(RespQ, MsgId, <<"failed">>, Reason);
-maybe_send_update([LastResp|_]=Responses, RespQ, MsgId) ->
-    case lists:any(fun('ok') -> 'true';
-                      ({'error', _}) -> 'false';
-                      ('disabled') -> 'true'
-                   end
-                  ,Responses
-                  )
+maybe_send_update('ok', RespQ, MsgId) ->
+    send_update(RespQ, MsgId, <<"completed">>);
+maybe_send_update({'error', Reason}, RespQ, MsgId) ->
+    send_update(RespQ, MsgId, <<"failed">>, Reason);
+maybe_send_update([LastResp | _] = Responses, RespQ, MsgId) ->
+    case
+        lists:any(
+            fun
+                ('ok') -> 'true';
+                ({'error', _}) -> 'false';
+                ('disabled') -> 'true'
+            end,
+            Responses
+        )
     of
-        'true' -> send_update(RespQ, MsgId, <<"completed">>);
+        'true' ->
+            send_update(RespQ, MsgId, <<"completed">>);
         'false' ->
             {'error', Reason} = LastResp,
             send_update(RespQ, MsgId, <<"failed">>, Reason)
@@ -104,22 +120,26 @@ smtp_options() ->
     SSL = kapps_config:get_is_true(<<"smtp_client">>, <<"use_ssl">>, 'false'),
 
     props:filter_empty(
-      [{'relay', Relay}
-      ,{'username', Username}
-      ,{'password', Password}
-      ,{'port', Port}
-      ,{'auth', smtp_auth_option(Auth)}
-      ,{'retries', Retries}
-      ,{'no_mx_lookups', NoMxLookups}
-      ,{'tls', smtp_tls_option(TLS)}
-      ,{'ssl', SSL}
-      ]).
+        [
+            {'relay', Relay},
+            {'username', Username},
+            {'password', Password},
+            {'port', Port},
+            {'auth', smtp_auth_option(Auth)},
+            {'retries', Retries},
+            {'no_mx_lookups', NoMxLookups},
+            {'tls', smtp_tls_option(TLS)},
+            {'ssl', SSL}
+        ]
+    ).
 
 -spec smtp_auth_option(kz_term:ne_binary()) -> atom().
 smtp_auth_option(<<"if_available">>) ->
     'if_available';
-smtp_auth_option(<<"always">>) -> 'always';
-smtp_auth_option(_) -> 'never'.
+smtp_auth_option(<<"always">>) ->
+    'always';
+smtp_auth_option(_) ->
+    'never'.
 
 -spec smtp_tls_option(kz_term:ne_binary()) -> atom().
 smtp_tls_option(<<"if_available">>) -> 'if_available';
@@ -130,10 +150,10 @@ smtp_tls_option(_) -> 'never'.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec json_to_template_props(kz_term:api_object() | kz_json:objects()) -> 'undefined' | kz_term:proplist().
+-spec json_to_template_props(kz_term:api_object() | kz_json:objects()) ->
+    'undefined' | kz_term:proplist().
 json_to_template_props('undefined') -> 'undefined';
-json_to_template_props(JObj) ->
-    normalize_proplist(kz_json:recursive_to_proplist(JObj)).
+json_to_template_props(JObj) -> normalize_proplist(kz_json:recursive_to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -175,10 +195,11 @@ compile_default_subject_template(TemplateModule, Category) ->
 -spec compile_default_template(atom(), kz_term:ne_binary(), atom()) -> {'ok', atom()}.
 compile_default_template(TemplateModule, Category, KeyAtom) ->
     Key = kz_term:to_binary(KeyAtom),
-    Template = case kapps_config:get_ne_binary(Category, Key) of
-                   'undefined' -> get_default_template(Category, Key);
-                   Else -> Else
-               end,
+    Template =
+        case kapps_config:get_ne_binary(Category, Key) of
+            'undefined' -> get_default_template(Category, Key);
+            Else -> Else
+        end,
     lager:debug("compiling ~s: '~s'", [TemplateModule, Template]),
     {'ok', TemplateModule} = kz_template:compile(Template, TemplateModule).
 
@@ -187,7 +208,8 @@ get_default_template(Category, Key) ->
     case file:consult(File) of
         {'ok', Props} ->
             case props:get_value(Key, Props) of
-                'undefined' -> 'undefined';
+                'undefined' ->
+                    'undefined';
                 Template ->
                     lager:debug("loading ~s from file ~s", [Key, File]),
                     _ = kapps_config:set(Category, Key, Template),
@@ -203,8 +225,8 @@ get_default_template(Category, Key) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec render_template(kz_term:api_binary(), atom(), kz_term:proplist()) ->
-          {'ok', string()} |
-          {'error', any()}.
+    {'ok', string()}
+    | {'error', any()}.
 render_template(Template, DefaultTemplate, Props) ->
     case do_render_template(Template, DefaultTemplate, Props) of
         {'ok', R} -> {'ok', binary_to_list(iolist_to_binary(R))};
@@ -212,18 +234,22 @@ render_template(Template, DefaultTemplate, Props) ->
     end.
 
 -spec do_render_template(kz_term:api_binary(), atom(), kz_term:proplist()) ->
-          {'ok', string()} |
-          {'error', any()}.
+    {'ok', string()}
+    | {'error', any()}.
 do_render_template('undefined', DefaultTemplate, Props) ->
     lager:debug("rendering default ~s template", [DefaultTemplate]),
     kz_template:render(DefaultTemplate, Props);
 do_render_template(Template, DefaultTemplate, Props) ->
     try
         'false' = kz_term:is_empty(Template),
-        CustomTemplate = kz_term:to_atom(list_to_binary([kz_datamgr:get_uuid(), "_"
-                                                        ,kz_term:to_binary(DefaultTemplate)
-                                                        ])
-                                        ,'true'),
+        CustomTemplate = kz_term:to_atom(
+            list_to_binary([
+                kz_datamgr:get_uuid(),
+                "_",
+                kz_term:to_binary(DefaultTemplate)
+            ]),
+            'true'
+        ),
         lager:debug("compiling custom ~s template", [DefaultTemplate]),
         {'ok', CustomTemplate} = kz_template:compile(Template, CustomTemplate),
 
@@ -249,52 +275,84 @@ do_render_template(Template, DefaultTemplate, Props) ->
 get_service_props(Account, ConfigCat) ->
     get_service_props(kz_json:new(), Account, ConfigCat).
 
--spec get_service_props(kz_json:object(), kz_json:object(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec get_service_props(kz_json:object(), kz_json:object(), kz_term:ne_binary()) ->
+    kz_term:proplist().
 get_service_props(Request, Account, ConfigCat) ->
-    DefaultUrl = kz_json:get_ne_value(<<"service_url">>, Request
-                                     ,kapps_config:get_ne_binary(ConfigCat, <<"default_service_url">>, <<"http://apps.2600hz.com">>)),
-    DefaultName = kz_json:get_ne_value(<<"service_name">>, Request
-                                      ,kapps_config:get_ne_binary(ConfigCat, <<"default_service_name">>, <<"VOIP Services">>)),
-    DefaultProvider = kz_json:get_ne_value(<<"service_provider">>, Request
-                                          ,kapps_config:get_ne_binary(ConfigCat, <<"default_service_provider">>, <<"2600Hz">>)),
-    DefaultNumber = kz_json:get_ne_value(<<"support_number">>, Request
-                                        ,kapps_config:get_ne_binary(ConfigCat, <<"default_support_number">>, <<"(415) 886-7900">>)),
-    DefaultEmail = kz_json:get_ne_value(<<"support_email">>, Request
-                                       ,kapps_config:get_ne_binary(ConfigCat, <<"default_support_email">>, <<"support@2600hz.com">>)),
+    DefaultUrl = kz_json:get_ne_value(
+        <<"service_url">>,
+        Request,
+        kapps_config:get_ne_binary(
+            ConfigCat, <<"default_service_url">>, <<"http://apps.2600hz.com">>
+        )
+    ),
+    DefaultName = kz_json:get_ne_value(
+        <<"service_name">>,
+        Request,
+        kapps_config:get_ne_binary(ConfigCat, <<"default_service_name">>, <<"VOIP Services">>)
+    ),
+    DefaultProvider = kz_json:get_ne_value(
+        <<"service_provider">>,
+        Request,
+        kapps_config:get_ne_binary(ConfigCat, <<"default_service_provider">>, <<"2600Hz">>)
+    ),
+    DefaultNumber = kz_json:get_ne_value(
+        <<"support_number">>,
+        Request,
+        kapps_config:get_ne_binary(ConfigCat, <<"default_support_number">>, <<"(415) 886-7900">>)
+    ),
+    DefaultEmail = kz_json:get_ne_value(
+        <<"support_email">>,
+        Request,
+        kapps_config:get_ne_binary(ConfigCat, <<"default_support_email">>, <<"support@2600hz.com">>)
+    ),
     UnconfiguredFrom = list_to_binary([<<"no_reply@">>, kz_term:to_binary(net_adm:localhost())]),
-    DefaultFrom = kz_json:get_ne_value(<<"send_from">>, Request
-                                      ,kapps_config:get_ne_binary(ConfigCat, <<"default_from">>, UnconfiguredFrom)),
-    DefaultCharset = kz_json:get_ne_value(<<"template_charset">>, Request
-                                         ,kapps_config:get_binary(ConfigCat, <<"default_template_charset">>, <<>>)),
+    DefaultFrom = kz_json:get_ne_value(
+        <<"send_from">>,
+        Request,
+        kapps_config:get_ne_binary(ConfigCat, <<"default_from">>, UnconfiguredFrom)
+    ),
+    DefaultCharset = kz_json:get_ne_value(
+        <<"template_charset">>,
+        Request,
+        kapps_config:get_binary(ConfigCat, <<"default_template_charset">>, <<>>)
+    ),
     JObj = find_notification_settings(binary:split(ConfigCat, <<".">>), kzd_accounts:tree(Account)),
-    [{<<"url">>, kz_json:get_value(<<"service_url">>, JObj, DefaultUrl)}
-    ,{<<"name">>, kz_json:get_value(<<"service_name">>, JObj, DefaultName)}
-    ,{<<"provider">>, kz_json:get_value(<<"service_provider">>, JObj, DefaultProvider)}
-    ,{<<"support_number">>, kz_json:get_value(<<"support_number">>, JObj, DefaultNumber)}
-    ,{<<"support_email">>, kz_json:get_value(<<"support_email">>, JObj, DefaultEmail)}
-    ,{<<"send_from">>, kz_json:get_value(<<"send_from">>, JObj, DefaultFrom)}
-    ,{<<"template_charset">>, kz_json:get_value(<<"template_charset">>, JObj, DefaultCharset)}
-    ,{<<"host">>, kz_term:to_binary(net_adm:localhost())}
+    [
+        {<<"url">>, kz_json:get_value(<<"service_url">>, JObj, DefaultUrl)},
+        {<<"name">>, kz_json:get_value(<<"service_name">>, JObj, DefaultName)},
+        {<<"provider">>, kz_json:get_value(<<"service_provider">>, JObj, DefaultProvider)},
+        {<<"support_number">>, kz_json:get_value(<<"support_number">>, JObj, DefaultNumber)},
+        {<<"support_email">>, kz_json:get_value(<<"support_email">>, JObj, DefaultEmail)},
+        {<<"send_from">>, kz_json:get_value(<<"send_from">>, JObj, DefaultFrom)},
+        {<<"template_charset">>, kz_json:get_value(<<"template_charset">>, JObj, DefaultCharset)},
+        {<<"host">>, kz_term:to_binary(net_adm:localhost())}
     ].
 
--spec find_notification_settings(kz_term:ne_binaries() | kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_json:object().
+-spec find_notification_settings(
+    kz_term:ne_binaries() | kz_term:ne_binary(), kz_term:ne_binaries()
+) -> kz_json:object().
 find_notification_settings(_, []) ->
     lager:debug("unable to get service props, pvt_tree for the account was empty", []),
     kz_json:new();
 find_notification_settings([_, Module], Tree) ->
     case kzd_accounts:fetch(lists:last(Tree)) of
-        {'error', _} -> kz_json:new();
+        {'error', _} ->
+            kz_json:new();
         {'ok', JObj} ->
-            lager:debug("looking for notifications '~s' service info in: ~s"
-                       ,[Module, kz_doc:id(JObj)]),
+            lager:debug(
+                "looking for notifications '~s' service info in: ~s",
+                [Module, kz_doc:id(JObj)]
+            ),
             case kz_json:get_ne_value([<<"notifications">>, Module], JObj) of
                 'undefined' -> maybe_find_deprecated_settings(Module, JObj);
                 Settings -> Settings
             end
     end;
 find_notification_settings(_ConfigCat, _) ->
-    lager:debug("unable to get service props, unexpected configuration category: ~p"
-               ,[_ConfigCat]),
+    lager:debug(
+        "unable to get service props, unexpected configuration category: ~p",
+        [_ConfigCat]
+    ),
     kz_json:new().
 
 -spec maybe_find_deprecated_settings(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
@@ -306,7 +364,8 @@ maybe_find_deprecated_settings(<<"fax_outbound_error_to_email">>, JObj) ->
     kz_json:get_ne_value([<<"notifications">>, <<"fax_to_email">>], JObj, kz_json:new());
 maybe_find_deprecated_settings(<<"fax_inbound_error_to_email">>, JObj) ->
     kz_json:get_ne_value([<<"notifications">>, <<"fax_to_email">>], JObj, kz_json:new());
-maybe_find_deprecated_settings(_, _) -> kz_json:new().
+maybe_find_deprecated_settings(_, _) ->
+    kz_json:new().
 
 %%------------------------------------------------------------------------------
 %% @doc Try to find the email address of a sub_account_rep for a given
@@ -341,52 +400,63 @@ find_rep_email(JObj) ->
 %%------------------------------------------------------------------------------
 -type account_ids() :: kz_term:ne_binaries().
 -spec find_admin(kz_term:api_binary() | account_ids() | kz_json:object()) -> kz_json:object().
-find_admin('undefined') -> kz_json:new();
-find_admin([]) -> kz_json:new();
+find_admin('undefined') ->
+    kz_json:new();
+find_admin([]) ->
+    kz_json:new();
 find_admin(Account) when is_binary(Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     case kzd_accounts:fetch(Account) of
         {'error', _} -> find_admin([AccountId]);
         {'ok', JObj} -> find_admin([AccountId | lists:reverse(kzd_accounts:tree(JObj))])
     end;
-find_admin([AcctId|Tree]) ->
+find_admin([AcctId | Tree]) ->
     AccountDb = kz_util:format_account_id(AcctId, 'encoded'),
-    ViewOptions = [{'key', <<"user">>}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'key', <<"user">>},
+        'include_docs'
+    ],
     case kz_datamgr:get_results(AccountDb, <<"maintenance/listing_by_type">>, ViewOptions) of
         {'ok', Users} ->
-            case [Doc
-                  || User <- Users,
-                     Doc <- [kz_json:get_value(<<"doc">>, User)],
-                     kzd_user:is_account_admin(Doc),
-                     kz_term:is_not_empty(kzd_user:email(Doc))
-                 ]
+            case
+                [
+                    Doc
+                 || User <- Users,
+                    Doc <- [kz_json:get_value(<<"doc">>, User)],
+                    kzd_user:is_account_admin(Doc),
+                    kz_term:is_not_empty(kzd_user:email(Doc))
+                ]
             of
                 [] -> find_admin(Tree);
-                [Admin|_] -> Admin
+                [Admin | _] -> Admin
             end;
         _E ->
             lager:debug("failed to find users in ~s: ~p", [AccountDb, _E]),
             find_admin(Tree)
     end;
 find_admin(Account) ->
-    find_admin([kz_doc:account_id(Account)
-                | lists:reverse(kzd_accounts:tree(Account))
-               ]).
+    find_admin([
+        kz_doc:account_id(Account)
+        | lists:reverse(kzd_accounts:tree(Account))
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc given a notification event try to open the account definition doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_account_doc(kz_json:object()) ->
-          {'ok', kz_json:object()} |
-          {'error', _} |
-          'undefined'.
+    {'ok', kz_json:object()}
+    | {'error', _}
+    | 'undefined'.
 get_account_doc(JObj) ->
-    case kz_json:get_first_defined([<<"Account-DB">>
-                                   ,<<"Account-ID">>
-                                   ], JObj)
+    case
+        kz_json:get_first_defined(
+            [
+                <<"Account-DB">>,
+                <<"Account-ID">>
+            ],
+            JObj
+        )
     of
         'undefined' -> 'undefined';
         Account -> kzd_accounts:fetch(Account)
@@ -435,11 +505,13 @@ category_to_file(_) ->
     'undefined'.
 
 -spec qr_code_image(kz_term:api_binary()) -> kz_term:proplist() | 'undefined'.
-qr_code_image('undefined') -> 'undefined';
+qr_code_image('undefined') ->
+    'undefined';
 qr_code_image(Text) ->
     lager:debug("create qr code for ~s", [Text]),
     CHL = kz_util:uri_encode(Text),
-    Url = <<"https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=", CHL/binary, "&choe=UTF-8">>,
+    Url =
+        <<"https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=", CHL/binary, "&choe=UTF-8">>,
 
     case kz_http:get(kz_term:to_list(Url)) of
         {'ok', 200, _RespHeaders, RespBody} ->
@@ -453,10 +525,13 @@ qr_code_image(Text) ->
 -spec get_charset_params(kz_term:proplist()) -> {kz_term:proplist(), binary()}.
 get_charset_params(Service) ->
     case props:get_value(<<"template_charset">>, Service) of
-        <<>> -> {[], <<>>};
+        <<>> ->
+            {[], <<>>};
         <<_/binary>> = Charset ->
-            {[{<<"content-type-params">>,[{<<"charset">>,Charset}]}]
-            ,iolist_to_binary([<<";charset=">>, Charset])
+            {
+                [{<<"content-type-params">>, [{<<"charset">>, Charset}]}],
+                iolist_to_binary([<<";charset=">>, Charset])
             };
-        _ -> {[], <<>>}
+        _ ->
+            {[], <<>>}
     end.

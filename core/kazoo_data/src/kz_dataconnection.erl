@@ -8,13 +8,14 @@
 
 -export([start_link/1]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_data.hrl").
 -type state() :: #data_connection{}.
@@ -30,7 +31,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec start_link(data_connection()) -> kz_types:startlink_ret().
-start_link(#data_connection{}=Connection) ->
+start_link(#data_connection{} = Connection) ->
     gen_server:start_link(?SERVER, [Connection], []).
 
 %%%=============================================================================
@@ -68,7 +69,7 @@ handle_cast(_Msg, Connection) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info('maintain_connection', #data_connection{connected = 'false'}=Connection) ->
+handle_info('maintain_connection', #data_connection{connected = 'false'} = Connection) ->
     case try_connection(Connection) of
         {'error', _} ->
             erlang:send_after(?MILLISECONDS_IN_SECOND, self(), 'maintain_connection'),
@@ -77,10 +78,14 @@ handle_info('maintain_connection', #data_connection{connected = 'false'}=Connect
             self() ! 'maintain_connection',
             {'noreply', connection_established(C)}
     end;
-handle_info('maintain_connection', #data_connection{ready=Ready
-                                                   ,server=Server
-                                                   ,app=App
-                                                   }=Connection) ->
+handle_info(
+    'maintain_connection',
+    #data_connection{
+        ready = Ready,
+        server = Server,
+        app = App
+    } = Connection
+) ->
     case App:server_info(Server) of
         {'ok', _} when not Ready ->
             erlang:send_after(5 * ?MILLISECONDS_IN_SECOND, self(), 'maintain_connection'),
@@ -123,18 +128,18 @@ code_change(_OldVsn, Connection, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec try_connection(data_connection()) ->  {'ok', data_connection()} | {'error', any()}.
-try_connection(#data_connection{app=App, props=Props}=Connection) ->
+-spec try_connection(data_connection()) -> {'ok', data_connection()} | {'error', any()}.
+try_connection(#data_connection{app = App, props = Props} = Connection) ->
     lager:info("trying to connect ~s", [App]),
     try App:new_connection(Props) of
-        {'ok', Server} -> {'ok', Connection#data_connection{server=Server}};
+        {'ok', Server} -> {'ok', Connection#data_connection{server = Server}};
         Error -> handle_error(Connection, Error)
     catch
         _:Error -> handle_error(Connection, Error)
     end.
 
 -spec handle_error(data_connection(), tuple()) -> {'error', any()}.
-handle_error(#data_connection{app=App, props=Props}, Error) ->
+handle_error(#data_connection{app = App, props = Props}, Error) ->
     lager:info("failed to connect with ~s : ~p : ~p", [App, Error, Props]),
     {'error', Error}.
 

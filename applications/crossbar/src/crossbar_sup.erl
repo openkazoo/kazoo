@@ -19,17 +19,16 @@
 
 -define(SERVER, ?MODULE).
 
--define(ORIGIN_BINDINGS, [[{'type', kz_notification:pvt_type()}]
-                         ]).
+-define(ORIGIN_BINDINGS, [[{'type', kz_notification:pvt_type()}]]).
 
 -define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CHILDREN, [?WORKER('crossbar_init')
-                  ,?SUPER('crossbar_module_sup')
-                  ,?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?WORKER('crossbar_bindings')
-                  ]
-       ).
+-define(CHILDREN, [
+    ?WORKER('crossbar_init'),
+    ?SUPER('crossbar_module_sup'),
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?WORKER('crossbar_bindings')
+]).
 
 -define(DISPATCH_FILE, [code:priv_dir(?APP), "/dispatch.conf"]).
 
@@ -66,10 +65,13 @@ upgrade() ->
     New = sets:from_list([Name || {Name, _, _, _, _, _} <- Specs]),
     Kill = sets:subtract(Old, New),
 
-    lists:foreach(fun (Id) ->
-                          _ = supervisor:terminate_child(?SERVER, Id),
-                          supervisor:delete_child(?SERVER, Id)
-                  end, sets:to_list(Kill)),
+    lists:foreach(
+        fun(Id) ->
+            _ = supervisor:terminate_child(?SERVER, Id),
+            supervisor:delete_child(?SERVER, Id)
+        end,
+        sets:to_list(Kill)
+    ),
     lists:foreach(fun(Spec) -> supervisor:start_child(?SERVER, Spec) end, Specs),
     'ok'.
 

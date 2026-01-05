@@ -1,9 +1,10 @@
 -module(kazoo_web_maintenance).
 
--export([blacklist_client_ip/1
-        ,blacklist_client_host/1
-        ,show_client_blacklists/0
-        ]).
+-export([
+    blacklist_client_ip/1,
+    blacklist_client_host/1,
+    show_client_blacklists/0
+]).
 
 -spec blacklist_client_ip(kz_term:ne_binary()) -> kz_term:ne_binaries() | 'error'.
 blacklist_client_ip(CIDR) ->
@@ -23,7 +24,10 @@ blacklist_client_host(Host) ->
 
 -spec show_client_blacklists() -> 'ok'.
 show_client_blacklists() ->
-    io:format("CLient Blacklists:~nCIDRS: ~p~nHosts: ~p~n"
-             ,[kz_http_util:client_ip_blacklist()
-              ,kz_http_util:client_host_blacklist()
-              ]).
+    io:format(
+        "CLient Blacklists:~nCIDRS: ~p~nHosts: ~p~n",
+        [
+            kz_http_util:client_ip_blacklist(),
+            kz_http_util:client_host_blacklist()
+        ]
+    ).

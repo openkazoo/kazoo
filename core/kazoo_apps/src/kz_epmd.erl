@@ -8,23 +8,29 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--record(state, {tref :: kz_types:api_reference()
-               ,has_check_failed = 'false' :: boolean()
-               ,name :: string() %% node name of the running node, e.g. kazoo_apps
-               ,host :: string() %% local hostname of the running node
-               ,epmd_mod :: atom() %% in case we're using a custom epmd client module
-               ,port :: inet_address:port() %% node's port to talk disterl
-               }).
+-record(state, {
+    tref :: kz_types:api_reference(),
+    has_check_failed = 'false' :: boolean(),
+    %% node name of the running node, e.g. kazoo_apps
+    name :: string(),
+    %% local hostname of the running node
+    host :: string(),
+    %% in case we're using a custom epmd client module
+    epmd_mod :: atom(),
+    %% node's port to talk disterl
+    port :: inet_address:port()
+}).
 -type state() :: #state{}.
 
 -define(CHECK_EPMD, 'check_epmd').
@@ -36,13 +42,16 @@ start_link() ->
 -spec init(any()) -> {'ok', state()}.
 init(_) ->
     lager:info("starting EPMD monitor"),
-    {'match', [Name, Host]} = re:run(atom_to_list(node()), "([^@]+)@(.+)", [{'capture', 'all_but_first', 'list'}]),
+    {'match', [Name, Host]} = re:run(atom_to_list(node()), "([^@]+)@(.+)", [
+        {'capture', 'all_but_first', 'list'}
+    ]),
 
-    {'ok', check_epmd(#state{name=Name
-                            ,host=Host
-                            ,epmd_mod=net_kernel:epmd_module()
-                            })
-    }.
+    {'ok',
+        check_epmd(#state{
+            name = Name,
+            host = Host,
+            epmd_mod = net_kernel:epmd_module()
+        })}.
 
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call(_Call, _From, State) ->
@@ -53,9 +62,10 @@ handle_cast(_Cast, State) ->
     {'noreply', State}.
 
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'timeout', TRef, ?CHECK_EPMD}
-           ,#state{tref=TRef}=State
-           ) ->
+handle_info(
+    {'timeout', TRef, ?CHECK_EPMD},
+    #state{tref = TRef} = State
+) ->
     {'noreply', check_epmd(State)};
 handle_info(_Msg, State) ->
     lager:debug("unhandled ~p", [_Msg]),
@@ -76,37 +86,42 @@ start_check_timer() ->
 start_check_timer(CheckS) ->
     erlang:start_timer(CheckS * ?MILLISECONDS_IN_SECOND, self(), ?CHECK_EPMD).
 
-check_epmd(#state{name=Name
-                 ,host=Host
-                 ,epmd_mod=Mod
-                 }=State
-          ) ->
+check_epmd(
+    #state{
+        name = Name,
+        host = Host,
+        epmd_mod = Mod
+    } = State
+) ->
     check_epmd(State, Mod:port_please(Name, Host)).
 
-check_epmd(#state{port=_Port}=State, 'noport') ->
+check_epmd(#state{port = _Port} = State, 'noport') ->
     lager:error("no EPMD response, re-registering on port ~p", [_Port]),
     register_with_epmd(State);
-check_epmd(#state{port=Port}=State, {'port', Port, _Vsn}) ->
-    State#state{tref=start_check_timer()};
-check_epmd(#state{port=_OldPort}=State, {'port', Port, _Vsn}) ->
+check_epmd(#state{port = Port} = State, {'port', Port, _Vsn}) ->
+    State#state{tref = start_check_timer()};
+check_epmd(#state{port = _OldPort} = State, {'port', Port, _Vsn}) ->
     lager:info("setting our port to ~p (was ~p)", [Port, _OldPort]),
-    register_with_epmd(State#state{port=Port}).
+    register_with_epmd(State#state{port = Port}).
 
-register_with_epmd(#state{name=Name
-                         ,epmd_mod=Mod
-                         ,port=Port
-                         }=State) ->
+register_with_epmd(
+    #state{
+        name = Name,
+        epmd_mod = Mod,
+        port = Port
+    } = State
+) ->
     check_register_result(State, Mod:register_node(Name, Port)).
 
 check_register_result(State, {'ok', _Creation}) ->
     lager:info("created EPMD registration: ~p", [_Creation]),
-    State#state{tref=start_check_timer()};
+    State#state{tref = start_check_timer()};
 check_register_result(State, {'error', 'already_registered'}) ->
     lager:info("already registered with EPMD"),
-    State#state{tref=start_check_timer()};
+    State#state{tref = start_check_timer()};
 check_register_result(State, {'error', 'econnrefused'}) ->
     lager:error("refused connection to EPMD"),
-    State#state{tref=start_check_timer(1)};
+    State#state{tref = start_check_timer(1)};
 check_register_result(State, _Term) ->
     lager:info("unexpected return from registering: ~p", [_Term]),
-    State#state{tref=start_check_timer(1)}.
+    State#state{tref = start_check_timer(1)}.

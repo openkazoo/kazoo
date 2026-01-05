@@ -16,10 +16,11 @@
 
 -export([handle/2]).
 
--define(CID_EXT_KEY, [<<"caller_id">>
-                     ,<<"external">>
-                     ,<<"number">>
-                     ]).
+-define(CID_EXT_KEY, [
+    <<"caller_id">>,
+    <<"external">>,
+    <<"number">>
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc Entry point for this module
@@ -27,14 +28,15 @@
 %%------------------------------------------------------------------------------
 -spec handle(kz_json:object(), kapps_im:im()) -> 'ok'.
 handle(Data, Im) ->
-    API = [{<<"Message-ID">>, kapps_im:message_id(Im)}
-          ,{<<"Body">>, kapps_im:body(Im)}
-          ,{<<"From">>, get_from_did(Data, Im)}
-          ,{<<"To">>, get_to_did(Data, Im)}
-          ,{<<"Account-ID">>, kapps_im:account_id(Im)}
-          ,{<<"Route-Type">>, <<"offnet">>}
-           | kz_api:default_headers(<<"sms">>, <<"outbound">>, ?APP_NAME, ?APP_VERSION)
-          ],
+    API = [
+        {<<"Message-ID">>, kapps_im:message_id(Im)},
+        {<<"Body">>, kapps_im:body(Im)},
+        {<<"From">>, get_from_did(Data, Im)},
+        {<<"To">>, get_to_did(Data, Im)},
+        {<<"Account-ID">>, kapps_im:account_id(Im)},
+        {<<"Route-Type">>, <<"offnet">>}
+        | kz_api:default_headers(<<"sms">>, <<"outbound">>, ?APP_NAME, ?APP_VERSION)
+    ],
     kapi_im:publish_outbound(API),
     tf_exe:stop(Im, 'offnet').
 

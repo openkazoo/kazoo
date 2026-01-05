@@ -10,9 +10,10 @@
 
 %% API
 -export([start_link/0]).
--export([maybe_start_announcements/3
-        ,stop_announcements/1
-        ]).
+-export([
+    maybe_start_announcements/3,
+    stop_announcements/1
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -40,12 +41,14 @@ start_link() ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_start_announcements(pid(), kapps_call:call(), kz_term:proplist()) -> supervisor:startchild_ret() | 'false'.
+-spec maybe_start_announcements(pid(), kapps_call:call(), kz_term:proplist()) ->
+    supervisor:startchild_ret() | 'false'.
 maybe_start_announcements(Manager, Call, Props) ->
-    Enabled = props:get_is_true(<<"position_announcements_enabled">>, Props, 'false')
-        orelse props:get_is_true(<<"wait_time_announcements_enabled">>, Props, 'false'),
-    Enabled
-        andalso supervisor:start_child(?SERVER, [Manager, Call, Props]).
+    Enabled =
+        props:get_is_true(<<"position_announcements_enabled">>, Props, 'false') orelse
+            props:get_is_true(<<"wait_time_announcements_enabled">>, Props, 'false'),
+    Enabled andalso
+        supervisor:start_child(?SERVER, [Manager, Call, Props]).
 
 %%------------------------------------------------------------------------------
 %% @doc Stop an announcements child process
@@ -69,10 +72,11 @@ stop_announcements(Pid) ->
 %%------------------------------------------------------------------------------
 -spec init(list()) -> kz_types:sup_init_ret().
 init([]) ->
-
-    SupFlags = #{strategy => simple_one_for_one,
-                 intensity => 1,
-                 period => 5},
+    SupFlags = #{
+        strategy => simple_one_for_one,
+        intensity => 1,
+        period => 5
+    },
 
     {ok, {SupFlags, ?CHILDREN}}.
 

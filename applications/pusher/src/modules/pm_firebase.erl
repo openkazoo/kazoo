@@ -12,40 +12,42 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -record(state, {tab :: ets:tid()}).
 -type state() :: #state{}.
 
--define(FIREBASE_MAP, [{<<"Alert-Key">>, [<<"alert">>, <<"loc-key">>]}
-                      ,{<<"Alert-Params">>, [<<"alert">>, <<"loc-args">>]}
-                      ,{<<"Sound">>, [<<"sound">>]}
-                      ,{<<"Call-ID">>, [<<"Call-ID">>]}
-                      ,{<<"Payload">>, fun kz_json:merge/2}
-                      ]).
+-define(FIREBASE_MAP, [
+    {<<"Alert-Key">>, [<<"alert">>, <<"loc-key">>]},
+    {<<"Alert-Params">>, [<<"alert">>, <<"loc-args">>]},
+    {<<"Sound">>, [<<"sound">>]},
+    {<<"Call-ID">>, [<<"Call-ID">>]},
+    {<<"Payload">>, fun kz_json:merge/2}
+]).
 
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_server:start_link({'local', ?SERVER}, ?MODULE, [],[]).
+    gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []).
 
 -spec init([]) -> {'ok', state()}.
 init([]) ->
     kz_util:put_callid(?MODULE),
     lager:debug("starting server"),
-    {'ok', #state{tab=ets:new(?MODULE, [])}}.
+    {'ok', #state{tab = ets:new(?MODULE, [])}}.
 
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'push', JObj}, #state{tab=ETS}=State) ->
+handle_cast({'push', JObj}, #state{tab = ETS} = State) ->
     lager:debug("process a push"),
     TokenApp = kz_json:get_value(<<"Token-App">>, JObj),
     maybe_send_push_notification(get_fcm(TokenApp, ETS), JObj),
@@ -58,7 +60,7 @@ handle_info(_Request, State) ->
     {'noreply', State}.
 
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{tab=ETS}) ->
+terminate(_Reason, #state{tab = ETS}) ->
     ets:delete(ETS),
     'ok'.
 
@@ -67,7 +69,8 @@ code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
 -spec maybe_send_push_notification(push_app(), kz_json:object()) -> any().
-maybe_send_push_notification('undefined', _JObj) -> lager:debug("no pid to send push");
+maybe_send_push_notification('undefined', _JObj) ->
+    lager:debug("no pid to send push");
 maybe_send_push_notification({Pid, Envelope}, JObj) ->
     TokenID = kz_json:get_value(<<"Token-ID">>, JObj),
     MessageJObj = kz_json:from_list([{<<"data">>, build_payload(JObj)}]),
@@ -90,7 +93,8 @@ map_key(K, V, JObj) ->
     end.
 
 -spec get_fcm(kz_term:api_binary(), ets:tid()) -> push_app().
-get_fcm('undefined', _) -> 'undefined';
+get_fcm('undefined', _) ->
+    'undefined';
 get_fcm(App, ETS) ->
     case ets:lookup(ETS, App) of
         [] -> maybe_load_fcm(App, ETS);
@@ -100,8 +104,12 @@ get_fcm(App, ETS) ->
 -spec maybe_load_fcm(kz_term:api_binary(), ets:tid()) -> push_app().
 maybe_load_fcm(App, ETS) ->
     lager:debug("loading fcm secret for ~s", [App]),
-    FCMSecret = kapps_config:get_binary(?CONFIG_CAT, [<<"firebase">>, <<"api_key">>], 'undefined', App),
-    EnvelopeJObj = kapps_config:get_json(?CONFIG_CAT, [<<"firebase">>, <<"headers">>], kz_json:new(), App),
+    FCMSecret = kapps_config:get_binary(
+        ?CONFIG_CAT, [<<"firebase">>, <<"api_key">>], 'undefined', App
+    ),
+    EnvelopeJObj = kapps_config:get_json(
+        ?CONFIG_CAT, [<<"firebase">>, <<"headers">>], kz_json:new(), App
+    ),
     Envelope = kz_json:to_map(EnvelopeJObj),
     maybe_load_fcm(App, ETS, FCMSecret, Envelope).
 

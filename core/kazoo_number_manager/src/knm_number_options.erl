@@ -7,33 +7,37 @@
 %%%-----------------------------------------------------------------------------
 -module(knm_number_options).
 
--export([assign_to/1, assign_to/2, set_assign_to/2
-        ,auth_by/1, auth_by/2
-        ,dry_run/1, dry_run/2
-        ,batch_run/1, batch_run/2
-        ,mdn_run/1
-        ,module_name/1
-        ,ported_in/1
-        ,public_fields/1
-        ,state/1, state/2
-        ,crossbar/1, crossbar/2
+-export([
+    assign_to/1, assign_to/2,
+    set_assign_to/2,
+    auth_by/1, auth_by/2,
+    dry_run/1, dry_run/2,
+    batch_run/1, batch_run/2,
+    mdn_run/1,
+    module_name/1,
+    ported_in/1,
+    public_fields/1,
+    state/1, state/2,
+    crossbar/1, crossbar/2,
 
-        ,default/0
-        ,mdn_options/0
+    default/0,
+    mdn_options/0,
 
-        ,to_phone_number_setters/1
-        ]).
+    to_phone_number_setters/1
+]).
 
--export([account_id/1, set_account_id/2
-        ,has_pending_port/1
-        ,inbound_cnam_enabled/1
-        ,is_local_number/1
-        ,number/1
-        ,prepend/1
-        ,ringback_media_id/1
-        ,should_force_outbound/1
-        ,transfer_media_id/1
-        ]).
+-export([
+    account_id/1,
+    set_account_id/2,
+    has_pending_port/1,
+    inbound_cnam_enabled/1,
+    is_local_number/1,
+    number/1,
+    prepend/1,
+    ringback_media_id/1,
+    should_force_outbound/1,
+    transfer_media_id/1
+]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -41,47 +45,57 @@
 
 -include("knm.hrl").
 
--type crossbar_option() :: {'services', kz_services:services()} |
-                           {'account_id', kz_term:api_ne_binary()} |
-                           {'reseller_id', kz_term:api_ne_binary()}.
+-type crossbar_option() ::
+    {'services', kz_services:services()}
+    | {'account_id', kz_term:api_ne_binary()}
+    | {'reseller_id', kz_term:api_ne_binary()}.
 -type crossbar_options() :: [crossbar_option()].
 
 -type assign_to() :: kz_term:api_ne_binary().
 
--type option() :: {'assign_to', assign_to()} |
-                  {'auth_by', kz_term:api_ne_binary()} |
-                  {'batch_run', boolean()} |
-                  {'crossbar', crossbar_options()} |
-                  {'dry_run', boolean()} |
-                  {'mdn_run', boolean()} |
-                  {'module_name', kz_term:ne_binary()} |
-                  {'ported_in', boolean()} |
-                  {'public_fields', kz_json:object()} |
-                  {'state', kz_term:ne_binary()}.
+-type option() ::
+    {'assign_to', assign_to()}
+    | {'auth_by', kz_term:api_ne_binary()}
+    | {'batch_run', boolean()}
+    | {'crossbar', crossbar_options()}
+    | {'dry_run', boolean()}
+    | {'mdn_run', boolean()}
+    | {'module_name', kz_term:ne_binary()}
+    | {'ported_in', boolean()}
+    | {'public_fields', kz_json:object()}
+    | {'state', kz_term:ne_binary()}.
 
 -type options() :: [option()].
 
--type extra_option() :: {'account_id', kz_term:ne_binary()} | %%api
-                        {'force_outbound', boolean()} |
-                        {'inbound_cnam', boolean()} |
-                        {'local', boolean()} |
-                        {'number', kz_term:ne_binary()} | %%api
-                        {'pending_port', boolean()} |
-                        {'prepend', kz_term:api_binary()} | %%|false
-                        {'ringback_media', kz_term:api_binary()} |
-                        {'transfer_media', kz_term:api_binary()}.
+%%api
+-type extra_option() ::
+    {'account_id', kz_term:ne_binary()}
+    | {'force_outbound', boolean()}
+    | {'inbound_cnam', boolean()}
+    | {'local', boolean()}
+    %%api
+    | {'number', kz_term:ne_binary()}
+    | {'pending_port', boolean()}
+    %%|false
+    | {'prepend', kz_term:api_binary()}
+    | {'ringback_media', kz_term:api_binary()}
+    | {'transfer_media', kz_term:api_binary()}.
 
 -type extra_options() :: [extra_option()].
 
--export_type([option/0, options/0
-             ,extra_option/0, extra_options/0
-             ]).
+-export_type([
+    option/0,
+    options/0,
+    extra_option/0,
+    extra_options/0
+]).
 
 -spec default() -> options().
 default() ->
-    [{'auth_by', ?KNM_DEFAULT_AUTH_BY}
-    ,{'batch_run', 'false'}
-    ,{'mdn_run', 'false'}
+    [
+        {'auth_by', ?KNM_DEFAULT_AUTH_BY},
+        {'batch_run', 'false'},
+        {'mdn_run', 'false'}
     ].
 
 -spec mdn_options() -> options().
@@ -90,7 +104,8 @@ mdn_options() ->
 
 -spec to_phone_number_setters(options()) -> knm_phone_number:set_functions().
 to_phone_number_setters(Options) ->
-    [{setter_fun(Option), Value}
+    [
+        {setter_fun(Option), Value}
      || {Option, Value} <- kz_util:uniq(Options),
         is_atom(Option),
         Option =/= 'crossbar'
@@ -110,8 +125,9 @@ dry_run(Options) ->
 -spec dry_run(options(), Default) -> boolean() | Default.
 dry_run(Options, Default) ->
     R = props:get_is_true('dry_run', Options, Default),
-    _ = R
-        andalso lager:debug("dry_run-ing btw"),
+    _ =
+        R andalso
+            lager:debug("dry_run-ing btw"),
     R.
 
 -spec batch_run(options()) -> boolean().
@@ -121,15 +137,17 @@ batch_run(Options) ->
 -spec batch_run(options(), Default) -> boolean() | Default.
 batch_run(Options, Default) ->
     R = props:get_is_true('batch_run', Options, Default),
-    _ = R
-        andalso lager:debug("batch_run-ing btw"),
+    _ =
+        R andalso
+            lager:debug("batch_run-ing btw"),
     R.
 
 -spec mdn_run(options()) -> boolean().
 mdn_run(Options) ->
     R = props:get_is_true('mdn_run', Options, 'false'),
-    _ = R
-        andalso lager:debug("mdn_run-ing btw"),
+    _ =
+        R andalso
+            lager:debug("mdn_run-ing btw"),
     R.
 
 -spec assign_to(options()) -> assign_to().
@@ -191,7 +209,7 @@ account_id(Props) when is_list(Props) ->
     props:get_ne_binary_value('account_id', Props).
 
 -spec set_account_id(extra_options(), kz_term:ne_binary()) -> extra_options().
-set_account_id(Props, AccountId=?MATCH_ACCOUNT_RAW(_)) when is_list(Props) ->
+set_account_id(Props, AccountId = ?MATCH_ACCOUNT_RAW(_)) when is_list(Props) ->
     props:set_value('account_id', AccountId, Props).
 
 -spec has_pending_port(extra_options()) -> boolean().
@@ -227,31 +245,37 @@ transfer_media_id(Props) when is_list(Props) ->
     props:get_value('transfer_media', Props).
 %%------------------------------------------------------------------------------
 
-
 -ifdef(TEST).
 
 to_phone_number_setters_test_() ->
     A_1 = kz_json:from_list([{<<"a">>, 1}]),
     M_1 = ?CARRIER_LOCAL,
-    [?_assertEqual([{fun knm_phone_number:reset_doc/2, A_1}]
-                  ,to_phone_number_setters([{'public_fields', A_1}])
-                  )
-    ,?_assertEqual([{fun knm_phone_number:set_auth_by/2, ?KNM_DEFAULT_AUTH_BY}
-                   ,{fun knm_phone_number:set_ported_in/2, 'false'}
-                   ,{fun knm_phone_number:set_dry_run/2, [[[]]]}
-                   ]
-                  ,to_phone_number_setters([{'auth_by', ?KNM_DEFAULT_AUTH_BY}
-                                           ,{'ported_in', 'false'}
-                                           ,{<<"batch_run">>, 'false'}
-                                           ,{'dry_run', [[[]]]}
-                                           ])
-                  )
-    ,?_assertEqual([{fun knm_phone_number:set_module_name/2, M_1}]
-                  ,to_phone_number_setters([{module_name, M_1}
-                                           ,{module_name, <<"blaaa">>}
-                                           ,{module_name, ?CARRIER_MDN}
-                                           ])
-                  )
+    [
+        ?_assertEqual(
+            [{fun knm_phone_number:reset_doc/2, A_1}],
+            to_phone_number_setters([{'public_fields', A_1}])
+        ),
+        ?_assertEqual(
+            [
+                {fun knm_phone_number:set_auth_by/2, ?KNM_DEFAULT_AUTH_BY},
+                {fun knm_phone_number:set_ported_in/2, 'false'},
+                {fun knm_phone_number:set_dry_run/2, [[[]]]}
+            ],
+            to_phone_number_setters([
+                {'auth_by', ?KNM_DEFAULT_AUTH_BY},
+                {'ported_in', 'false'},
+                {<<"batch_run">>, 'false'},
+                {'dry_run', [[[]]]}
+            ])
+        ),
+        ?_assertEqual(
+            [{fun knm_phone_number:set_module_name/2, M_1}],
+            to_phone_number_setters([
+                {module_name, M_1},
+                {module_name, <<"blaaa">>},
+                {module_name, ?CARRIER_MDN}
+            ])
+        )
     ].
 
 -endif.

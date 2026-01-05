@@ -5,24 +5,25 @@
 %%%-----------------------------------------------------------------------------
 -module(knm_config).
 
--export([should_permanently_delete/0
-        ,released_state/0
-        ,locality_url/0
-        ,should_age/0
-        ,should_force_outbound/0
-        ,should_force_local_outbound/0
-        ,should_force_port_in_outbound/0
-        ,should_force_port_out_outbound/0
-        ,should_fetch_account_from_ports/0
-        ]).
+-export([
+    should_permanently_delete/0,
+    released_state/0,
+    locality_url/0,
+    should_age/0,
+    should_force_outbound/0,
+    should_force_local_outbound/0,
+    should_force_port_in_outbound/0,
+    should_force_port_out_outbound/0,
+    should_fetch_account_from_ports/0
+]).
 
 -include("knm.hrl").
 
 -define(LOCALITY_CONFIG_CAT, <<"number_manager.locality">>).
 
--define(DEFAULT_LOCALITY_URL
-       ,kapps_config:get_ne_binary(<<"number_manager.other">>, <<"phonebook_url">>)
-       ).
+-define(DEFAULT_LOCALITY_URL,
+    kapps_config:get_ne_binary(<<"number_manager.other">>, <<"phonebook_url">>)
+).
 
 -spec should_age() -> boolean().
 should_age() ->

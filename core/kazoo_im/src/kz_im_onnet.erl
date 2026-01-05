@@ -14,17 +14,17 @@
 -export([route/1, route/2]).
 
 %% Responders
--export([handle_outbound/2
-        ]).
+-export([handle_outbound/2]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kazoo_im.hrl").
 
@@ -36,22 +36,26 @@
 
 -define(QUEUE_NAME, <<"im">>).
 
--define(QUEUE_OPTIONS, [{'exclusive', 'false'}
-                       ,{'durable', 'true'}
-                       ,{'auto_delete', 'false'}
-                       ,{'arguments', [{<<"x-message-ttl">>, 'infinity'}
-                                      ,{<<"x-max-length">>, 'infinity'}
-                                      ]}
-                       ]).
--define(CONSUME_OPTIONS, [{'exclusive', 'false'}
-                         ,{'no_ack', 'false'}
-                         ]).
+-define(QUEUE_OPTIONS, [
+    {'exclusive', 'false'},
+    {'durable', 'true'},
+    {'auto_delete', 'false'},
+    {'arguments', [
+        {<<"x-message-ttl">>, 'infinity'},
+        {<<"x-max-length">>, 'infinity'}
+    ]}
+]).
+-define(CONSUME_OPTIONS, [
+    {'exclusive', 'false'},
+    {'no_ack', 'false'}
+]).
 
 -define(RESPONDERS, [{{?MODULE, 'handle_outbound'}, [{<<"*">>, <<"outbound">>}]}]).
 
--define(AMQP_PUBLISH_OPTIONS, [{'mandatory', 'true'}
-                              ,{'delivery_mode', 2}
-                              ]).
+-define(AMQP_PUBLISH_OPTIONS, [
+    {'mandatory', 'true'},
+    {'delivery_mode', 2}
+]).
 
 -define(ROUTE_TIMEOUT, 'infinity').
 
@@ -65,16 +69,21 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                            ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                            ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                            ,{'server_confirms', 'true'}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS},
+            {'server_confirms', 'true'}
+        ],
+        []
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Route Internally.
@@ -129,11 +138,11 @@ handle_cast({'gen_listener', {'is_consuming', 'false'}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', 'true'}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'true'}}, State) ->
+handle_cast({'gen_listener', {'server_confirms', 'true'}}, State) ->
     lager:debug("broker can confirm deliveries, activating onnet worker"),
     'true' = gproc:reg({'p', 'l', 'im_onnet'}),
     {'noreply', State};
-handle_cast({'gen_listener',{'server_confirms', 'false'}}, State) ->
+handle_cast({'gen_listener', {'server_confirms', 'false'}}, State) ->
     lager:warning("broker can't confirm deliveries"),
     {'stop', {'shutdown', 'no_confirms'}, State};
 handle_cast({'gen_listener', {'confirm', Confirm}}, State) ->
@@ -214,34 +223,41 @@ ack(Props) ->
 -spec handle_outbound_route(kz_json:object(), kz_term:proplist()) -> 'ack' | 'nack'.
 handle_outbound_route(JObj, Props) ->
     IM = kapps_im:from_payload(JObj),
-    Funs = [fun account/1
-           ,fun trusted_application/1
-           ,fun account_fetch/1
-           ,fun reseller_fetch/1
-           ,fun account_is_enabled/1
-           ,fun reseller_is_enabled/1
-           ,fun account_has_im/1
-           ,fun reseller_has_im/1
-           ,fun account_standing_is_acceptable/1
-           ,fun reseller_standing_is_acceptable/1
-           ,fun number/1
-           ],
-    route_offnet(kz_maps:exec(Funs
-                             ,#{payload => JObj
-                               ,route => kz_im:route_id(JObj)
-                               ,props => Props
-                               ,im => IM
-                               }
-                             )).
+    Funs = [
+        fun account/1,
+        fun trusted_application/1,
+        fun account_fetch/1,
+        fun reseller_fetch/1,
+        fun account_is_enabled/1,
+        fun reseller_is_enabled/1,
+        fun account_has_im/1,
+        fun reseller_has_im/1,
+        fun account_standing_is_acceptable/1,
+        fun reseller_standing_is_acceptable/1,
+        fun number/1
+    ],
+    route_offnet(
+        kz_maps:exec(
+            Funs,
+            #{
+                payload => JObj,
+                route => kz_im:route_id(JObj),
+                props => Props,
+                im => IM
+            }
+        )
+    ).
 
 -spec route_offnet(map()) -> 'ack' | 'nack'.
-route_offnet(#{enabled := 'true'
-              ,payload := Payload
-              ,account_id := AccountId
-              ,route := RouteId
-              }) ->
+route_offnet(#{
+    enabled := 'true',
+    payload := Payload,
+    account_id := AccountId,
+    route := RouteId
+}) ->
     case kz_im_offnet:route(kz_im:set_route_id(Payload, RouteId)) of
-        'ok' -> 'ack';
+        'ok' ->
+            'ack';
         {'error', _Error} ->
             lager:warning("offnet rejected request for account ~s : ~p", [AccountId, _Error]),
             'ack'
@@ -252,19 +268,23 @@ route_offnet(_Map) ->
 
 account(#{payload := JObj} = Map) ->
     case kz_im:account_id(JObj) of
-        'undefined' -> Map;
-        AccountId -> Map#{account_id => AccountId
-                         ,reseller_id => kz_services_reseller:get_id(AccountId)
-                         ,enabled => 'true'
-                         }
+        'undefined' ->
+            Map;
+        AccountId ->
+            Map#{
+                account_id => AccountId,
+                reseller_id => kz_services_reseller:get_id(AccountId),
+                enabled => 'true'
+            }
     end.
 
 trusted_application(#{payload := JObj} = Map) ->
     case kz_im:application_id(JObj) of
-        'undefined' -> Map;
+        'undefined' ->
+            Map;
         AppId ->
             Trusted = kz_json:get_list_value([<<"outbound">>, <<"trusted_apps">>], config(), []),
-            case lists:member(AppId, Trusted)  of
+            case lists:member(AppId, Trusted) of
                 'false' -> Map;
                 'true' -> Map#{enabled => 'true'}
             end
@@ -275,43 +295,48 @@ account_fetch(#{account_id := AccountId} = Map) ->
         {'error', Error} -> maps:without([account_id], Map#{error => Error});
         {'ok', Account} -> Map#{account => Account}
     end;
-account_fetch(Map) -> Map.
+account_fetch(Map) ->
+    Map.
 
 reseller_fetch(#{reseller_id := ResellerId} = Map) ->
     case kzd_accounts:fetch(ResellerId) of
         {'error', Error} -> maps:without([reseller_id], Map#{error => Error});
         {'ok', Reseller} -> Map#{reseller => Reseller}
     end;
-reseller_fetch(Map) -> Map.
+reseller_fetch(Map) ->
+    Map.
 
 account_is_enabled(#{account := Account} = Map) ->
     case kzd_accounts:enabled(Account) of
         'true' -> Map;
         'false' -> Map#{enabled => 'false'}
     end;
-account_is_enabled(Map) -> Map.
-
+account_is_enabled(Map) ->
+    Map.
 
 reseller_is_enabled(#{reseller := Reseller} = Map) ->
     case kzd_accounts:enabled(Reseller) of
         'true' -> Map;
         'false' -> Map#{enabled => 'false'}
     end;
-reseller_is_enabled(Map) -> Map.
+reseller_is_enabled(Map) ->
+    Map.
 
 account_has_im(#{account_id := AccountId, im := IM} = Map) ->
     case kz_services_im:is_enabled(AccountId, kapps_im:type(IM)) of
         'true' -> Map;
         'false' -> Map#{enabled => 'false'}
     end;
-account_has_im(Map) -> Map.
+account_has_im(Map) ->
+    Map.
 
 reseller_has_im(#{reseller_id := ResellerId, im := IM} = Map) ->
     case kz_services_im:is_enabled(ResellerId, kapps_im:type(IM)) of
         'true' -> Map;
         'false' -> Map#{enabled => 'false'}
     end;
-reseller_has_im(Map) -> Map.
+reseller_has_im(Map) ->
+    Map.
 
 -define(STANDING_ACCEPTABLE_OPTIONS, #{cache_acceptable => true}).
 
@@ -320,21 +345,25 @@ account_standing_is_acceptable(#{account_id := AccountId} = Map) ->
         {'true', _} -> Map;
         _Else -> Map#{enabled => 'false'}
     end;
-account_standing_is_acceptable(Map) -> Map.
+account_standing_is_acceptable(Map) ->
+    Map.
 
 reseller_standing_is_acceptable(#{reseller_id := ResellerId} = Map) ->
     case kz_services_standing:acceptable(ResellerId, ?STANDING_ACCEPTABLE_OPTIONS) of
         {'true', _} -> Map;
         _Else -> Map#{enabled => 'false'}
     end;
-reseller_standing_is_acceptable(Map) -> Map.
+reseller_standing_is_acceptable(Map) ->
+    Map.
 
-number(#{enabled := 'false'} = Map) -> Map;
+number(#{enabled := 'false'} = Map) ->
+    Map;
 number(#{payload := JObj, im := IM} = Map) ->
     case knm_phone_number:fetch(kz_im:from(JObj)) of
         {'ok', Num} ->
-            case knm_im:enabled(Num, kapps_im:type(IM))
-                andalso number_provider(Num)
+            case
+                knm_im:enabled(Num, kapps_im:type(IM)) andalso
+                    number_provider(Num)
             of
                 'false' ->
                     lager:debug("number does not have ~s enabled", [kapps_im:type(IM)]),
@@ -342,16 +371,19 @@ number(#{payload := JObj, im := IM} = Map) ->
                 'undefined' ->
                     Map#{number => Num};
                 Provider ->
-                    Setters = [{fun kz_im:set_originator_property/3, <<"Number-Provider">>, Provider}
-                              ,{fun kz_im:set_originator_flag/2, Provider}
-                              ],
-                    Map#{number => Num
-                        ,module => Provider
-                        ,route => provider_route(Provider)
-                        ,payload => kz_json:exec_first(Setters, JObj)
-                        }
+                    Setters = [
+                        {fun kz_im:set_originator_property/3, <<"Number-Provider">>, Provider},
+                        {fun kz_im:set_originator_flag/2, Provider}
+                    ],
+                    Map#{
+                        number => Num,
+                        module => Provider,
+                        route => provider_route(Provider),
+                        payload => kz_json:exec_first(Setters, JObj)
+                    }
             end;
-        _ -> Map
+        _ ->
+            Map
     end.
 
 provider_route(<<"knm_", Provider/binary>>) -> Provider;
@@ -363,8 +395,10 @@ number_provider(Num) ->
 
 config() ->
     case kapps_config:get_category(?APP_NAME) of
-        {'ok', JObj} -> kz_json:get_json_value([<<"default">>, <<"connector">>], JObj, kz_json:new());
-        _ -> kz_json:new()
+        {'ok', JObj} ->
+            kz_json:get_json_value([<<"default">>, <<"connector">>], JObj, kz_json:new());
+        _ ->
+            kz_json:new()
     end.
 
 %%%=============================================================================
@@ -375,24 +409,28 @@ config() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-handle_confirm(#'basic.ack'{delivery_tag = Idx, multiple = 'true'}
-              ,#{pids := Pids} = State
-              ) ->
+handle_confirm(
+    #'basic.ack'{delivery_tag = Idx, multiple = 'true'},
+    #{pids := Pids} = State
+) ->
     Keys = maps:fold(fun reply_ok/3, [], maps:filter(fun(K, _) -> K =< Idx end, Pids)),
     State#{pids => maps:without(Keys, Pids)};
-handle_confirm(#'basic.ack'{delivery_tag = Idx, multiple = 'false'}
-              ,#{pids := Pids} = State
-              ) ->
+handle_confirm(
+    #'basic.ack'{delivery_tag = Idx, multiple = 'false'},
+    #{pids := Pids} = State
+) ->
     Keys = maps:fold(fun reply_ok/3, [], maps:with([Idx], Pids)),
     State#{pids => maps:without(Keys, Pids)};
-handle_confirm(#'basic.nack'{delivery_tag = Idx, multiple = 'true'}
-              ,#{pids := Pids} = State
-              ) ->
+handle_confirm(
+    #'basic.nack'{delivery_tag = Idx, multiple = 'true'},
+    #{pids := Pids} = State
+) ->
     Keys = maps:fold(fun reply_error/3, [], maps:filter(fun(K, _) -> K =< Idx end, Pids)),
     State#{pids => maps:without(Keys, Pids)};
-handle_confirm(#'basic.nack'{delivery_tag = Idx, multiple = 'false'}
-              ,#{pids := Pids} = State
-              ) ->
+handle_confirm(
+    #'basic.nack'{delivery_tag = Idx, multiple = 'false'},
+    #{pids := Pids} = State
+) ->
     Keys = maps:fold(fun reply_error/3, [], maps:with([Idx], Pids)),
     State#{pids => maps:without(Keys, Pids)}.
 

@@ -13,9 +13,11 @@
 -export([language/1, language/2, set_language/2]).
 -export([media_source/1, media_source/2, set_media_source/2]).
 -export([name/1, name/2, set_name/2]).
--export([prompt_id/1, prompt_id/2, set_prompt_id/2
-        ,is_prompt/1
-        ]).
+-export([
+    prompt_id/1, prompt_id/2,
+    set_prompt_id/2,
+    is_prompt/1
+]).
 -export([source_id/1, source_id/2, set_source_id/2]).
 -export([source_type/1, source_type/2, set_source_type/2]).
 -export([streamable/1, streamable/2, set_streamable/2]).

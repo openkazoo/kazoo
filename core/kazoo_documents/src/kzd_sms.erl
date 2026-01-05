@@ -24,16 +24,17 @@
 -export([message_id/1, message_id/2, set_message_id/2]).
 -export([exchange_id/1, exchange_id/2, set_exchange_id/2]).
 
--export([originator_properties/1
-        ,set_originator_properties/2
-        ,originator_property/2
-        ,set_originator_property/3
-        ,remove_originator_property/2
-        ,originator_flags/1
-        ,set_originator_flags/2
-        ,set_originator_flag/2
-        ,remove_originator_flag/2
-        ]).
+-export([
+    originator_properties/1,
+    set_originator_properties/2,
+    originator_property/2,
+    set_originator_property/3,
+    remove_originator_property/2,
+    originator_flags/1,
+    set_originator_flags/2,
+    set_originator_flag/2,
+    remove_originator_flag/2
+]).
 
 -export([type/0, type/1]).
 
@@ -44,7 +45,6 @@
 
 -define(SCHEMA, <<"sms">>).
 -define(TYPE, <<"sms">>).
-
 
 -spec new() -> doc().
 new() ->

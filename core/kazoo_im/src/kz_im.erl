@@ -23,16 +23,17 @@
 -export([exchange_id/1, exchange_id/2, set_exchange_id/2]).
 -export([charges/1, charges/2, set_charges/2]).
 
--export([originator_properties/1
-        ,set_originator_properties/2
-        ,originator_property/2
-        ,set_originator_property/3
-        ,remove_originator_property/2
-        ,originator_flags/1
-        ,set_originator_flags/2
-        ,set_originator_flag/2
-        ,remove_originator_flag/2
-        ]).
+-export([
+    originator_properties/1,
+    set_originator_properties/2,
+    originator_property/2,
+    set_originator_property/3,
+    remove_originator_property/2,
+    originator_flags/1,
+    set_originator_flags/2,
+    set_originator_flag/2,
+    remove_originator_flag/2
+]).
 
 -include("kazoo_im.hrl").
 
@@ -140,7 +141,9 @@ originator_property(Payload, Key) ->
 
 -spec set_originator_property(payload(), kz_term:ne_binary(), json_term()) -> payload().
 set_originator_property(Payload, Key, Value) ->
-    set_originator_properties(Payload, kz_json:set_value(Key, Value, originator_properties(Payload))).
+    set_originator_properties(
+        Payload, kz_json:set_value(Key, Value, originator_properties(Payload))
+    ).
 
 -spec remove_originator_property(payload(), kz_term:ne_binary()) -> payload().
 remove_originator_property(Payload, Key) ->
@@ -164,7 +167,9 @@ set_originator_flag(Payload, Flag) ->
 
 -spec remove_originator_flag(payload(), kz_term:ne_binary()) -> payload().
 remove_originator_flag(Payload, Flag) ->
-    set_originator_flags(Payload, lists:filter(fun(F) -> F =/= Flag end, originator_flags(Payload))).
+    set_originator_flags(
+        Payload, lists:filter(fun(F) -> F =/= Flag end, originator_flags(Payload))
+    ).
 
 -spec message_id(payload()) -> kz_term:api_binary().
 message_id(Payload) ->

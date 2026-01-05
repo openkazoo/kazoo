@@ -6,15 +6,18 @@
 -module(pqc_cb_ledgers).
 
 %% API functions
--export([fetch/2, fetch/3
-        ,fetch_by_source/3, fetch_by_source/4
-        ,credit/3, debit/3
-        ]).
+-export([
+    fetch/2, fetch/3,
+    fetch_by_source/3, fetch_by_source/4,
+    credit/3,
+    debit/3
+]).
 
 %% Manual test functions
--export([seq/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    cleanup/0
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -22,50 +25,57 @@
 
 %% API functions
 -spec fetch(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
-fetch(API, ?NE_BINARY=AccountId) ->
+fetch(API, ?NE_BINARY = AccountId) ->
     fetch(API, AccountId, <<"application/json">>).
 
 -spec fetch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
-fetch(API, ?NE_BINARY=AccountId, ?NE_BINARY=AcceptType) ->
+fetch(API, ?NE_BINARY = AccountId, ?NE_BINARY = AcceptType) ->
     LedgersURL = ledgers_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API, [{<<"accept">>, AcceptType}]),
 
-    Expectations = #{'response_codes' => [200]
-                    ,'response_headers' => [{<<"content-type">>, AcceptType}]
-                    },
+    Expectations = #{
+        'response_codes' => [200],
+        'response_headers' => [{<<"content-type">>, AcceptType}]
+    },
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,LedgersURL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        LedgersURL,
+        RequestHeaders
+    ).
 
 -spec fetch_by_source(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          pqc_cb_api:response().
-fetch_by_source(API, ?NE_BINARY=AccountId, ?NE_BINARY=SourceType) ->
+    pqc_cb_api:response().
+fetch_by_source(API, ?NE_BINARY = AccountId, ?NE_BINARY = SourceType) ->
     fetch_by_source(API, AccountId, SourceType, <<"application/json">>).
 
--spec fetch_by_source(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          pqc_cb_api:response().
-fetch_by_source(API, ?NE_BINARY=AccountId, SourceType, ?NE_BINARY=AcceptType) ->
+-spec fetch_by_source(
+    pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) ->
+    pqc_cb_api:response().
+fetch_by_source(API, ?NE_BINARY = AccountId, SourceType, ?NE_BINARY = AcceptType) ->
     LedgersURL = ledgers_source_url(AccountId, SourceType),
     RequestHeaders = pqc_cb_api:request_headers(API, [{<<"accept">>, AcceptType}]),
 
-    Expectations = [#{'response_codes' => [200]
-                     ,'response_headers' => [{<<"content-type">>, AcceptType}]
-                     }
-                   ,#{'response_codes' => [204]}
-                   ],
+    Expectations = [
+        #{
+            'response_codes' => [200],
+            'response_headers' => [{<<"content-type">>, AcceptType}]
+        },
+        #{'response_codes' => [204]}
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,LedgersURL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        LedgersURL,
+        RequestHeaders
+    ).
 
 -spec credit(pqc_cb_api:state(), kz_term:ne_binary(), kzd_ledger:doc()) ->
-          pqc_cb_api:response().
-credit(API, ?NE_BINARY=AccountId, Ledger) ->
+    pqc_cb_api:response().
+credit(API, ?NE_BINARY = AccountId, Ledger) ->
     LedgersURL = ledgers_credit_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
@@ -73,16 +83,17 @@ credit(API, ?NE_BINARY=AccountId, Ledger) ->
 
     Envelope = pqc_cb_api:create_envelope(Ledger),
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:put/3
-                           ,LedgersURL
-                           ,RequestHeaders
-                           ,kz_json:encode(Envelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:put/3,
+        LedgersURL,
+        RequestHeaders,
+        kz_json:encode(Envelope)
+    ).
 
 -spec debit(pqc_cb_api:state(), kz_term:ne_binary(), kzd_ledger:doc()) ->
-          pqc_cb_api:response().
-debit(API, ?NE_BINARY=AccountId, Ledger) ->
+    pqc_cb_api:response().
+debit(API, ?NE_BINARY = AccountId, Ledger) ->
     LedgersURL = ledgers_debit_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
@@ -90,12 +101,13 @@ debit(API, ?NE_BINARY=AccountId, Ledger) ->
 
     Envelope = pqc_cb_api:create_envelope(Ledger),
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:put/3
-                           ,LedgersURL
-                           ,RequestHeaders
-                           ,kz_json:encode(Envelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:put/3,
+        LedgersURL,
+        RequestHeaders,
+        kz_json:encode(Envelope)
+    ).
 
 -spec ledgers_url(kz_term:ne_binary()) -> string().
 ledgers_url(AccountId) ->
@@ -103,7 +115,9 @@ ledgers_url(AccountId) ->
 
 -spec ledgers_source_url(kz_term:ne_binary(), kz_term:ne_binary()) -> string().
 ledgers_source_url(AccountId, SourceType) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "ledgers", kz_term:to_list(SourceType)], "/").
+    string:join(
+        [pqc_cb_accounts:account_url(AccountId), "ledgers", kz_term:to_list(SourceType)], "/"
+    ).
 
 -spec ledgers_credit_url(kz_term:ne_binary()) -> string().
 ledgers_credit_url(AccountId) ->
@@ -124,12 +138,14 @@ init_system() ->
     kz_util:put_callid(TestId),
 
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_ledgers']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_ledgers']
+    ],
     lager:info("INIT FINISHED").
 
 -spec seq() -> 'ok'.
@@ -187,22 +203,23 @@ cleanup(API) ->
 
 cleanup_system() -> 'ok'.
 
-ledgers_exist(_Data, []) -> 'true';
+ledgers_exist(_Data, []) ->
+    'true';
 ledgers_exist(Data, [Ledger | Ledgers]) ->
-    lists:any(fun(Datum) -> ledger_matches(Datum, Ledger) end, Data)
-        andalso ledgers_exist(Data, Ledgers).
+    lists:any(fun(Datum) -> ledger_matches(Datum, Ledger) end, Data) andalso
+        ledgers_exist(Data, Ledgers).
 
 ledger_matches(Datum, Ledger) ->
-    kzd_ledgers:source_id(Datum) =:= kzd_ledgers:source_id(Ledger)
-        andalso kzd_ledgers:unit_amount(Datum) =:= kzd_ledgers:unit_amount(Ledger).
+    kzd_ledgers:source_id(Datum) =:= kzd_ledgers:source_id(Ledger) andalso
+        kzd_ledgers:unit_amount(Datum) =:= kzd_ledgers:unit_amount(Ledger).
 
 ledgers_exist_in_csv(CSV, Ledgers) ->
     {Header, Rows} = kz_csv:take_row(CSV),
     MetaPos = header_has_column_name(Header, <<"metadata_bonus">>),
     SourceIdPos = header_has_column_name(Header, <<"Source ID">>),
-    is_integer(MetaPos)
-        andalso is_integer(SourceIdPos)
-        andalso ledgers_in_rows({MetaPos, SourceIdPos}, Rows, Ledgers).
+    is_integer(MetaPos) andalso
+        is_integer(SourceIdPos) andalso
+        ledgers_in_rows({MetaPos, SourceIdPos}, Rows, Ledgers).
 
 header_has_column_name(Headers, ColumnName) ->
     header_has_column_name(Headers, ColumnName, 1).
@@ -214,12 +231,13 @@ header_has_column_name([ColumnName | _Headers], ColumnName, N) ->
     lager:debug("found column '~s' at ~p", [ColumnName, N]),
     N;
 header_has_column_name([_Header | Headers], ColumnName, N) ->
-    header_has_column_name(Headers, ColumnName, N+1).
+    header_has_column_name(Headers, ColumnName, N + 1).
 
 ledgers_in_rows(Pos, Rows, Ledgers) ->
     ledgers_in_row(Pos, kz_csv:take_row(Rows), Ledgers).
 
-ledgers_in_row({_MetaPos, _SourceIdPos}, 'eof', []) -> 'true';
+ledgers_in_row({_MetaPos, _SourceIdPos}, 'eof', []) ->
+    'true';
 ledgers_in_row({_MetaPos, _SourceIdPos}, 'eof', _Ledgers) ->
     lager:info("failed to find ledgers ~p", [_Ledgers]),
     'false';
@@ -229,28 +247,40 @@ ledgers_in_row({MetaPos, SourceIdPos}, {Row, Rows}, Ledgers) ->
     %% remove ledger matching Row
     RowSourceId = lists:nth(SourceIdPos, Row),
     lager:info("row source id: ~p", [RowSourceId]),
-    RowMetaValue = try lists:nth(MetaPos, Row) catch _:_ -> <<>> end,
+    RowMetaValue =
+        try
+            lists:nth(MetaPos, Row)
+        catch
+            _:_ -> <<>>
+        end,
     lager:info("meta: ~p", [RowMetaValue]),
 
-    Ls = [begin lager:info("keeping l ~p", [kzd_ledgers:source_id(L)]), L end
-          || L <- Ledgers,
-             kzd_ledgers:source_id(L) =/= RowSourceId,
-             kz_json:get_value(<<"bonus">>, kzd_ledgers:metadata(L, kz_json:new()), <<>>) =/= RowMetaValue
-         ],
+    Ls = [
+        begin
+            lager:info("keeping l ~p", [kzd_ledgers:source_id(L)]),
+            L
+        end
+     || L <- Ledgers,
+        kzd_ledgers:source_id(L) =/= RowSourceId,
+        kz_json:get_value(<<"bonus">>, kzd_ledgers:metadata(L, kz_json:new()), <<>>) =/=
+            RowMetaValue
+    ],
     ledgers_in_row({MetaPos, SourceIdPos}, kz_csv:take_row(Rows), Ls).
 
 -spec ledger_doc() -> kzd_ledgers:doc().
 ledger_doc() ->
-    lists:foldl(fun({F, V}, D) -> F(D, V) end
-               ,kzd_ledgers:new()
-               ,[{fun kzd_ledgers:set_source_service/2, <<?MODULE_STRING>>}
-                ,{fun kzd_ledgers:set_source_id/2, kz_binary:rand_hex(4)}
-                ,{fun kzd_ledgers:set_usage_quantity/2, 1}
-                ,{fun kzd_ledgers:set_usage_unit/2, <<"Hz">>}
-                ,{fun kzd_ledgers:set_usage_type/2, <<"cycle">>}
-                ,{fun(J, V) -> kz_json:set_value(<<"amount">>, V, J) end, 2.6}
-                ]
-               ).
+    lists:foldl(
+        fun({F, V}, D) -> F(D, V) end,
+        kzd_ledgers:new(),
+        [
+            {fun kzd_ledgers:set_source_service/2, <<?MODULE_STRING>>},
+            {fun kzd_ledgers:set_source_id/2, kz_binary:rand_hex(4)},
+            {fun kzd_ledgers:set_usage_quantity/2, 1},
+            {fun kzd_ledgers:set_usage_unit/2, <<"Hz">>},
+            {fun kzd_ledgers:set_usage_type/2, <<"cycle">>},
+            {fun(J, V) -> kz_json:set_value(<<"amount">>, V, J) end, 2.6}
+        ]
+    ).
 
 -spec ledger_doc(kz_term:ne_binary()) -> kzd_ledgers:doc().
 ledger_doc(Value) ->

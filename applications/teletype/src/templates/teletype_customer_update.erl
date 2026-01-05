@@ -7,9 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_customer_update).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
@@ -18,15 +19,18 @@
 -define(ACC_CHILDREN_LIST, <<"accounts/listing_by_children">>).
 -define(ACC_USERS_LIST, <<"users/crossbar_listing">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"user.first_name">>, <<"first_name">>, <<"First Name">>, <<"First Name">>)
-          ,?MACRO_VALUE(<<"user.last_name">>, <<"last_name">>, <<"Last Name">>, <<"Last Name">>)
-           | ?USER_MACROS
-           ++ ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(
+                <<"user.first_name">>, <<"first_name">>, <<"First Name">>, <<"First Name">>
+            ),
+            ?MACRO_VALUE(<<"user.last_name">>, <<"last_name">>, <<"Last Name">>, <<"Last Name">>)
+            | ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Customer update">>).
 -define(TEMPLATE_CATEGORY, <<"user">>).
@@ -42,16 +46,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"customer_update">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_responses().
@@ -69,7 +74,8 @@ handle_req(JObj, 'true') ->
     DataJObj = kz_json:normalize(JObj),
     AccountId = kz_json:get_value(<<"account_id">>, DataJObj),
     case teletype_util:is_notice_enabled(AccountId, JObj, maybe_expand_template_id(DataJObj)) of
-        'false' -> teletype_util:notification_disabled(DataJObj, maybe_expand_template_id(DataJObj));
+        'false' ->
+            teletype_util:notification_disabled(DataJObj, maybe_expand_template_id(DataJObj));
         'true' ->
             process_req(DataJObj, teletype_util:is_preview(DataJObj))
     end.
@@ -86,9 +92,10 @@ process_req(DataJObj, 'false') ->
 -spec process_accounts(kz_json:object()) -> template_responses().
 process_accounts(DataJObj) ->
     SenderId = kz_json:get_value(<<"account_id">>, DataJObj),
-    ViewOpts = [{'startkey', [SenderId]}
-               ,{'endkey', [SenderId, kz_json:new()]}
-               ],
+    ViewOpts = [
+        {'startkey', [SenderId]},
+        {'endkey', [SenderId, kz_json:new()]}
+    ],
     case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, ?ACC_CHILDREN_LIST, ViewOpts) of
         {'ok', Accounts} ->
             lists:flatten([process_account(kz_doc:id(Account), DataJObj) || Account <- Accounts]);
@@ -107,7 +114,11 @@ process_account(AccountId, DataJObj) ->
         _ ->
             AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
             {'ok', Users} = kz_datamgr:get_results(AccountDb, ?ACC_USERS_LIST, []),
-            lists:flatten(select_users_to_update([kz_json:get_value(<<"value">>, User) || User <- Users], DataJObj))
+            lists:flatten(
+                select_users_to_update(
+                    [kz_json:get_value(<<"value">>, User) || User <- Users], DataJObj
+                )
+            )
     end.
 
 -spec select_users_to_update(kz_json:objects(), kz_json:object()) -> template_responses().
@@ -121,19 +132,29 @@ select_users_to_update(Users, DataJObj) ->
 
 -spec send_update_to_user(kz_json:object(), kz_json:object()) -> template_response().
 send_update_to_user(UserJObj, DataJObj) ->
-    Macros = [{<<"system">>, teletype_util:system_params()}
-             ,{<<"account">>, teletype_util:account_params(DataJObj)}
-             ]
-        ++ build_macro_data(UserJObj, DataJObj)
-        ++ [{?THIRD_PARTY_DATA, kz_json:get_value(?THIRD_PARTY_DATA, DataJObj, kz_json:new())}],
+    Macros =
+        [
+            {<<"system">>, teletype_util:system_params()},
+            {<<"account">>, teletype_util:account_params(DataJObj)}
+        ] ++
+            build_macro_data(UserJObj, DataJObj) ++
+            [{?THIRD_PARTY_DATA, kz_json:get_value(?THIRD_PARTY_DATA, DataJObj, kz_json:new())}],
 
     RenderedTemplates =
-        teletype_templates:render(maybe_expand_template_id(DataJObj), Macros, DataJObj, maybe_tpls_provided(DataJObj)),
+        teletype_templates:render(
+            maybe_expand_template_id(DataJObj), Macros, DataJObj, maybe_tpls_provided(DataJObj)
+        ),
     {'ok', TemplateMetaJObj} =
-        teletype_templates:fetch_notification(maybe_expand_template_id(DataJObj), kapi_notifications:account_id(DataJObj)),
+        teletype_templates:fetch_notification(
+            maybe_expand_template_id(DataJObj), kapi_notifications:account_id(DataJObj)
+        ),
 
-    Subject = teletype_util:render_subject(kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj]), Macros),
-    DefaultEmails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, maybe_expanded_config_id(DataJObj)),
+    Subject = teletype_util:render_subject(
+        kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj]), Macros
+    ),
+    DefaultEmails = teletype_util:find_addresses(
+        DataJObj, TemplateMetaJObj, maybe_expanded_config_id(DataJObj)
+    ),
     Emails = maybe_replace_to_field(DefaultEmails, kz_json:get_value(<<"email">>, UserJObj)),
     case teletype_util:send_email(Emails, Subject, RenderedTemplates) of
         'ok' -> teletype_util:notification_completed(?TEMPLATE_ID);
@@ -147,31 +168,36 @@ maybe_replace_to_field(Emails, To) -> props:set_value(<<"to">>, [To], Emails).
 -spec build_macro_data(kz_json:object(), kz_json:object()) -> kz_term:proplist().
 build_macro_data(UserJObj, DataJObj) ->
     case teletype_util:is_preview(DataJObj) of
-        'true' -> [];
+        'true' ->
+            [];
         'false' ->
-            kz_json:foldl(fun(MacroKey, _V, Acc) ->
-                                  maybe_add_macro_key(MacroKey, Acc, UserJObj)
-                          end
-                         ,[]
-                         ,?TEMPLATE_MACROS
-                         )
+            kz_json:foldl(
+                fun(MacroKey, _V, Acc) ->
+                    maybe_add_macro_key(MacroKey, Acc, UserJObj)
+                end,
+                [],
+                ?TEMPLATE_MACROS
+            )
     end.
 
--spec maybe_add_macro_key(kz_json:path(), kz_term:proplist(), kz_json:object()) -> kz_term:proplist().
+-spec maybe_add_macro_key(kz_json:path(), kz_term:proplist(), kz_json:object()) ->
+    kz_term:proplist().
 maybe_add_macro_key(<<"user.", UserKey/binary>>, Acc, UserJObj) ->
     maybe_add_user_data(UserKey, Acc, UserJObj);
 maybe_add_macro_key(_Key, Acc, _UserJObj) ->
     lager:debug("unprocessed macro key ~s: ~p", [_Key, _UserJObj]),
     Acc.
 
--spec maybe_add_user_data(kz_json:path(), kz_term:proplist(), kz_json:object()) -> kz_term:proplist().
+-spec maybe_add_user_data(kz_json:path(), kz_term:proplist(), kz_json:object()) ->
+    kz_term:proplist().
 maybe_add_user_data(Key, Acc, UserJObj) ->
     UserMacros = props:get_value(<<"user">>, Acc, []),
     case kz_json:get_value(Key, UserJObj) of
         'undefined' ->
             lager:debug("unprocessed user macro key ~s: ~p", [Key, UserJObj]),
             Acc;
-        V -> props:set_value(<<"user">>, [{Key, V} | UserMacros], Acc)
+        V ->
+            props:set_value(<<"user">>, [{Key, V} | UserMacros], Acc)
     end.
 
 -spec maybe_expand_template_id(kz_json:object()) -> kz_term:ne_binary().

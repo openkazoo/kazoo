@@ -6,34 +6,43 @@
 %%%-----------------------------------------------------------------------------
 -module(acdc_maintenance).
 
--export([current_calls/1, current_calls/2
-        ,current_statuses/1
-        ,current_queues/1
-        ,current_agents/1
-        ,logout_agents/1, logout_agent/2
-        ,agent_presence_id/2
-        ,migrate_to_acdc_db/0, migrate/0
+-export([
+    current_calls/1, current_calls/2,
+    current_statuses/1,
+    current_queues/1,
+    current_agents/1,
+    logout_agents/1,
+    logout_agent/2,
+    agent_presence_id/2,
+    migrate_to_acdc_db/0,
+    migrate/0,
 
-        ,refresh/0, refresh_account/1
-        ,register_views/0
+    refresh/0,
+    refresh_account/1,
+    register_views/0,
 
-        ,flush_call_stat/1
-        ,queues_summary/0, queues_summary/1, queue_summary/2
-        ,queues_detail/0, queues_detail/1, queue_detail/2
-        ,queues_restart/1, queue_restart/2
+    flush_call_stat/1,
+    queues_summary/0, queues_summary/1,
+    queue_summary/2,
+    queues_detail/0, queues_detail/1,
+    queue_detail/2,
+    queues_restart/1,
+    queue_restart/2,
 
-        ,agents_summary/0, agents_summary/1, agent_summary/2
-        ,agents_detail/0, agents_detail/1, agent_detail/2
-        ,agent_login/2
-        ,agent_logout/2
-        ,agent_pause/2, agent_pause/3
-        ,agent_resume/2
-        ,agent_queue_login/3
-        ,agent_queue_logout/3
+    agents_summary/0, agents_summary/1,
+    agent_summary/2,
+    agents_detail/0, agents_detail/1,
+    agent_detail/2,
+    agent_login/2,
+    agent_logout/2,
+    agent_pause/2, agent_pause/3,
+    agent_resume/2,
+    agent_queue_login/3,
+    agent_queue_logout/3,
 
-        ,start_queue_diagnostics/2
-        ,stop_queue_diagnostics/1
-        ]).
+    start_queue_diagnostics/2,
+    stop_queue_diagnostics/1
+]).
 
 -include("acdc.hrl").
 
@@ -49,10 +58,12 @@ logout_agents(AccountId) ->
 logout_agent(AccountId, AgentId) ->
     io:format("Sending notice to log out agent ~s (~s)~n", [AgentId, AccountId]),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AccountId}
-               ,{<<"Agent-ID">>, AgentId}
-                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AccountId},
+            {<<"Agent-ID">>, AgentId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_logout/1).
 
 -define(KEYS, [<<"Waiting">>, <<"Handled">>, <<"Processed">>, <<"Abandoned">>]).
@@ -61,30 +72,37 @@ logout_agent(AccountId, AgentId) ->
 current_statuses(AccountId) ->
     {'ok', Agents} = acdc_agent_util:most_recent_statuses(AccountId),
     case kz_json:values(Agents) of
-        [] -> io:format("No agent statuses found for ~s~n", [AccountId]);
+        [] ->
+            io:format("No agent statuses found for ~s~n", [AccountId]);
         As ->
             io:format("Agent Statuses for ~s~n", [AccountId]),
-            io:format("~4s | ~35s | ~12s | ~20s |~n"
-                     ,[<<>>, <<"Agent-ID">>, <<"Status">>, <<"Timestamp">>]),
+            io:format(
+                "~4s | ~35s | ~12s | ~20s |~n",
+                [<<>>, <<"Agent-ID">>, <<"Status">>, <<"Timestamp">>]
+            ),
             log_current_statuses(As, 1)
     end.
 
-log_current_statuses([], _) -> 'ok';
-log_current_statuses([A|As], N) ->
+log_current_statuses([], _) ->
+    'ok';
+log_current_statuses([A | As], N) ->
     log_current_status(A, N),
-    log_current_statuses(As, N+1).
+    log_current_statuses(As, N + 1).
 
 log_current_status(A, N) ->
     TS = kz_json:get_integer_value(<<"timestamp">>, A),
-    io:format("~4b | ~35s | ~12s | ~20s |~n", [N, kz_json:get_value(<<"agent_id">>, A)
-                                              ,kz_json:get_value(<<"status">>, A)
-                                              ,kz_time:pretty_print_datetime(TS)
-                                              ]).
+    io:format("~4b | ~35s | ~12s | ~20s |~n", [
+        N,
+        kz_json:get_value(<<"agent_id">>, A),
+        kz_json:get_value(<<"status">>, A),
+        kz_time:pretty_print_datetime(TS)
+    ]).
 
 -spec current_queues(kz_term:ne_binary()) -> 'ok'.
 current_queues(AccountId) ->
     case acdc_agents_sup:find_acct_supervisors(AccountId) of
-        [] -> io:format("no agent processes found for ~s~n", [AccountId]);
+        [] ->
+            io:format("no agent processes found for ~s~n", [AccountId]);
         Agents ->
             io:format("Agent Queue Assignments for Account ~s~n", [AccountId]),
             log_current_queues(Agents)
@@ -95,14 +113,16 @@ log_current_queues(Agents) ->
     lists:foreach(fun log_current_queue/1, Agents).
 log_current_queue(AgentSup) ->
     AgentL = acdc_agent_sup:listener(AgentSup),
-    io:format(" ~35s | ~s~n", [acdc_agent_listener:id(AgentL)
-                              ,kz_binary:join(acdc_agent_listener:queues(AgentL))
-                              ]).
+    io:format(" ~35s | ~s~n", [
+        acdc_agent_listener:id(AgentL),
+        kz_binary:join(acdc_agent_listener:queues(AgentL))
+    ]).
 
 -spec current_agents(kz_term:ne_binary()) -> 'ok'.
 current_agents(AccountId) ->
     case acdc_queues_sup:find_acct_supervisors(AccountId) of
-        [] -> io:format("no queue processes found for ~s~n", [AccountId]);
+        [] ->
+            io:format("no queue processes found for ~s~n", [AccountId]);
         Queues ->
             io:format("Queue Agent Assignments for Account ~s~n", [AccountId]),
             log_current_agents(Queues)
@@ -113,36 +133,42 @@ log_current_agents(Queues) ->
 log_current_agent(QueueSup) ->
     QueueM = acdc_queue_sup:manager(QueueSup),
     {_AccountId, QueueId} = acdc_queue_manager:config(QueueM),
-    io:format(" ~35s | ~s~n", [QueueId
-                              ,kz_binary:join(acdc_queue_manager:agents(QueueM))
-                              ]).
+    io:format(" ~35s | ~s~n", [
+        QueueId,
+        kz_binary:join(acdc_queue_manager:agents(QueueM))
+    ]).
 
 -spec current_calls(kz_term:ne_binary()) -> 'ok'.
 current_calls(AccountId) ->
-    Req = [{<<"Account-ID">>, AccountId}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    Req = [
+        {<<"Account-ID">>, AccountId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     get_and_show(AccountId, <<"all">>, Req).
 
 -spec current_calls(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 current_calls(AccountId, QueueId) when is_binary(QueueId) ->
-    Req = [{<<"Account-ID">>, AccountId}
-          ,{<<"Queue-ID">>, QueueId}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    Req = [
+        {<<"Account-ID">>, AccountId},
+        {<<"Queue-ID">>, QueueId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     get_and_show(AccountId, QueueId, Req);
 current_calls(AccountId, Props) ->
-    Req = [{<<"Account-ID">>, AccountId}
-           | Props ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    Req = [
+        {<<"Account-ID">>, AccountId}
+        | Props ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     get_and_show(AccountId, <<"custom">>, Req).
 
 get_and_show(AccountId, QueueId, Req) ->
     kz_util:put_callid(<<"acdc_maint.", AccountId/binary, ".", QueueId/binary>>),
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_acdc_stats:publish_current_calls_req/1
-                                    ,'acdc'
-                                    )
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_acdc_stats:publish_current_calls_req/1,
+            'acdc'
+        )
     of
         {_, []} ->
             io:format("no call stats returned for account ~s (queue ~s)~n", [AccountId, QueueId]);
@@ -153,19 +179,24 @@ get_and_show(AccountId, QueueId, Req) ->
             io:format("call stats for account ~s (queue ~s)~n", [AccountId, QueueId]),
             show_call_stats(JObjs, ?KEYS);
         {'error', _E} ->
-            io:format("failed to lookup call stats for account ~s (queue ~s): ~p~n", [AccountId, QueueId, _E])
+            io:format("failed to lookup call stats for account ~s (queue ~s): ~p~n", [
+                AccountId, QueueId, _E
+            ])
     end.
 
-show_call_stats([], _) -> 'ok';
-show_call_stats([Resp|Resps], Ks) ->
+show_call_stats([], _) ->
+    'ok';
+show_call_stats([Resp | Resps], Ks) ->
     kz_util:put_callid(?MODULE),
     show_call_stat_cat(Ks, Resp),
     show_call_stats(Resps, Ks).
 
-show_call_stat_cat([], _) -> 'ok';
-show_call_stat_cat([K|Ks], Resp) ->
+show_call_stat_cat([], _) ->
+    'ok';
+show_call_stat_cat([K | Ks], Resp) ->
     case kz_json:get_value(K, Resp) of
-        'undefined' -> show_call_stat_cat(Ks, Resp);
+        'undefined' ->
+            show_call_stat_cat(Ks, Resp);
         V ->
             io:format("call stats in ~s~n", [K]),
             show_stats(V),
@@ -173,11 +204,13 @@ show_call_stat_cat([K|Ks], Resp) ->
             io:format("~n~n", [])
     end.
 
-show_stats([]) -> 'ok';
-show_stats([S|Ss]) ->
-    _ = [io:format("~s: ~p~n", [K, V])
-         || {K, V} <- kz_json:to_proplist(kz_doc:public_fields(S))
-        ],
+show_stats([]) ->
+    'ok';
+show_stats([S | Ss]) ->
+    _ = [
+        io:format("~s: ~p~n", [K, V])
+     || {K, V} <- kz_json:to_proplist(kz_doc:public_fields(S))
+    ],
     show_stats(Ss).
 
 -spec refresh() -> 'ok'.
@@ -190,7 +223,11 @@ refresh() ->
             lager:debug("refreshed accounts");
         {'error', 'not_found'} ->
             lager:debug("acdc db not found"),
-            lager:debug("consider running ~s:migrate() to enable acdc for already-configured accounts", [?MODULE]);
+            lager:debug(
+                "consider running ~s:migrate() to enable acdc for already-configured accounts", [
+                    ?MODULE
+                ]
+            );
         {'error', _E} ->
             lager:debug("failed to query acdc db: ~p", [_E])
     end.
@@ -232,14 +269,18 @@ migrate_to_acdc_db() ->
     io:format("migration complete~n").
 
 -spec maybe_remove_acdc_account(kz_term:ne_binary()) -> 'ok'.
-maybe_remove_acdc_account(<<"_design/", _/binary>>) -> 'ok';
+maybe_remove_acdc_account(<<"_design/", _/binary>>) ->
+    'ok';
 maybe_remove_acdc_account(AccountId) ->
     case kzd_accounts:fetch(AccountId) of
-        {'ok', _} -> 'ok';
+        {'ok', _} ->
+            'ok';
         {'error', 'not_found'} ->
             {'ok', JObj} = kz_datamgr:open_cache_doc(?KZ_ACDC_DB, AccountId),
             {'ok', _Del} = kz_datamgr:del_doc(?KZ_ACDC_DB, JObj),
-            io:format("account ~p not found in ~s, removing from ~s~n", [AccountId, ?KZ_ACCOUNTS_DB, ?KZ_ACDC_DB])
+            io:format("account ~p not found in ~s, removing from ~s~n", [
+                AccountId, ?KZ_ACCOUNTS_DB, ?KZ_ACDC_DB
+            ])
     end.
 
 -spec migrate_to_acdc_db(kz_term:ne_binary()) -> 'ok'.
@@ -250,37 +291,44 @@ migrate_to_acdc_db(AccountId) ->
 migrate_to_acdc_db(AccountId, 0) ->
     io:format("retries exceeded, skipping account ~s~n", [AccountId]);
 migrate_to_acdc_db(AccountId, Retries) ->
-    case kz_datamgr:get_results(?KZ_ACDC_DB
-                               ,<<"acdc/accounts_listing">>
-                               ,[{'key', AccountId}]
-                               )
+    case
+        kz_datamgr:get_results(
+            ?KZ_ACDC_DB,
+            <<"acdc/accounts_listing">>,
+            [{'key', AccountId}]
+        )
     of
         {'ok', []} ->
             maybe_migrate(AccountId);
-        {'ok', _} -> 'ok';
+        {'ok', _} ->
+            'ok';
         {'error', 'not_found'} ->
             io:format("acdc db not found (or view is missing, restoring then trying again)~n", []),
             acdc_init:init_db(),
             timer:sleep(250),
-            migrate_to_acdc_db(AccountId, Retries-1);
+            migrate_to_acdc_db(AccountId, Retries - 1);
         {'error', _E} ->
             io:format("failed to check acdc db for account ~s: ~p~n", [AccountId, _E]),
             timer:sleep(250),
-            migrate_to_acdc_db(AccountId, Retries-1)
+            migrate_to_acdc_db(AccountId, Retries - 1)
     end.
 
 -spec maybe_migrate(kz_term:ne_binary()) -> 'ok'.
 maybe_migrate(AccountId) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     case kz_datamgr:get_results(AccountDb, <<"queues/crossbar_listing">>, [{'limit', 1}]) of
-        {'ok', []} -> 'ok';
-        {'ok', [_|_]} ->
+        {'ok', []} ->
+            'ok';
+        {'ok', [_ | _]} ->
             io:format("account ~s has queues, adding to acdc db~n", [AccountId]),
-            Doc = kz_doc:update_pvt_parameters(kz_json:from_list([{<<"_id">>, AccountId}])
-                                              ,?KZ_ACDC_DB
-                                              ,[{'account_id', AccountId}
-                                               ,{'type', <<"acdc_activation">>}
-                                               ]),
+            Doc = kz_doc:update_pvt_parameters(
+                kz_json:from_list([{<<"_id">>, AccountId}]),
+                ?KZ_ACDC_DB,
+                [
+                    {'account_id', AccountId},
+                    {'type', <<"acdc_activation">>}
+                ]
+            ),
             _ = kz_datamgr:ensure_saved(?KZ_ACDC_DB, Doc),
             io:format("saved account ~s to db~n", [AccountId]);
         {'error', _E} ->
@@ -300,13 +348,15 @@ agent_presence_id(AccountId, AgentId) ->
 -spec flush_call_stat(kz_term:ne_binary()) -> 'ok'.
 flush_call_stat(CallId) ->
     case acdc_stats:find_call(CallId) of
-        'undefined' -> io:format("nothing found for call ~s~n", [CallId]);
+        'undefined' ->
+            io:format("nothing found for call ~s~n", [CallId]);
         Call ->
-            acdc_stats:call_abandoned(kz_json:get_value(<<"Account-ID">>, Call)
-                                     ,kz_json:get_value(<<"Queue-ID">>, Call)
-                                     ,CallId
-                                     ,?ABANDON_INTERNAL_ERROR
-                                     ),
+            acdc_stats:call_abandoned(
+                kz_json:get_value(<<"Account-ID">>, Call),
+                kz_json:get_value(<<"Queue-ID">>, Call),
+                CallId,
+                ?ABANDON_INTERNAL_ERROR
+            ),
             io:format("setting call to 'abandoned'~n", [])
     end.
 
@@ -319,22 +369,29 @@ queues_summary() ->
 queues_summary(AcctId) ->
     kz_util:put_callid(?MODULE),
     show_queues_summary(
-      [Q || {_, {QAcctId, _}} = Q <- acdc_queues_sup:queues_running(),
+        [
+            Q
+         || {_, {QAcctId, _}} = Q <- acdc_queues_sup:queues_running(),
             QAcctId =:= AcctId
-      ]).
+        ]
+    ).
 
 -spec queue_summary(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 queue_summary(AcctId, QueueId) ->
     kz_util:put_callid(?MODULE),
     show_queues_summary(
-      [Q || {_, {QAcctId, QQueueId}} = Q <- acdc_queues_sup:queues_running(),
+        [
+            Q
+         || {_, {QAcctId, QQueueId}} = Q <- acdc_queues_sup:queues_running(),
             QAcctId =:= AcctId,
             QQueueId =:= QueueId
-      ]).
+        ]
+    ).
 
 -spec show_queues_summary([{pid(), {kz_term:ne_binary(), kz_term:ne_binary()}}]) -> 'ok'.
-show_queues_summary([]) -> 'ok';
-show_queues_summary([{P, {AcctId, QueueId}}|Qs]) ->
+show_queues_summary([]) ->
+    'ok';
+show_queues_summary([{P, {AcctId, QueueId}} | Qs]) ->
     ?PRINT("  Supervisor: ~p Acct: ~s Queue: ~s~n", [P, AcctId, QueueId]),
     show_queues_summary(Qs).
 
@@ -359,9 +416,10 @@ queue_detail(AcctId, QueueId) ->
 queues_restart(AcctId) ->
     kz_util:put_callid(?MODULE),
     case acdc_queues_sup:find_acct_supervisors(AcctId) of
-        [] -> lager:info("there are no running queues in ~s", [AcctId]);
+        [] ->
+            lager:info("there are no running queues in ~s", [AcctId]);
         Pids ->
-            F = fun (Pid) -> maybe_stop_then_start_queue(AcctId, Pid) end,
+            F = fun(Pid) -> maybe_stop_then_start_queue(AcctId, Pid) end,
             lists:foreach(F, Pids)
     end.
 
@@ -415,22 +473,29 @@ agents_summary() ->
 agents_summary(AcctId) ->
     kz_util:put_callid(?MODULE),
     show_agents_summary(
-      [A || {_, {AAcctId, _, _}} = A <- acdc_agents_sup:agents_running(),
+        [
+            A
+         || {_, {AAcctId, _, _}} = A <- acdc_agents_sup:agents_running(),
             AAcctId =:= AcctId
-      ]).
+        ]
+    ).
 
 -spec agent_summary(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 agent_summary(AcctId, AgentId) ->
     kz_util:put_callid(?MODULE),
     show_agents_summary(
-      [Q || {_, {AAcctId, AAgentId, _}} = Q <- acdc_agents_sup:agents_running(),
+        [
+            Q
+         || {_, {AAcctId, AAgentId, _}} = Q <- acdc_agents_sup:agents_running(),
             AAcctId =:= AcctId,
             AAgentId =:= AgentId
-      ]).
+        ]
+    ).
 
 -spec show_agents_summary([{pid(), acdc_agent_listener:config()}]) -> 'ok'.
-show_agents_summary([]) -> 'ok';
-show_agents_summary([{P, {AcctId, QueueId, _AMQPQueue}}|Qs]) ->
+show_agents_summary([]) ->
+    'ok';
+show_agents_summary([{P, {AcctId, QueueId, _AMQPQueue}} | Qs]) ->
     lager:info("  Supervisor: ~p Acct: ~s Agent: ~s", [P, AcctId, QueueId]),
     show_queues_summary(Qs).
 
@@ -457,10 +522,12 @@ agent_detail(AcctId, AgentId) ->
 agent_login(AcctId, AgentId) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-                |  kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_login/1),
     lager:info("published login update for agent").
 
@@ -468,10 +535,12 @@ agent_login(AcctId, AgentId) ->
 agent_logout(AcctId, AgentId) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-                |  kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_logout/1),
     lager:info("published logout update for agent").
 
@@ -479,15 +548,18 @@ agent_logout(AcctId, AgentId) ->
 agent_pause(AcctId, AgentId) ->
     agent_pause(AcctId, AgentId, ?DEFAULT_AGENT_PAUSE_TIMEOUT).
 
--spec agent_pause(kz_term:ne_binary(), kz_term:ne_binary(), pos_integer() | kz_term:ne_binary()) -> 'ok'.
+-spec agent_pause(kz_term:ne_binary(), kz_term:ne_binary(), pos_integer() | kz_term:ne_binary()) ->
+    'ok'.
 agent_pause(AcctId, AgentId, Timeout) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-               ,{<<"Time-Limit">>, Timeout}
-                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId},
+            {<<"Time-Limit">>, Timeout}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_pause/1),
     lager:info("published pause for agent").
 
@@ -495,10 +567,12 @@ agent_pause(AcctId, AgentId, Timeout) ->
 agent_resume(AcctId, AgentId) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-                |  kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_resume/1),
     lager:info("published resume for agent").
 
@@ -506,11 +580,13 @@ agent_resume(AcctId, AgentId) ->
 agent_queue_login(AcctId, AgentId, QueueId) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-               ,{<<"Queue-ID">>, QueueId}
-                |  kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId},
+            {<<"Queue-ID">>, QueueId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_login_queue/1),
     lager:info("published login update for agent").
 
@@ -518,11 +594,13 @@ agent_queue_login(AcctId, AgentId, QueueId) ->
 agent_queue_logout(AcctId, AgentId, QueueId) ->
     kz_util:put_callid(?MODULE),
     Update = props:filter_undefined(
-               [{<<"Account-ID">>, AcctId}
-               ,{<<"Agent-ID">>, AgentId}
-               ,{<<"Queue-ID">>, QueueId}
-                |  kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ]),
+        [
+            {<<"Account-ID">>, AcctId},
+            {<<"Agent-ID">>, AgentId},
+            {<<"Queue-ID">>, QueueId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     _ = kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_logout_queue/1),
     lager:info("published logout update for agent").
 
@@ -533,12 +611,17 @@ agent_queue_logout(AcctId, AgentId, QueueId) ->
 %%------------------------------------------------------------------------------
 -spec start_queue_diagnostics(kz_term:text(), kz_term:text()) -> 'ok'.
 start_queue_diagnostics(AccountId, QueueId) ->
-    case acdc_queue_manager_diag_sup:start_diagnostics(kz_term:to_binary(AccountId), kz_term:to_binary(QueueId)) of
+    case
+        acdc_queue_manager_diag_sup:start_diagnostics(
+            kz_term:to_binary(AccountId), kz_term:to_binary(QueueId)
+        )
+    of
         {'ok', Pid} ->
-            io:format("This diagnostic process is expensive. Remember to stop diagnostics when you are done!~n"
-                      ++ "To stop: `~p:~p(list_to_pid(\"~s\")).`~n"
-                     ,[?MODULE, 'stop_queue_diagnostics', pid_to_list(Pid)]
-                     );
+            io:format(
+                "This diagnostic process is expensive. Remember to stop diagnostics when you are done!~n" ++
+                    "To stop: `~p:~p(list_to_pid(\"~s\")).`~n",
+                [?MODULE, 'stop_queue_diagnostics', pid_to_list(Pid)]
+            );
         {'error', E} ->
             io:format("Failed to start queue diagnostics: ~p~n", [E])
     end.

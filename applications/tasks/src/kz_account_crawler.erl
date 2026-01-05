@@ -10,28 +10,32 @@
 
 -export([start_link/0]).
 -export([stop/0, check/1]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("tasks.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {cleanup_ref = cleanup_cycle_timer() :: reference()
-               ,account_ids = [] :: kz_term:ne_binaries()
-               }).
+-record(state, {
+    cleanup_ref = cleanup_cycle_timer() :: reference(),
+    account_ids = [] :: kz_term:ne_binaries()
+}).
 -type state() :: #state{}.
 
 -define(TIME_BETWEEN_CRAWLS,
-        kapps_config:get_integer(?CONFIG_CAT, <<"interaccount_delay_ms">>, 10 * ?MILLISECONDS_IN_SECOND)).
+    kapps_config:get_integer(?CONFIG_CAT, <<"interaccount_delay_ms">>, 10 * ?MILLISECONDS_IN_SECOND)
+).
 
 -define(TIME_BETWEEN_WHOLE_CRAWLS,
-        kapps_config:get_integer(?CONFIG_CAT, <<"cycle_delay_time_ms">>, 5 * ?MILLISECONDS_IN_MINUTE)).
+    kapps_config:get_integer(?CONFIG_CAT, <<"cycle_delay_time_ms">>, 5 * ?MILLISECONDS_IN_MINUTE)
+).
 
 %%%=============================================================================
 %%% API
@@ -50,8 +54,9 @@ stop() ->
     gen_server:cast(?SERVER, 'stop').
 
 -spec check(kz_term:ne_binary()) -> 'ok'.
-check(Account)
-  when is_binary(Account) ->
+check(Account) when
+    is_binary(Account)
+->
     AccountId = kz_util:format_account_id(Account),
     case kz_datamgr:open_doc(?KZ_ACCOUNTS_DB, AccountId) of
         {'ok', AccountJObj} ->
@@ -101,42 +106,56 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref = Ref
-                                          ,account_ids = []
-                                          }=State) ->
+handle_info(
+    {'timeout', Ref, _Msg},
+    #state{
+        cleanup_ref = Ref,
+        account_ids = []
+    } = State
+) ->
     NewState =
         case kz_datamgr:all_docs(?KZ_ACCOUNTS_DB) of
             {'ok', JObjs} ->
-                IDs = [ID || JObj <- JObjs,
-                             ?MATCH_ACCOUNT_RAW(ID) <- [kz_doc:id(JObj)]
-                      ],
+                IDs = [
+                    ID
+                 || JObj <- JObjs,
+                    ?MATCH_ACCOUNT_RAW(ID) <- [kz_doc:id(JObj)]
+                ],
                 lager:debug("beginning crawling accounts"),
-                State#state{cleanup_ref = cleanup_timer()
-                           ,account_ids = kz_term:shuffle_list(IDs)
-                           };
+                State#state{
+                    cleanup_ref = cleanup_timer(),
+                    account_ids = kz_term:shuffle_list(IDs)
+                };
             {error, _R} ->
                 lager:warning("unable to list all docs in ~s: ~p", [?KZ_ACCOUNTS_DB, _R]),
                 State#state{cleanup_ref = cleanup_cycle_timer()}
         end,
     {'noreply', NewState};
-
-handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref = Ref
-                                          ,account_ids = [AccountId]
-                                          }=State) ->
+handle_info(
+    {'timeout', Ref, _Msg},
+    #state{
+        cleanup_ref = Ref,
+        account_ids = [AccountId]
+    } = State
+) ->
     _ = crawl_account(AccountId),
     lager:info("account crawler completed a full crawl"),
-    {'noreply', State#state{cleanup_ref = cleanup_cycle_timer()
-                           ,account_ids = []
-                           }};
-
-handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref = Ref
-                                          ,account_ids = [AccountId | AccountIds]
-                                          }=State) ->
+    {'noreply', State#state{
+        cleanup_ref = cleanup_cycle_timer(),
+        account_ids = []
+    }};
+handle_info(
+    {'timeout', Ref, _Msg},
+    #state{
+        cleanup_ref = Ref,
+        account_ids = [AccountId | AccountIds]
+    } = State
+) ->
     _ = crawl_account(AccountId),
-    {'noreply', State#state{cleanup_ref = cleanup_timer()
-                           ,account_ids = AccountIds
-                           }};
-
+    {'noreply', State#state{
+        cleanup_ref = cleanup_timer(),
+        account_ids = AccountIds
+    }};
 handle_info(_Info, State) ->
     lager:debug("unhandled msg: ~p", [_Info]),
     {'noreply', State}.
@@ -184,10 +203,14 @@ crawl_account(AccountId) ->
     OpenResult = kz_datamgr:open_doc(?KZ_ACCOUNTS_DB, AccountId),
     check_then_process_account(AccountId, OpenResult).
 
--spec check_then_process_account(kz_term:ne_binary(), {'ok', kzd_accounts:doc()} | {'error',any()}) -> 'ok'.
+-spec check_then_process_account(
+    kz_term:ne_binary(), {'ok', kzd_accounts:doc()} | {'error', any()}
+) -> 'ok'.
 check_then_process_account(AccountId, {'ok', AccountJObj}) ->
-    case kz_doc:is_soft_deleted(AccountJObj)
-        orelse not kzd_accounts:is_enabled(AccountJObj) of
+    case
+        kz_doc:is_soft_deleted(AccountJObj) orelse
+            not kzd_accounts:is_enabled(AccountJObj)
+    of
         'true' ->
             lager:debug("not processing account ~p (soft-destroyed)", [AccountId]);
         'false' ->

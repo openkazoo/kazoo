@@ -5,11 +5,14 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_custom_sip_headers).
 
--export([inbound/1, inbound/2, set_inbound/2
-        ,outbound/1, outbound/2, set_outbound/2
-        ,inbound_header/2, inbound_header/3
-        ,outbound_header/2, outbound_header/3
-        ]).
+-export([
+    inbound/1, inbound/2,
+    set_inbound/2,
+    outbound/1, outbound/2,
+    set_outbound/2,
+    inbound_header/2, inbound_header/3,
+    outbound_header/2, outbound_header/3
+]).
 
 -include("kz_documents.hrl").
 

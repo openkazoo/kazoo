@@ -16,8 +16,7 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(SERVER, ?MODULE).
--define(CHILDREN, [?WORKER('kazoo_telemetry_leader')
-                  ]).
+-define(CHILDREN, [?WORKER('kazoo_telemetry_leader')]).
 
 %%==============================================================================
 %% API functions

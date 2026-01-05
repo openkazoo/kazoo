@@ -14,8 +14,14 @@
 -define(DEFAULT_DESC_WEIGHT, 0).
 -define(DEFAULT_ASC_WEIGHT, 9999).
 
--spec handle_req(stepswitch_resources:resources(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_term:ne_binary(), kz_json:object()) ->
-          stepswitch_resources:resources().
+-spec handle_req(
+    stepswitch_resources:resources(),
+    kz_term:ne_binary(),
+    kapi_offnet_resource:req(),
+    kz_term:ne_binary(),
+    kz_json:object()
+) ->
+    stepswitch_resources:resources().
 handle_req([], _Number, _OffnetJObj, _DB, _Params) ->
     lager:warning("empty resource list", []),
     [];
@@ -31,17 +37,18 @@ handle_req(Resources, Number, OffnetJObj, DB, Params) ->
     order_by(Resources, Values, SortOrder).
 
 -spec order_by(stepswitch_resources:resources(), kz_json:object(), kz_term:ne_binary()) ->
-          stepswitch_resources:resources().
+    stepswitch_resources:resources().
 order_by(Resources, Values, SortOrder) ->
-    lists:sort(fun(R1, R2) ->
-                       Id1 = stepswitch_resources:get_resrc_id(R1),
-                       Id2 = stepswitch_resources:get_resrc_id(R2),
-                       Weight1 = kz_json:get_value(Id1, Values, default_weight(SortOrder)),
-                       Weight2 = kz_json:get_value(Id2, Values, default_weight(SortOrder)),
-                       sort(Weight1, Weight2, SortOrder)
-               end
-              ,Resources
-              ).
+    lists:sort(
+        fun(R1, R2) ->
+            Id1 = stepswitch_resources:get_resrc_id(R1),
+            Id2 = stepswitch_resources:get_resrc_id(R2),
+            Weight1 = kz_json:get_value(Id1, Values, default_weight(SortOrder)),
+            Weight2 = kz_json:get_value(Id2, Values, default_weight(SortOrder)),
+            sort(Weight1, Weight2, SortOrder)
+        end,
+        Resources
+    ).
 
 -spec default_weight(kz_term:ne_binary()) -> integer().
 default_weight(<<"ascend">>) -> ?DEFAULT_ASC_WEIGHT;

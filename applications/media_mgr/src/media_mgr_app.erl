@@ -12,7 +12,6 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
-
 %%==============================================================================
 %% Application callbacks
 %%==============================================================================
@@ -34,7 +33,6 @@ start(_Type, _Args) ->
 stop(_State) ->
     _ = kz_media_proxy:stop(),
     'ok'.
-
 
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->

@@ -19,16 +19,19 @@ handle_req(JObj, _Props) ->
         Username ->
             Password = kapps_conference:bridge_password(Conference),
             send_authn_resp(Password, JObj);
-        _Else -> 'ok'
+        _Else ->
+            'ok'
     end.
 
 -spec send_authn_resp(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 send_authn_resp(Password, JObj) ->
     Resp = props:filter_undefined(
-             [{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
-             ,{<<"Auth-Password">>, Password}
-             ,{<<"Auth-Method">>, <<"password">>}
-              | kz_api:default_headers(<<"directory">>, <<"authn_resp">>, ?APP_NAME, ?APP_VERSION)
-             ]),
+        [
+            {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)},
+            {<<"Auth-Password">>, Password},
+            {<<"Auth-Method">>, <<"password">>}
+            | kz_api:default_headers(<<"directory">>, <<"authn_resp">>, ?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     lager:debug("sending SIP authentication reply, with credentials"),
     kapi_authn:publish_resp(kz_json:get_value(<<"Server-ID">>, JObj), Resp).

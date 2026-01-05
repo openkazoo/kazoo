@@ -31,9 +31,10 @@ help() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec help(kz_term:ne_binary()) -> {'ok', kz_json:object()} |
-          kz_tasks:help_error().
-help(Category=?NE_BINARY) ->
+-spec help(kz_term:ne_binary()) ->
+    {'ok', kz_json:object()}
+    | kz_tasks:help_error().
+help(Category = ?NE_BINARY) ->
     HelpJObj = tasks_bindings:fold(<<"tasks.help">>, [kz_json:new(), Category]),
     JObj = parse_apis(HelpJObj),
     case kz_json:is_empty(JObj) of
@@ -45,9 +46,10 @@ help(Category=?NE_BINARY) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec help(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()} |
-          kz_tasks:help_error().
-help(Category=?NE_BINARY, Action=?NE_BINARY) ->
+-spec help(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {'ok', kz_json:object()}
+    | kz_tasks:help_error().
+help(Category = ?NE_BINARY, Action = ?NE_BINARY) ->
     HelpJObj = tasks_bindings:fold(<<"tasks.help">>, [kz_json:new(), Category, Action]),
     JObj = parse_apis(HelpJObj),
     case kz_json:is_empty(JObj) of
@@ -67,14 +69,16 @@ handle_lookup_req(JObj, _Props) ->
             {'error', _R} ->
                 lager:debug("lookup_req error: ~s", [_R]),
                 kz_json:new();
-            JOk -> JOk
+            JOk ->
+                JOk
         end,
     Resp = kz_json:from_list(
-             [{<<"Help">>, Help}
-             ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]
-            ),
+        [
+            {<<"Help">>, Help},
+            {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_tasks:publish_lookup_resp(kz_api:server_id(JObj), Resp).
 
 %%%=============================================================================
@@ -85,8 +89,9 @@ handle_lookup_req(JObj, _Props) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_help(kz_json:object()) -> kz_json:object() |
-          kz_tasks:help_error().
+-spec get_help(kz_json:object()) ->
+    kz_json:object()
+    | kz_tasks:help_error().
 get_help(JObj) ->
     case {kapi_tasks:category(JObj), kapi_tasks:action(JObj)} of
         {'undefined', 'undefined'} -> help();
@@ -94,11 +99,11 @@ get_help(JObj) ->
         {Category, Action} -> lookup_result(Category, Action, help(Category, Action))
     end.
 
-lookup_result(_, {error, _}=E) -> E;
-lookup_result(Category, {ok, JObj}) ->
-    kz_json:from_list([{Category, JObj}]).
+lookup_result(_, {error, _} = E) -> E;
+lookup_result(Category, {ok, JObj}) -> kz_json:from_list([{Category, JObj}]).
 
-lookup_result(_, _, {error, _}=E) -> E;
+lookup_result(_, _, {error, _} = E) ->
+    E;
 lookup_result(Category, Action, {ok, JObj}) ->
     kz_json:set_value([Category, Action], JObj, kz_json:new()).
 
@@ -107,8 +112,9 @@ parse_apis(HelpJObj) ->
     parse_apis(kz_json:to_proplist(HelpJObj), kz_json:new()).
 
 -spec parse_apis(kz_term:proplist(), kz_json:object()) -> kz_json:object().
-parse_apis([], Acc) -> Acc;
-parse_apis([{Category, Actions}|HelpProps], Acc) ->
+parse_apis([], Acc) ->
+    Acc;
+parse_apis([{Category, Actions} | HelpProps], Acc) ->
     lists:foreach(fun verify_unicity_map/1, kz_json:to_proplist(Actions)),
     NewAcc = kz_json:set_value(Category, Actions, Acc),
     parse_apis(HelpProps, NewAcc).
@@ -118,12 +124,11 @@ verify_unicity_map({_Action, API}) ->
     Fields0 = kz_tasks:possible_fields(API),
     Fields = [kz_term:to_lower_binary(Field) || Field <- Fields0],
     case
-        length(lists:usort(Fields)) == length(Fields)
-        andalso Fields == Fields0
+        length(lists:usort(Fields)) == length(Fields) andalso
+            Fields == Fields0
     of
         'true' -> 'ok';
-        'false' ->
-            lager:error("action '~s' has duplicate or uppercase fields", [_Action])
+        'false' -> lager:error("action '~s' has duplicate or uppercase fields", [_Action])
     end.
 
 %%% End of Module.

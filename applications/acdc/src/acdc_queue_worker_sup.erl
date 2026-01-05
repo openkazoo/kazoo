@@ -13,21 +13,23 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/3
-        ,stop/1
-        ,listener/1
-        ,shared_queue/1
-        ,fsm/1
-        ,status/1
-        ]).
+-export([
+    start_link/3,
+    stop/1,
+    listener/1,
+    shared_queue/1,
+    fsm/1,
+    status/1
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(CHILDREN, [?WORKER_ARGS('acdc_queue_listener', [self() | Args])
-                  ,?WORKER_ARGS('acdc_queue_shared', [self() | Args])
-                  ,?WORKER_ARGS('acdc_queue_fsm', [self() | Args])
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_ARGS('acdc_queue_listener', [self() | Args]),
+    ?WORKER_ARGS('acdc_queue_shared', [self() | Args]),
+    ?WORKER_ARGS('acdc_queue_fsm', [self() | Args])
+]).
 
 %%%=============================================================================
 %%% API functions
@@ -67,7 +69,7 @@ fsm(WorkerSup) ->
 
 -spec child_of_type(pid(), atom()) -> [pid()].
 child_of_type(WSup, T) ->
-    [P || {Type, P,'worker', [_]} <- supervisor:which_children(WSup), T =:= Type].
+    [P || {Type, P, 'worker', [_]} <- supervisor:which_children(WSup), T =:= Type].
 
 -spec status(pid()) -> 'ok'.
 status(Supervisor) ->
@@ -84,12 +86,14 @@ status(Supervisor) ->
 
     print_status(Status).
 
-print_status([]) -> 'ok';
-print_status([{_, 'undefined'}|T]) -> print_status(T);
-print_status([{K, V}|T]) when is_binary(V) ->
+print_status([]) ->
+    'ok';
+print_status([{_, 'undefined'} | T]) ->
+    print_status(T);
+print_status([{K, V} | T]) when is_binary(V) ->
     ?PRINT("        ~s: ~s", [K, V]),
     print_status(T);
-print_status([{K, V}|T]) ->
+print_status([{K, V} | T]) ->
     ?PRINT("        ~s: ~p", [K, V]),
     print_status(T).
 

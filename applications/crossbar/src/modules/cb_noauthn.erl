@@ -10,9 +10,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_noauthn).
 
--export([init/0
-        ,authenticate/1
-        ]).
+-export([
+    init/0,
+    authenticate/1
+]).
 
 -include("crossbar.hrl").
 

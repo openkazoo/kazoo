@@ -16,12 +16,16 @@
 
 -define(FS_REQ_HEADERS, [<<"Application-Name">>, <<"Args">>]).
 -define(OPTIONAL_FS_REQ_HEADERS, [<<"Insert-At">>]).
--define(FS_REQ_VALUES, [{<<"Event-Category">>, <<"fs">>}
-                       ,{<<"Event-Name">>, <<"command">>}
-                       ]).
--define(FS_REQ_TYPES, [{<<"Application-Name">>, fun(<<"uuid_", _/binary>>) -> 'true';
-                                                   (App) -> lists:member(App, ?FS_COMMAND_WHITELIST)
-                                                end}]).
+-define(FS_REQ_VALUES, [
+    {<<"Event-Category">>, <<"fs">>},
+    {<<"Event-Name">>, <<"command">>}
+]).
+-define(FS_REQ_TYPES, [
+    {<<"Application-Name">>, fun
+        (<<"uuid_", _/binary>>) -> 'true';
+        (App) -> lists:member(App, ?FS_COMMAND_WHITELIST)
+    end}
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc FreeSWITCH Request, Pass-through of FreeSWITCH dialplan commands.

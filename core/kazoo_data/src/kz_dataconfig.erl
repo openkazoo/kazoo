@@ -33,7 +33,8 @@ connection() ->
 -spec connection_options(kz_term:proplist()) -> kz_term:proplist().
 connection_options(Props) ->
     case props:get_value('connect_options', Props) of
-        'undefined' -> Props;
+        'undefined' ->
+            Props;
         Section ->
             Options = props:get_value('generic', kz_config:get(Section), []),
             [{'connect_options', Options} | props:delete('connect_options', Props)]
@@ -42,24 +43,27 @@ connection_options(Props) ->
 -spec connection(kz_term:proplist() | map()) -> data_connection().
 connection(List) when is_list(List) ->
     connection(maps:from_list(List));
-connection(#{driver := App}=Map)
-  when not is_atom(App) ->
+connection(#{driver := App} = Map) when
+    not is_atom(App)
+->
     connection(Map#{driver => kz_term:to_atom(App, 'true')});
-connection(#{app := App}=Map)
-  when not is_atom(App) ->
+connection(#{app := App} = Map) when
+    not is_atom(App)
+->
     connection(Map#{app => kz_term:to_atom(App, 'true')});
-connection(#{module := App}=Map)
-  when not is_atom(App) ->
+connection(#{module := App} = Map) when
+    not is_atom(App)
+->
     connection(Map#{module => kz_term:to_atom(App, 'true')});
-connection(#{module := App, tag := Tag}=Map) ->
+connection(#{module := App, tag := Tag} = Map) ->
     _ = ensure_driver_app(Map),
     is_driver_app(App),
-    #data_connection{props=Map, app=App, tag=Tag};
-connection(#{driver := App, tag := Tag}=Map) ->
+    #data_connection{props = Map, app = App, tag = Tag};
+connection(#{driver := App, tag := Tag} = Map) ->
     _ = ensure_driver_app(Map),
     is_driver_app(App),
-    #data_connection{props=Map, app=App, tag=Tag};
-connection(#{}=Map) ->
+    #data_connection{props = Map, app = App, tag = Tag};
+connection(#{} = Map) ->
     connection(maps:merge(?MERGE_MAP, Map)).
 
 %%==============================================================================

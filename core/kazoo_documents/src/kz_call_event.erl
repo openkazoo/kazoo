@@ -6,46 +6,51 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_call_event).
 
--export([account_id/1, account_id/2
-        ,application_data/1
-        ,application_event/1
-        ,application_name/1
-        ,application_response/1
-        ,authorizing_id/1
-        ,authorizing_type/1
-        ,billing_seconds/1
-        ,call_direction/1, call_direction/2
-        ,call_id/1
-        ,channel_name/1
-        ,custom_channel_var/2, custom_channel_var/3
-        ,custom_channel_vars/1, custom_channel_vars/2
-        ,custom_application_var/2, custom_application_var/3
-        ,custom_application_vars/1, custom_application_vars/2
-        ,custom_sip_headers/1
-        ,disposition/1
-        ,dtmf_digit/1
-        ,duration_seconds/1
-        ,error_message/1, error_message/2
-        ,event_name/1
-        ,hangup_cause/1, hangup_cause/2
-        ,hangup_code/1
-        ,is_authorized/1
-        ,is_call_forwarded/1, is_call_forwarded/2
-        ,other_leg_call_id/1
-        ,other_leg_destination_number/1, other_leg_destination_number/2
-        ,owner_id/1
-        ,replaced_by/1
-        ,request/1
-        ,response_code/1
-        ,response_message/1
-        ,ringing_seconds/1
-        ,switch_nodename/1
-        ,timestamp/1
-        ,caller_id/1, caller_id_number/1, caller_id_name/1
-        ,callee_id/1, callee_id_number/1, callee_id_name/1
-        ,recording_length/1
-        ,fetch_id/1
-        ]).
+-export([
+    account_id/1, account_id/2,
+    application_data/1,
+    application_event/1,
+    application_name/1,
+    application_response/1,
+    authorizing_id/1,
+    authorizing_type/1,
+    billing_seconds/1,
+    call_direction/1, call_direction/2,
+    call_id/1,
+    channel_name/1,
+    custom_channel_var/2, custom_channel_var/3,
+    custom_channel_vars/1, custom_channel_vars/2,
+    custom_application_var/2, custom_application_var/3,
+    custom_application_vars/1, custom_application_vars/2,
+    custom_sip_headers/1,
+    disposition/1,
+    dtmf_digit/1,
+    duration_seconds/1,
+    error_message/1, error_message/2,
+    event_name/1,
+    hangup_cause/1, hangup_cause/2,
+    hangup_code/1,
+    is_authorized/1,
+    is_call_forwarded/1, is_call_forwarded/2,
+    other_leg_call_id/1,
+    other_leg_destination_number/1, other_leg_destination_number/2,
+    owner_id/1,
+    replaced_by/1,
+    request/1,
+    response_code/1,
+    response_message/1,
+    ringing_seconds/1,
+    switch_nodename/1,
+    timestamp/1,
+    caller_id/1,
+    caller_id_number/1,
+    caller_id_name/1,
+    callee_id/1,
+    callee_id_number/1,
+    callee_id_name/1,
+    recording_length/1,
+    fetch_id/1
+]).
 
 -include("kz_documents.hrl").
 
@@ -97,12 +102,12 @@ custom_channel_vars(JObj, Default) ->
     kz_json:get_json_value(<<"Custom-Channel-Vars">>, JObj, Default).
 
 -spec custom_channel_var(doc(), kz_json:key()) ->
-          kz_term:api_ne_binary().
+    kz_term:api_ne_binary().
 custom_channel_var(JObj, Key) ->
     custom_channel_var(JObj, Key, 'undefined').
 
 -spec custom_channel_var(doc(), kz_json:key(), Default) ->
-          kz_term:ne_binary() | Default.
+    kz_term:ne_binary() | Default.
 custom_channel_var(JObj, Key, Default) ->
     kz_json:get_ne_binary_value([<<"Custom-Channel-Vars">>, Key], JObj, Default).
 
@@ -115,12 +120,12 @@ custom_application_vars(JObj, Default) ->
     kz_json:get_json_value(<<"Custom-Application-Vars">>, JObj, Default).
 
 -spec custom_application_var(doc(), kz_json:key()) ->
-          kz_term:api_ne_binary().
+    kz_term:api_ne_binary().
 custom_application_var(JObj, Key) ->
     custom_application_var(JObj, Key, 'undefined').
 
 -spec custom_application_var(doc(), kz_json:key(), Default) ->
-          kz_term:ne_binary() | Default.
+    kz_term:ne_binary() | Default.
 custom_application_var(JObj, Key, Default) ->
     kz_json:get_ne_binary_value([<<"Custom-Application-Vars">>, Key], JObj, Default).
 
@@ -139,8 +144,8 @@ authorizing_type(JObj) ->
 -spec is_authorized(doc()) -> boolean().
 is_authorized(JObj) ->
     kz_term:is_true(
-      custom_channel_var(JObj, <<"Channel-Authorized">>)
-     ).
+        custom_channel_var(JObj, <<"Channel-Authorized">>)
+    ).
 
 -spec dtmf_digit(doc()) -> kz_term:api_ne_binary().
 dtmf_digit(JObj) ->

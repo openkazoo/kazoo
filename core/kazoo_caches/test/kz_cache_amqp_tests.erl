@@ -7,23 +7,19 @@
 -include("kz_caches.hrl").
 
 amqp_test_() ->
-    {'timeout'
-    ,10
-    ,{'spawn'
-     ,{'setup'
-      ,fun init/0
-      ,fun cleanup/1
-      ,fun(_CachePid) ->
-               [{"erase changed doc", fun erase_changed_doc/0}
-               ,{"erase docs in db", fun erase_docs_in_db/0}
-               ]
-       end
-      }
-     }
-    }.
+    {'timeout', 10,
+        {'spawn',
+            {'setup', fun init/0, fun cleanup/1, fun(_CachePid) ->
+                [
+                    {"erase changed doc", fun erase_changed_doc/0},
+                    {"erase docs in db", fun erase_docs_in_db/0}
+                ]
+            end}}}.
 
 init() ->
-    {'ok', CachePid} = kz_cache_sup:start_link(?MODULE, ?MILLISECONDS_IN_SECOND, [{'origin_bindings', []}]),
+    {'ok', CachePid} = kz_cache_sup:start_link(?MODULE, ?MILLISECONDS_IN_SECOND, [
+        {'origin_bindings', []}
+    ]),
     CachePid.
 
 cleanup(CachePid) ->
@@ -64,28 +60,32 @@ erase_docs_in_db() ->
     Db = kz_binary:rand_hex(5),
     Db2 = kz_binary:rand_hex(5),
 
-    DocIds = [kz_binary:rand_hex(5) || _ <- lists:seq(1,5)],
+    DocIds = [kz_binary:rand_hex(5) || _ <- lists:seq(1, 5)],
 
-    [begin
-         cache_doc(Db, DocId, Value),
-         cache_doc(Db2, DocId, Value)
-     end
+    [
+        begin
+            cache_doc(Db, DocId, Value),
+            cache_doc(Db2, DocId, Value)
+        end
      || DocId <- DocIds
     ],
 
-    [begin
-         ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db, DocId})),
-         ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db2, DocId}))
-     end
+    [
+        begin
+            ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db, DocId})),
+            ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db2, DocId}))
+        end
      || DocId <- DocIds
     ],
 
     send_db_change(Db, ?DB_DELETED),
 
-    [?assertEqual({'error', 'not_found'}, kz_cache:peek_local(?MODULE, {Db, DocId}))
+    [
+        ?assertEqual({'error', 'not_found'}, kz_cache:peek_local(?MODULE, {Db, DocId}))
      || DocId <- DocIds
     ],
-    [?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db2, DocId}))
+    [
+        ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, {Db2, DocId}))
      || DocId <- DocIds
     ].
 
@@ -94,21 +94,23 @@ send_db_change(Db, ChangeType) ->
     kz_cache_listener:handle_document_change(JObj, ?MODULE).
 
 create_db_payload(Db, ChangeType) ->
-    kz_json:from_list([{<<"Type">>, <<"database">>}
-                      ,{<<"ID">>, Db}
-                      ,{<<"Database">>, Db}
-                      ,{<<"Msg-ID">>, kz_binary:rand_hex(5)}
-                       | kz_api:default_headers(?KAPI_CONF_CATEGORY, ChangeType, <<"test">>, <<"1">>)
-                      ]).
+    kz_json:from_list([
+        {<<"Type">>, <<"database">>},
+        {<<"ID">>, Db},
+        {<<"Database">>, Db},
+        {<<"Msg-ID">>, kz_binary:rand_hex(5)}
+        | kz_api:default_headers(?KAPI_CONF_CATEGORY, ChangeType, <<"test">>, <<"1">>)
+    ]).
 
 send_document_change(Db, DocId, ChangeType) ->
     JObj = create_payload_json(Db, DocId, ChangeType),
     kz_cache_listener:handle_document_change(JObj, ?MODULE).
 
 create_payload_json(Db, DocId, ChangeType) ->
-    kz_json:from_list([{<<"ID">>, DocId}
-                      ,{<<"Database">>, Db}
-                      ,{<<"Type">>, <<"some_doc_type">>}
-                      ,{<<"Msg-ID">>, kz_binary:rand_hex(5)}
-                       | kz_api:default_headers(?KAPI_CONF_CATEGORY, ChangeType, <<"test">>, <<"1">>)
-                      ]).
+    kz_json:from_list([
+        {<<"ID">>, DocId},
+        {<<"Database">>, Db},
+        {<<"Type">>, <<"some_doc_type">>},
+        {<<"Msg-ID">>, kz_binary:rand_hex(5)}
+        | kz_api:default_headers(?KAPI_CONF_CATEGORY, ChangeType, <<"test">>, <<"1">>)
+    ]).

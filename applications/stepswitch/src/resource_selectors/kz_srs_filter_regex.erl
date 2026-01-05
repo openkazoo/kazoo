@@ -10,17 +10,19 @@
 -include("stepswitch_resource_selectors.hrl").
 
 -define(MOD_NAME, <<"filter_regex">>).
--define(ALLOWED_FILTER_MODES, [<<"empty_ok">>
-                              ,<<"empty_fail">>
-                              ]).
+-define(ALLOWED_FILTER_MODES, [
+    <<"empty_ok">>,
+    <<"empty_fail">>
+]).
 -define(DEFAULT_FILTER_MODE, <<"empty_fail">>).
 
--spec handle_req(stepswitch_resources:resources()
-                ,kz_term:ne_binary()
-                ,kapi_offnet_resource:req()
-                ,kz_term:ne_binary()
-                ,kz_json:object()
-                ) -> stepswitch_resources:resources().
+-spec handle_req(
+    stepswitch_resources:resources(),
+    kz_term:ne_binary(),
+    kapi_offnet_resource:req(),
+    kz_term:ne_binary(),
+    kz_json:object()
+) -> stepswitch_resources:resources().
 handle_req(Resources, Number, OffnetJObj, DB, Params) ->
     SourceA = kz_srs_util:get_source(kz_json:get_value(<<"value_a">>, Params)),
     ValueA = kz_srs_util:get_value(SourceA, Resources, Number, OffnetJObj, DB, <<>>),
@@ -32,23 +34,27 @@ handle_req(Resources, Number, OffnetJObj, DB, Params) ->
     EmptyMode = kz_srs_util:select_filter_mode(Params, ?ALLOWED_FILTER_MODES, ?DEFAULT_FILTER_MODE),
     filter_by_regex(Resources, ValueA, ValueB, Action, EmptyMode).
 
--spec filter_by_regex(stepswitch_resources:resources()
-                     ,kz_term:ne_binary()
-                     ,kz_term:proplists()
-                     ,atom()
-                     ,kz_term:ne_binary()
-                     ) -> stepswitch_resources:resources().
+-spec filter_by_regex(
+    stepswitch_resources:resources(),
+    kz_term:ne_binary(),
+    kz_term:proplists(),
+    atom(),
+    kz_term:ne_binary()
+) -> stepswitch_resources:resources().
 filter_by_regex(Resources, ValueA, Regexes, Action, EmptyMode) ->
     lager:debug("filter resources by ~s with regex rules, and ~s matched", [ValueA, Action]),
-    lists:filtermap(fun(R) ->
-                            Id = stepswitch_resources:get_resrc_id(R),
-                            Rules = props:get_value(Id, Regexes, []),
-                            evaluate_rules(Id, Rules, ValueA, Action, EmptyMode)
-                    end
-                   ,Resources
-                   ).
+    lists:filtermap(
+        fun(R) ->
+            Id = stepswitch_resources:get_resrc_id(R),
+            Rules = props:get_value(Id, Regexes, []),
+            evaluate_rules(Id, Rules, ValueA, Action, EmptyMode)
+        end,
+        Resources
+    ).
 
--spec evaluate_rules(kz_term:ne_binary(), re:mp(), kz_term:ne_binary(), atom(), kz_term:ne_binary()) -> boolean().
+-spec evaluate_rules(
+    kz_term:ne_binary(), re:mp(), kz_term:ne_binary(), atom(), kz_term:ne_binary()
+) -> boolean().
 evaluate_rules(Id, [], _Data, 'keep', <<"empty_fail">>) ->
     lager:debug("resource ~s has empty rules, dropping", [Id]),
     'false';
@@ -81,17 +87,19 @@ evaluate_rules(Id, Rules, Data, 'drop', _EmptyMode) ->
     end.
 
 -spec do_evaluate_rules(re:mp(), kz_term:ne_binary()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', 'no_match'}.
-do_evaluate_rules([], _) -> {'error', 'no_match'};
-do_evaluate_rules([Rule|Rules], Data) ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', 'no_match'}.
+do_evaluate_rules([], _) ->
+    {'error', 'no_match'};
+do_evaluate_rules([Rule | Rules], Data) ->
     case re:run(Data, Rule) of
-        {'match', [{Start,End}]} ->
+        {'match', [{Start, End}]} ->
             {'ok', binary:part(Data, Start, End)};
         {'match', CaptureGroups} ->
             %% find the largest matching group if present by sorting the position of the
             %% matching groups by list, reverse so head is largest, then take the head of the list
             {Start, End} = hd(lists:reverse(lists:keysort(2, tl(CaptureGroups)))),
             {'ok', binary:part(Data, Start, End)};
-        _ -> do_evaluate_rules(Rules, Data)
+        _ ->
+            do_evaluate_rules(Rules, Data)
     end.

@@ -14,7 +14,6 @@
 -export([resource_consuming_calls/1, resource_consuming_calls/2, set_resource_consuming_calls/2]).
 -export([twoway_trunks/1, twoway_trunks/2, set_twoway_trunks/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

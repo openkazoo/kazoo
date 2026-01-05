@@ -12,14 +12,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("stats.hrl").
 
@@ -29,7 +30,7 @@
 -type state() :: #state{}.
 
 -define(BINDINGS, [{'self', []}]).
--define(RESPONDERS, [{'stats_handler',  [{<<"*">>, <<"*">>}]}]).
+-define(RESPONDERS, [{'stats_handler', [{<<"*">>, <<"*">>}]}]).
 -define(QUEUE_NAME, <<"statistics">>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -44,13 +45,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [
-                                      {'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks

@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_search).
 
--export([init/0
-        ,allowed_methods/0 ,allowed_methods/1
-        ,resource_exists/0 ,resource_exists/1
-        ,validate/1 ,validate/2
-        ,authorize/1, authorize/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    authorize/1, authorize/2
+]).
 
 -include("crossbar.hrl").
 
@@ -112,21 +113,27 @@ validate(Context, ?MULTI) ->
 
 -spec validate_search(cb_context:context(), kz_term:api_binary()) -> cb_context:context().
 validate_search(Context, 'undefined') ->
-    Message = kz_json:from_list([{<<"message">>, <<"search needs a document type to search on">>}
-                                ,{<<"target">>, ?SEARCHABLE}
-                                ]),
+    Message = kz_json:from_list([
+        {<<"message">>, <<"search needs a document type to search on">>},
+        {<<"target">>, ?SEARCHABLE}
+    ]),
     cb_context:add_validation_error(<<"t">>, <<"required">>, Message, Context);
-validate_search(Context, <<"account">>=Type) ->
-    validate_search(cb_context:set_account_db(Context, ?KZ_ACCOUNTS_DB), Type, cb_context:req_value(Context, <<"q">>));
+validate_search(Context, <<"account">> = Type) ->
+    validate_search(
+        cb_context:set_account_db(Context, ?KZ_ACCOUNTS_DB),
+        Type,
+        cb_context:req_value(Context, <<"q">>)
+    );
 validate_search(Context, Type) ->
     validate_search(Context, Type, cb_context:req_value(Context, <<"q">>)).
 
 -spec validate_search(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) ->
-          cb_context:context().
+    cb_context:context().
 validate_search(Context, _Type, 'undefined') ->
-    NeedViewMsg = kz_json:from_list([{<<"message">>, <<"search needs a view to search in">>}
-                                    ,{<<"target">>, available_query_options(cb_context:account_db(Context))}
-                                    ]),
+    NeedViewMsg = kz_json:from_list([
+        {<<"message">>, <<"search needs a view to search in">>},
+        {<<"target">>, available_query_options(cb_context:account_db(Context))}
+    ]),
     cb_context:add_validation_error(<<"q">>, <<"required">>, NeedViewMsg, Context);
 validate_search(Context, Type, Query) ->
     Context1 = validate_query(Context, Query),
@@ -137,8 +144,10 @@ validate_search(Context, Type, Query) ->
             Context1
     end.
 
--spec validate_search(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) ->
-          cb_context:context().
+-spec validate_search(
+    cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()
+) ->
+    cb_context:context().
 validate_search(Context, _Type, _Query, 'undefined') ->
     Message = kz_json:from_list([{<<"message">>, <<"search needs a value to search for">>}]),
     cb_context:add_validation_error(<<"v">>, <<"required">>, Message, Context);
@@ -156,16 +165,22 @@ validate_search(Context, Type, Query, Value) ->
 %%------------------------------------------------------------------------------
 -spec validate_multi(cb_context:context(), kz_term:api_binary()) -> cb_context:context().
 validate_multi(Context, 'undefined') ->
-    Message = kz_json:from_list([{<<"message">>, <<"Search needs a document type to search on">>}
-                                ,{<<"target">>, ?SEARCHABLE}
-                                ]),
+    Message = kz_json:from_list([
+        {<<"message">>, <<"Search needs a document type to search on">>},
+        {<<"target">>, ?SEARCHABLE}
+    ]),
     cb_context:add_validation_error(<<"t">>, <<"required">>, Message, Context);
-validate_multi(Context, <<"account">>=Type) ->
-    validate_multi(cb_context:set_account_db(Context, ?KZ_ACCOUNTS_DB), Type, kz_json:to_proplist(cb_context:query_string(Context)));
+validate_multi(Context, <<"account">> = Type) ->
+    validate_multi(
+        cb_context:set_account_db(Context, ?KZ_ACCOUNTS_DB),
+        Type,
+        kz_json:to_proplist(cb_context:query_string(Context))
+    );
 validate_multi(Context, Type) ->
     validate_multi(Context, Type, kz_json:to_proplist(cb_context:query_string(Context))).
 
--spec validate_multi(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) -> cb_context:context().
+-spec validate_multi(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) ->
+    cb_context:context().
 validate_multi(Context, Type, Query) ->
     Context1 = validate_query(Context, Query),
     case cb_context:resp_status(Context1) of
@@ -178,37 +193,44 @@ validate_multi(Context, Type, Query) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec validate_query(cb_context:context(), kz_term:proplist() | kz_term:ne_binary()) -> cb_context:context().
+-spec validate_query(cb_context:context(), kz_term:proplist() | kz_term:ne_binary()) ->
+    cb_context:context().
 validate_query(Context, Query) ->
     QueryOptions = available_query_options(cb_context:account_db(Context)),
     validate_query(Context, QueryOptions, Query).
 
--spec validate_query(cb_context:context(), kz_term:proplist(), kz_term:proplist() | kz_term:ne_binary()) -> cb_context:context().
+-spec validate_query(
+    cb_context:context(), kz_term:proplist(), kz_term:proplist() | kz_term:ne_binary()
+) -> cb_context:context().
 validate_query(Context, Available, []) ->
     case cb_context:resp_status(Context) of
-        'success' -> Context;
+        'success' ->
+            Context;
         _ ->
-            Message = kz_json:from_list([{<<"message">>, <<"multi search needs some values to search for">>}
-                                        ,{<<"target">>, Available}
-                                        ]),
+            Message = kz_json:from_list([
+                {<<"message">>, <<"multi search needs some values to search for">>},
+                {<<"target">>, Available}
+            ]),
             cb_context:add_validation_error(<<"multi">>, <<"enum">>, Message, Context)
     end;
-validate_query(Context, Available, [{<<"by_", Query/binary>>, _}|Props]) ->
+validate_query(Context, Available, [{<<"by_", Query/binary>>, _} | Props]) ->
     Context1 = validate_query(Context, Available, Query),
     case cb_context:resp_status(Context1) of
         'success' -> validate_query(Context1, Available, Props);
         _Status -> Context1
     end;
-validate_query(Context, Available, [{Query, _}|Props]) ->
+validate_query(Context, Available, [{Query, _} | Props]) ->
     lager:debug("ignoring query string ~s", [Query]),
     validate_query(Context, Available, Props);
 validate_query(Context, Available, Query) when is_binary(Query) ->
     case lists:member(Query, Available) of
-        'true' -> cb_context:set_resp_status(Context, 'success');
+        'true' ->
+            cb_context:set_resp_status(Context, 'success');
         'false' ->
-            Message = kz_json:from_list([{<<"message">>, <<"value not found in enumerated list of values">>}
-                                        ,{<<"cause">>, Query}
-                                        ]),
+            Message = kz_json:from_list([
+                {<<"message">>, <<"value not found in enumerated list of values">>},
+                {<<"cause">>, Query}
+            ]),
             cb_context:add_validation_error(<<"q">>, <<"enum">>, Message, Context)
     end.
 
@@ -245,15 +267,18 @@ format_query_option(Name) -> Name.
 %% resource.
 %% @end
 %%------------------------------------------------------------------------------
--spec search(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary(), binary(), kz_term:proplist()) -> cb_context:context().
+-spec search(
+    cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary(), binary(), kz_term:proplist()
+) -> cb_context:context().
 search(Context, Type, Query, Val, Opts) ->
     ViewName = <<?QUERY_TPL/binary, Query/binary>>,
     Value = cb_modules_util:normalize_alphanum_name(Val),
     Options =
-        [{'startkey', get_start_key(Context, Type, Value)}
-        ,{'endkey', get_end_key(Context, Type, Value)}
-        ,{'mapper', crossbar_view:map_value_fun()}
-         | Opts
+        [
+            {'startkey', get_start_key(Context, Type, Value)},
+            {'endkey', get_end_key(Context, Type, Value)},
+            {'mapper', crossbar_view:map_value_fun()}
+            | Opts
         ],
     crossbar_view:load(Context, ViewName, Options).
 
@@ -263,33 +288,41 @@ search(Context, Type, Query, Val, Opts) ->
 %% @end
 %%------------------------------------------------------------------------------
 
--spec multi_search(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) -> cb_context:context().
+-spec multi_search(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) ->
+    cb_context:context().
 multi_search(Context, Type, Props) ->
     Context1 = cb_context:set_should_paginate(Context, 'false'),
-    multi_search(Context1, Type, Props , kz_json:new()).
+    multi_search(Context1, Type, Props, kz_json:new()).
 
--spec multi_search(cb_context:context(), kz_term:ne_binary(), kz_term:proplist(), kz_json:object()) -> cb_context:context().
+-spec multi_search(cb_context:context(), kz_term:ne_binary(), kz_term:proplist(), kz_json:object()) ->
+    cb_context:context().
 multi_search(Context, _Type, [], Acc) ->
     cb_context:set_resp_data(Context, Acc);
-multi_search(Context, Type, [{<<"by_", Query/binary>>, Val}|Props], Acc) ->
+multi_search(Context, Type, [{<<"by_", Query/binary>>, Val} | Props], Acc) ->
     Context1 = search(Context, Type, Query, Val, [{'unchunkable', 'true'}]),
     case cb_context:resp_status(Context1) of
         'success' ->
             RespData = cb_context:resp_data(Context1),
             Acc1 = kz_json:set_value(Query, RespData, Acc),
             multi_search(Context1, Type, Props, Acc1);
-        _ -> Context1
+        _ ->
+            Context1
     end;
-multi_search(Context, Type, [_|Props], Acc) ->
+multi_search(Context, Type, [_ | Props], Acc) ->
     multi_search(Context, Type, Props, Acc).
 
 %%------------------------------------------------------------------------------
 %% @doc resource.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_start_key(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binaries().
-get_start_key(Context, <<"account">>=Type, Value) ->
-    [cb_context:auth_account_id(Context), Type, cb_context:req_value(Context, <<"start_key">>, Value)];
+-spec get_start_key(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binaries().
+get_start_key(Context, <<"account">> = Type, Value) ->
+    [
+        cb_context:auth_account_id(Context),
+        Type,
+        cb_context:req_value(Context, <<"start_key">>, Value)
+    ];
 get_start_key(Context, Type, Value) ->
     [Type, cb_context:req_value(Context, <<"start_key">>, Value)].
 
@@ -298,7 +331,7 @@ get_start_key(Context, Type, Value) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_end_key(cb_context:context(), kz_term:ne_binary(), binary()) -> kz_term:ne_binaries().
-get_end_key(Context, <<"account">>=Type, Value) ->
+get_end_key(Context, <<"account">> = Type, Value) ->
     [cb_context:auth_account_id(Context), Type, next_binary_key(Value)];
 get_end_key(_, Type, Value) ->
     [Type, next_binary_key(Value)].

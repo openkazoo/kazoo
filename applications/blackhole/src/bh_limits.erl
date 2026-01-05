@@ -5,9 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_limits).
 
--export([init/0
-        ,limits/2
-        ]).
+-export([
+    init/0,
+    limits/2
+]).
 
 -include("blackhole.hrl").
 

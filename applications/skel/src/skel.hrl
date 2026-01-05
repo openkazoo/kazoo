@@ -4,7 +4,7 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
 -define(APP_NAME, <<"skel">>).
--define(APP_VERSION, <<"4.0.0">> ).
+-define(APP_VERSION, <<"4.0.0">>).
 
 -define(CACHE_NAME, 'skel_cache').
 

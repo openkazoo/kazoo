@@ -6,25 +6,32 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_webhook_disabled).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
 -define(TEMPLATE_ID, <<"webhook_disabled">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"hook.id">>, <<"hook_id">>, <<"Hook ID">>, <<"Hook ID">>)
-          ,?MACRO_VALUE(<<"hook.name">>, <<"hook_name">>, <<"Hook Name">>, <<"Hook Name">>)
-          ,?MACRO_VALUE(<<"hook.uri">>, <<"hook_uri">>, <<"Hook URI">>, <<"Hook URI">>)
-          ,?MACRO_VALUE(<<"hook.event">>, <<"hook_event">>, <<"Hook Event">>, <<"Hook Event">>)
-          ,?MACRO_VALUE(<<"hook.disable_reason">>, <<"hook_disable_reason">>, <<"Disable Reason">>, <<"Why the hook was disabled">>)
-           | ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(<<"hook.id">>, <<"hook_id">>, <<"Hook ID">>, <<"Hook ID">>),
+            ?MACRO_VALUE(<<"hook.name">>, <<"hook_name">>, <<"Hook Name">>, <<"Hook Name">>),
+            ?MACRO_VALUE(<<"hook.uri">>, <<"hook_uri">>, <<"Hook URI">>, <<"Hook URI">>),
+            ?MACRO_VALUE(<<"hook.event">>, <<"hook_event">>, <<"Hook Event">>, <<"Hook Event">>),
+            ?MACRO_VALUE(
+                <<"hook.disable_reason">>,
+                <<"hook_disable_reason">>,
+                <<"Disable Reason">>,
+                <<"Why the hook was disabled">>
+            )
+            | ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Webhook '{{hook.name}}' auto-disabled">>).
 -define(TEMPLATE_CATEGORY, <<"webhook">>).
@@ -39,16 +46,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"webhook_disabled">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -85,22 +93,25 @@ process_req(DataJObj, AccountId) ->
 -spec process_req(kz_json:object()) -> template_response().
 process_req(DataJObj) ->
     teletype_util:send_update(DataJObj, <<"pending">>),
-    Macros = [{<<"account">>, teletype_util:account_params(DataJObj)}
-             ,{<<"hook">>, hook_data(kz_json:get_value(<<"hook">>, DataJObj))}
-             ,{<<"system">>, teletype_util:system_params()}
-             ],
+    Macros = [
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"hook">>, hook_data(kz_json:get_value(<<"hook">>, DataJObj))},
+        {<<"system">>, teletype_util:system_params()}
+    ],
 
     %% Populate templates
     RenderedTemplates = teletype_templates:render(?TEMPLATE_ID, Macros, DataJObj),
 
     {'ok', TemplateMetaJObj} =
-        teletype_templates:fetch_notification(?TEMPLATE_ID
-                                             ,kapi_notifications:account_id(DataJObj)
-                                             ),
+        teletype_templates:fetch_notification(
+            ?TEMPLATE_ID,
+            kapi_notifications:account_id(DataJObj)
+        ),
 
-    Subject = teletype_util:render_subject(kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT)
-                                          ,Macros
-                                          ),
+    Subject = teletype_util:render_subject(
+        kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT),
+        Macros
+    ),
 
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, ?TEMPLATE_ID),
 
@@ -112,9 +123,11 @@ process_req(DataJObj) ->
 -spec hook_data(kzd_webhook:doc()) -> kz_term:proplist().
 hook_data(HookJObj) ->
     props:filter_undefined(
-      [{<<"id">>, kz_doc:id(HookJObj)}
-      ,{<<"name">>, kzd_webhook:name(HookJObj)}
-      ,{<<"uri">>, kzd_webhook:uri(HookJObj)}
-      ,{<<"event">>, kzd_webhook:event(HookJObj)}
-      ,{<<"disable_reason">>, kzd_webhook:disabled_message(HookJObj)}
-      ]).
+        [
+            {<<"id">>, kz_doc:id(HookJObj)},
+            {<<"name">>, kzd_webhook:name(HookJObj)},
+            {<<"uri">>, kzd_webhook:uri(HookJObj)},
+            {<<"event">>, kzd_webhook:event(HookJObj)},
+            {<<"disable_reason">>, kzd_webhook:disabled_message(HookJObj)}
+        ]
+    ).

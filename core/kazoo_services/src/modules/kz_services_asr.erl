@@ -8,9 +8,10 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_services_asr).
 
--export([fetch/1
-        ,flat_rate/1, flat_rate/2
-        ]).
+-export([
+    fetch/1,
+    flat_rate/1, flat_rate/2
+]).
 
 -include("services.hrl").
 
@@ -21,14 +22,15 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec fetch(kz_services:services() | kz_term:ne_binary()) -> kz_json:object().
-fetch(?NE_BINARY=AccountId) ->
+fetch(?NE_BINARY = AccountId) ->
     FetchOptions = ['hydrate_plans'],
     fetch(kz_services:fetch(AccountId, FetchOptions));
 fetch(Services) ->
-    ASRDict = kz_services_plans:foldl(fun fetch_foldl/3
-                                     ,dict:new()
-                                     ,kz_services:plans(Services)
-                                     ),
+    ASRDict = kz_services_plans:foldl(
+        fun fetch_foldl/3,
+        dict:new(),
+        kz_services:plans(Services)
+    ),
     kz_json:from_list(dict:to_list(ASRDict)).
 
 %%------------------------------------------------------------------------------
@@ -40,12 +42,13 @@ fetch_foldl(_BookkeeperHash, [], Providers) ->
     Providers;
 fetch_foldl(_BookkeeperHash, PlansList, Providers) ->
     Plan = kz_services_plans:merge(PlansList),
-    kz_json:foldl(fun(K, V, A) ->
-                          dict:store(K, V, A)
-                  end
-                 ,Providers
-                 ,kz_services_plan:asr(Plan)
-                 ).
+    kz_json:foldl(
+        fun(K, V, A) ->
+            dict:store(K, V, A)
+        end,
+        Providers,
+        kz_services_plan:asr(Plan)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc

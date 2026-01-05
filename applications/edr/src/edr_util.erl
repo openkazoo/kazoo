@@ -9,10 +9,11 @@
 
 -include("edr.hrl").
 
--export([backend_from_json/1
-        ,formatter/2
-        ,formatter_options/1
-        ]).
+-export([
+    backend_from_json/1,
+    formatter/2,
+    formatter_options/1
+]).
 
 -spec formatter(kz_json:object(), module()) -> module().
 formatter(Options, Default) ->
@@ -22,14 +23,15 @@ formatter(Options, Default) ->
     end.
 
 -spec formatter_options(kz_json:object()) -> kz_json:object().
-formatter_options(Options)->
+formatter_options(Options) ->
     kz_json:get_value([<<"formatter">>, <<"options">>], Options, kz_json:new()).
 
 -spec backend_from_json(kz_json:object()) -> backend().
 backend_from_json(JObj) ->
-    #backend{name=kz_json:get_binary_value(<<"name">>, JObj)
-            ,type=kz_json:get_ne_binary_value(<<"type">>, JObj)
-            ,enabled=kz_json:is_true(<<"enabled">>, JObj, 'false')
-            ,options=kz_json:get_json_value(<<"options">>, JObj, {})
-            ,bindings=edr_bindings:bindings_from_json(kz_json:get_list_value(<<"bindings">>, JObj, []))
-            }.
+    #backend{
+        name = kz_json:get_binary_value(<<"name">>, JObj),
+        type = kz_json:get_ne_binary_value(<<"type">>, JObj),
+        enabled = kz_json:is_true(<<"enabled">>, JObj, 'false'),
+        options = kz_json:get_json_value(<<"options">>, JObj, {}),
+        bindings = edr_bindings:bindings_from_json(kz_json:get_list_value(<<"bindings">>, JObj, []))
+    }.

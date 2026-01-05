@@ -18,18 +18,15 @@ sort_by_disk_size_test_() ->
     Expected3 = [Db4, Db2, Undefined],
     Expected4 = [Db3, Db1, NotFound],
 
-    [{"only sort by disk_size and ignore data_size"
-     ,?_assertEqual(Expected1, TestF(kz_term:shuffle_list(Expected1)))
-     }
-    ,{"only sort by disk_size and ignore data_size"
-     ,?_assertEqual(Expected2, TestF(kz_term:shuffle_list(Expected2)))
-     }
-    ,{"sort undefined disk_and_data values too"
-     ,?_assertEqual(Expected3, TestF(kz_term:shuffle_list(Expected3)))
-     }
-    ,{"sort not_found disk_and_data values too"
-     ,?_assertEqual(Expected4, TestF(kz_term:shuffle_list(Expected4)))
-     }
+    [
+        {"only sort by disk_size and ignore data_size",
+            ?_assertEqual(Expected1, TestF(kz_term:shuffle_list(Expected1)))},
+        {"only sort by disk_size and ignore data_size",
+            ?_assertEqual(Expected2, TestF(kz_term:shuffle_list(Expected2)))},
+        {"sort undefined disk_and_data values too",
+            ?_assertEqual(Expected3, TestF(kz_term:shuffle_list(Expected3)))},
+        {"sort not_found disk_and_data values too",
+            ?_assertEqual(Expected4, TestF(kz_term:shuffle_list(Expected4)))}
     ].
 
 build_compaction_callid_test_() ->
@@ -39,15 +36,12 @@ build_compaction_callid_test_() ->
     YearBin = integer_to_binary(Year),
     MonthBin = kz_binary:pad_left(integer_to_binary(Month), 2, <<"0">>),
 
-    [{"Prefix with YYYYMM-"
-     ,?_assertMatch(<<YearBin:4/binary, MonthBin:2/binary, "-", _/binary>>, TestF())
-     }
-    ,{"Suffix with random hex"
-     ,?_assertMatch(<<_Prefix:7/binary, "testing_", _Suffix:8/binary>>, TestF())
-     }
-    ,{"Return unique callid every time"
-     ,?_assertNotEqual(TestF(), TestF())
-     }
+    [
+        {"Prefix with YYYYMM-",
+            ?_assertMatch(<<YearBin:4/binary, MonthBin:2/binary, "-", _/binary>>, TestF())},
+        {"Suffix with random hex",
+            ?_assertMatch(<<_Prefix:7/binary, "testing_", _Suffix:8/binary>>, TestF())},
+        {"Return unique callid every time", ?_assertNotEqual(TestF(), TestF())}
     ].
 
 %% =======================================================================================

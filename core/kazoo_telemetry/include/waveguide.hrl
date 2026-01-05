@@ -13,7 +13,7 @@
 -define(DAY_IN_SECONDS, 86400).
 -define(DAY_IN_MS, ?DAY_IN_SECONDS * 1000).
 
--define(WG_CAT, <<(?TELEMETRY_CAT)/binary,".waveguide">>).
+-define(WG_CAT, <<(?TELEMETRY_CAT)/binary, ".waveguide">>).
 -define(WG_GRACE_PERIOD, 604800).
 -define(WG_URL, <<"https://telemetry.2600hz.org/api">>).
 -define(WG_USER_AGENT, "waveguide/" ++ ?WG_VERSION).
@@ -26,15 +26,15 @@
 -define(ANONYMIZE_HASH_ALG, 'sha').
 -define(ANONYMIZE(Binary), kz_binary:hexencode(crypto:hash(?ANONYMIZE_HASH_ALG, Binary))).
 
+-define(WG_ACTIVATION,
+    kapps_config:get_integer(?WG_CAT, <<"activation">>, kz_time:current_tstamp(), <<"default">>)
+).
 
--define(WG_ACTIVATION
-       ,kapps_config:get_integer(?WG_CAT, <<"activation">>, kz_time:current_tstamp(), <<"default">>)
-       ).
-
--define(is_valid_ping(Ping), Ping =:= ?WG_ACTIVATION_PING
-        orelse Ping =:= ?WG_HANDSHAKE_PING
-        orelse Ping =:= ?WG_MAIN_PING
-       ).
+-define(is_valid_ping(Ping),
+    Ping =:= ?WG_ACTIVATION_PING orelse
+        Ping =:= ?WG_HANDSHAKE_PING orelse
+        Ping =:= ?WG_MAIN_PING
+).
 
 -define(WAVEGUIDE_HRL, 'true').
 -endif.

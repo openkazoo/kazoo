@@ -7,10 +7,11 @@
 
 -include("blackhole.hrl").
 
--export([open/3
-        ,recv/2
-        ,close/1
-        ]).
+-export([
+    open/3,
+    recv/2,
+    close/1
+]).
 
 -define(SESSION_KEY(SessionId), {'session', ?MODULE, SessionId}).
 
@@ -29,28 +30,32 @@ open(Pid, SessionId, IPAddr) ->
 
 -spec recv({binary(), kz_json:object()}, bh_context:context()) -> bh_return() | 'error'.
 recv({Action, Payload}, Context) ->
-    lager:debug("received action ~s with payload ~s"
-               ,[Action
-                ,kz_json:encode(kz_json:delete_key(<<"auth_token">>, Payload))
-                ]
-               ),
-    Routines = [fun rate/3
-               ,fun authenticate/3
-               ,fun validate/3
-               ,fun authorize/3
-               ,fun limits/3
-               ,fun command/3
-               ,fun finish/3
-               ],
+    lager:debug(
+        "received action ~s with payload ~s",
+        [
+            Action,
+            kz_json:encode(kz_json:delete_key(<<"auth_token">>, Payload))
+        ]
+    ),
+    Routines = [
+        fun rate/3,
+        fun authenticate/3,
+        fun validate/3,
+        fun authorize/3,
+        fun limits/3,
+        fun command/3,
+        fun finish/3
+    ],
     Ctx = bh_context:from_json(Context, Payload),
     exec(Ctx, Action, Payload, Routines).
 
 exec(Context, _Action, _Payload, []) ->
     {'ok', Context};
 exec(Context, Action, Payload, [Fun | Funs]) ->
-    lager:debug("executing ~p for ~s with payload ~s"
-               ,[Fun, Action, kz_json:encode(kz_json:delete_key(<<"auth_token">>, Payload))]
-               ),
+    lager:debug(
+        "executing ~p for ~s with payload ~s",
+        [Fun, Action, kz_json:encode(kz_json:delete_key(<<"auth_token">>, Payload))]
+    ),
     Ctx = Fun(Context, Action, Payload),
     case bh_context:success(Ctx) of
         'true' -> exec(Ctx, Action, Payload, Funs);
@@ -90,7 +95,8 @@ close(Context) ->
 rate(Context, _Action, _Payload) ->
     Bucket = bh_context:websocket_session_id(Context),
     case kz_buckets:consume_token(?APP_NAME, Bucket) of
-        'true' -> Context;
+        'true' ->
+            Context;
         'false' ->
             Msg = io_lib:format("rate limiting threshold hit for ~s!", [Bucket]),
             lager:warning(Msg),
@@ -99,7 +105,8 @@ rate(Context, _Action, _Payload) ->
 
 authenticate(Context, Action, Payload) ->
     case bh_context:is_authenticated(Context) of
-        'true' -> Context;
+        'true' ->
+            Context;
         'false' ->
             Routing = <<"blackhole.authenticate.", Action/binary>>,
             handle_result(Context, blackhole_bindings:map(Routing, [Context, Payload]))
@@ -127,14 +134,16 @@ command(Context, Action, Payload) ->
             Data = bh_context:resp_data(Ctx),
             blackhole_data_emitter:reply(SessionPid, RequestId, <<"success">>, Data),
             Ctx;
-        'false' -> Ctx
+        'false' ->
+            Ctx
     end.
 
 finish(Context, Action, _Payload) ->
     Routing = <<"blackhole.finish.", Action/binary>>,
     blackhole_bindings:fold(Routing, Context).
 
-handle_result(Context, []) -> Context;
+handle_result(Context, []) ->
+    Context;
 handle_result(Context, Res) ->
     case blackhole_bindings:failed(Res) of
         [Ctx | _] -> Ctx;

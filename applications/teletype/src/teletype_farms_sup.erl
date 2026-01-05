@@ -6,9 +6,10 @@
 -module(teletype_farms_sup).
 -behaviour(supervisor).
 
--export([start_link/0
-        ,render_farm_name/0
-        ]).
+-export([
+    start_link/0,
+    render_farm_name/0
+]).
 -export([init/1]).
 
 -include("teletype.hrl").
@@ -19,17 +20,21 @@
 -define(POOL_SIZE, kapps_config:get_integer(?APP_NAME, <<"render_farm_workers">>, 50)).
 -define(POOL_OVERFLOW, 50).
 
--define(POOL_ARGS, [[{'worker_module', 'teletype_renderer'}
-                    ,{'name', {'local', ?POOL_NAME}}
-                    ,{'size', ?POOL_SIZE}
-                    ,{'max_overflow', ?POOL_OVERFLOW}
-                    ]]).
+-define(POOL_ARGS, [
+    [
+        {'worker_module', 'teletype_renderer'},
+        {'name', {'local', ?POOL_NAME}},
+        {'size', ?POOL_SIZE},
+        {'max_overflow', ?POOL_OVERFLOW}
+    ]
+]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER_NAME_ARGS('poolboy', ?POOL_NAME, ?POOL_ARGS)
-                  ,?WORKER('teletype_bindings')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER_NAME_ARGS('poolboy', ?POOL_NAME, ?POOL_ARGS),
+    ?WORKER('teletype_bindings')
+]).
 
 %%==============================================================================
 %% API functions

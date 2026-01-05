@@ -3,22 +3,21 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("teletype.hrl").
 
--define(TEST_POOL_ARGS, [{worker_module, teletype_renderer}
-                        ,{name, {local, teletype_render_farm}}
-                        ,{size, 1}
-                        ,{max_overflow, 1}
-                        ]).
+-define(TEST_POOL_ARGS, [
+    {worker_module, teletype_renderer},
+    {name, {local, teletype_render_farm}},
+    {size, 1},
+    {max_overflow, 1}
+]).
 
 -spec teletype_publish_test_() -> any().
 teletype_publish_test_() ->
-    {setup
-    ,fun setup/0
-    ,fun cleanup/1
-    ,fun(_) -> [{"Testing kapps_notify_publisher and Teletype responses", test_notify_publisher()}
-               ,{"Validating mocked functions", validate_mock()}
-               ]
-     end
-    }.
+    {setup, fun setup/0, fun cleanup/1, fun(_) ->
+        [
+            {"Testing kapps_notify_publisher and Teletype responses", test_notify_publisher()},
+            {"Validating mocked functions", validate_mock()}
+        ]
+    end}.
 
 setup() ->
     ?LOG_DEBUG(":: Setting up Teletype publish test"),
@@ -44,27 +43,32 @@ cleanup({LinkPid, FarmPid}) ->
     meck:unload().
 
 test_notify_publisher() ->
-    [{"Test publishing " ++ binary_to_list(Id) ++ " notification"
-     ,pulish_notification(Id, PubFun)
-     }
-     || {Id, PubFun} <- [{teletype_bill_reminder:id(), fun kapi_notifications:publish_bill_reminder/1}
-                        ,{teletype_voicemail_to_email:id(), fun kapi_notifications:publish_voicemail_new/1}
-                        ,{teletype_deregister:id(), fun kapi_notifications:publish_deregister/1}
-                        ]
+    [
+        {
+            "Test publishing " ++ binary_to_list(Id) ++ " notification",
+            pulish_notification(Id, PubFun)
+        }
+     || {Id, PubFun} <- [
+            {teletype_bill_reminder:id(), fun kapi_notifications:publish_bill_reminder/1},
+            {teletype_voicemail_to_email:id(), fun kapi_notifications:publish_voicemail_new/1},
+            {teletype_deregister:id(), fun kapi_notifications:publish_deregister/1}
+        ]
     ].
 
 pulish_notification(TemplateId, PubFun) ->
     TemplateIdStr = binary_to_list(TemplateId),
     Path = "fixtures-api/notifications/" ++ TemplateIdStr ++ ".json",
     {ok, Payload} = kz_json:fixture(kazoo_amqp, Path),
-    ?_assertEqual(<<"completed">>
-                 ,get_status(
-                    kapps_notify_publisher:call_collect(kz_json:to_proplist(Payload), PubFun)
-                   )
-                 ).
+    ?_assertEqual(
+        <<"completed">>,
+        get_status(
+            kapps_notify_publisher:call_collect(kz_json:to_proplist(Payload), PubFun)
+        )
+    ).
 
-get_status([]) -> false;
-get_status([JObj|_]) ->
+get_status([]) ->
+    false;
+get_status([JObj | _]) ->
     kz_json:get_ne_binary_value(<<"Status">>, JObj);
 get_status({_, JObjs}) when is_list(JObjs) ->
     get_status(JObjs);
@@ -83,26 +87,29 @@ mock_them_all() ->
     meck:expect(gen_smtp_client, send, smtp_send()).
 
 validate_mock() ->
-    [{"Validating mocked " ++ kz_term:to_list(Mocked)
-     ,?_assertEqual(true, meck:validate(Mocked))
-     }
-     || Mocked <- [kz_amqp_worker
-                  ,kz_amqp_util
-                  ,gen_smtp_client
-                  ]
+    [
+        {
+            "Validating mocked " ++ kz_term:to_list(Mocked),
+            ?_assertEqual(true, meck:validate(Mocked))
+        }
+     || Mocked <- [
+            kz_amqp_worker,
+            kz_amqp_util,
+            gen_smtp_client
+        ]
     ].
 
 %% call by kapps_notify_publisher:call_collect/2 and kapps_notify_publisher:cast/2
 kz_amqp_worker_call_collect() ->
     fun(Req, PublishFun, UntilFun, Timeout) ->
-            try PublishFun(Req) of
-                ok -> wait_collect_until(UntilFun, [], erlang:start_timer(Timeout, self(), req_timeout))
-            catch
-                _E:T ->
-                    ?LOG_DEBUG("failed to publish: ~p:~p", [_E, T]),
-                    kz_util:log_stacktrace(),
-                    {error, T}
-            end
+        try PublishFun(Req) of
+            ok -> wait_collect_until(UntilFun, [], erlang:start_timer(Timeout, self(), req_timeout))
+        catch
+            _E:T ->
+                ?LOG_DEBUG("failed to publish: ~p:~p", [_E, T]),
+                kz_util:log_stacktrace(),
+                {error, T}
+        end
     end.
 wait_collect_until(UntilFun, Resps, ReqRef) ->
     receive
@@ -110,7 +117,7 @@ wait_collect_until(UntilFun, Resps, ReqRef) ->
             ?LOG_DEBUG("wait_collect_until timeout"),
             {timeout, Resps};
         {ok, Resp} ->
-            Responses = [Resp|Resps],
+            Responses = [Resp | Resps],
             try UntilFun(Responses) of
                 true ->
                     _ = erlang:cancel_timer(ReqRef),
@@ -124,40 +131,39 @@ wait_collect_until(UntilFun, Resps, ReqRef) ->
                     wait_collect_until(UntilFun, Responses, ReqRef)
             end
     after 2000 ->
-            ?LOG_DEBUG("hard timeout"),
-            {error, timeout}
+        ?LOG_DEBUG("hard timeout"),
+        {error, timeout}
     end.
-
 
 %% call by kapi_notifications:publish_*/1
 kz_amqp_util_notifications_publish() ->
     fun(_, Payload, _) ->
-            _ = teletype_bindings:notification(kz_json:decode(Payload)),
-            %% line above actually has the result, but it's single response and
-            %% we want to collect more responses so naively returning ok here to
-            %% setup message passing between imaginary teletype process
-            %% and imaginary amqp worker
-            ok
+        _ = teletype_bindings:notification(kz_json:decode(Payload)),
+        %% line above actually has the result, but it's single response and
+        %% we want to collect more responses so naively returning ok here to
+        %% setup message passing between imaginary teletype process
+        %% and imaginary amqp worker
+        ok
     end.
 
 %% call by teletype_util:send_update/2,3,4
 kz_amqp_worker_cast() ->
     fun(Prop, PublishFun) ->
-            PublishFun(Prop)
+        PublishFun(Prop)
     end.
 
 %% call by kapi_notifications:publish_notify_update/2
 kz_amqp_util_targeted_publish() ->
     fun(_, Payload, _) ->
-            %% if we could have the eunit test's pid, and spawn kapi_notifications:publish_* above then
-            %% we have a real process for teletype which is sending messages to mocked qmqp worker above.
-            %% But I couldn't set it up properly, it seems meck is jumping in the middle
-            %% and spawning another process for mocking this function or something like that?
-            self() ! {ok, kz_json:decode(Payload)}
+        %% if we could have the eunit test's pid, and spawn kapi_notifications:publish_* above then
+        %% we have a real process for teletype which is sending messages to mocked qmqp worker above.
+        %% But I couldn't set it up properly, it seems meck is jumping in the middle
+        %% and spawning another process for mocking this function or something like that?
+        self() ! {ok, kz_json:decode(Payload)}
     end.
 
 smtp_send() ->
     fun({_, _, _}, _, CallBack) ->
-            kz_util:runs_in(2000, CallBack, [{ok, <<"Message accepted">>}]),
-            {'ok', self()}
+        kz_util:runs_in(2000, CallBack, [{ok, <<"Message accepted">>}]),
+        {'ok', self()}
     end.

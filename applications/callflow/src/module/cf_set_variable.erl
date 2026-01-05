@@ -45,7 +45,9 @@ handle(Data, Call) ->
     cf_exe:set_call(Call1),
     cf_exe:continue(Call1).
 
--spec set_variable(kz_term:api_binary(), kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()) -> 'ok'.
+-spec set_variable(
+    kz_term:api_binary(), kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()
+) -> 'ok'.
 set_variable('undefined', _Value, _Channel, _Call) ->
     lager:warning("can not set variable without name!");
 set_variable(_Name, 'undefined', _Channel, _Call) ->

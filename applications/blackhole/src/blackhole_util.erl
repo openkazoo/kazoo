@@ -23,13 +23,13 @@ is_authenticated(Context) ->
         [] ->
             lager:debug("failed to authenticate"),
             'false';
-        ['true'|_] ->
+        ['true' | _] ->
             lager:debug("is_authenticated: true"),
             'true';
-        [{'true', _}|_] ->
+        [{'true', _} | _] ->
             lager:debug("is_authenticated: true"),
             'true';
-        [{'halt', _}|_] ->
+        [{'halt', _} | _] ->
             lager:debug("is_authenticated: halt"),
             'false'
     end.
@@ -41,13 +41,13 @@ is_authorized(Context) ->
         [] ->
             lager:debug("failed to authorize"),
             'false';
-        ['true'|_] ->
+        ['true' | _] ->
             lager:debug("is_authorized: true"),
             'true';
-        [{'true', _}|_] ->
+        [{'true', _} | _] ->
             lager:debug("is_authorized: true"),
             'true';
-        [{'halt', _}|_] ->
+        [{'halt', _} | _] ->
             lager:debug("is_authorized: halt"),
             'false'
     end.

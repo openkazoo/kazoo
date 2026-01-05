@@ -8,45 +8,45 @@
 
 -behaviour(gen_listener).
 
--export([push/1
-        ]).
+-export([push/1]).
 
--export([start_link/0
-        ,handle_push/2
-        ,handle_reg_success/2
-        ]).
+-export([
+    start_link/0,
+    handle_push/2,
+    handle_reg_success/2
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("pusher.hrl").
 -include_lib("kazoo_sip/include/kzsip_uri.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {subs_pid :: kz_term:api_pid()
-               ,subs_ref :: kz_term:api_reference()
-               }).
+-record(state, {
+    subs_pid :: kz_term:api_pid(),
+    subs_ref :: kz_term:api_reference()
+}).
 -type state() :: #state{}.
 
 %% By convention, we put the options here in macros, but not required.
--define(BINDINGS, [{'self', []}
-                  ,{'pusher', []}
-                  ,{'registration', [{'restrict_to',['reg_success']}]}
-                  ]).
--define(RESPONDERS, [{{?MODULE, 'handle_push'}
-                     ,[{<<"notification">>, <<"push_req">>}]
-                     }
-                    ,{{?MODULE, 'handle_reg_success'}
-                     ,[{<<"directory">>, <<"reg_success">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'self', []},
+    {'pusher', []},
+    {'registration', [{'restrict_to', ['reg_success']}]}
+]).
+-define(RESPONDERS, [
+    {{?MODULE, 'handle_push'}, [{<<"notification">>, <<"push_req">>}]},
+    {{?MODULE, 'handle_reg_success'}, [{<<"directory">>, <<"reg_success">>}]}
+]).
 
 -define(QUEUE_NAME, <<"pusher_shared_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
@@ -66,11 +66,12 @@ handle_push(JObj, _Props) ->
     Token = kz_json:get_value(<<"Token-ID">>, JObj),
     TokenApp = kz_json:get_ne_binary_value(<<"Token-App">>, JObj),
     TokenType = pm_module(kz_json:get_value(<<"Token-Type">>, JObj)),
-    Module = kz_term:to_atom(<<"pm_",TokenType/binary>> , 'true'),
+    Module = kz_term:to_atom(<<"pm_", TokenType/binary>>, 'true'),
     AppEnabled = app_enabled(TokenApp, TokenType),
     lager:info("received push ~s / ~s / ~s", [TokenType, TokenApp, Token]),
-    case lists:member(Module, ?MODULES)
-        andalso whereis(Module)
+    case
+        lists:member(Module, ?MODULES) andalso
+            whereis(Module)
     of
         'false' ->
             lager:error("module ~s not available for token ~s(~s)", [Module, Token, TokenType]);
@@ -88,9 +89,11 @@ pm_module(<<"android">>) -> <<"firebase">>;
 pm_module(Any) -> Any.
 
 add_timestamp_to_payload(JObj) ->
-    kz_json:insert_value([<<"Payload">>, <<"utc_unix_timestamp_ms">>]
-                        ,kz_term:to_binary(os:system_time(millisecond))
-                        ,JObj).
+    kz_json:insert_value(
+        [<<"Payload">>, <<"utc_unix_timestamp_ms">>],
+        kz_term:to_binary(os:system_time(millisecond)),
+        JObj
+    ).
 
 -spec handle_reg_success(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_reg_success(JObj, _Props) ->
@@ -99,56 +102,87 @@ handle_reg_success(JObj, _Props) ->
     maybe_process_reg_success(UserAgentProperties, JObj).
 
 -spec maybe_process_reg_success(kz_term:api_object(), kz_json:object()) -> 'ok'.
-maybe_process_reg_success('undefined', _JObj) -> 'ok';
+maybe_process_reg_success('undefined', _JObj) ->
+    'ok';
 maybe_process_reg_success(UA, JObj) ->
     Contact = kz_json:get_value(<<"Contact">>, JObj),
-    [#uri{opts=A, ext_opts=B}] = kzsip_uri:uris(Contact),
+    [#uri{opts = A, ext_opts = B}] = kzsip_uri:uris(Contact),
     Params = A ++ B,
     TokenKey = kz_json:get_value(?TOKEN_KEY, UA),
     Token = props:get_value(TokenKey, Params),
-    maybe_process_reg_success(Token, kz_json:set_value(<<"Token-Proxy">>, ?TOKEN_PROXY_KEY, UA) , JObj, Params).
+    maybe_process_reg_success(
+        Token, kz_json:set_value(<<"Token-Proxy">>, ?TOKEN_PROXY_KEY, UA), JObj, Params
+    ).
 
--spec maybe_process_reg_success(kz_term:api_binary(), kz_json:object(), kz_json:object(), kz_term:proplist()) -> 'ok'.
+-spec maybe_process_reg_success(
+    kz_term:api_binary(), kz_json:object(), kz_json:object(), kz_term:proplist()
+) -> 'ok'.
 maybe_process_reg_success('undefined', _UA, _JObj, _Params) -> 'ok';
-maybe_process_reg_success(_Token, UA, JObj, Params) ->
-    maybe_update_push_token(UA, JObj, Params).
+maybe_process_reg_success(_Token, UA, JObj, Params) -> maybe_update_push_token(UA, JObj, Params).
 
 -spec maybe_update_push_token(kz_json:object(), kz_json:object(), kz_term:proplist()) -> 'ok'.
 maybe_update_push_token(UA, JObj, Params) ->
-    AccountId = kz_json:get_first_defined([[<<"Custom-Channel-Vars">>, <<"Account-ID">>]
-                                          ,<<"Account-ID">>
-                                          ], JObj),
-    AuthorizingId = kz_json:get_first_defined([[<<"Custom-Channel-Vars">>, <<"Authorizing-ID">>]
-                                              ,<<"Authorizing-ID">>
-                                              ], JObj),
+    AccountId = kz_json:get_first_defined(
+        [
+            [<<"Custom-Channel-Vars">>, <<"Account-ID">>],
+            <<"Account-ID">>
+        ],
+        JObj
+    ),
+    AuthorizingId = kz_json:get_first_defined(
+        [
+            [<<"Custom-Channel-Vars">>, <<"Authorizing-ID">>],
+            <<"Authorizing-ID">>
+        ],
+        JObj
+    ),
     maybe_update_push_token(AccountId, AuthorizingId, UA, JObj, Params).
 
--spec maybe_update_push_token(kz_term:api_binary(), kz_term:api_binary(), kz_json:object(), kz_json:object(), kz_term:proplist()) -> 'ok'.
-maybe_update_push_token('undefined', _AuthorizingId, _UA, _JObj, _Params) -> 'ok';
-maybe_update_push_token(_AccountId, 'undefined', _UA, _JObj, _Params) -> 'ok';
+-spec maybe_update_push_token(
+    kz_term:api_binary(),
+    kz_term:api_binary(),
+    kz_json:object(),
+    kz_json:object(),
+    kz_term:proplist()
+) -> 'ok'.
+maybe_update_push_token('undefined', _AuthorizingId, _UA, _JObj, _Params) ->
+    'ok';
+maybe_update_push_token(_AccountId, 'undefined', _UA, _JObj, _Params) ->
+    'ok';
 maybe_update_push_token(AccountId, AuthorizingId, UA, JObj, Params) ->
     AccountDb = kz_util:format_account_db(AccountId),
     case kz_datamgr:open_cache_doc(AccountDb, AuthorizingId) of
         {'ok', Doc} ->
             Push = kz_json:get_value(<<"push">>, Doc),
             case build_push(UA, JObj, Params, kz_json:new()) of
-                Push -> lager:debug("push exists: ~p", [Push]);
+                Push ->
+                    lager:debug("push exists: ~p", [Push]);
                 NewPush ->
-                    {'ok', _} = kz_datamgr:save_doc(AccountDb, kz_json:set_value(<<"push">>, NewPush, Doc)),
-                    lager:debug("setting push object for ~s: ~s: ~p", [AccountId, AuthorizingId, NewPush])
+                    {'ok', _} = kz_datamgr:save_doc(
+                        AccountDb, kz_json:set_value(<<"push">>, NewPush, Doc)
+                    ),
+                    lager:debug("setting push object for ~s: ~s: ~p", [
+                        AccountId, AuthorizingId, NewPush
+                    ])
             end;
-        {'error', _} -> lager:debug("failed to open ~s in ~s", [AuthorizingId, AccountId])
+        {'error', _} ->
+            lager:debug("failed to open ~s in ~s", [AuthorizingId, AccountId])
     end.
 
 -spec build_push(kz_json:object(), kz_json:object(), kz_term:proplist(), kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 build_push(UA, JObj, Params, InitialAcc) ->
     kz_json:foldl(
-      fun(K, V, Acc) ->
-              build_push_fold(K, V, Acc, JObj, Params)
-      end, InitialAcc, UA).
+        fun(K, V, Acc) ->
+            build_push_fold(K, V, Acc, JObj, Params)
+        end,
+        InitialAcc,
+        UA
+    ).
 
--spec build_push_fold(kz_json:path(), kz_json:json_term(), kz_json:object(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
+-spec build_push_fold(
+    kz_json:path(), kz_json:json_term(), kz_json:object(), kz_json:object(), kz_term:proplist()
+) -> kz_json:object().
 build_push_fold(K, V, Acc, JObj, Params) ->
     case props:get_value(V, Params) of
         'undefined' ->
@@ -156,7 +190,8 @@ build_push_fold(K, V, Acc, JObj, Params) ->
                 'undefined' -> Acc;
                 V1 -> kz_json:set_value(K, kz_http_util:urldecode(V1), Acc)
             end;
-        V2 -> kz_json:set_value(K, kz_http_util:urldecode(V2), Acc)
+        V2 ->
+            kz_json:set_value(K, kz_http_util:urldecode(V2), Acc)
     end.
 
 %%------------------------------------------------------------------------------
@@ -165,12 +200,16 @@ build_push_fold(K, V, Acc, JObj, Params) ->
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    Options = [{'bindings', ?BINDINGS}
-              ,{'responders', ?RESPONDERS}
-              ,{'queue_name', ?QUEUE_NAME}       % optional to include
-              ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-              ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-              ],
+    Options = [
+        {'bindings', ?BINDINGS},
+        {'responders', ?RESPONDERS},
+        % optional to include
+        {'queue_name', ?QUEUE_NAME},
+        % optional to include
+        {'queue_options', ?QUEUE_OPTIONS},
+        % optional to include
+        {'consume_options', ?CONSUME_OPTIONS}
+    ],
     gen_listener:start_link({local, ?SERVER}, ?MODULE, Options, []).
 
 %%%=============================================================================
@@ -200,17 +239,17 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'kz_amqp_channel',{'new_channel',_IsNew}}, State) ->
+handle_cast({'kz_amqp_channel', {'new_channel', _IsNew}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'created_queue',_Queue}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _Queue}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast({'push', JObj}, State) ->
     handle_push(JObj, []),
     {'noreply', State};
-handle_cast({'reg',JObj}, State) ->
-    lager:debug("handle_cast_reg ~p",[JObj]),
+handle_cast({'reg', JObj}, State) ->
+    lager:debug("handle_cast_reg ~p", [JObj]),
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

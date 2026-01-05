@@ -31,11 +31,12 @@
 
 -define(TRIGGER_AUTO_COMPACTION, <<"tasks.triggers.cleanup_pass">>).
 
--define(TRIGGER_ALL_DBS, [?TRIGGER_ACCOUNT
-                         ,?TRIGGER_ACCOUNT_MOD
-                         ,?TRIGGER_SYSTEM
-                         ,?TRIGGER_OTHER
-                         ]).
+-define(TRIGGER_ALL_DBS, [
+    ?TRIGGER_ACCOUNT,
+    ?TRIGGER_ACCOUNT_MOD,
+    ?TRIGGER_SYSTEM,
+    ?TRIGGER_OTHER
+]).
 
 -define(KAZOO_TASKS_HRL, 'true').
 -endif.

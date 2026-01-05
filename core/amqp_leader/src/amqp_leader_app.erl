@@ -28,7 +28,6 @@ start(_Type, _Args) ->
 stop(_State) ->
     'ok'.
 
-
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     kapi_leader:declare_exchanges().

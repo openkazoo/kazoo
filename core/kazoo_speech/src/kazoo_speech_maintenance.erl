@@ -5,10 +5,11 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_speech_maintenance).
 
--export([set_tts_api_key/2
-        ,set_tts_provider/1
-        ,set_tts_language/1
-        ]).
+-export([
+    set_tts_api_key/2,
+    set_tts_provider/1,
+    set_tts_language/1
+]).
 
 -include("kazoo_speech.hrl").
 
@@ -19,7 +20,8 @@ set_tts_api_key(Provider, APIKey) ->
 -spec set_tts_provider(kz_term:ne_binary()) -> 'ok'.
 set_tts_provider(Provider) ->
     case code:which(kazoo_tts:provider_module(Provider)) of
-        'non_existing' -> io:format("No provider module for ~s~n", [Provider]);
+        'non_existing' ->
+            io:format("No provider module for ~s~n", [Provider]);
         _Path ->
             kazoo_tts:set_default_provider(Provider),
             io:format("Updated TTS provider to ~s~n", [Provider])

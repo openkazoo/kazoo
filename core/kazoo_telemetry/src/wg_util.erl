@@ -8,10 +8,11 @@
 %%%-----------------------------------------------------------------------------
 -module(wg_util).
 
--export([activation_ts/0
-        ,cluster_id/0
-        ,days_remaining/0
-        ]).
+-export([
+    activation_ts/0,
+    cluster_id/0,
+    days_remaining/0
+]).
 
 -include("waveguide.hrl").
 
@@ -36,14 +37,15 @@ cluster_id() ->
 %%------------------------------------------------------------------------------
 -spec days_remaining() -> non_neg_integer().
 days_remaining() ->
-    ActSecs  = kz_time:elapsed_s(?WG_ACTIVATION),
+    ActSecs = kz_time:elapsed_s(?WG_ACTIVATION),
     Remaining = (?WG_GRACE_PERIOD - ActSecs) / ?DAY_IN_SECONDS,
     days_remaining(Remaining).
 
 -spec days_remaining(float()) -> non_neg_integer().
 days_remaining(Days) when Days > 0 ->
     trunc(Days);
-days_remaining(_) -> 0.
+days_remaining(_) ->
+    0.
 
 %%------------------------------------------------------------------------------
 %% @doc maybe anonymize cluster metadata
@@ -55,10 +57,12 @@ maybe_anonymize_cluster() ->
 
 -spec maybe_anonymize_cluster(kz_term:ne_binary()) -> kz_term:ne_binary().
 maybe_anonymize_cluster(ClusterId) ->
-    MaybeAnonymize = kapps_config:get_boolean(?TELEMETRY_CAT
-                                             ,<<"cluster_id_anonymized">>
-                                             ,?ANONYMIZE_CLUSTER
-                                             ,<<"default">>),
+    MaybeAnonymize = kapps_config:get_boolean(
+        ?TELEMETRY_CAT,
+        <<"cluster_id_anonymized">>,
+        ?ANONYMIZE_CLUSTER,
+        <<"default">>
+    ),
     maybe_anonymize_cluster(ClusterId, MaybeAnonymize).
 
 %%------------------------------------------------------------------------------

@@ -20,25 +20,28 @@
 
 -define(SERVER, ?MODULE).
 
--define(ORIGIN_BINDINGS, [[{'type', <<"account">>}]
-                         ,[{'type', <<"user">>}]
-                         ,[{'type', <<"callflow">>}]
-                         ,[{'type', <<"device">>}]
-                         ,[{'type', <<"parked_calls">>}]
-                         ,[{'doc_id', ?MANUAL_PRESENCE_DOC}]
-                         ]).
+-define(ORIGIN_BINDINGS, [
+    [{'type', <<"account">>}],
+    [{'type', <<"user">>}],
+    [{'type', <<"callflow">>}],
+    [{'type', <<"device">>}],
+    [{'type', <<"parked_calls">>}],
+    [{'doc_id', ?MANUAL_PRESENCE_DOC}]
+]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ,'new_node_flush'
-                     ,'channel_reconnect_flush'
-                     ]).
+-define(CACHE_PROPS, [
+    {'origin_bindings', ?ORIGIN_BINDINGS},
+    'new_node_flush',
+    'channel_reconnect_flush'
+]).
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?WORKER('cf_shared_listener')
-                  ,?WORKER('cf_listener')
-                  ,?SUPER('cf_event_handler_sup')
-                  ,?SUPER('cf_exe_sup')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?WORKER('cf_shared_listener'),
+    ?WORKER('cf_listener'),
+    ?SUPER('cf_event_handler_sup'),
+    ?SUPER('cf_exe_sup')
+]).
 
 %%==============================================================================
 %% API functions
@@ -54,9 +57,11 @@ start_link() ->
 
 -spec listener_proc() -> {'ok', pid()}.
 listener_proc() ->
-    [P] = [P || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-                Mod =:= 'cf_listener'
-          ],
+    [P] = [
+        P
+     || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
+        Mod =:= 'cf_listener'
+    ],
     {'ok', P}.
 
 %%==============================================================================

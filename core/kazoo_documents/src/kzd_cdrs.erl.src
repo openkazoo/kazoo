@@ -49,8 +49,13 @@
 -export([node/1, node/2, set_node/2]).
 -export([other_leg_call_id/1, other_leg_call_id/2, set_other_leg_call_id/2]).
 -export([other_leg_caller_id_name/1, other_leg_caller_id_name/2, set_other_leg_caller_id_name/2]).
--export([other_leg_caller_id_number/1, other_leg_caller_id_number/2, set_other_leg_caller_id_number/2]).
--export([other_leg_destination_number/1, other_leg_destination_number/2, set_other_leg_destination_number/2]).
+-export([
+    other_leg_caller_id_number/1, other_leg_caller_id_number/2, set_other_leg_caller_id_number/2
+]).
+-export([
+    other_leg_destination_number/1, other_leg_destination_number/2,
+    set_other_leg_destination_number/2
+]).
 -export([other_leg_direction/1, other_leg_direction/2, set_other_leg_direction/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
 -export([remote_sdp/1, remote_sdp/2, set_remote_sdp/2]).
@@ -65,7 +70,6 @@
 -export([to_tag/1, to_tag/2, set_to_tag/2]).
 -export([to_uri/1, to_uri/2, set_to_uri/2]).
 -export([user_agent/1, user_agent/2, set_user_agent/2]).
-
 
 -include("kz_documents.hrl").
 

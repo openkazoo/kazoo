@@ -17,34 +17,59 @@
 -export([e911_extended_address/1, e911_extended_address/2, set_e911_extended_address/2]).
 -export([e911_latitude/1, e911_latitude/2, set_e911_latitude/2]).
 -export([e911_legacy_data/1, e911_legacy_data/2, set_e911_legacy_data/2]).
--export([e911_legacy_data_house_number/1, e911_legacy_data_house_number/2, set_e911_legacy_data_house_number/2]).
--export([e911_legacy_data_predirectional/1, e911_legacy_data_predirectional/2, set_e911_legacy_data_predirectional/2]).
--export([e911_legacy_data_streetname/1, e911_legacy_data_streetname/2, set_e911_legacy_data_streetname/2]).
+-export([
+    e911_legacy_data_house_number/1, e911_legacy_data_house_number/2,
+    set_e911_legacy_data_house_number/2
+]).
+-export([
+    e911_legacy_data_predirectional/1, e911_legacy_data_predirectional/2,
+    set_e911_legacy_data_predirectional/2
+]).
+-export([
+    e911_legacy_data_streetname/1, e911_legacy_data_streetname/2, set_e911_legacy_data_streetname/2
+]).
 -export([e911_legacy_data_suite/1, e911_legacy_data_suite/2, set_e911_legacy_data_suite/2]).
 -export([e911_locality/1, e911_locality/2, set_e911_locality/2]).
 -export([e911_location_id/1, e911_location_id/2, set_e911_location_id/2]).
 -export([e911_longitude/1, e911_longitude/2, set_e911_longitude/2]).
--export([e911_notification_contact_emails/1, e911_notification_contact_emails/2, set_e911_notification_contact_emails/2]).
+-export([
+    e911_notification_contact_emails/1, e911_notification_contact_emails/2,
+    set_e911_notification_contact_emails/2
+]).
 -export([e911_plus_four/1, e911_plus_four/2, set_e911_plus_four/2]).
 -export([e911_postal_code/1, e911_postal_code/2, set_e911_postal_code/2]).
 -export([e911_region/1, e911_region/2, set_e911_region/2]).
 -export([e911_status/1, e911_status/2, set_e911_status/2]).
 -export([e911_street_address/1, e911_street_address/2, set_e911_street_address/2]).
 -export([porting/1, porting/2, set_porting/2]).
--export([porting_billing_account_id/1, porting_billing_account_id/2, set_porting_billing_account_id/2]).
--export([porting_billing_extended_address/1, porting_billing_extended_address/2, set_porting_billing_extended_address/2]).
+-export([
+    porting_billing_account_id/1, porting_billing_account_id/2, set_porting_billing_account_id/2
+]).
+-export([
+    porting_billing_extended_address/1, porting_billing_extended_address/2,
+    set_porting_billing_extended_address/2
+]).
 -export([porting_billing_locality/1, porting_billing_locality/2, set_porting_billing_locality/2]).
 -export([porting_billing_name/1, porting_billing_name/2, set_porting_billing_name/2]).
--export([porting_billing_postal_code/1, porting_billing_postal_code/2, set_porting_billing_postal_code/2]).
+-export([
+    porting_billing_postal_code/1, porting_billing_postal_code/2, set_porting_billing_postal_code/2
+]).
 -export([porting_billing_region/1, porting_billing_region/2, set_porting_billing_region/2]).
--export([porting_billing_street_address/1, porting_billing_street_address/2, set_porting_billing_street_address/2]).
--export([porting_billing_telephone_number/1, porting_billing_telephone_number/2, set_porting_billing_telephone_number/2]).
+-export([
+    porting_billing_street_address/1, porting_billing_street_address/2,
+    set_porting_billing_street_address/2
+]).
+-export([
+    porting_billing_telephone_number/1, porting_billing_telephone_number/2,
+    set_porting_billing_telephone_number/2
+]).
 -export([porting_comments/1, porting_comments/2, set_porting_comments/2]).
 -export([porting_customer_contact/1, porting_customer_contact/2, set_porting_customer_contact/2]).
 -export([porting_port_id/1, porting_port_id/2, set_porting_port_id/2]).
--export([porting_requested_port_date/1, porting_requested_port_date/2, set_porting_requested_port_date/2]).
+-export([
+    porting_requested_port_date/1, porting_requested_port_date/2, set_porting_requested_port_date/2
+]).
 -export([porting_service_provider/1, porting_service_provider/2, set_porting_service_provider/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -199,7 +224,9 @@ e911_legacy_data_house_number(Doc, Default) ->
 
 -spec set_e911_legacy_data_house_number(doc(), binary()) -> doc().
 set_e911_legacy_data_house_number(Doc, E911LegacyDataHouseNumber) ->
-    kz_json:set_value([<<"e911">>, <<"legacy_data">>, <<"house_number">>], E911LegacyDataHouseNumber, Doc).
+    kz_json:set_value(
+        [<<"e911">>, <<"legacy_data">>, <<"house_number">>], E911LegacyDataHouseNumber, Doc
+    ).
 
 -spec e911_legacy_data_predirectional(doc()) -> kz_term:api_binary().
 e911_legacy_data_predirectional(Doc) ->
@@ -211,7 +238,9 @@ e911_legacy_data_predirectional(Doc, Default) ->
 
 -spec set_e911_legacy_data_predirectional(doc(), binary()) -> doc().
 set_e911_legacy_data_predirectional(Doc, E911LegacyDataPredirectional) ->
-    kz_json:set_value([<<"e911">>, <<"legacy_data">>, <<"predirectional">>], E911LegacyDataPredirectional, Doc).
+    kz_json:set_value(
+        [<<"e911">>, <<"legacy_data">>, <<"predirectional">>], E911LegacyDataPredirectional, Doc
+    ).
 
 -spec e911_legacy_data_streetname(doc()) -> kz_term:api_binary().
 e911_legacy_data_streetname(Doc) ->
@@ -223,7 +252,9 @@ e911_legacy_data_streetname(Doc, Default) ->
 
 -spec set_e911_legacy_data_streetname(doc(), binary()) -> doc().
 set_e911_legacy_data_streetname(Doc, E911LegacyDataStreetname) ->
-    kz_json:set_value([<<"e911">>, <<"legacy_data">>, <<"streetname">>], E911LegacyDataStreetname, Doc).
+    kz_json:set_value(
+        [<<"e911">>, <<"legacy_data">>, <<"streetname">>], E911LegacyDataStreetname, Doc
+    ).
 
 -spec e911_legacy_data_suite(doc()) -> kz_term:api_binary().
 e911_legacy_data_suite(Doc) ->
@@ -283,7 +314,9 @@ e911_notification_contact_emails(Doc, Default) ->
 
 -spec set_e911_notification_contact_emails(doc(), kz_term:ne_binaries()) -> doc().
 set_e911_notification_contact_emails(Doc, E911NotificationContactEmails) ->
-    kz_json:set_value([<<"e911">>, <<"notification_contact_emails">>], E911NotificationContactEmails, Doc).
+    kz_json:set_value(
+        [<<"e911">>, <<"notification_contact_emails">>], E911NotificationContactEmails, Doc
+    ).
 
 -spec e911_plus_four(doc()) -> kz_term:api_binary().
 e911_plus_four(Doc) ->
@@ -379,7 +412,9 @@ porting_billing_extended_address(Doc, Default) ->
 
 -spec set_porting_billing_extended_address(doc(), binary()) -> doc().
 set_porting_billing_extended_address(Doc, PortingBillingExtendedAddress) ->
-    kz_json:set_value([<<"porting">>, <<"billing_extended_address">>], PortingBillingExtendedAddress, Doc).
+    kz_json:set_value(
+        [<<"porting">>, <<"billing_extended_address">>], PortingBillingExtendedAddress, Doc
+    ).
 
 -spec porting_billing_locality(doc()) -> kz_term:api_binary().
 porting_billing_locality(Doc) ->
@@ -439,7 +474,9 @@ porting_billing_street_address(Doc, Default) ->
 
 -spec set_porting_billing_street_address(doc(), binary()) -> doc().
 set_porting_billing_street_address(Doc, PortingBillingStreetAddress) ->
-    kz_json:set_value([<<"porting">>, <<"billing_street_address">>], PortingBillingStreetAddress, Doc).
+    kz_json:set_value(
+        [<<"porting">>, <<"billing_street_address">>], PortingBillingStreetAddress, Doc
+    ).
 
 -spec porting_billing_telephone_number(doc()) -> kz_term:api_binary().
 porting_billing_telephone_number(Doc) ->
@@ -451,7 +488,9 @@ porting_billing_telephone_number(Doc, Default) ->
 
 -spec set_porting_billing_telephone_number(doc(), binary()) -> doc().
 set_porting_billing_telephone_number(Doc, PortingBillingTelephoneNumber) ->
-    kz_json:set_value([<<"porting">>, <<"billing_telephone_number">>], PortingBillingTelephoneNumber, Doc).
+    kz_json:set_value(
+        [<<"porting">>, <<"billing_telephone_number">>], PortingBillingTelephoneNumber, Doc
+    ).
 
 -spec porting_comments(doc()) -> kz_term:api_ne_binaries().
 porting_comments(Doc) ->

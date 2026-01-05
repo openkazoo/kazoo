@@ -13,11 +13,13 @@
 -type document() :: kz_json:object().
 -type documents() :: kz_json:objects().
 
--export_type([connection/0
-             ,option/0, options/0
-             ,document/0
-             ,documents/0
-             ]).
+-export_type([
+    connection/0,
+    option/0,
+    options/0,
+    document/0,
+    documents/0
+]).
 
 -callback new_connection(map()) -> connection().
 -callback format_error(any()) -> any().
@@ -25,11 +27,11 @@
 %% Connection operations
 -callback get_db(connection(), kz_term:ne_binary()) -> any().
 -callback server_url(connection()) ->
-    kz_term:ne_binary() |
-    {'error', 'resource_not_available'}.
+    kz_term:ne_binary()
+    | {'error', 'resource_not_available'}.
 -callback db_url(connection(), kz_term:ne_binary()) ->
-    kz_term:ne_binary() |
-    {'error', 'resource_not_available'}.
+    kz_term:ne_binary()
+    | {'error', 'resource_not_available'}.
 -callback server_info(connection()) -> any().
 
 %% DB operations
@@ -39,8 +41,8 @@
 -callback db_info(connection()) -> any().
 -callback db_info(connection(), kz_term:ne_binary()) -> any().
 -callback db_exists(connection(), kz_term:ne_binary()) ->
-    boolean() |
-    {'error', 'resource_not_available'}.
+    boolean()
+    | {'error', 'resource_not_available'}.
 -callback db_archive(connection(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
 -callback db_list(connection(), options()) -> any().
 
@@ -54,15 +56,31 @@
 -callback ensure_saved(connection(), kz_term:ne_binary(), document(), options()) -> any().
 
 %% Attachment-related
--callback fetch_attachment(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
--callback stream_attachment(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()) -> any().
--callback put_attachment(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
--callback delete_attachment(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
--callback attachment_url(connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
+-callback fetch_attachment(
+    connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> any().
+-callback stream_attachment(
+    connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()
+) -> any().
+-callback put_attachment(
+    connection(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    options()
+) -> any().
+-callback delete_attachment(
+    connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), options()
+) -> any().
+-callback attachment_url(
+    connection(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), options()
+) -> any().
 
 %% View-related
 -callback design_info(connection(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
 -callback all_design_docs(connection(), kz_term:ne_binary(), options()) -> any().
 -callback get_results(connection(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
--callback get_results_count(connection(), kz_term:ne_binary(), kz_term:ne_binary(), options()) -> any().
+-callback get_results_count(connection(), kz_term:ne_binary(), kz_term:ne_binary(), options()) ->
+    any().
 -callback all_docs(connection(), kz_term:ne_binary(), options()) -> any().

@@ -7,9 +7,10 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ,buckets_srv/0
-        ]).
+-export([
+    start_link/0,
+    buckets_srv/0
+]).
 -export([init/1]).
 
 -include("kz_buckets.hrl").
@@ -17,17 +18,21 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('kz_buckets_sup')
-                  ,?WORKER_ARGS('kazoo_etsmgr_srv'
-                               ,[
-                                 [{'table_id', kz_buckets:table_id()}
-                                 ,{'table_options', kz_buckets:table_options()}
-                                 ,{'find_me_function', fun buckets_srv/0}
-                                 ,{'gift_data', kz_buckets:gift_data()}
-                                 ]
-                                ])
-                  ,?WORKER('kz_buckets')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('kz_buckets_sup'),
+    ?WORKER_ARGS(
+        'kazoo_etsmgr_srv',
+        [
+            [
+                {'table_id', kz_buckets:table_id()},
+                {'table_options', kz_buckets:table_options()},
+                {'find_me_function', fun buckets_srv/0},
+                {'gift_data', kz_buckets:gift_data()}
+            ]
+        ]
+    ),
+    ?WORKER('kz_buckets')
+]).
 
 %%==============================================================================
 %% API functions

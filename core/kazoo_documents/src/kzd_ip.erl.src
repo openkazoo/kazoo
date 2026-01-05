@@ -10,7 +10,6 @@
 -export([ip/1, ip/2, set_ip/2]).
 -export([zone/1, zone/2, set_zone/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

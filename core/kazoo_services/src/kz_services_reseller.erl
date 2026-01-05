@@ -6,15 +6,18 @@
 -module(kz_services_reseller).
 
 -export([is_reseller/1]).
--export([get_id/1
-        ,find_id/1
-        ]).
--export([promote/1
-        ,force_promote/1
-        ]).
--export([demote/1
-        ,force_demote/1
-        ]).
+-export([
+    get_id/1,
+    find_id/1
+]).
+-export([
+    promote/1,
+    force_promote/1
+]).
+-export([
+    demote/1,
+    force_demote/1
+]).
 -export([cascade_reseller_id/2]).
 -export([set_reseller_id/2]).
 -export([has_reseller_descendants/1]).
@@ -27,8 +30,9 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_reseller(kz_term:api_ne_binary() | kz_services:services()) -> boolean().
-is_reseller('undefined') -> 'false';
-is_reseller(Account=?NE_BINARY) ->
+is_reseller('undefined') ->
+    'false';
+is_reseller(Account = ?NE_BINARY) ->
     AccountId = kz_util:format_account_id(Account),
     case kz_datamgr:open_cache_doc(?KZ_SERVICES_DB, AccountId) of
         {'ok', JObj} -> kzd_services:is_reseller(JObj);
@@ -36,8 +40,8 @@ is_reseller(Account=?NE_BINARY) ->
     end;
 is_reseller(Services) ->
     kzd_services:is_reseller(
-      kz_services:services_jobj(Services)
-     ).
+        kz_services:services_jobj(Services)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Fetches the reseller_id property from the services document,
@@ -60,8 +64,10 @@ get_id(Services) ->
 %% and walks the account tree until it finds the first reseller
 %% @end
 %%------------------------------------------------------------------------------
--spec find_id(kz_term:ne_binaries() | kz_term:api_binary() | kz_services:services()) -> kz_term:ne_binary().
-find_id('undefined') -> find_id([]);
+-spec find_id(kz_term:ne_binaries() | kz_term:api_binary() | kz_services:services()) ->
+    kz_term:ne_binary().
+find_id('undefined') ->
+    find_id([]);
 find_id(<<Account/binary>>) ->
     case kzd_accounts:fetch(Account) of
         {'ok', AccountJObj} ->
@@ -73,7 +79,7 @@ find_id(<<Account/binary>>) ->
 find_id([]) ->
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     MasterAccountId;
-find_id([Parent|Ancestors]) ->
+find_id([Parent | Ancestors]) ->
     case is_reseller(Parent) of
         'false' -> find_id(Ancestors);
         'true' -> Parent
@@ -91,7 +97,8 @@ find_id(Services) ->
 promote(Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     case kapps_util:is_master_account(AccountId) of
-        'true' -> {'error', 'master_account'};
+        'true' ->
+            {'error', 'master_account'};
         'false' ->
             case has_reseller_descendants(AccountId) of
                 'true' -> {'error', 'reseller_descendants'};
@@ -122,7 +129,8 @@ do_promote(AccountId) ->
 demote(Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     case kapps_util:is_master_account(AccountId) of
-        'true' -> {'error', 'master_account'};
+        'true' ->
+            {'error', 'master_account'};
         'false' ->
             case has_reseller_descendants(AccountId) of
                 'true' -> {'error', 'reseller_descendants'};
@@ -141,7 +149,9 @@ do_demote(AccountId) ->
     _ = kzd_accounts:update(AccountId, Update),
     _ = maybe_update_services(AccountId, ?SERVICES_PVT_IS_RESELLER, 'false'),
     ResellerId = find_id(AccountId),
-    io:format("demoting reseller status for account ~s, and now belongs to reseller ~s~n", [AccountId, ResellerId]),
+    io:format("demoting reseller status for account ~s, and now belongs to reseller ~s~n", [
+        AccountId, ResellerId
+    ]),
     cascade_reseller_id(ResellerId, AccountId).
 
 %%------------------------------------------------------------------------------
@@ -153,19 +163,23 @@ do_demote(AccountId) ->
 cascade_reseller_id(Reseller, Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     ResellerId = kz_util:format_account_id(Reseller, 'raw'),
-    ViewOptions = [{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
-    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions) of
-        {'error', _R}=Error ->
+    ViewOptions = [
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
+    case
+        kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions)
+    of
+        {'error', _R} = Error ->
             lager:debug("unable to determine descendants of ~s: ~p", [AccountId, _R]),
             Error;
         {'ok', JObjs} ->
-            _ = [set_reseller_id(ResellerId, SubAccountId)
-                 || JObj <- JObjs,
-                    SubAccountId <- [kz_doc:id(JObj)],
-                    SubAccountId =/= AccountId
-                ],
+            _ = [
+                set_reseller_id(ResellerId, SubAccountId)
+             || JObj <- JObjs,
+                SubAccountId <- [kz_doc:id(JObj)],
+                SubAccountId =/= AccountId
+            ],
             'ok'
     end.
 
@@ -191,14 +205,15 @@ set_reseller_id(Reseller, Account) ->
 -spec maybe_update_services(kz_term:ne_binary(), kz_term:ne_binary(), any()) -> {'error', _} | 'ok'.
 maybe_update_services(AccountId, Key, Value) ->
     case kz_datamgr:open_doc(?KZ_SERVICES_DB, AccountId) of
-        {'error', _R}=Error ->
+        {'error', _R} = Error ->
             io:format("unable to open services doc ~s: ~p~n", [AccountId, _R]),
             lager:debug("unable to open services doc ~s: ~p", [AccountId, _R]),
             Error;
         {'ok', JObj} ->
             case kz_datamgr:save_doc(?KZ_SERVICES_DB, kz_json:set_value(Key, Value, JObj)) of
-                {'ok', _} -> lager:debug("updated services doc successfully");
-                {'error', _R}=Error ->
+                {'ok', _} ->
+                    lager:debug("updated services doc successfully");
+                {'error', _R} = Error ->
                     io:format("unable to set ~s on services doc ~s: ~p~n", [Key, AccountId, _R]),
                     lager:debug("unable to set ~s on services doc ~s: ~p", [Key, AccountId, _R]),
                     Error
@@ -209,15 +224,19 @@ maybe_update_services(AccountId, Key, Value) ->
 has_reseller_descendants(AccountId) ->
     %% its very important that this check not operate against stale data!
     _ = kz_datamgr:flush_cache_docs(?KZ_SERVICES_DB),
-    ViewOptions = [{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
-    {'ok', JObjs} = kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions),
+    ViewOptions = [
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
+    {'ok', JObjs} = kz_datamgr:get_results(
+        ?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions
+    ),
     check_descendants(JObjs).
 
 -spec check_descendants(kz_json:objects()) -> boolean().
-check_descendants([]) -> 'false';
-check_descendants([JObj|JObjs]) ->
+check_descendants([]) ->
+    'false';
+check_descendants([JObj | JObjs]) ->
     case is_reseller(kz_doc:id(JObj)) of
         'false' -> check_descendants(JObjs);
         'true' -> 'true'

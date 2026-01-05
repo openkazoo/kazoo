@@ -9,17 +9,22 @@
 -type successful_status() :: 'success' | 'accepted'.
 -type error_status() :: 'error' | 'fatal' | 'stop'.
 -type crossbar_status() :: successful_status() | error_status().
--type crossbar_module_result() :: {crossbar_status(), kz_term:proplist()} |
-                                  {crossbar_status(), kz_term:proplist(), string()} |
-                                  {crossbar_status(), kz_term:proplist(), string(), integer()}.
+-type crossbar_module_result() ::
+    {crossbar_status(), kz_term:proplist()}
+    | {crossbar_status(), kz_term:proplist(), string()}
+    | {crossbar_status(), kz_term:proplist(), string(), integer()}.
 
 -type path_token() :: kz_term:ne_binary().
 -type path_tokens() :: [path_token()].
 
--type resp_data() :: kz_json:object() | kz_json:objects() |
-                     kz_json:json_term() | kz_json:json_proplist() |
-                     kz_term:api_binary() | kz_term:ne_binaries() |
-                     map().
+-type resp_data() ::
+    kz_json:object()
+    | kz_json:objects()
+    | kz_json:json_term()
+    | kz_json:json_proplist()
+    | kz_term:api_binary()
+    | kz_term:ne_binaries()
+    | map().
 
 -type req_file() :: {kz_term:ne_binary(), kz_json:object()}.
 %% `{file_name, {"contents":<<bin>>, "headers":{"content-type":"", "content-length":1}}}'
@@ -29,7 +34,8 @@
 -type req_noun() :: {kz_term:ne_binary(), kz_term:ne_binaries()}.
 -type req_nouns() :: [req_noun()].
 
--type content_type() :: {kz_term:ne_binary(), kz_term:ne_binary(), '*' | kz_term:proplist()} | kz_term:ne_binary().
+-type content_type() ::
+    {kz_term:ne_binary(), kz_term:ne_binary(), '*' | kz_term:proplist()} | kz_term:ne_binary().
 %% `{Type, SubType, Options}'
 
 -type media_value() :: {content_type(), non_neg_integer(), list()}.
@@ -38,9 +44,9 @@
 -type content_conversion_fun() :: atom().
 -type content_type_callbacks() :: [{content_type(), content_conversion_fun()}].
 
--define(MEDIA_VALUE(Type, SubType, Weight, Options, Extensions)
-       ,{{Type, SubType, Options}, Weight, Extensions}
-       ).
+-define(MEDIA_VALUE(Type, SubType, Weight, Options, Extensions), {
+    {Type, SubType, Options}, Weight, Extensions
+}).
 -define(MEDIA_VALUE(Type, SubType, Weight), ?MEDIA_VALUE(Type, SubType, Weight, [], [])).
 -define(MEDIA_VALUE(Type, SubType), ?MEDIA_VALUE(Type, SubType, 1000, [], [])).
 
@@ -48,14 +54,20 @@
 %% `{handler_fun, {type, sub_type}} => {to_json, [{<<"application">>, <<"json">>}]}'
 -type crossbar_content_handlers() :: [crossbar_content_handler()].
 
--type http_method() :: kz_term:ne_binary(). %% HTTP Verbs in UPPERCASE
+%% HTTP Verbs in UPPERCASE
+-type http_method() :: kz_term:ne_binary().
 -type http_methods() :: kz_term:ne_binaries().
 -type req_verb() :: http_method().
 
--type validator() :: 'required' | 'not_empty' | 'is_type'
-                   | 'is_format' | 'numeric_min'
-                   | 'numeric_max' | 'numeric_between'
-                   | 'width'.
+-type validator() ::
+    'required'
+    | 'not_empty'
+    | 'is_type'
+    | 'is_format'
+    | 'numeric_min'
+    | 'numeric_max'
+    | 'numeric_between'
+    | 'width'.
 -type validator_rule() :: {validator(), list()}.
 -type validator_rules() :: [validator_rule()].
 
@@ -67,52 +79,61 @@
 
 -type cb_cowboy_payload() :: {cowboy_req:req(), cb_context:context()}.
 
--define(CSV_CONTENT_TYPES, [{<<"application">>, <<"octet-stream">>}
-                           ,{<<"text">>, <<"csv">>}
-                           ,{<<"text">>, <<"comma-separated-values">>}
-                           ]).
--define(JSON_CONTENT_TYPES, [{<<"application">>, <<"json">>}
-                            ,{<<"application">>, <<"x-json">>}
-                            ]).
+-define(CSV_CONTENT_TYPES, [
+    {<<"application">>, <<"octet-stream">>},
+    {<<"text">>, <<"csv">>},
+    {<<"text">>, <<"comma-separated-values">>}
+]).
+-define(JSON_CONTENT_TYPES, [
+    {<<"application">>, <<"json">>},
+    {<<"application">>, <<"x-json">>}
+]).
 
--define(MULTIPART_CONTENT_TYPES, [{<<"application">>, <<"x-www-form-urlencoded">>}
-                                 ,{<<"multipart">>, <<"form-data">>}
-                                 ,{<<"multipart">>, <<"mixed">>}
-                                 ]).
+-define(MULTIPART_CONTENT_TYPES, [
+    {<<"application">>, <<"x-www-form-urlencoded">>},
+    {<<"multipart">>, <<"form-data">>},
+    {<<"multipart">>, <<"mixed">>}
+]).
 
--define(IMAGE_CONTENT_TYPES, [{<<"image">>, <<"jpg">>}
-                             ,{<<"image">>, <<"jpeg">>}
-                             ,{<<"image">>, <<"png">>}
-                             ,{<<"image">>, <<"gif">>}
-                             ]).
+-define(IMAGE_CONTENT_TYPES, [
+    {<<"image">>, <<"jpg">>},
+    {<<"image">>, <<"jpeg">>},
+    {<<"image">>, <<"png">>},
+    {<<"image">>, <<"gif">>}
+]).
 
--define(AUDIO_CONTENT_TYPES, [{<<"audio">>, <<"x-wav">>}
-                             ,{<<"audio">>, <<"wav">>}
-                             ,{<<"audio">>, <<"mpeg">>}
-                             ,{<<"audio">>, <<"mp3">>}
-                             ,{<<"audio">>, <<"ogg">>}
-                             ]).
+-define(AUDIO_CONTENT_TYPES, [
+    {<<"audio">>, <<"x-wav">>},
+    {<<"audio">>, <<"wav">>},
+    {<<"audio">>, <<"mpeg">>},
+    {<<"audio">>, <<"mp3">>},
+    {<<"audio">>, <<"ogg">>}
+]).
 
--define(VIDEO_CONTENT_TYPES, [{<<"video">>, <<"x-flv">>}
-                             ,{<<"video">>, <<"h264">>}
-                             ,{<<"video">>, <<"mpeg">>}
-                             ,{<<"video">>, <<"quicktime">>}
-                             ,{<<"video">>, <<"mp4">>}
-                             ,{<<"video">>, <<"webm">>}
-                             ]).
+-define(VIDEO_CONTENT_TYPES, [
+    {<<"video">>, <<"x-flv">>},
+    {<<"video">>, <<"h264">>},
+    {<<"video">>, <<"mpeg">>},
+    {<<"video">>, <<"quicktime">>},
+    {<<"video">>, <<"mp4">>},
+    {<<"video">>, <<"webm">>}
+]).
 
--define(BASE64_CONTENT_TYPES, [{<<"application">>, <<"base64">>}
-                              ,{<<"application">>, <<"x-base64">>}
-                              ]).
+-define(BASE64_CONTENT_TYPES, [
+    {<<"application">>, <<"base64">>},
+    {<<"application">>, <<"x-base64">>}
+]).
 
--define(PDF_CONTENT_TYPES, [{<<"application">>, <<"pdf">>}
-                           ,{<<"application">>, <<"x-pdf">>}
-                           ]).
+-define(PDF_CONTENT_TYPES, [
+    {<<"application">>, <<"pdf">>},
+    {<<"application">>, <<"x-pdf">>}
+]).
 
 %% https://www.ietf.org/rfc/rfc2376.txt
--define(XML_CONTENT_TYPES, [{<<"text">>, <<"xml">>, '*'}
-                           ,{<<"application">>, <<"xml">>, '*'}
-                           ]).
+-define(XML_CONTENT_TYPES, [
+    {<<"text">>, <<"xml">>, '*'},
+    {<<"application">>, <<"xml">>, '*'}
+]).
 
 -define(JSONP_CONTENT_TYPE, <<"application/javascript">>).
 

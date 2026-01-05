@@ -24,14 +24,16 @@
 %%%------------------------------------------------------------------------------
 -spec create_ledgers(kapps_im:im()) -> ledgers_results().
 create_ledgers(IM) ->
-    Ids = case {kapps_im:account_id(IM), kapps_im:reseller_id(IM)} of
-              {AccountId, AccountId} ->
-                  [{'account', AccountId}];
-              {AccountId, ResellerId} ->
-                  [{'account', AccountId}
-                  ,{'reseller', ResellerId}
-                  ]
-          end,
+    Ids =
+        case {kapps_im:account_id(IM), kapps_im:reseller_id(IM)} of
+            {AccountId, AccountId} ->
+                [{'account', AccountId}];
+            {AccountId, ResellerId} ->
+                [
+                    {'account', AccountId},
+                    {'reseller', ResellerId}
+                ]
+        end,
     [{Pair, create_ledger(IM, Id)} || {_, Id} = Pair <- Ids].
 
 -spec create_ledger(kapps_im:im(), kz_term:api_ne_binary()) -> ledger_result().
@@ -40,33 +42,37 @@ create_ledger(IM, AccountId) ->
     create_ledger(IM, AccountId, Rate).
 
 -spec create_ledger(kapps_im:im(), kz_term:api_ne_binary(), number()) -> ledger_result().
-create_ledger(IM, AccountId, Rate)
-  when Rate > 0 ->
+create_ledger(IM, AccountId, Rate) when
+    Rate > 0
+->
     Setters =
         props:filter_empty(
-          [{fun kz_ledger:set_account/2, AccountId}
-          ,{fun kz_ledger:set_source_service/2, ?IM_LEDGER}
-          ,{fun kz_ledger:set_source_id/2, kapps_im:message_id(IM)}
-          ,{fun kz_ledger:set_description/2, description(IM)}
-          ,{fun kz_ledger:set_usage_type/2, kz_term:to_binary(kapps_im:type(IM))}
-          ,{fun kz_ledger:set_usage_quantity/2, 1}
-          ,{fun kz_ledger:set_usage_unit/2, <<"message">>}
-          ,{fun kz_ledger:set_period_start/2, kz_time:now_s()}
-          ,{fun kz_ledger:set_metadata/2, metadata(IM, AccountId)}
-          ,{fun kz_ledger:set_dollar_amount/2, Rate}
-          ]
-         ),
+            [
+                {fun kz_ledger:set_account/2, AccountId},
+                {fun kz_ledger:set_source_service/2, ?IM_LEDGER},
+                {fun kz_ledger:set_source_id/2, kapps_im:message_id(IM)},
+                {fun kz_ledger:set_description/2, description(IM)},
+                {fun kz_ledger:set_usage_type/2, kz_term:to_binary(kapps_im:type(IM))},
+                {fun kz_ledger:set_usage_quantity/2, 1},
+                {fun kz_ledger:set_usage_unit/2, <<"message">>},
+                {fun kz_ledger:set_period_start/2, kz_time:now_s()},
+                {fun kz_ledger:set_metadata/2, metadata(IM, AccountId)},
+                {fun kz_ledger:set_dollar_amount/2, Rate}
+            ]
+        ),
     kz_ledger:debit(kz_ledger:setters(Setters), AccountId);
-create_ledger(_IM, _AccountId, _Rate) -> 'ok'.
+create_ledger(_IM, _AccountId, _Rate) ->
+    'ok'.
 
 -spec description(kapps_im:im()) -> kz_term:ne_binary().
 description(IM) ->
-    list_to_binary([kz_term:to_binary(kapps_im:direction(IM))
-                   ," from "
-                   ,kapps_im:from(IM)
-                   ," to "
-                   ,kapps_im:to(IM)
-                   ]).
+    list_to_binary([
+        kz_term:to_binary(kapps_im:direction(IM)),
+        " from ",
+        kapps_im:from(IM),
+        " to ",
+        kapps_im:to(IM)
+    ]).
 
 %%%------------------------------------------------------------------------------
 %%% @doc
@@ -75,9 +81,13 @@ description(IM) ->
 -spec debit(kapps_im:im()) -> 'ok'.
 debit(IM) ->
     case lists:filter(fun filter_ledger_error/1, create_ledgers(IM)) of
-        [] -> 'ok';
-        Errors -> hd([lager:error("failed to create ~s/~s ledger => ~p", [T, Id, Error])
-                      || {{T, Id}, {'error', Error}} <- Errors])
+        [] ->
+            'ok';
+        Errors ->
+            hd([
+                lager:error("failed to create ~s/~s ledger => ~p", [T, Id, Error])
+             || {{T, Id}, {'error', Error}} <- Errors
+            ])
     end.
 
 filter_ledger_error({_, {'error', _}}) -> 'true';

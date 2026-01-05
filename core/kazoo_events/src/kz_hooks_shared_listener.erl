@@ -10,39 +10,46 @@
 
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,maybe_add_binding/1, maybe_remove_binding/1
-        ,wait_until_consuming/1
-        ]).
+-export([
+    start_link/0,
+    maybe_add_binding/1,
+    maybe_remove_binding/1,
+    wait_until_consuming/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kazoo_events.hrl").
 -include("kz_hooks.hrl").
 
 %% Three main call events
--define(ALL_EVENTS, [<<"CHANNEL_CREATE">>
-                    ,<<"CHANNEL_ANSWER">>
-                    ,<<"CHANNEL_DESTROY">>
-                    ,<<"CHANNEL_BRIDGE">>
-                    ]).
--define(CALL_BINDING(Events), {'call', [{'restrict_to', Events}
-                                       ,'federate'
-                                       ]}).
+-define(ALL_EVENTS, [
+    <<"CHANNEL_CREATE">>,
+    <<"CHANNEL_ANSWER">>,
+    <<"CHANNEL_DESTROY">>,
+    <<"CHANNEL_BRIDGE">>
+]).
+-define(CALL_BINDING(Events),
+    {'call', [
+        {'restrict_to', Events},
+        'federate'
+    ]}
+).
 -define(BINDINGS, []).
--define(RESPONDERS, [{{'kz_hooks_util', 'handle_call_event'}
-                     ,[{<<"call_event">>, <<"*">>}
-                      ,{<<"dialplan">>, <<"route_req">>}
-                      ]
-                     }
-                    ]).
+-define(RESPONDERS, [
+    {{'kz_hooks_util', 'handle_call_event'}, [
+        {<<"call_event">>, <<"*">>},
+        {<<"dialplan">>, <<"route_req">>}
+    ]}
+]).
 -define(QUEUE_NAME, <<"hooks_shared_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -60,16 +67,18 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?MODULE}
-                           ,?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?MODULE},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 -spec maybe_add_binding('all' | kz_term:ne_binary()) -> 'ok'.
 maybe_add_binding(EventName) ->
@@ -170,14 +179,16 @@ code_change(_OldVsn, State, _Extra) ->
 %%------------------------------------------------------------------------------
 maybe_add_binding('all', Events) ->
     case [E || E <- ?ALL_EVENTS, not lists:member(E, Events)] of
-        [] -> 'ok';
+        [] ->
+            'ok';
         Es ->
             lager:info("adding bindings for ~p", [Es]),
             gen_listener:b_add_binding(?MODULE, ?CALL_BINDING(Es))
     end;
 maybe_add_binding(Event, Events) ->
     case lists:member(Event, Events) of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
             lager:info("adding bindings for ~s", [Event]),
             gen_listener:b_add_binding(?MODULE, ?CALL_BINDING([Event]))
@@ -185,14 +196,16 @@ maybe_add_binding(Event, Events) ->
 
 maybe_remove_binding('all', Events) ->
     case [E || E <- ?ALL_EVENTS, lists:member(E, Events)] of
-        [] -> 'ok';
+        [] ->
+            'ok';
         Es ->
             lager:debug("removing bindings for events ~p", [Es]),
             gen_listener:b_rm_binding(?MODULE, ?CALL_BINDING(Es))
     end;
 maybe_remove_binding(Event, Events) ->
     case lists:member(Event, Events) of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
             lager:debug("removing bindings for ~s", [Event]),
             gen_listener:b_rm_binding(?MODULE, ?CALL_BINDING([Event]))
@@ -203,11 +216,12 @@ call_events(Bindings) ->
     lists:foldl(fun binding_to_call_event/2, [], Bindings).
 
 -spec binding_to_call_event({kz_term:ne_binary(), kz_term:proplist()}, kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 binding_to_call_event({<<"call">>, CallProps}, CallEvents) ->
     case props:get_value('restrict_to', CallProps, [<<"*">>]) of
         [] -> CallEvents;
         [<<"*">>] -> lists:usort(CallEvents ++ ?ALL_EVENTS);
         Events -> lists:usort(Events ++ CallEvents)
     end;
-binding_to_call_event({_Binding, _BindProps}, CallEvents) -> CallEvents.
+binding_to_call_event({_Binding, _BindProps}, CallEvents) ->
+    CallEvents.

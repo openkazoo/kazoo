@@ -17,23 +17,26 @@
 
 -behaviour(proper_statem).
 
--export([command/1
-        ,initial_state/0
-        ,next_state/3
-        ,postcondition/3
-        ,precondition/2
+-export([
+    command/1,
+    initial_state/0,
+    next_state/3,
+    postcondition/3,
+    precondition/2,
 
-        ,correct/0
-        ]).
+    correct/0
+]).
 
--export([authz_resp/2
-        ,channel_create/1
-        ,channel_destroy/1
-        ]).
+-export([
+    authz_resp/2,
+    channel_create/1,
+    channel_destroy/1
+]).
 
--export([run_counterexample/0
-        ,run_counterexample/1
-        ]).
+-export([
+    run_counterexample/0,
+    run_counterexample/1
+]).
 
 -include_lib("proper/include/proper.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -51,29 +54,31 @@
 -spec authz_resp(kz_term:ne_binary(), boolean()) -> 'ok'.
 authz_resp(CallId, IsAuthorized) ->
     ?J5_CHANNELS:handle_authz_resp(
-       kz_json:from_list([{<<"Is-Authorized">>, kz_term:to_binary(IsAuthorized)}
-                         ,{<<"Account-ID">>, ?ACCOUNT_ID}
-                         ,{<<"Account-Billing">>, <<"flat_rate">>}
-                         ,{<<"Reseller-ID">>, ?RESELLER_ID}
-                         ,{<<"Reseller-Billing">>, <<"flat_rate">>}
-                         ,{<<"Call-Direction">>, <<"outbound">>}
-                         ,{<<"Call-ID">>, CallId}
-                         ,{<<"Msg-ID">>, CallId}
-                          | kz_api:default_headers(<<"authz">>, <<"authz_resp">>, <<?MODULE_STRING>>, <<"1">>)
-                         ])
-      ,[]
-      ).
+        kz_json:from_list([
+            {<<"Is-Authorized">>, kz_term:to_binary(IsAuthorized)},
+            {<<"Account-ID">>, ?ACCOUNT_ID},
+            {<<"Account-Billing">>, <<"flat_rate">>},
+            {<<"Reseller-ID">>, ?RESELLER_ID},
+            {<<"Reseller-Billing">>, <<"flat_rate">>},
+            {<<"Call-Direction">>, <<"outbound">>},
+            {<<"Call-ID">>, CallId},
+            {<<"Msg-ID">>, CallId}
+            | kz_api:default_headers(<<"authz">>, <<"authz_resp">>, <<?MODULE_STRING>>, <<"1">>)
+        ]),
+        []
+    ).
 
 -spec channel_destroy(kz_term:ne_binary()) -> 'ok'.
 channel_destroy(CallId) ->
     Event = kz_json:from_list(
-              [{<<"Call-ID">>, CallId}
-              ,{<<"Account-ID">>, ?ACCOUNT_ID}
-              ,{<<"Call-Direction">>, <<"outbound">>}
-              ,{<<"Event-Category">>, <<"call_event">>}
-              ,{<<"Event-Name">>, <<"CHANNEL_DESTROY">>}
-              ]
-             ),
+        [
+            {<<"Call-ID">>, CallId},
+            {<<"Account-ID">>, ?ACCOUNT_ID},
+            {<<"Call-Direction">>, <<"outbound">>},
+            {<<"Event-Category">>, <<"call_event">>},
+            {<<"Event-Name">>, <<"CHANNEL_DESTROY">>}
+        ]
+    ),
     whereis(?J5_CHANNELS) ! ?HOOK_EVT(?ACCOUNT_ID, <<"CHANNEL_DESTROY">>, Event),
     timer:sleep(10),
     'ok'.
@@ -81,14 +86,15 @@ channel_destroy(CallId) ->
 -spec channel_create(kz_term:ne_binary()) -> 'ok'.
 channel_create(CallId) ->
     Event = kz_json:from_list(
-              [{<<"Call-ID">>, CallId}
-              ,{<<"Account-ID">>, ?ACCOUNT_ID}
-              ,{<<"Call-Direction">>, <<"outbound">>}
-              ,{<<"Event-Category">>, <<"call_event">>}
-              ,{<<"Event-Name">>, <<"CHANNEL_CREATE">>}
-              ,{<<"To-Uri">>, <<"2600@twentysixhundred.com">>}
-              ]
-             ),
+        [
+            {<<"Call-ID">>, CallId},
+            {<<"Account-ID">>, ?ACCOUNT_ID},
+            {<<"Call-Direction">>, <<"outbound">>},
+            {<<"Event-Category">>, <<"call_event">>},
+            {<<"Event-Name">>, <<"CHANNEL_CREATE">>},
+            {<<"To-Uri">>, <<"2600@twentysixhundred.com">>}
+        ]
+    ),
     whereis(?J5_CHANNELS) ! ?HOOK_EVT(?ACCOUNT_ID, <<"CHANNEL_CREATE">>, Event),
     timer:sleep(10),
     'ok'.
@@ -97,8 +103,7 @@ run_counterexample() ->
     run_counterexample(proper:counterexample()).
 
 run_counterexample('undefined') -> 'undefined';
-run_counterexample([SeqSteps]) ->
-    run_counterexample(SeqSteps, initial_state()).
+run_counterexample([SeqSteps]) -> run_counterexample(SeqSteps, initial_state()).
 
 run_counterexample(SeqSteps, State) ->
     process_flag('trap_exit', 'true'),
@@ -106,10 +111,12 @@ run_counterexample(SeqSteps, State) ->
 
     ?J5_CHANNELS:start_link(),
 
-    try lists:foldl(fun transition_if/2
-                   ,{1, State}
-                   ,SeqSteps
-                   )
+    try
+        lists:foldl(
+            fun transition_if/2,
+            {1, State},
+            SeqSteps
+        )
     catch
         'throw':T -> {'throw', T}
     after
@@ -124,7 +131,7 @@ transition_if({'set', _Var, Call}, {Step, State}) ->
 
     case postcondition(State, Call, Resp) of
         'true' ->
-            {Step+1, next_state(State, Resp, Call)};
+            {Step + 1, next_state(State, Resp, Call)};
         'false' ->
             io:format("failed on step ~p~n", [Step]),
             throw({'failed_postcondition', State, Call, Resp})
@@ -134,36 +141,41 @@ print_state(Channels) ->
     io:format("  channels: ~p~n", [Channels]).
 
 correct() ->
-    ?FORALL(Cmds
-           ,commands(?MODULE)
-           ,?TRAPEXIT(
-               begin
-                   kz_util:put_callid(?MODULE),
-                   ?J5_CHANNELS:start_link(),
-                   {History, State, Result} = run_commands(?MODULE, Cmds),
-                   ?J5_CHANNELS:stop(),
-                   ?WHENFAIL(io:format("Final State: ~p\nFailing Cmds: ~p\n"
-                                      ,[State, zip(Cmds, History)]
-                                      )
-                            ,aggregate(command_names(Cmds), Result =:= 'ok')
-                            )
-               end
-              )
-           ).
+    ?FORALL(
+        Cmds,
+        commands(?MODULE),
+        ?TRAPEXIT(
+            begin
+                kz_util:put_callid(?MODULE),
+                ?J5_CHANNELS:start_link(),
+                {History, State, Result} = run_commands(?MODULE, Cmds),
+                ?J5_CHANNELS:stop(),
+                ?WHENFAIL(
+                    io:format(
+                        "Final State: ~p\nFailing Cmds: ~p\n",
+                        [State, zip(Cmds, History)]
+                    ),
+                    aggregate(command_names(Cmds), Result =:= 'ok')
+                )
+            end
+        )
+    ).
 
 -spec initial_state() -> authz_channels().
 initial_state() -> #{}.
 
 command(Channels) when map_size(Channels) =:= 0 ->
-    oneof([{'call', ?MODULE, 'channel_create', [call_id()]}
-          ,{'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]}
-          ,{'call', ?J5_CHANNELS, 'flush', []}
-          ]);
+    oneof([
+        {'call', ?MODULE, 'channel_create', [call_id()]},
+        {'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]},
+        {'call', ?J5_CHANNELS, 'flush', []}
+    ]);
 command(Channels) ->
-    oneof([{'call', ?MODULE, 'authz_resp', [call_id(Channels), is_authz()]}
-          ,{'call', ?MODULE, 'channel_destroy', [call_id(Channels)]}
-          ,{'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]}
-          ]).
+    oneof([
+        {'call', ?MODULE, 'authz_resp', [call_id(Channels), is_authz()]},
+        {'call', ?MODULE, 'channel_destroy', [call_id(Channels)]},
+        {'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]}
+    ]).
 
 %% static for now
 call_id() -> kz_binary:rand_hex(6).
@@ -174,27 +186,33 @@ call_id(Channels) ->
 %% toggle whether to consider the channel authz'd
 is_authz() -> boolean().
 
-next_state(Channels
-          ,_V %% symbolic or concrete resp
-          ,{'call', ?MODULE, 'authz_resp', [CallId, IsAuthz]}
-          ) ->
+next_state(
+    Channels,
+    %% symbolic or concrete resp
+    _V,
+    {'call', ?MODULE, 'authz_resp', [CallId, IsAuthz]}
+) ->
     case maps:get(CallId, Channels, 'undefined') of
         'undefined' -> Channels#{CallId => {IsAuthz, 'false'}};
         {'undefined', 'false'} -> Channels#{CallId => {IsAuthz, 'false'}};
         {_IsAuthz, _IsDestroyed} -> Channels
     end;
-next_state(Channels
-          ,_V %% symbolic or concrete resp
-          ,{'call', ?MODULE, 'channel_create', [CallId]}
-          ) ->
+next_state(
+    Channels,
+    %% symbolic or concrete resp
+    _V,
+    {'call', ?MODULE, 'channel_create', [CallId]}
+) ->
     case maps:get(CallId, Channels, 'undefined') of
         'undefined' -> Channels#{CallId => {'undefined', 'false'}};
         {_IsAuthz, 'false'} -> Channels
     end;
-next_state(Channels
-          ,_V %% symbolic or concrete resp
-          ,{'call', ?MODULE, 'channel_destroy', [CallId]}
-          ) ->
+next_state(
+    Channels,
+    %% symbolic or concrete resp
+    _V,
+    {'call', ?MODULE, 'channel_destroy', [CallId]}
+) ->
     case maps:get(CallId, Channels, 'undefined') of
         'undefined' -> Channels#{CallId => {'undefined', 'true'}};
         {IsAuthz, 'false'} -> Channels#{CallId => {IsAuthz, 'true'}};
@@ -210,32 +228,39 @@ precondition(Channels, {'call', ?MODULE, 'channel_destroy', [CallId]}) ->
         {_, 'true'} -> 'false';
         _ -> 'true'
     end;
-precondition(_Channels, _Call) -> 'true'.
+precondition(_Channels, _Call) ->
+    'true'.
 
-postcondition(_Channels
-             ,{'call', ?MODULE, 'authz_resp', [_CallId, _IsAuthz]}
-             ,_Result %% concrete result
-             ) ->
+postcondition(
+    _Channels,
+    {'call', ?MODULE, 'authz_resp', [_CallId, _IsAuthz]},
+    %% concrete result
+    _Result
+) ->
     'true';
-postcondition(_Channels
-             ,{'call', ?MODULE, 'channel_create', [_CallId]}
-             ,_Result
-             ) ->
+postcondition(
+    _Channels,
+    {'call', ?MODULE, 'channel_create', [_CallId]},
+    _Result
+) ->
     'true';
-postcondition(_Channels
-             ,{'call', ?MODULE, 'channel_destroy', [_CallId]}
-             ,_Result
-             ) ->
+postcondition(
+    _Channels,
+    {'call', ?MODULE, 'channel_destroy', [_CallId]},
+    _Result
+) ->
     'true';
-postcondition(Channels
-             ,{'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]}
-             ,Result
-             ) ->
+postcondition(
+    Channels,
+    {'call', ?J5_CHANNELS, 'total_calls', [?ACCOUNT_ID]},
+    Result
+) ->
     count_channels(Channels) =:= Result;
-postcondition(_Channels
-             ,{'call', ?J5_CHANNELS, 'flush', []}
-             ,_Result
-             ) ->
+postcondition(
+    _Channels,
+    {'call', ?J5_CHANNELS, 'flush', []},
+    _Result
+) ->
     'true'.
 
 count_channels(Channels) ->

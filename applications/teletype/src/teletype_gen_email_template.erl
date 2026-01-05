@@ -8,13 +8,11 @@
 
 -include_lib("teletype.hrl").
 
-
 -callback id() -> kz_term:ne_binary().
 
 -callback init() -> ok.
 
 -callback macros(kz_json:object()) -> kz_term:proplist().
-
 
 -callback macros() -> kz_json:object().
 

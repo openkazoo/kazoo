@@ -12,37 +12,39 @@
 %% @doc API functions
 %% @end
 %%------------------------------------------------------------------------------
--export([start_link/1
-        ,pointer_tab/1
-        ,monitor_tab/1
+-export([
+    start_link/1,
+    pointer_tab/1,
+    monitor_tab/1,
 
-        ,store/4
-        ,store_async/4
+    store/4,
+    store_async/4,
 
-        ,peek/2
-        ,fetch/2
+    peek/2,
+    fetch/2,
 
-        ,erase/2
-        ,flush/1
+    erase/2,
+    flush/1,
 
-        ,count/5
+    count/5,
 
-        ,wait_for_key/3
-        ,wait_for_stampede/3
-        ,mitigate_stampede/3
+    wait_for_key/3,
+    wait_for_stampede/3,
+    mitigate_stampede/3,
 
-        ,mitigating_keys/1
-        ]).
+    mitigating_keys/1
+]).
 
 -export([expire_objects/1]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_caches.hrl").
 
@@ -67,33 +69,37 @@ to_tab(Name, Suffix) ->
     kz_term:to_atom(kz_term:to_list(Name) ++ Suffix, 'true').
 
 -spec store(kz_types:server_ref(), any(), any(), kz_cache:store_options()) -> 'ok' | 'error'.
-store(Srv, K, V, Props)  ->
+store(Srv, K, V, Props) ->
     gen_server:call(Srv, {'store', cache_obj(K, V, Props)}).
 
 -spec store_async(kz_typs:server_ref(), any(), any(), kz_term:proplist()) -> 'ok'.
 store_async(Srv, K, V, Props) ->
     gen_server:cast(Srv, {'store', cache_obj(K, V, Props)}).
 
--spec peek(atom(), any()) -> {'ok', any()} |
-          {?MITIGATION, pid()} |
-          {'error', 'not_found'}.
+-spec peek(atom(), any()) ->
+    {'ok', any()}
+    | {?MITIGATION, pid()}
+    | {'error', 'not_found'}.
 peek(Srv, Key) ->
     try ets:lookup_element(Srv, Key, #cache_obj.value) of
-        {?MITIGATION, _Pid}=Mitigation -> Mitigation;
+        {?MITIGATION, _Pid} = Mitigation -> Mitigation;
         Value -> {'ok', Value}
     catch
         'error':'badarg' ->
             {'error', 'not_found'}
     end.
 
--spec fetch(atom(), any()) -> {'ok', any()} |
-          {'error', 'not_found'} |
-          {?MITIGATION, pid()}.
+-spec fetch(atom(), any()) ->
+    {'ok', any()}
+    | {'error', 'not_found'}
+    | {?MITIGATION, pid()}.
 fetch(Srv, Key) ->
     case peek(Srv, Key) of
-        {'error', 'not_found'}=E -> E;
-        {?MITIGATION, _Pid}=Stampede -> Stampede;
-        {'ok', _Value}=Ok ->
+        {'error', 'not_found'} = E ->
+            E;
+        {?MITIGATION, _Pid} = Stampede ->
+            Stampede;
+        {'ok', _Value} = Ok ->
             ets:update_element(Srv, Key, {#cache_obj.timestamp_ms, kz_time:now_ms()}),
             Ok
     end.
@@ -112,19 +118,22 @@ flush(Name) ->
 
 -spec cache_obj(any(), any(), kz_cache:store_options()) -> cache_obj().
 cache_obj(K, V, Props) ->
-    #cache_obj{key=K
-              ,value=V
-              ,expires_s=get_props_expires(Props)
-              ,callback=get_props_callback(Props)
-              ,origin=get_props_origin(Props)
-              ,monitor_pids=get_monitor_pids(Props)
-              }.
+    #cache_obj{
+        key = K,
+        value = V,
+        expires_s = get_props_expires(Props),
+        callback = get_props_callback(Props),
+        origin = get_props_origin(Props),
+        monitor_pids = get_monitor_pids(Props)
+    }.
 
 -spec get_monitor_pids(kz_cache:store_options()) -> [pid()].
 get_monitor_pids(Props) ->
     case props:get_value('monitor', Props, 'false') of
-        'false' -> [];
-        'true' -> [self()];
+        'false' ->
+            [];
+        'true' ->
+            [self()];
         Pids when is_list(Pids) ->
             'true' = lists:all(fun is_pid/1, Pids),
             Pids
@@ -132,26 +141,22 @@ get_monitor_pids(Props) ->
 
 -spec count(atom(), any(), any(), any(), any()) -> non_neg_integer().
 count(Srv, KeyMatchHead, KeyMatchCondition, ValMatchHead, ValMatchCondition) ->
-    MS = lists:foldl(fun update_match_spec/2
-                    ,{#cache_obj{_='_'}, [], ['true']}
-                    ,[{#cache_obj.key, KeyMatchHead, KeyMatchCondition}
-                     ,{#cache_obj.value, ValMatchHead, ValMatchCondition}
-                     ]
-                    ),
+    MS = lists:foldl(
+        fun update_match_spec/2,
+        {#cache_obj{_ = '_'}, [], ['true']},
+        [
+            {#cache_obj.key, KeyMatchHead, KeyMatchCondition},
+            {#cache_obj.value, ValMatchHead, ValMatchCondition}
+        ]
+    ),
     ets:select_count(Srv, [MS]).
 
 update_match_spec({Index, 'undefined', Condition}, {MatchHead, MatchConditions, MatchBody}) ->
     update_match_spec({Index, '_', Condition}, {MatchHead, MatchConditions, MatchBody});
 update_match_spec({Index, Head, 'undefined'}, {MatchHead, MatchConditions, MatchBody}) ->
-    {setelement(Index, MatchHead, Head)
-    ,MatchConditions
-    ,MatchBody
-    };
+    {setelement(Index, MatchHead, Head), MatchConditions, MatchBody};
 update_match_spec({Index, Head, Condition}, {MatchHead, MatchConditions, MatchBody}) ->
-    {setelement(Index, MatchHead, Head)
-    ,[Condition | MatchConditions]
-    ,MatchBody
-    }.
+    {setelement(Index, MatchHead, Head), [Condition | MatchConditions], MatchBody}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -160,10 +165,14 @@ update_match_spec({Index, Head, Condition}, {MatchHead, MatchConditions, MatchBo
 -spec get_props_expires(kz_cache:store_options()) -> timeout().
 get_props_expires(Props) ->
     case props:get_value('expires', Props) of
-        'undefined' -> ?EXPIRES;
-        'infinity' -> 'infinity';
-        Expires when is_integer(Expires)
-                     andalso Expires > 0 ->
+        'undefined' ->
+            ?EXPIRES;
+        'infinity' ->
+            'infinity';
+        Expires when
+            is_integer(Expires) andalso
+                Expires > 0
+        ->
             Expires
     end.
 
@@ -178,8 +187,8 @@ get_props_callback(Props) ->
 get_props_origin(Props) -> props:get_value('origin', Props).
 
 -spec wait_for_key(kz_types:server_ref(), any(), pos_integer()) ->
-          {'ok', any()} |
-          {'error', 'timeout'}.
+    {'ok', any()}
+    | {'error', 'timeout'}.
 wait_for_key(Srv, Key, Timeout) when is_integer(Timeout) ->
     WaitFor = Timeout + 100,
 
@@ -189,27 +198,28 @@ wait_for_key(Srv, Key, Timeout) when is_integer(Timeout) ->
     end.
 
 -spec wait_for_stampede(kz_types:server_ref(), any(), pos_integer()) ->
-          {'ok', any()} |
-          {'error', 'timeout'}.
+    {'ok', any()}
+    | {'error', 'timeout'}.
 wait_for_stampede(Srv, Key, Timeout) when is_integer(Timeout) ->
     wait_for_key(Srv, Key, Timeout).
 
--spec wait_for_response(reference(), timeout()) -> {'ok', any()} |
-          {'error', 'timeout'}.
+-spec wait_for_response(reference(), timeout()) ->
+    {'ok', any()}
+    | {'error', 'timeout'}.
 wait_for_response(Ref, WaitFor) ->
     receive
-        {'exists', Ref, {'error', _Reason}=Error} ->
+        {'exists', Ref, {'error', _Reason} = Error} ->
             Error;
         {'exists', Ref, Value} ->
             {'ok', Value};
-        {'store', Ref, {'error', _Reason}=Error} ->
+        {'store', Ref, {'error', _Reason} = Error} ->
             Error;
         {'store', Ref, Value} ->
             {'ok', Value};
-        {_, Ref, _}=_Other ->
+        {_, Ref, _} = _Other ->
             {'error', 'timeout'}
     after WaitFor ->
-            {'error', 'timeout'}
+        {'error', 'timeout'}
     end.
 
 -spec mitigate_stampede(atom(), any(), kz_cache:store_options()) -> 'ok' | 'error'.
@@ -220,7 +230,8 @@ mitigate_stampede(Srv, Key, Options) ->
             %% link caller to the cache gen_server in case caller dies
             link(whereis(Srv)),
             'ok';
-        'false' -> 'error'
+        'false' ->
+            'error'
     end.
 
 -spec expire_objects(atom()) -> non_neg_integer().
@@ -230,15 +241,18 @@ expire_objects(Name) ->
 -spec init(kz_terms:atoms()) -> {'ok', state()}.
 init([Name]) ->
     process_flag('trap_exit', 'true'),
-    _Name = ets:new(Name
-                   ,['set', 'public', 'named_table', {'keypos', #cache_obj.key}]
-                   ),
-    _PointerName = ets:new(pointer_tab(Name)
-                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
-                          ),
-    _MonitorName = ets:new(monitor_tab(Name)
-                          ,['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
-                          ),
+    _Name = ets:new(
+        Name,
+        ['set', 'public', 'named_table', {'keypos', #cache_obj.key}]
+    ),
+    _PointerName = ets:new(
+        pointer_tab(Name),
+        ['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
+    ),
+    _MonitorName = ets:new(
+        monitor_tab(Name),
+        ['bag', 'public', 'named_table', {'keypos', #cache_obj.key}]
+    ),
     {'ok', Name}.
 
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
@@ -251,17 +265,18 @@ handle_call(_Request, _From, Name) ->
 handle_cast({'store', CacheObj}, Name) ->
     _ = handle_store(CacheObj, Name),
     {'noreply', Name};
-
 handle_cast(_Msg, Name) ->
     {'noreply', Name}.
 
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'timeout', _Ref, {?MONITOR_EXPIRE_MSG, MonitorRef}}
-           ,Name
-           ) ->
-    _ = kz_util:spawn(fun kz_cache_callbacks:timed_out/2
-                     ,[monitor_tab(Name), MonitorRef]
-                     ),
+handle_info(
+    {'timeout', _Ref, {?MONITOR_EXPIRE_MSG, MonitorRef}},
+    Name
+) ->
+    _ = kz_util:spawn(
+        fun kz_cache_callbacks:timed_out/2,
+        [monitor_tab(Name), MonitorRef]
+    ),
     {'noreply', Name};
 handle_info({'EXIT', Pid, _Reason}, Name) ->
     kz_util:spawn(fun() -> handle_dead_pid(Name, Pid) end),
@@ -286,11 +301,13 @@ code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
 -spec handle_store(cache_obj(), state()) -> 'ok' | 'error'.
-handle_store(#cache_obj{key=Key
-                       ,value={?MITIGATION, _Pid}
-                       }=CacheObj
-            ,Name
-            ) ->
+handle_store(
+    #cache_obj{
+        key = Key,
+        value = {?MITIGATION, _Pid}
+    } = CacheObj,
+    Name
+) ->
     case peek(Name, Key) of
         {'error', 'not_found'} ->
             store_cache_obj(CacheObj, Name);
@@ -300,16 +317,18 @@ handle_store(#cache_obj{key=Key
 handle_store(CacheObj, Name) ->
     store_cache_obj(CacheObj, Name).
 
-store_cache_obj(#cache_obj{key=Key
-                          ,value=Value
-                          ,origin=Origins
-                          ,expires_s=Expires
-                          ,monitor_pids=Pids
-                          }=CacheObj
-               ,Name
-               ) ->
+store_cache_obj(
+    #cache_obj{
+        key = Key,
+        value = Value,
+        origin = Origins,
+        expires_s = Expires,
+        monitor_pids = Pids
+    } = CacheObj,
+    Name
+) ->
     kz_cache_callbacks:maybe_log_unlock(Key, "store", peek(Name, Key)),
-    'true' = ets:insert(Name, CacheObj#cache_obj{origin='undefined'}),
+    'true' = ets:insert(Name, CacheObj#cache_obj{origin = 'undefined'}),
     kz_cache_listener:add_origin_pointers(Name, CacheObj, Origins),
     kz_cache_callbacks:stored(Name, Key, Value),
     _ = kz_cache_processes:monitor_processes(Name, Key, Pids),
@@ -318,8 +337,8 @@ store_cache_obj(#cache_obj{key=Key
     'ok'.
 
 -spec handle_wait_for_key(atom(), atom(), any(), pos_integer()) ->
-          {'ok', reference()} |
-          {'exists', any()}.
+    {'ok', reference()}
+    | {'exists', any()}.
 handle_wait_for_key(Name, MonitorName, Key, Timeout) ->
     case peek(Name, Key) of
         {'ok', Value} ->
@@ -331,11 +350,12 @@ handle_wait_for_key(Name, MonitorName, Key, Timeout) ->
 
 add_monitor(Name, MonitorName, Key, Timeout, FromPid) ->
     Ref = make_ref(),
-    CacheObj = #cache_obj{key=Key
-                         ,value=Ref
-                         ,expires_s=Timeout
-                         ,callback=monitor_response_fun(FromPid, Ref)
-                         },
+    CacheObj = #cache_obj{
+        key = Key,
+        value = Ref,
+        expires_s = Timeout,
+        callback = monitor_response_fun(FromPid, Ref)
+    },
     'true' = ets:insert(MonitorName, CacheObj),
 
     _TRef = start_monitor_expire_timer(Name, Timeout, Ref),
@@ -352,21 +372,26 @@ start_monitor_expire_timer(Cache, Timeout, Ref) ->
 -spec handle_dead_pid(atom(), pid()) -> non_neg_integer().
 handle_dead_pid(Name, Pid) ->
     MatchSpec =
-        [{#cache_obj{key='$1', value='$2', _='_'}
-         ,[{'=:=', '$2', {const, {?MITIGATION, Pid}}}]
-         ,[{{'$1', '$2'}}]
-         }],
-    Erased = [erase(Name, Key)
-              || {Key, {?MITIGATION, P}} <- ets:select(Name, MatchSpec),
-                 not is_process_alive(P)
-             ],
+        [
+            {
+                #cache_obj{key = '$1', value = '$2', _ = '_'},
+                [{'=:=', '$2', {const, {?MITIGATION, Pid}}}],
+                [{{'$1', '$2'}}]
+            }
+        ],
+    Erased = [
+        erase(Name, Key)
+     || {Key, {?MITIGATION, P}} <- ets:select(Name, MatchSpec),
+        not is_process_alive(P)
+    ],
     length(Erased).
 
 -spec mitigating_keys(atom()) -> [{any(), pid()}].
 mitigating_keys(Name) ->
     MatchSpec =
-        [{#cache_obj{key='$1', value='$2', _='_'}
-         ,[{'is_record', '$2', ?MITIGATION, 2}]
-         ,[{{'$1', '$2'}}]
-         }],
+        [
+            {#cache_obj{key = '$1', value = '$2', _ = '_'}, [{'is_record', '$2', ?MITIGATION, 2}], [
+                {{'$1', '$2'}}
+            ]}
+        ],
     [{Key, Pid} || {Key, {?MITIGATION, Pid}} <- ets:select(Name, MatchSpec)].

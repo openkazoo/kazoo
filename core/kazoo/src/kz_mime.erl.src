@@ -59,7 +59,6 @@ from_filename(Path) ->
 to_filename(CT) ->
     list_to_binary([kz_binary:rand_hex(16), ".", hd(to_extensions(CT))]).
 
-
 %%------------------------------------------------------------------------------
 %% @doc normalize the content types.
 %%
@@ -87,8 +86,7 @@ normalize_content_type(<<"application/x-pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<"text/pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<"text/x-pdf">>) -> <<"application/pdf">>;
 normalize_content_type(<<_/binary>> = Else) -> Else;
-normalize_content_type(CT) ->
-    normalize_content_type(kz_term:to_binary(CT)).
+normalize_content_type(CT) -> normalize_content_type(kz_term:to_binary(CT)).
 
 %%------------------------------------------------------------------------------
 %% @doc Return the mime type for any file by looking at its extension.
@@ -103,6 +101,5 @@ normalize_content_type(CT) ->
 %%------------------------------------------------------------------------------
 
 -spec from_extension(binary()) -> binary().
-
 
 %% GENERATED

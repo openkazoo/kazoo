@@ -17,29 +17,33 @@
 -export([smtp_sessions/0]).
 -export([init/1]).
 
+-define(ORIGIN_BINDINGS, [[{'db', ?KZ_FAXES_DB}, {'type', <<"faxbox">>}]]).
 
--define(ORIGIN_BINDINGS, [[{'db', ?KZ_FAXES_DB}, {'type', <<"faxbox">>}]
-                         ]).
+-define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ]).
+-define(SMTP_ARGS, [
+    'fax_smtp',
+    [
+        [
+            {'port', ?SMTP_PORT}
+            %% in case we want to make the settings constant per execution
+            %%                                  ,{'sessionoptions', [?SMTP_CALLBACK_OPTIONS]}
+        ]
+    ]
+]).
 
--define(SMTP_ARGS, ['fax_smtp' ,[[{'port', ?SMTP_PORT}
-                                  %% in case we want to make the settings constant per execution
-                                  %%                                  ,{'sessionoptions', [?SMTP_CALLBACK_OPTIONS]}
-                                 ]]]).
-
--define(CHILDREN, [?WORKER('fax_init')
-                  ,?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?SUPER('fax_requests_sup')
-                  ,?SUPER('fax_xmpp_sup')
-                  ,?SUPER('fax_jobs_sup')
-                  ,?SUPER('fax_worker_sup')
-                  ,?WORKER('fax_global_shared_listener')
-                  ,?WORKER('fax_shared_listener')
-                  ,?WORKER('fax_monitor')
-                  ,?WORKER_ARGS('gen_smtp_server', ?SMTP_ARGS)
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('fax_init'),
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?SUPER('fax_requests_sup'),
+    ?SUPER('fax_xmpp_sup'),
+    ?SUPER('fax_jobs_sup'),
+    ?SUPER('fax_worker_sup'),
+    ?WORKER('fax_global_shared_listener'),
+    ?WORKER('fax_shared_listener'),
+    ?WORKER('fax_monitor'),
+    ?WORKER_ARGS('gen_smtp_server', ?SMTP_ARGS)
+]).
 
 %%==============================================================================
 %% API functions
@@ -59,14 +63,20 @@ cache_proc() ->
 
 -spec listener_proc() -> {'ok', pid()}.
 listener_proc() ->
-    [P] = [P || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-                Mod =:= 'fax_listener'],
+    [P] = [
+        P
+     || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
+        Mod =:= 'fax_listener'
+    ],
     {'ok', P}.
 
 -spec smtp_sessions() -> non_neg_integer().
 smtp_sessions() ->
-    [P] = [P || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-                Mod =:= 'gen_smtp_server'],
+    [P] = [
+        P
+     || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
+        Mod =:= 'gen_smtp_server'
+    ],
     Sessions = gen_smtp_server:sessions(P),
     length(Sessions).
 

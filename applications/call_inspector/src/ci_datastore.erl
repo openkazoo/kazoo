@@ -14,35 +14,40 @@
 -export([start_link/0]).
 -export([store_chunk/1]).
 -export([store_analysis/1]).
--export([lookup_callid/1
-        ,lookup_objects/1
-        ]).
+-export([
+    lookup_callid/1,
+    lookup_objects/1
+]).
 -export([callid_exists/1]).
--export([flush/0
-        ,flush/1
-        ]).
+-export([
+    flush/0,
+    flush/1
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -record(state, {}).
 -type state() :: #state{}.
 
--record(object, {call_id :: kz_term:ne_binary()
-                ,timestamp = kz_time:now_s() :: kz_time:gregorian_seconds()
-                ,type :: chunk | analysis
-                ,value :: ci_chunk:chunk() | ci_analysis:analysis()
-                }).
+-record(object, {
+    call_id :: kz_term:ne_binary(),
+    timestamp = kz_time:now_s() :: kz_time:gregorian_seconds(),
+    type :: chunk | analysis,
+    value :: ci_chunk:chunk() | ci_analysis:analysis()
+}).
 -type object() :: #object{}.
 
--type datum() :: {'chunks', [ci_chunk:chunk()]} |
-                 {'analysis', [ci_analysis:analysis()]}.
+-type datum() ::
+    {'chunks', [ci_chunk:chunk()]}
+    | {'analysis', [ci_analysis:analysis()]}.
 -type data() :: [datum()].
 
 -export_type([data/0]).
@@ -77,26 +82,28 @@ store_analysis(Analysis) ->
 callid_exists(CallId) ->
     File = make_name(CallId),
     Exists = filelib:is_file(File),
-    Exists
-        orelse lager:debug("~s not stored here", [CallId]),
+    Exists orelse
+        lager:debug("~s not stored here", [CallId]),
     Exists.
 
 -spec lookup_callid(kz_term:ne_binary()) -> data().
 lookup_callid(CallId) ->
-    Props = lists:foldl(fun lookup_callid_fold/2
-                       ,[{'chunks', []}
-                        ,{'analysis', []}
-                        ]
-                       ,lookup_objects(CallId)
-                       ),
+    Props = lists:foldl(
+        fun lookup_callid_fold/2,
+        [
+            {'chunks', []},
+            {'analysis', []}
+        ],
+        lookup_objects(CallId)
+    ),
     Chunks = ci_chunk:reorder_dialog(props:get_value('chunks', Props)),
     props:set_value('chunks', Chunks, Props).
 
 -spec lookup_callid_fold(object(), data()) -> data().
-lookup_callid_fold(#object{type='chunk', value=Chunk}, P) ->
+lookup_callid_fold(#object{type = 'chunk', value = Chunk}, P) ->
     Chunks = props:get_value('chunks', P, []),
-    props:set_value('chunks', [Chunk|Chunks], P);
-lookup_callid_fold(#object{type='analysis', value=Analysis}, P) ->
+    props:set_value('chunks', [Chunk | Chunks], P);
+lookup_callid_fold(#object{type = 'analysis', value = Analysis}, P) ->
     props:set_value('analysis', Analysis, P).
 
 -spec flush() -> 'ok'.
@@ -137,18 +144,20 @@ handle_call(_Request, _From, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'store_chunk', CallId, Chunk}, State) ->
-    Object = #object{call_id=CallId
-                    ,type='chunk'
-                    ,value=Chunk
-                    },
+    Object = #object{
+        call_id = CallId,
+        type = 'chunk',
+        value = Chunk
+    },
     insert_object(Object),
     _ = ci_analyzers:new_chunk(CallId, Chunk),
     {'noreply', State};
 handle_cast({'store_analysis', CallId, Analysis}, State) ->
-    Object = #object{call_id=CallId
-                    ,type='analysis'
-                    ,value=Analysis
-                    },
+    Object = #object{
+        call_id = CallId,
+        type = 'analysis',
+        value = Analysis
+    },
     insert_object(Object),
     {'noreply', State};
 handle_cast('flush', State) ->
@@ -179,7 +188,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{}=_State) ->
+terminate(_Reason, #state{} = _State) ->
     lager:debug("call inspector datastore terminated: ~p", [_Reason]),
     'ok'.
 
@@ -220,7 +229,8 @@ insert_object(#object{call_id = CallId} = Object) ->
 lookup_objects(CallId) ->
     Path = make_name(CallId),
     case filelib:is_file(Path) of
-        'false' -> [];
+        'false' ->
+            [];
         'true' ->
             {'ok', Objects} = file:consult(Path),
             Objects
@@ -228,9 +238,9 @@ lookup_objects(CallId) ->
 
 -spec recursive_remove() -> 'ok'.
 recursive_remove() ->
-    F = fun (AbsPath, _Acc) ->
-                'ok' = file:delete(AbsPath)
-        end,
+    F = fun(AbsPath, _Acc) ->
+        'ok' = file:delete(AbsPath)
+    end,
     filelib:fold_files(?CI_DIR, ".+", 'true', F, 'ok').
 
 -spec mkdir(file:filename()) -> 'ok'.

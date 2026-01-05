@@ -20,7 +20,7 @@ start_link() ->
     kz_dataconnections:add(Connection),
     lager:info("waiting for first connection...", []),
     kz_dataconnections:wait_for_connection(),
-    #data_connection{tag=Tag} = Connection,
+    #data_connection{tag = Tag} = Connection,
     Server = #{tag => Tag, server => kz_dataconnections:get_server(Tag)},
     kz_datamgr:init_dbs(Server),
     kzs_plan:init(),

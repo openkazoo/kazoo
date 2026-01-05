@@ -15,9 +15,10 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER('skel_listener')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER('skel_listener')
+]).
 
 %%==============================================================================
 %% API functions

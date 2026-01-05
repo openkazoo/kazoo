@@ -5,15 +5,16 @@
 %%%-----------------------------------------------------------------------------
 -module('cb_presence').
 
--export([init/0
-        ,authenticate/1
-        ,authorize/1
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,content_types_provided/2
-        ,validate/1, validate/2
-        ,post/1, post/2
-        ]).
+-export([
+    init/0,
+    authenticate/1,
+    authorize/1,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    content_types_provided/2,
+    validate/1, validate/2,
+    post/1, post/2
+]).
 
 -include("crossbar.hrl").
 
@@ -24,11 +25,13 @@
 
 -define(PRESENCE_QUERY_TIMEOUT_KEY, <<"query_presence_timeout">>).
 -define(PRESENCE_QUERY_DEFAULT_TIMEOUT, 5000).
--define(PRESENCE_QUERY_TIMEOUT, kapps_config:get_integer(?MOD_CONFIG_CAT
-                                                        ,?PRESENCE_QUERY_TIMEOUT_KEY
-                                                        ,?PRESENCE_QUERY_DEFAULT_TIMEOUT
-                                                        )
-       ).
+-define(PRESENCE_QUERY_TIMEOUT,
+    kapps_config:get_integer(
+        ?MOD_CONFIG_CAT,
+        ?PRESENCE_QUERY_TIMEOUT_KEY,
+        ?PRESENCE_QUERY_DEFAULT_TIMEOUT
+    )
+).
 -define(REPORT_CONTENT_TYPE, [{'send_file', [{<<"application">>, <<"json">>}]}]).
 -define(REPORT_PREFIX, "report-").
 -define(MATCH_REPORT_PREFIX(ReportId), <<?REPORT_PREFIX, ReportId/binary>>).
@@ -53,14 +56,15 @@
 %%------------------------------------------------------------------------------
 -spec init() -> ok.
 init() ->
-    Bindings = [{<<"*.allowed_methods.presence">>, 'allowed_methods'}
-               ,{<<"*.authenticate">>, 'authenticate'}
-               ,{<<"*.authorize">>, 'authorize'}
-               ,{<<"*.resource_exists.presence">>, 'resource_exists'}
-               ,{<<"*.content_types_provided.presence">>, 'content_types_provided'}
-               ,{<<"*.validate.presence">>, 'validate'}
-               ,{<<"*.execute.post.presence">>, 'post'}
-               ],
+    Bindings = [
+        {<<"*.allowed_methods.presence">>, 'allowed_methods'},
+        {<<"*.authenticate">>, 'authenticate'},
+        {<<"*.authorize">>, 'authorize'},
+        {<<"*.resource_exists.presence">>, 'resource_exists'},
+        {<<"*.content_types_provided.presence">>, 'content_types_provided'},
+        {<<"*.validate.presence">>, 'validate'},
+        {<<"*.execute.post.presence">>, 'post'}
+    ],
     _ = cb_modules_util:bind(?MODULE, Bindings),
     ok.
 
@@ -69,9 +73,10 @@ authenticate(Context) ->
     authenticate(Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)).
 
 -spec authenticate(cb_context:context(), req_nouns(), http_method()) -> boolean().
-authenticate(Context, [{<<"presence">>,[?MATCH_REPORT_PREFIX]}], ?HTTP_GET) ->
+authenticate(Context, [{<<"presence">>, [?MATCH_REPORT_PREFIX]}], ?HTTP_GET) ->
     cb_context:magic_pathed(Context);
-authenticate(_Context, _Nouns, _Verb) -> 'false'.
+authenticate(_Context, _Nouns, _Verb) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -82,9 +87,10 @@ authorize(Context) ->
     authorize(Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)).
 
 -spec authorize(cb_context:context(), req_nouns(), http_method()) -> boolean().
-authorize(Context, [{<<"presence">>,[?MATCH_REPORT_PREFIX]}], ?HTTP_GET) ->
+authorize(Context, [{<<"presence">>, [?MATCH_REPORT_PREFIX]}], ?HTTP_GET) ->
     cb_context:magic_pathed(Context);
-authorize(_Context, _Nouns, _Verb) -> 'false'.
+authorize(_Context, _Nouns, _Verb) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc This function determines the verbs that are appropriate for the
@@ -123,9 +129,11 @@ resource_exists(_Extension) -> 'true'.
 -spec content_types_provided(cb_context:context(), path_token()) -> cb_context:context().
 content_types_provided(Context, ?MATCH_REPORT_PREFIX(Report)) ->
     content_types_provided_for_report(Context, Report);
-content_types_provided(Context, _) -> Context.
+content_types_provided(Context, _) ->
+    Context.
 
--spec content_types_provided_for_report(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
+-spec content_types_provided_for_report(cb_context:context(), kz_term:ne_binary()) ->
+    cb_context:context().
 content_types_provided_for_report(Context, Report) ->
     File = <<"/tmp/", Report/binary, ".json">>,
     case filelib:is_file(File) of
@@ -142,19 +150,19 @@ content_types_provided_for_report(Context, Report) ->
 %%------------------------------------------------------------------------------
 
 -spec validate(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 validate(Context) ->
     validate_thing(Context, cb_context:req_verb(Context)).
 
 -spec validate(cb_context:context(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 validate(Context, ?MATCH_REPORT_PREFIX(Report)) ->
     load_report(Context, Report);
 validate(Context, Extension) ->
     search_detail(Context, Extension).
 
 -spec validate_thing(cb_context:context(), http_method()) ->
-          cb_context:context().
+    cb_context:context().
 validate_thing(Context, ?HTTP_GET) ->
     search_summary(Context);
 validate_thing(Context, ?HTTP_POST) ->
@@ -170,9 +178,10 @@ search_detail(Context, Extension) ->
 
 -spec search_result(cb_context:context(), search_result()) -> cb_context:context().
 search_result(Context, {'ok', JObj}) ->
-    Routines = [{fun cb_context:set_resp_data/2, JObj}
-               ,{fun cb_context:set_resp_status/2, 'success'}
-               ],
+    Routines = [
+        {fun cb_context:set_resp_data/2, JObj},
+        {fun cb_context:set_resp_status/2, 'success'}
+    ],
     cb_context:setters(Context, Routines);
 search_result(Context, {'error', Error}) ->
     cb_context:add_system_error(Error, Context).
@@ -181,24 +190,28 @@ search_result(Context, {'error', Error}) ->
 search_req(Context, SearchType) ->
     search_req(Context, SearchType, 'undefined').
 
--spec search_req(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) -> search_result().
+-spec search_req(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) ->
+    search_result().
 search_req(Context, SearchType, Username) ->
-    Req = [{<<"Realm">>, cb_context:account_realm(Context)}
-          ,{<<"Username">>, Username}
-          ,{<<"Search-Type">>, SearchType}
-          ,{<<"Event-Package">>, cb_context:req_param(Context, <<"event">>)}
-          ,{<<"System-Log-ID">>, cb_context:req_id(Context)}
-          ,{<<"Msg-ID">>, kz_binary:rand_hex(16)}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    Req = [
+        {<<"Realm">>, cb_context:account_realm(Context)},
+        {<<"Username">>, Username},
+        {<<"Search-Type">>, SearchType},
+        {<<"Event-Package">>, cb_context:req_param(Context, <<"event">>)},
+        {<<"System-Log-ID">>, cb_context:req_id(Context)},
+        {<<"Msg-ID">>, kz_binary:rand_hex(16)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     Count = kz_nodes:node_role_count(<<"Presence">>, 'true'),
     lager:debug("requesting presence ~s from ~B servers", [SearchType, Count]),
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_presence:publish_search_req/1
-                                    ,{fun collect_results/2, {0, Count}}
-                                    )
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_presence:publish_search_req/1,
+            {fun collect_results/2, {0, Count}}
+        )
     of
-        {'error', _R}=Err -> Err;
+        {'error', _R} = Err -> Err;
         {'ok', JObjs} when is_list(JObjs) -> process_responses(JObjs, SearchType, 'null');
         {'timeout', JObjs} when is_list(JObjs) -> process_responses(JObjs, SearchType, 'true')
     end.
@@ -238,15 +251,17 @@ validate_presence_thing(Context) ->
     validate_presence_thing(Context, cb_context:req_nouns(Context)).
 
 -spec validate_presence_thing(cb_context:context(), req_nouns()) -> cb_context:context().
-validate_presence_thing(Context, [{<<"presence">>, _}
-                                 ,{<<"devices">>, [DeviceId]}
-                                 ,{<<"accounts">>, [_AccountId]}
-                                 ]) ->
+validate_presence_thing(Context, [
+    {<<"presence">>, _},
+    {<<"devices">>, [DeviceId]},
+    {<<"accounts">>, [_AccountId]}
+]) ->
     validate_action(load_device(Context, DeviceId));
-validate_presence_thing(Context, [{<<"presence">>, _}
-                                 ,{<<"users">>, [UserId]}
-                                 ,{<<"accounts">>, [_AccountId]}
-                                 ]) ->
+validate_presence_thing(Context, [
+    {<<"presence">>, _},
+    {<<"users">>, [UserId]},
+    {<<"accounts">>, [_AccountId]}
+]) ->
     validate_action(load_presence_for_user(Context, UserId));
 validate_presence_thing(Context, _ReqNouns) ->
     crossbar_util:response_faulty_request(Context).
@@ -286,10 +301,11 @@ validate_action(Context) ->
         _ -> Context
     end.
 validate_action(Context, ReqData) ->
-    DeprecatedReset = case kz_json:get_value(<<"reset">>, ReqData, 'false') of
-                          'true' -> <<"reset">>;
-                          'false' -> 'undefined'
-                      end,
+    DeprecatedReset =
+        case kz_json:get_value(<<"reset">>, ReqData, 'false') of
+            'true' -> <<"reset">>;
+            'false' -> 'undefined'
+        end,
     validate_action(Context, ReqData, kz_json:get_value(<<"action">>, ReqData, DeprecatedReset)).
 validate_action(Context, _ReqData, <<"reset">>) ->
     Context;
@@ -304,27 +320,31 @@ validate_action(Context, _ReqData, _InvalidAction) ->
 
 -spec invalid_action(cb_context:context()) -> cb_context:context().
 invalid_action(Context) ->
-    cb_context:add_validation_error(<<"action">>
-                                   ,<<"invalid">>
-                                   ,kz_json:from_list(
-                                      [{<<"message">>, <<"Field must be set to a valid action">>}
-                                      ,{<<"target">>, <<"invalid">>}
-                                      ]
-                                     )
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"action">>,
+        <<"invalid">>,
+        kz_json:from_list(
+            [
+                {<<"message">>, <<"Field must be set to a valid action">>},
+                {<<"target">>, <<"invalid">>}
+            ]
+        ),
+        Context
+    ).
 
 -spec invalid_state(cb_context:context()) -> cb_context:context().
 invalid_state(Context) ->
-    cb_context:add_validation_error(<<"state">>
-                                   ,<<"invalid">>
-                                   ,kz_json:from_list(
-                                      [{<<"message">>, <<"Field must be set to a valid state">>}
-                                      ,{<<"target">>, <<"invalid">>}
-                                      ]
-                                     )
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"state">>,
+        <<"invalid">>,
+        kz_json:from_list(
+            [
+                {<<"message">>, <<"Field must be set to a valid state">>},
+                {<<"target">>, <<"invalid">>}
+            ]
+        ),
+        Context
+    ).
 
 -spec post(cb_context:context()) -> cb_context:context().
 post(Context) ->
@@ -339,7 +359,7 @@ post(Context, Extension) ->
     crossbar_util:response_202(<<"reset command sent for extension ", Extension/binary>>, Context).
 
 -spec post_things(cb_context:context(), kz_json:object() | kz_json:objects(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 post_things(Context, Things, <<"reset">>) ->
     _ = collect_report(Context, Things),
     send_command(Context, fun publish_presence_reset/2, Things);
@@ -348,31 +368,37 @@ post_things(Context, Things, <<"set">>) ->
     send_command(Context, fun(C, Id) -> publish_presence_update(C, Id, State) end, Things).
 
 -type presence_command_fun() :: fun((cb_context:context(), kz_term:api_binary()) -> any()).
--spec send_command(cb_context:context(), presence_command_fun(), kz_json:object() | kz_json:objects()) ->
-          cb_context:context().
+-spec send_command(
+    cb_context:context(), presence_command_fun(), kz_json:object() | kz_json:objects()
+) ->
+    cb_context:context().
 send_command(Context, _CommandFun, []) ->
     lager:debug("nothing to send command to"),
     crossbar_util:response(<<"nothing to send command to">>, Context);
-send_command(Context, CommandFun, [_|_]=Things) ->
+send_command(Context, CommandFun, [_ | _] = Things) ->
     lists:foreach(fun(Thing) -> CommandFun(Context, find_presence_id(Thing)) end, Things),
     crossbar_util:response_202(<<"command sent">>, Context);
 send_command(Context, CommandFun, Thing) ->
     send_command(Context, CommandFun, [Thing]).
 
 -spec publish_presence_reset(cb_context:context(), kz_term:api_binary()) -> 'ok'.
-publish_presence_reset(_Context, 'undefined') -> 'ok';
+publish_presence_reset(_Context, 'undefined') ->
+    'ok';
 publish_presence_reset(Context, PresenceId) ->
     Realm = cb_context:account_realm(Context),
     lager:debug("resetting ~s@~s", [PresenceId, Realm]),
-    API = [{<<"Realm">>, Realm}
-          ,{<<"Username">>, PresenceId}
-          ,{<<"Msg-ID">>, kz_util:get_callid()}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    API = [
+        {<<"Realm">>, Realm},
+        {<<"Username">>, PresenceId},
+        {<<"Msg-ID">>, kz_util:get_callid()}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kz_amqp_worker:cast(API, fun kapi_presence:publish_reset/1).
 
--spec publish_presence_update(cb_context:context(), kz_term:api_binary(), kz_term:ne_binary()) -> 'ok'.
-publish_presence_update(_Context, 'undefined', _PresenceState) -> 'ok';
+-spec publish_presence_update(cb_context:context(), kz_term:api_binary(), kz_term:ne_binary()) ->
+    'ok'.
+publish_presence_update(_Context, 'undefined', _PresenceState) ->
+    'ok';
 publish_presence_update(Context, PresenceId, PresenceState) ->
     Realm = cb_context:account_realm(Context),
     AccountDb = cb_context:account_db(Context),
@@ -382,7 +408,9 @@ publish_presence_update(Context, PresenceId, PresenceState) ->
     UpdateOptions = [{'update', Update}],
     {'ok', _} = kz_datamgr:update_doc(AccountDb, ?MANUAL_PRESENCE_DOC, UpdateOptions),
     PresenceString = <<PresenceId/binary, "@", Realm/binary>>,
-    kapps_call_command:presence(PresenceState, PresenceString, kz_term:to_hex_binary(crypto:hash('md5', PresenceString))).
+    kapps_call_command:presence(
+        PresenceState, PresenceString, kz_term:to_hex_binary(crypto:hash('md5', PresenceString))
+    ).
 
 -spec find_presence_id(kz_json:object()) -> kz_term:api_binary().
 find_presence_id(JObj) ->
@@ -395,40 +423,50 @@ find_presence_id(JObj) ->
 load_report(Context, Report) ->
     File = <<"/tmp/", Report/binary, ".json">>,
     case filelib:is_file(File) of
-        'true' -> set_report(Context, File);
+        'true' ->
+            set_report(Context, File);
         'false' ->
             lager:error("invalid file while fetching report file ~s", [File]),
-            cb_context:add_system_error('bad_identifier', kz_json:from_list([{<<"cause">>, Report}]), Context)
+            cb_context:add_system_error(
+                'bad_identifier', kz_json:from_list([{<<"cause">>, Report}]), Context
+            )
     end.
 
 -spec set_report(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 set_report(Context, File) ->
     Name = kz_term:to_binary(filename:basename(File)),
     Headers = [{<<"Content-Disposition">>, <<"attachment; filename=", Name/binary>>}],
-    cb_context:setters(Context,
-                       [{fun cb_context:set_resp_file/2, File}
-                       ,{fun cb_context:set_resp_etag/2, 'undefined'}
-                       ,{fun cb_context:add_resp_headers/2, Headers}
-                       ,{fun cb_context:set_resp_status/2, 'success'}
-                       ]
-                      ).
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_file/2, File},
+            {fun cb_context:set_resp_etag/2, 'undefined'},
+            {fun cb_context:add_resp_headers/2, Headers},
+            {fun cb_context:set_resp_status/2, 'success'}
+        ]
+    ).
 
--spec collect_report(cb_context:context(), kz_term:ne_binary() | kz_json:object() | kz_json:objects()) -> any().
+-spec collect_report(
+    cb_context:context(), kz_term:ne_binary() | kz_json:object() | kz_json:objects()
+) -> any().
 collect_report(_Context, []) ->
     lager:debug("nothing to collect");
 collect_report(Context, Param) ->
     lager:debug("collecting report for ~s", [Param]),
     kz_util:spawn(fun send_report/2, [search_detail(Context, Param), Param]).
 
--spec send_report(cb_context:context(), kz_term:ne_binary() | kz_json:object() | kz_json:objects()) -> 'ok'.
-send_report(Context, Extension)
-  when is_binary(Extension) ->
+-spec send_report(cb_context:context(), kz_term:ne_binary() | kz_json:object() | kz_json:objects()) ->
+    'ok'.
+send_report(Context, Extension) when
+    is_binary(Extension)
+->
     Msg = <<"presence reset received for extension ", Extension/binary>>,
     format_and_send_report(Context, Msg);
-send_report(Context, Things)
-  when is_list(Things) ->
+send_report(Context, Things) when
+    is_list(Things)
+->
     Format = "presence reset received for user_id ~s~n~ndevices:~p",
-    Ids = list_to_binary([io_lib:format("~n~s", [kz_doc:id(Thing)])  || Thing <- Things]),
+    Ids = list_to_binary([io_lib:format("~n~s", [kz_doc:id(Thing)]) || Thing <- Things]),
     Msg = io_lib:format(Format, [cb_context:user_id(Context), Ids]),
     format_and_send_report(Context, Msg);
 send_report(Context, Thing) ->
@@ -441,13 +479,15 @@ format_and_send_report(Context, Msg) ->
     lager:debug("formatting and sending report"),
     {ReportId, URL} = save_report(Context),
     Subject = io_lib:format("presence reset for account ~s", [cb_context:account_id(Context)]),
-    Props = [{<<"Report-ID">>, ReportId}
-            ,{<<"Node">>, node()}
-            ],
-    Headers = [{<<"Attachment-URL">>, URL}
-              ,{<<"Account-ID">>, cb_context:account_id(Context)}
-              ,{<<"Request-ID">>, cb_context:req_id(Context)}
-              ],
+    Props = [
+        {<<"Report-ID">>, ReportId},
+        {<<"Node">>, node()}
+    ],
+    Headers = [
+        {<<"Attachment-URL">>, URL},
+        {<<"Account-ID">>, cb_context:account_id(Context)},
+        {<<"Request-ID">>, cb_context:req_id(Context)}
+    ],
     kz_notify:detailed_alert(Subject, Msg, Props, Headers).
 
 -spec save_report(cb_context:context()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
@@ -456,10 +496,11 @@ save_report(Context) ->
     Report = kz_binary:rand_hex(16),
     File = <<"/tmp/", Report/binary, ".json">>,
     'ok' = file:write_file(File, JObj),
-    Args = [cb_context:api_version(Context)
-           ,cb_context:account_id(Context)
-           ,?MATCH_REPORT_PREFIX(Report)
-           ],
+    Args = [
+        cb_context:api_version(Context),
+        cb_context:account_id(Context),
+        ?MATCH_REPORT_PREFIX(Report)
+    ],
     Path = io_lib:format("/~s/accounts/~s/presence/~s", Args),
     MagicPath = kapps_util:to_magic_hash(Path),
     HostURL = cb_context:host_url(Context),

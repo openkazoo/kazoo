@@ -10,13 +10,14 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_access_lists).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,validate/1
-        ,post/1
-        ,delete/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    validate/1,
+    post/1,
+    delete/1
+]).
 
 -include_lib("crossbar/src/crossbar.hrl").
 
@@ -88,17 +89,20 @@ thing_doc(Context) ->
             lager:debug("loading access lists from device: '~s'", [DeviceId]),
             thing_doc(Context, DeviceId, kzd_devices:type());
         _Nouns ->
-            cb_context:add_system_error('faulty_request'
-                                       ,<<"access lists not supported on this URI path">>
-                                       ,Context
-                                       )
+            cb_context:add_system_error(
+                'faulty_request',
+                <<"access lists not supported on this URI path">>,
+                Context
+            )
     end.
 
--spec thing_doc(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) -> cb_context:context().
+-spec thing_doc(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) ->
+    cb_context:context().
 thing_doc(Context, ThingId, Type) ->
     Context1 = crossbar_doc:load(ThingId, Context, ?TYPE_CHECK_OPTION(Type)),
     case cb_context:resp_status(Context1) of
-        'success' -> Context1;
+        'success' ->
+            Context1;
         _Status ->
             lager:debug("failed to load thing ~s", [ThingId]),
             thing_id_not_found(Context1, ThingId)
@@ -106,12 +110,14 @@ thing_doc(Context, ThingId, Type) ->
 
 -spec thing_id_not_found(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 thing_id_not_found(Context, ThingId) ->
-    cb_context:add_system_error('bad_identifier'
-                               ,kz_json:from_list([{<<"cause">>, <<"Identifier was not found">>}
-                                                  ,{<<"details">>, ThingId}
-                                                  ])
-                               ,Context
-                               ).
+    cb_context:add_system_error(
+        'bad_identifier',
+        kz_json:from_list([
+            {<<"cause">>, <<"Identifier was not found">>},
+            {<<"details">>, ThingId}
+        ]),
+        Context
+    ).
 
 -spec validate_get_acls(cb_context:context()) -> cb_context:context().
 validate_get_acls(Context) ->
@@ -134,15 +140,18 @@ validate_delete_acls(Context) ->
 
 -spec validate_delete_acls(cb_context:context(), kz_term:api_object()) -> cb_context:context().
 validate_delete_acls(Context, Doc) ->
-    Context1 = crossbar_util:response(kz_json:new()
-                                     ,cb_context:set_doc(Context
-                                                        ,kz_json:delete_key(<<"access_lists">>, Doc)
-                                                        )),
+    Context1 = crossbar_util:response(
+        kz_json:new(),
+        cb_context:set_doc(
+            Context,
+            kz_json:delete_key(<<"access_lists">>, Doc)
+        )
+    ),
     _ = flush_acl(Doc),
     Context1.
 
 -spec validate_set_acls(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 validate_set_acls(Context) ->
     lager:debug("access lists data is valid, setting on thing"),
     validate_set_acls(thing_doc(Context), cb_context:doc(Context)).
@@ -154,12 +163,13 @@ validate_set_acls(Context, AccessLists) ->
     end.
 
 -spec validate_set_acls(cb_context:context(), kz_json:object(), kz_term:api_object()) ->
-          cb_context:context().
+    cb_context:context().
 validate_set_acls(Context, AccessLists, Doc) ->
     Doc1 = kz_json:set_value(<<"access_lists">>, AccessLists, Doc),
-    Context1 = crossbar_util:response(AccessLists
-                                     ,cb_context:set_doc(Context, Doc1)
-                                     ),
+    Context1 = crossbar_util:response(
+        AccessLists,
+        cb_context:set_doc(Context, Doc1)
+    ),
     _ = flush_acl(Doc1),
     Context1.
 
@@ -177,9 +187,10 @@ after_post(Context) ->
 
 -spec after_post(cb_context:context(), crossbar_status()) -> cb_context:context().
 after_post(Context, 'success') ->
-    crossbar_util:response(kz_json:get_value(<<"access_lists">>, cb_context:doc(Context))
-                          ,Context
-                          );
+    crossbar_util:response(
+        kz_json:get_value(<<"access_lists">>, cb_context:doc(Context)),
+        Context
+    );
 after_post(Context, _RespStatus) ->
     Context.
 
@@ -203,8 +214,9 @@ after_delete(Context, _RespStatus) ->
 
 -spec flush_acl(kz_json:object()) -> 'ok' | {'error', any()}.
 flush_acl(Doc) ->
-    Cmd = props:filter_undefined([{<<"Realm">>, kzd_accounts:fetch_realm(kz_doc:account_id(Doc))}
-                                 ,{<<"Device">>, kz_json:get_value([<<"sip">>,<<"username">>], Doc)}
-                                  | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                                 ]),
+    Cmd = props:filter_undefined([
+        {<<"Realm">>, kzd_accounts:fetch_realm(kz_doc:account_id(Doc))},
+        {<<"Device">>, kz_json:get_value([<<"sip">>, <<"username">>], Doc)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ]),
     kz_amqp_worker:cast(Cmd, fun kapi_frontier:publish_flush/1).

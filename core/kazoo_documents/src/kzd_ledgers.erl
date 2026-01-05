@@ -5,111 +5,136 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_ledgers).
 
--export([ledger_types/0
-        ,type_credit/0
-        ,type_debit/0
-        ]).
+-export([
+    ledger_types/0,
+    type_credit/0,
+    type_debit/0
+]).
 -export([new/0]).
--export([type/0
-        ,type/1
-        ,set_type/1
-        ]).
--export([account/1
-        ,account/2
-        ,set_account/2
-        ]).
--export([account_id/1
-        ,account_id/2
-        ,set_account_id/2
-        ]).
--export([account_name/1
-        ,account_name/2
-        ,set_account_name/2
-        ]).
--export([unit_amount/1
-        ,unit_amount/2
-        ,set_unit_amount/2
-        ]).
--export([dollar_amount/1
-        ,dollar_amount/2
-        ,set_dollar_amount/2
-        ]).
--export([description/1
-        ,description/2
-        ,set_description/2
-        ]).
--export([executor/1
-        ,executor/2
-        ,set_executor/2
-        ]).
--export([executor_trigger/1
-        ,executor_trigger/2
-        ,set_executor_trigger/2
-        ]).
--export([executor_module/1
-        ,executor_module/2
-        ,set_executor_module/2
-        ]).
--export([source/1
-        ,source/2
-        ,set_source/2
-        ]).
--export([source_id/1
-        ,source_id/2
-        ,set_source_id/2
-        ]).
--export([source_service/1
-        ,source_service/2
-        ,set_source_service/2
-        ]).
--export([usage/1
-        ,usage/2
-        ,set_usage/2
-        ]).
--export([usage_quantity/1
-        ,usage_quantity/2
-        ,set_usage_quantity/2
-        ]).
--export([usage_type/1
-        ,usage_type/2
-        ,set_usage_type/2
-        ]).
--export([usage_unit/1
-        ,usage_unit/2
-        ,set_usage_unit/2
-        ]).
--export([period/1
-        ,period/2
-        ,set_period/2
-        ]).
--export([period_end/1
-        ,period_end/2
-        ,set_period_end/2
-        ]).
--export([period_start/1
-        ,period_start/2
-        ,set_period_start/2
-        ]).
--export([metadata/1
-        ,metadata/2
-        ,set_metadata/2
-        ]).
--export([audit/1
-        ,audit/2
-        ,set_audit/2
-        ]).
--export([ledger_type/1
-        ,ledger_type/2
-        ,set_ledger_type/2
-        ]).
+-export([
+    type/0,
+    type/1,
+    set_type/1
+]).
+-export([
+    account/1,
+    account/2,
+    set_account/2
+]).
+-export([
+    account_id/1,
+    account_id/2,
+    set_account_id/2
+]).
+-export([
+    account_name/1,
+    account_name/2,
+    set_account_name/2
+]).
+-export([
+    unit_amount/1,
+    unit_amount/2,
+    set_unit_amount/2
+]).
+-export([
+    dollar_amount/1,
+    dollar_amount/2,
+    set_dollar_amount/2
+]).
+-export([
+    description/1,
+    description/2,
+    set_description/2
+]).
+-export([
+    executor/1,
+    executor/2,
+    set_executor/2
+]).
+-export([
+    executor_trigger/1,
+    executor_trigger/2,
+    set_executor_trigger/2
+]).
+-export([
+    executor_module/1,
+    executor_module/2,
+    set_executor_module/2
+]).
+-export([
+    source/1,
+    source/2,
+    set_source/2
+]).
+-export([
+    source_id/1,
+    source_id/2,
+    set_source_id/2
+]).
+-export([
+    source_service/1,
+    source_service/2,
+    set_source_service/2
+]).
+-export([
+    usage/1,
+    usage/2,
+    set_usage/2
+]).
+-export([
+    usage_quantity/1,
+    usage_quantity/2,
+    set_usage_quantity/2
+]).
+-export([
+    usage_type/1,
+    usage_type/2,
+    set_usage_type/2
+]).
+-export([
+    usage_unit/1,
+    usage_unit/2,
+    set_usage_unit/2
+]).
+-export([
+    period/1,
+    period/2,
+    set_period/2
+]).
+-export([
+    period_end/1,
+    period_end/2,
+    set_period_end/2
+]).
+-export([
+    period_start/1,
+    period_start/2,
+    set_period_start/2
+]).
+-export([
+    metadata/1,
+    metadata/2,
+    set_metadata/2
+]).
+-export([
+    audit/1,
+    audit/2,
+    set_audit/2
+]).
+-export([
+    ledger_type/1,
+    ledger_type/2,
+    set_ledger_type/2
+]).
 
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -type ledger_type() :: kz_term:ne_binary().
--export_type([doc/0
-             ,ledger_type/0
-             ]).
+-export_type([
+    doc/0,
+    ledger_type/0
+]).
 
 -define(CREDIT, <<"credit">>).
 -define(DEBIT, <<"debit">>).
@@ -313,7 +338,6 @@ set_dollar_amount(Doc, Amount) ->
 %% -spec set_amount(doc(), number()) -> doc().
 %% set_amount(Doc, Amount) ->
 %%     kz_json:set_value([<<"amount">>], Amount, Doc).
-
 
 %%------------------------------------------------------------------------------
 %% @doc

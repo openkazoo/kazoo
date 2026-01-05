@@ -14,18 +14,20 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, start_link/2
-        ,default_table_options/0
-        ]).
+-export([
+    start_link/1, start_link/2,
+    default_table_options/0
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 %% Internal
 -export([find_me/2]).
@@ -37,23 +39,27 @@
 
 -define(TABLE_DATA, 0).
 
--type start_arg() :: {'table_id', atom()} |
-                     {'table_options', list()} |
-                     {'gift_data', any()} |
-                     {'find_me_function', find_me_fun()}.
+-type start_arg() ::
+    {'table_id', atom()}
+    | {'table_options', list()}
+    | {'gift_data', any()}
+    | {'find_me_function', find_me_fun()}.
 -type start_args() :: [start_arg()].
 
 -type find_me_fun() :: fun(() -> pid()).
--export_type([start_arg/0, start_args/0
-             ,find_me_fun/0
-             ]).
+-export_type([
+    start_arg/0,
+    start_args/0,
+    find_me_fun/0
+]).
 
--record(state, {table_id :: atom()
-               ,give_away_pid :: kz_term:api_pid()
-               ,find_me_fun :: find_me_fun() | undefined
-               ,find_me_pid_ref :: kz_term:api_pid_ref()
-               ,gift_data :: any()
-               }).
+-record(state, {
+    table_id :: atom(),
+    give_away_pid :: kz_term:api_pid(),
+    find_me_fun :: find_me_fun() | undefined,
+    find_me_pid_ref :: kz_term:api_pid_ref(),
+    gift_data :: any()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -76,10 +82,10 @@ start_link(Name, Opts) ->
 
 -spec valid_options(start_args()) -> boolean().
 valid_options(Opts) ->
-    (TID = props:get_value('table_id', Opts)) =/= 'undefined'
-        andalso is_atom(TID)
-        andalso is_function(props:get_value('find_me_function', Opts), 0)
-        orelse props:is_defined('local', Opts).
+    (TID = props:get_value('table_id', Opts)) =/= 'undefined' andalso
+        is_atom(TID) andalso
+        is_function(props:get_value('find_me_function', Opts), 0) orelse
+        props:is_defined('local', Opts).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -101,10 +107,11 @@ init([Opts]) ->
 
     lager:debug("started etsmgr for table ~p", [TableId]),
 
-    {'ok', #state{table_id=TableId
-                 ,find_me_fun=opt_find_me_fun(Opts)
-                 ,gift_data=opt_gift_data(Opts)
-                 }}.
+    {'ok', #state{
+        table_id = TableId,
+        find_me_fun = opt_find_me_fun(Opts),
+        gift_data = opt_gift_data(Opts)
+    }}.
 
 -define(DEFAULT_TABLE_OPTIONS, ['set', 'protected', {'keypos', 2}]).
 -spec default_table_options() -> list().
@@ -135,13 +142,13 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'begin', TableId, TableOptions}, #state{gift_data=GiftData}=State) ->
+handle_cast({'begin', TableId, TableOptions}, #state{gift_data = GiftData} = State) ->
     TID = ets:new(TableId, TableOptions),
 
     lager:debug("created new table ~p(~p): ~p", [TableId, TID, TableOptions]),
     ets:setopts(TID, {'heir', self(), GiftData}),
     send_give_away_retry(TID),
-    {'noreply', State#state{table_id=TID}};
+    {'noreply', State#state{table_id = TID}};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
     {'noreply', State}.
@@ -151,54 +158,78 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'EXIT', Pid, 'killed'}, #state{give_away_pid=Pid}=State) ->
+handle_info({'EXIT', Pid, 'killed'}, #state{give_away_pid = Pid} = State) ->
     lager:debug("ets mgr ~p killed", [Pid]),
-    {'noreply', State#state{give_away_pid='undefined'}};
-handle_info({'EXIT', Pid, 'shutdown'}, #state{give_away_pid=Pid}=State) ->
+    {'noreply', State#state{give_away_pid = 'undefined'}};
+handle_info({'EXIT', Pid, 'shutdown'}, #state{give_away_pid = Pid} = State) ->
     lager:debug("ets mgr ~p shutdown", [Pid]),
-    {'noreply', State#state{give_away_pid='undefined'}};
-handle_info({'EXIT', _Pid, _Reason}, #state{give_away_pid='undefined'}=State) ->
+    {'noreply', State#state{give_away_pid = 'undefined'}};
+handle_info({'EXIT', _Pid, _Reason}, #state{give_away_pid = 'undefined'} = State) ->
     {'noreply', State};
-handle_info({'ETS-TRANSFER', Tbl, Pid, _Data}, #state{table_id=Tbl
-                                                     ,give_away_pid=Pid
-                                                     }=State) ->
+handle_info(
+    {'ETS-TRANSFER', Tbl, Pid, _Data},
+    #state{
+        table_id = Tbl,
+        give_away_pid = Pid
+    } = State
+) ->
     lager:debug("ets table '~p' transferred back to ourselves", [Tbl]),
     send_give_away_retry(Tbl),
-    {'noreply', State#state{give_away_pid='undefined'}};
-handle_info({'give_away', Tbl}, #state{table_id=Tbl
-                                      ,give_away_pid='undefined'
-                                      ,find_me_fun='undefined'
-                                      }=State) ->
+    {'noreply', State#state{give_away_pid = 'undefined'}};
+handle_info(
+    {'give_away', Tbl},
+    #state{
+        table_id = Tbl,
+        give_away_pid = 'undefined',
+        find_me_fun = 'undefined'
+    } = State
+) ->
     lager:debug("no find_me_fun, ets table ~p will live here", [Tbl]),
     {'noreply', State};
-handle_info({'give_away', Tbl}, #state{table_id=Tbl
-                                      ,give_away_pid='undefined'
-                                      ,find_me_fun=F
-                                      }=State) ->
+handle_info(
+    {'give_away', Tbl},
+    #state{
+        table_id = Tbl,
+        give_away_pid = 'undefined',
+        find_me_fun = F
+    } = State
+) ->
     lager:debug("give away ~p", [Tbl]),
     FindMe = kz_util:spawn_monitor(fun find_me/2, [F, self()]),
     lager:debug("finding the successor in ~p", [FindMe]),
-    {'noreply', State#state{find_me_pid_ref=FindMe}};
-handle_info({'found_me', Pid}, #state{table_id=Tbl
-                                     ,give_away_pid='undefined'
-                                     ,find_me_pid_ref={_FindMePid, FindMeRef}
-                                     ,gift_data=GiftData
-                                     }=State) ->
+    {'noreply', State#state{find_me_pid_ref = FindMe}};
+handle_info(
+    {'found_me', Pid},
+    #state{
+        table_id = Tbl,
+        give_away_pid = 'undefined',
+        find_me_pid_ref = {_FindMePid, FindMeRef},
+        gift_data = GiftData
+    } = State
+) ->
     lager:debug("found our new writer pid: ~p", [Pid]),
     erlang:demonitor(FindMeRef, ['flush']),
     link(Pid),
     ets:give_away(Tbl, Pid, GiftData),
-    {'noreply', State#state{give_away_pid=Pid
-                           ,find_me_pid_ref='undefined'
-                           }, 'hibernate'};
-handle_info({'DOWN', Ref, 'process', Pid, _Reason}, #state{table_id=Tbl
-                                                          ,find_me_pid_ref={Pid, Ref}
-                                                          }=State) ->
+    {'noreply',
+        State#state{
+            give_away_pid = Pid,
+            find_me_pid_ref = 'undefined'
+        },
+        'hibernate'};
+handle_info(
+    {'DOWN', Ref, 'process', Pid, _Reason},
+    #state{
+        table_id = Tbl,
+        find_me_pid_ref = {Pid, Ref}
+    } = State
+) ->
     lager:debug("our find_me pid ~p went down: ~p", [Pid, _Reason]),
     send_give_away_retry(Tbl),
-    {'noreply', State#state{find_me_pid_ref='undefined'
-                           ,give_away_pid='undefined'
-                           }};
+    {'noreply', State#state{
+        find_me_pid_ref = 'undefined',
+        give_away_pid = 'undefined'
+    }};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),
     {'noreply', State}.

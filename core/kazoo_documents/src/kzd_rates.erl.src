@@ -27,7 +27,6 @@
 -export([routes/1, routes/2, set_routes/2]).
 -export([weight/1, weight/2, set_weight/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

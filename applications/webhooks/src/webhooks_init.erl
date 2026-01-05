@@ -5,11 +5,12 @@
 %%%-----------------------------------------------------------------------------
 -module(webhooks_init).
 
--export([start_link/0
-        ,init_modules/0
-        ,existing_modules/0
-        ,maybe_init_account/2
-        ]).
+-export([
+    start_link/0,
+    init_modules/0,
+    existing_modules/0,
+    maybe_init_account/2
+]).
 
 -include("webhooks.hrl").
 
@@ -37,8 +38,8 @@ init_dbs() ->
 -spec maybe_init_account(kz_json:object(), kz_term:proplist()) -> 'ok' | 'false'.
 maybe_init_account(JObj, _Props) ->
     Database = kapi_conf:get_database(JObj),
-    kz_datamgr:db_classification(Database) =:= 'account'
-        andalso do_init(Database).
+    kz_datamgr:db_classification(Database) =:= 'account' andalso
+        do_init(Database).
 
 -spec init_master_account_db() -> 'ok'.
 init_master_account_db() ->
@@ -58,10 +59,11 @@ init_master_account_db(MasterAccountDb) ->
 
 -spec remove_old_notifications_webhooks(kz_term:ne_binary()) -> 'ok'.
 remove_old_notifications_webhooks(MasterAccountDb) ->
-    ToRemove = [<<"webhooks_callflow">>
-               ,<<"webhooks_inbound_fax">>
-               ,<<"webhooks_outbound_fax">>
-               ],
+    ToRemove = [
+        <<"webhooks_callflow">>,
+        <<"webhooks_inbound_fax">>,
+        <<"webhooks_outbound_fax">>
+    ],
     case kz_datamgr:del_docs(MasterAccountDb, ToRemove) of
         {'ok', _} ->
             lager:debug("old notifications webhooks deleted");
@@ -90,18 +92,19 @@ init_module(Module) ->
 existing_modules() ->
     KazooApplications =
         sets:to_list(
-          sets:from_list(
-            kapps_controller:start_which_kapps() ++ [?APP_NAME]
-           )
-         ),
+            sets:from_list(
+                kapps_controller:start_which_kapps() ++ [?APP_NAME]
+            )
+        ),
     lists:foldl(fun existing_modules_fold/2, [], KazooApplications).
 
 -spec existing_modules_fold(atom(), kz_term:atoms()) -> kz_term:atoms().
 existing_modules_fold(ApplicationName, Modules) ->
     ApplicationModules = find_application_webhook_modules(ApplicationName),
-    _ = [lager:debug("found ~s webhook module ~s", [ApplicationName, ApplicationModule])
-         || ApplicationModule <- ApplicationModules
-        ],
+    _ = [
+        lager:debug("found ~s webhook module ~s", [ApplicationName, ApplicationModule])
+     || ApplicationModule <- ApplicationModules
+    ],
     ApplicationModules ++ Modules.
 
 -spec find_application_webhook_modules(kz_term:text()) -> kz_term:atoms().
@@ -115,19 +118,21 @@ find_application_webhook_modules(ApplicationName) ->
 find_path_webhook_modules(BasePath) ->
     EbinDirectory = filename:join(BasePath, "ebin"),
     Extension = ".beam",
-    Utils = ["webhooks_app"
-            ,"webhooks_channel_util"
-            ,"webhooks_disabler"
-            ,"webhooks_init"
-            ,"webhooks_listener"
-            ,"webhooks_maintenance"
-            ,"webhooks_shared_listener"
-            ,"webhooks_skel"
-            ,"webhooks_sup"
-            ,"webhooks_util"
-            ],
+    Utils = [
+        "webhooks_app",
+        "webhooks_channel_util",
+        "webhooks_disabler",
+        "webhooks_init",
+        "webhooks_listener",
+        "webhooks_maintenance",
+        "webhooks_shared_listener",
+        "webhooks_skel",
+        "webhooks_sup",
+        "webhooks_util"
+    ],
     Pattern = filename:join(EbinDirectory, "webhooks_*" ++ Extension),
-    [kz_term:to_atom(Module, 'true')
+    [
+        kz_term:to_atom(Module, 'true')
      || Path <- filelib:wildcard(Pattern),
-        not lists:member((Module=filename:basename(Path, Extension)), Utils)
+        not lists:member((Module = filename:basename(Path, Extension)), Utils)
     ].

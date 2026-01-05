@@ -5,20 +5,23 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_services_im).
 
--export([fetch/1
-        ,flat_rate/3
-        ,is_enabled/2
-        ,is_sms_enabled/1, is_mms_enabled/1
-        ]).
+-export([
+    fetch/1,
+    flat_rate/3,
+    is_enabled/2,
+    is_sms_enabled/1,
+    is_mms_enabled/1
+]).
 
 -include("services.hrl").
 
 -type direction() :: kapps_im:direction().
 -type im_type() :: kapps_im:im_type().
 
--export_type([direction/0
-             ,im_type/0
-             ]).
+-export_type([
+    direction/0,
+    im_type/0
+]).
 
 -define(DEFAULT_SMS_INBOUND_FLAT_RATE, 0.007).
 -define(DEFAULT_SMS_OUTBOUND_FLAT_RATE, 0.007).
@@ -28,16 +31,30 @@
 -define(IM_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".im">>).
 -define(DEFAULT_RESELLER_POLICY_FOR_NO_PLAN, false).
 -define(DEFAULT_ACCOUNT_POLICY_FOR_NO_PLAN, false).
--define(POLICY_FOR_NO_PLAN_KEY(T,I), [<<"policy">>, <<"no_plan">>, kz_term:to_binary(T), kz_term:to_binary(I), <<"enabled">>]).
--define(RESELLER_POLICY_FOR_NO_PLAN(T), kapps_config:get_boolean(?IM_CONFIG_CAT, ?POLICY_FOR_NO_PLAN_KEY(<<"reseller">>, T), ?DEFAULT_RESELLER_POLICY_FOR_NO_PLAN)).
--define(ACCOUNT_POLICY_FOR_NO_PLAN(T), kapps_config:get_boolean(?IM_CONFIG_CAT, ?POLICY_FOR_NO_PLAN_KEY(<<"account">>, T), ?DEFAULT_ACCOUNT_POLICY_FOR_NO_PLAN)).
+-define(POLICY_FOR_NO_PLAN_KEY(T, I), [
+    <<"policy">>, <<"no_plan">>, kz_term:to_binary(T), kz_term:to_binary(I), <<"enabled">>
+]).
+-define(RESELLER_POLICY_FOR_NO_PLAN(T),
+    kapps_config:get_boolean(
+        ?IM_CONFIG_CAT,
+        ?POLICY_FOR_NO_PLAN_KEY(<<"reseller">>, T),
+        ?DEFAULT_RESELLER_POLICY_FOR_NO_PLAN
+    )
+).
+-define(ACCOUNT_POLICY_FOR_NO_PLAN(T),
+    kapps_config:get_boolean(
+        ?IM_CONFIG_CAT,
+        ?POLICY_FOR_NO_PLAN_KEY(<<"account">>, T),
+        ?DEFAULT_ACCOUNT_POLICY_FOR_NO_PLAN
+    )
+).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec fetch(kz_services:services() | kz_term:ne_binary()) -> kz_json:object().
-fetch(?NE_BINARY=AccountId) ->
+fetch(?NE_BINARY = AccountId) ->
     case cache(AccountId) of
         not_found ->
             FetchOptions = ['hydrate_plans'],
@@ -47,18 +64,21 @@ fetch(?NE_BINARY=AccountId) ->
             Plan
     end;
 fetch(Services) ->
-    {IMDict, Caches} = kz_services_plans:foldl(fun fetch_foldl/3
-                                              ,{dict:new(), []}
-                                              ,kz_services:plans(Services)
-                                              ),
+    {IMDict, Caches} = kz_services_plans:foldl(
+        fun fetch_foldl/3,
+        {dict:new(), []},
+        kz_services:plans(Services)
+    ),
     cache(kz_services:account_id(Services), Caches, kz_json:from_list(dict:to_list(IMDict))).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_foldl(kz_term:ne_binary(), kz_services_plans:plans_list(), {dict:dict(), list()}) -> dict:dict().
-fetch_foldl(_BookkeeperHash, [], Acc) -> Acc;
+-spec fetch_foldl(kz_term:ne_binary(), kz_services_plans:plans_list(), {dict:dict(), list()}) ->
+    dict:dict().
+fetch_foldl(_BookkeeperHash, [], Acc) ->
+    Acc;
 fetch_foldl(_BookkeeperHash, PlansList, {Providers, Caches}) ->
     Plan = kz_services_plans:merge(PlansList),
     IM = kz_services_plan:im(Plan),
@@ -79,10 +99,11 @@ cache_id(Plan) ->
 flat_rate(AccountId, IM, Direction) ->
     Default = default_flat_rate(IM, Direction),
     Items = fetch(AccountId),
-    Key = [kz_term:to_binary(IM)
-          ,<<"rate">>
-          ,kz_term:to_binary(Direction)
-          ],
+    Key = [
+        kz_term:to_binary(IM),
+        <<"rate">>,
+        kz_term:to_binary(Direction)
+    ],
     kz_json:get_number_value(Key, Items, Default).
 
 default_flat_rate('sms', 'inbound') -> ?DEFAULT_SMS_INBOUND_FLAT_RATE;
@@ -117,7 +138,8 @@ is_enabled(AccountId, 'sms') ->
     is_im_enabled(AccountId, 'sms');
 is_enabled(AccountId, 'mms') ->
     is_im_enabled(AccountId, 'mms');
-is_enabled(_AccountId, _) -> 'false'.
+is_enabled(_AccountId, _) ->
+    'false'.
 
 cache(AccountId) ->
     case kz_cache:peek_local(?CACHE_NAME, {?MODULE, AccountId}) of
@@ -126,15 +148,17 @@ cache(AccountId) ->
     end.
 
 cache(AccountId, Caches, Plan) ->
-    CacheProps = [{'origin', cache_origin(AccountId, Caches)}
-                 ,{'expires', infinity}
-                 ],
+    CacheProps = [
+        {'origin', cache_origin(AccountId, Caches)},
+        {'expires', infinity}
+    ],
     catch kz_cache:store_local(?CACHE_NAME, {?MODULE, AccountId}, Plan, CacheProps),
     Plan.
 
 cache_origin(AccountId, Caches) ->
-    [{'db', ?KZ_SERVICES_DB, AccountId}
-     | [{'db', DB, Id}|| {DB, Id} <- lists:usort(Caches)]
+    [
+        {'db', ?KZ_SERVICES_DB, AccountId}
+        | [{'db', DB, Id} || {DB, Id} <- lists:usort(Caches)]
     ].
 
 policy_for_no_plan(true, Type) ->

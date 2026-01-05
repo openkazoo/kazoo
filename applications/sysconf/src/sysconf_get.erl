@@ -31,28 +31,35 @@ handle_req(ApiJObj, _Props) ->
     Value = get_value(Category, Key, Default, Node),
     RespQ = kz_api:server_id(ApiJObj),
 
-    lager:debug("sending reply for ~s.~s(~s): ~p"
-               ,[Category, format_key(Key), Node, Value]
-               ),
-    Resp = [{<<"Category">>, Category}
-           ,{<<"Key">>, Key}
-           ,{<<"Value">>, maybe_fix_undefined(Value)}
-           ,{<<"Msg-ID">>, kz_api:msg_id(ApiJObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    lager:debug(
+        "sending reply for ~s.~s(~s): ~p",
+        [Category, format_key(Key), Node, Value]
+    ),
+    Resp = [
+        {<<"Category">>, Category},
+        {<<"Key">>, Key},
+        {<<"Value">>, maybe_fix_undefined(Value)},
+        {<<"Msg-ID">>, kz_api:msg_id(ApiJObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     maybe_publish_resp(RespQ, Resp).
 
 maybe_publish_resp('undefined', _Resp) -> 'ok';
 maybe_publish_resp(RespQ, Resp) -> kapi_sysconf:publish_get_resp(RespQ, Resp).
 
 -spec format_key(kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:ne_binary().
-format_key(Key)
-  when is_binary(Key) -> Key;
-format_key(Keys)
-  when is_list(Keys) ->
+format_key(Key) when
+    is_binary(Key)
+->
+    Key;
+format_key(Keys) when
+    is_list(Keys)
+->
     kz_binary:join(Keys, <<".">>).
 
--spec get_value(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries(), any(), kz_term:ne_binary()) -> any().
+-spec get_value(
+    kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries(), any(), kz_term:ne_binary()
+) -> any().
 get_value(Category, Key, Default, Node) ->
     kapps_config:get_current(Category, Key, Default, Node).
 

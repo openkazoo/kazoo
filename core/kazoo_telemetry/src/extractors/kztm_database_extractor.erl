@@ -37,7 +37,7 @@ resolve_database_topology(Plan) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_extract_servers(map()) -> [map()].
-maybe_extract_servers(#{'server' := _Server, 'others' := Others}=Plan) ->
+maybe_extract_servers(#{'server' := _Server, 'others' := Others} = Plan) ->
     Others0 = [S || {_Tag, S} <- Others],
     [Plan | Others0].
 
@@ -54,7 +54,7 @@ maybe_resolve_clusters(Servers, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec generate_cluster_summary(map(), kz_json:objects()) -> kz_json:objects().
-generate_cluster_summary(#{'server' := {_App, Conn}}=Server, Acc) ->
+generate_cluster_summary(#{'server' := {_App, Conn}} = Server, Acc) ->
     Summary = resolve_nodes(Server),
     JObj = kz_json:from_list([{server_tag(Conn), Summary}]),
     [JObj | Acc].
@@ -72,18 +72,19 @@ server_tag({'server', _, Props}) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_nodes(map()) -> kz_json:object().
-resolve_nodes(#{'server' := {'kazoo_couch'=App, Conn}}=Server) ->
+resolve_nodes(#{'server' := {'kazoo_couch' = App, Conn}} = Server) ->
     {'ok', Nodes} = App:open_doc(Conn, ?MEMBERSHIP_DB, ?MEMBERSHIP_DOC, []),
-    kz_json:from_list([{<<"all_nodes">>, kz_json:get_value(<<"all_nodes">>, Nodes)}
-                      ,{<<"cluster_nodes">>, kz_json:get_value(<<"cluster_nodes">>, Nodes)}
-                      ,{<<"version">>, resolve_version(Server)}
-                      ]).
+    kz_json:from_list([
+        {<<"all_nodes">>, kz_json:get_value(<<"all_nodes">>, Nodes)},
+        {<<"cluster_nodes">>, kz_json:get_value(<<"cluster_nodes">>, Nodes)},
+        {<<"version">>, resolve_version(Server)}
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc extract version from cluster_metadata
 %% @end
 %%------------------------------------------------------------------------------
 -spec resolve_version(map()) -> kz_term:ne_binary().
-resolve_version(#{'server' := {'kazoo_couch'=App, Conn}}) ->
+resolve_version(#{'server' := {'kazoo_couch' = App, Conn}}) ->
     {'ok', ServerInfo} = App:server_info(Conn),
     kz_json:get_value(<<"version">>, ServerInfo).

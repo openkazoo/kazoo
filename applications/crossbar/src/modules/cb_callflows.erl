@@ -7,15 +7,16 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_callflows).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -41,14 +42,15 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    _ = cb_modules_util:bind(?MODULE, [{<<"*.allowed_methods.callflows">>, 'allowed_methods'}
-                                      ,{<<"*.resource_exists.callflows">>, 'resource_exists'}
-                                      ,{<<"*.validate.callflows">>, 'validate'}
-                                      ,{<<"*.execute.put.callflows">>, 'put'}
-                                      ,{<<"*.execute.post.callflows">>, 'post'}
-                                      ,{<<"*.execute.patch.callflows">>, 'patch'}
-                                      ,{<<"*.execute.delete.callflows">>, 'delete'}
-                                      ]),
+    _ = cb_modules_util:bind(?MODULE, [
+        {<<"*.allowed_methods.callflows">>, 'allowed_methods'},
+        {<<"*.resource_exists.callflows">>, 'resource_exists'},
+        {<<"*.validate.callflows">>, 'validate'},
+        {<<"*.execute.put.callflows">>, 'put'},
+        {<<"*.execute.post.callflows">>, 'post'},
+        {<<"*.execute.patch.callflows">>, 'patch'},
+        {<<"*.execute.delete.callflows">>, 'delete'}
+    ]),
     'ok'.
 
 %%------------------------------------------------------------------------------
@@ -116,7 +118,8 @@ post(Context, _CallflowId) ->
         'success' ->
             'ok' = track_assignment('post', Context),
             maybe_reconcile_numbers(Context1);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec patch(cb_context:context(), path_token()) -> cb_context:context().
@@ -131,7 +134,8 @@ put(Context) ->
         'success' ->
             'ok' = track_assignment('put', Context),
             maybe_reconcile_numbers(Context1);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec delete(cb_context:context(), path_token()) -> cb_context:context().
@@ -141,7 +145,8 @@ delete(Context, _CallflowId) ->
         'success' ->
             'ok' = track_assignment('delete', Context),
             Context1;
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -168,13 +173,16 @@ load_callflow(CallflowId, Context, 'true') ->
     Context1 = crossbar_doc:load(CallflowId, Context, ?TYPE_CHECK_OPTION(kzd_callflow:type())),
     case cb_context:resp_status(Context1) of
         'success' ->
-            Meta = get_metadata(kz_json:get_value(<<"flow">>, cb_context:doc(Context1))
-                               ,cb_context:account_db(Context1)
-                               ),
-            cb_context:set_resp_data(Context1
-                                    ,kz_json:set_value(<<"metadata">>, Meta, cb_context:resp_data(Context1))
-                                    );
-        _Status -> Context1
+            Meta = get_metadata(
+                kz_json:get_value(<<"flow">>, cb_context:doc(Context1)),
+                cb_context:account_db(Context1)
+            ),
+            cb_context:set_resp_data(
+                Context1,
+                kz_json:set_value(<<"metadata">>, Meta, cb_context:resp_data(Context1))
+            );
+        _Status ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -227,9 +235,9 @@ validate_patch(CallflowId, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) ->
-          kz_json:objects().
+    kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -238,15 +246,17 @@ normalize_view_results(JObj, Acc) ->
 -spec maybe_reconcile_numbers(cb_context:context()) -> cb_context:context().
 maybe_reconcile_numbers(Context) ->
     case kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"default_reconcile_numbers">>, 'false') of
-        'false' -> Context;
+        'false' ->
+            Context;
         'true' ->
             CurrentJObj = cb_context:fetch(Context, 'db_doc', kz_json:new()),
             Set1 = sets:from_list(kz_json:get_value(<<"numbers">>, CurrentJObj, [])),
             Set2 = sets:from_list(kz_json:get_value(<<"numbers">>, cb_context:doc(Context), [])),
             NewNumbers = sets:to_list(sets:subtract(Set2, Set1)),
-            Options = [{'assign_to', cb_context:account_id(Context)}
-                      ,{'dry_run', not cb_context:accepting_charges(Context)}
-                      ],
+            Options = [
+                {'assign_to', cb_context:account_id(Context)},
+                {'dry_run', not cb_context:accepting_charges(Context)}
+            ],
             _ = knm_numbers:reconcile(NewNumbers, Options),
             Context
     end.
@@ -261,35 +271,39 @@ track_assignment('post', Context) ->
     OldNums = kz_json:get_value(<<"numbers">>, cb_context:fetch(Context, 'db_doc'), []),
     AccountId = cb_context:account_id(Context),
 
-    Unassigned = [{Num, 'undefined'}
-                  || Num <- OldNums,
-                     not lists:member(Num, NewNums),
-                     knm_converters:is_reconcilable(Num, AccountId)
-                 ],
-    Assigned =  [{Num, kzd_callflow:type()}
-                 || Num <- NewNums,
-                    knm_converters:is_reconcilable(Num, AccountId)
-                ],
+    Unassigned = [
+        {Num, 'undefined'}
+     || Num <- OldNums,
+        not lists:member(Num, NewNums),
+        knm_converters:is_reconcilable(Num, AccountId)
+    ],
+    Assigned = [
+        {Num, kzd_callflow:type()}
+     || Num <- NewNums,
+        knm_converters:is_reconcilable(Num, AccountId)
+    ],
 
     Updates = cb_modules_util:apply_assignment_updates(Unassigned ++ Assigned, Context),
     cb_modules_util:log_assignment_updates(Updates);
 track_assignment('put', Context) ->
     NewNums = kz_json:get_value(<<"numbers">>, cb_context:doc(Context), []),
     AccountId = cb_context:account_id(Context),
-    Assigned =  [{Num, kzd_callflow:type()}
-                 || Num <- NewNums,
-                    knm_converters:is_reconcilable(Num, AccountId)
-                ],
+    Assigned = [
+        {Num, kzd_callflow:type()}
+     || Num <- NewNums,
+        knm_converters:is_reconcilable(Num, AccountId)
+    ],
 
     Updates = cb_modules_util:apply_assignment_updates(Assigned, Context),
     cb_modules_util:log_assignment_updates(Updates);
 track_assignment('delete', Context) ->
     Nums = kz_json:get_value(<<"numbers">>, cb_context:doc(Context), []),
     AccountId = cb_context:account_id(Context),
-    Unassigned =  [{Num, 'undefined'}
-                   || Num <- Nums,
-                      knm_converters:is_reconcilable(Num, AccountId)
-                  ],
+    Unassigned = [
+        {Num, 'undefined'}
+     || Num <- Nums,
+        knm_converters:is_reconcilable(Num, AccountId)
+    ],
     Updates = cb_modules_util:apply_assignment_updates(Unassigned, Context),
     cb_modules_util:log_assignment_updates(Updates).
 
@@ -306,13 +320,16 @@ ids_in_flow(FlowJObj) ->
 ids_in_data(Values) ->
     ids_in_data(Values, []).
 
--spec ids_in_data({kz_json:json_terms(), kz_json:keys()}, kz_term:ne_binaries()) -> kz_term:ne_binaries().
-ids_in_data({[], []}, IDs) -> IDs;
-ids_in_data({[V|Vs], [<<"id">>|Ks]}, IDs) ->
+-spec ids_in_data({kz_json:json_terms(), kz_json:keys()}, kz_term:ne_binaries()) ->
+    kz_term:ne_binaries().
+ids_in_data({[], []}, IDs) ->
+    IDs;
+ids_in_data({[V | Vs], [<<"id">> | Ks]}, IDs) ->
     ids_in_data({Vs, Ks}, [V | IDs]);
-ids_in_data({[V|Vs], [K|Ks]}, IDs) ->
-    case binary:matches(K, <<"_id">>) =/= []
-        andalso kz_term:is_ne_binary(V)
+ids_in_data({[V | Vs], [K | Ks]}, IDs) ->
+    case
+        binary:matches(K, <<"_id">>) =/= [] andalso
+            kz_term:is_ne_binary(V)
     of
         'false' -> ids_in_data({Vs, Ks}, IDs);
         'true' -> ids_in_data({Vs, Ks}, [V | IDs])
@@ -323,25 +340,28 @@ get_metadata('undefined', _Db) -> kz_json:new();
 get_metadata(Flow, Db) -> get_metadata(Flow, Db, kz_json:new()).
 
 -spec get_metadata(kz_json:object(), kz_term:ne_binary(), kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 get_metadata(Flow, Db, Metadata) ->
-    UpdatedMetadata
-        = lists:foldl(fun(ID, MetaAcc) -> create_metadata(Db, ID, MetaAcc) end
-                     ,Metadata
-                     ,ids_in_flow(Flow)
-                     ),
+    UpdatedMetadata =
+        lists:foldl(
+            fun(ID, MetaAcc) -> create_metadata(Db, ID, MetaAcc) end,
+            Metadata,
+            ids_in_flow(Flow)
+        ),
 
     case kz_json:get_json_value(<<"children">>, Flow) of
-        'undefined' -> UpdatedMetadata;
+        'undefined' ->
+            UpdatedMetadata;
         Children ->
             %% iterate through each child, collecting metadata on the
             %% branch name (things like temporal routes)
-            kz_json:foldl(fun(Branch, ChildFlow, MetaAcc) ->
-                                  get_metadata(ChildFlow, Db, create_metadata(Db, Branch, MetaAcc))
-                          end
-                         ,UpdatedMetadata
-                         ,Children
-                         )
+            kz_json:foldl(
+                fun(Branch, ChildFlow, MetaAcc) ->
+                    get_metadata(ChildFlow, Db, create_metadata(Db, Branch, MetaAcc))
+                end,
+                UpdatedMetadata,
+                Children
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -351,21 +371,23 @@ get_metadata(Flow, Db, Metadata) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec create_metadata(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
-          kz_json:object().
-create_metadata(_, <<"_">>, Metadata) -> Metadata;
+    kz_json:object().
+create_metadata(_, <<"_">>, Metadata) ->
+    Metadata;
 create_metadata(_, Id, Metadata) when byte_size(Id) < 2 -> Metadata;
 create_metadata(Db, Id, Metadata) ->
-    case 'undefined' =:= kz_json:get_ne_binary_value(Id, Metadata)
-        andalso fetch_id_from_db(Db, Id)
+    case
+        'undefined' =:= kz_json:get_ne_binary_value(Id, Metadata) andalso
+            fetch_id_from_db(Db, Id)
     of
         'false' -> Metadata;
-        {'ok', Doc} ->  kz_json:set_value(Id, create_metadata(Doc), Metadata);
+        {'ok', Doc} -> kz_json:set_value(Id, create_metadata(Doc), Metadata);
         {'error', _E} -> Metadata
     end.
 
 -spec fetch_id_from_db(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          kz_datamgr:data_error().
+    {'ok', kz_json:object()}
+    | kz_datamgr:data_error().
 -ifdef(TEST).
 fetch_id_from_db(_Db, <<"{USER_ID}">>) ->
     {'ok', ?TEST_USER};
@@ -380,16 +402,18 @@ fetch_id_from_db(Db, Id) ->
 
 -spec create_metadata(kz_json:object()) -> kz_json:object().
 create_metadata(Doc) ->
-    lists:foldl(fun(Key, Meta) -> metadata_builder(Key, Doc, Meta) end
-               ,kz_json:new()
-               ,[<<"name">>
-                ,<<"numbers">>
-                ,<<"pvt_type">>
-                ]
-               ).
+    lists:foldl(
+        fun(Key, Meta) -> metadata_builder(Key, Doc, Meta) end,
+        kz_json:new(),
+        [
+            <<"name">>,
+            <<"numbers">>,
+            <<"pvt_type">>
+        ]
+    ).
 
 -spec metadata_builder(kz_json:key(), kz_json:object(), kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 metadata_builder(<<"name">> = Key, Doc, Metadata) ->
     case kz_doc:type(Doc) of
         <<"user">> ->
@@ -401,7 +425,7 @@ metadata_builder(Key, Doc, Metadata) ->
     maybe_copy_value(Key, Doc, Metadata).
 
 -spec maybe_copy_value(kz_json:key(), kz_json:object(), kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 maybe_copy_value(Key, Doc, Metadata) ->
     case kz_json:get_value(Key, Doc) of
         'undefined' -> Metadata;

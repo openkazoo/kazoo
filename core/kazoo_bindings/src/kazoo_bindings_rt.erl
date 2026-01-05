@@ -5,18 +5,19 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_bindings_rt).
 
-
 %%==============================================================================
 %% API functions
 %%==============================================================================
 
--export([candidates/2
-        ,matches/3
-        ]).
+-export([
+    candidates/2,
+    matches/3
+]).
 
 -include("kazoo_bindings.hrl").
 
--spec candidates(kazoo_bindings:kz_rt_options(), kz_term:ne_binary()) -> kazoo_bindings:kz_bindings().
+-spec candidates(kazoo_bindings:kz_rt_options(), kz_term:ne_binary()) ->
+    kazoo_bindings:kz_bindings().
 candidates(Options, Routing) ->
     Fun = props:get_value('candidates', Options),
     Fun(Routing).

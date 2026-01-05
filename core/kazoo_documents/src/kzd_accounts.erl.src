@@ -14,8 +14,13 @@
 -export([call_waiting/1, call_waiting/2, set_call_waiting/2]).
 -export([caller_id/1, caller_id/2, set_caller_id/2]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
--export([caller_id_options_outbound_privacy/1, caller_id_options_outbound_privacy/2, set_caller_id_options_outbound_privacy/2]).
--export([caller_id_options_show_rate/1, caller_id_options_show_rate/2, set_caller_id_options_show_rate/2]).
+-export([
+    caller_id_options_outbound_privacy/1, caller_id_options_outbound_privacy/2,
+    set_caller_id_options_outbound_privacy/2
+]).
+-export([
+    caller_id_options_show_rate/1, caller_id_options_show_rate/2, set_caller_id_options_show_rate/2
+]).
 -export([dial_plan/1, dial_plan/2, set_dial_plan/2]).
 -export([do_not_disturb/1, do_not_disturb/2, set_do_not_disturb/2]).
 -export([do_not_disturb_enabled/1, do_not_disturb_enabled/2, set_do_not_disturb_enabled/2]).
@@ -28,14 +33,37 @@
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([name/1, name/2, set_name/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
--export([notifications_first_occurrence/1, notifications_first_occurrence/2, set_notifications_first_occurrence/2]).
--export([notifications_first_occurrence_sent_initial_call/1, notifications_first_occurrence_sent_initial_call/2, set_notifications_first_occurrence_sent_initial_call/2]).
--export([notifications_first_occurrence_sent_initial_registration/1, notifications_first_occurrence_sent_initial_registration/2, set_notifications_first_occurrence_sent_initial_registration/2]).
+-export([
+    notifications_first_occurrence/1, notifications_first_occurrence/2,
+    set_notifications_first_occurrence/2
+]).
+-export([
+    notifications_first_occurrence_sent_initial_call/1,
+    notifications_first_occurrence_sent_initial_call/2,
+    set_notifications_first_occurrence_sent_initial_call/2
+]).
+-export([
+    notifications_first_occurrence_sent_initial_registration/1,
+    notifications_first_occurrence_sent_initial_registration/2,
+    set_notifications_first_occurrence_sent_initial_registration/2
+]).
 -export([notifications_low_balance/1, notifications_low_balance/2, set_notifications_low_balance/2]).
--export([notifications_low_balance_enabled/1, notifications_low_balance_enabled/2, set_notifications_low_balance_enabled/2]).
--export([notifications_low_balance_last_notification/1, notifications_low_balance_last_notification/2, set_notifications_low_balance_last_notification/2]).
--export([notifications_low_balance_sent_low_balance/1, notifications_low_balance_sent_low_balance/2, set_notifications_low_balance_sent_low_balance/2]).
--export([notifications_low_balance_threshold/1, notifications_low_balance_threshold/2, set_notifications_low_balance_threshold/2]).
+-export([
+    notifications_low_balance_enabled/1, notifications_low_balance_enabled/2,
+    set_notifications_low_balance_enabled/2
+]).
+-export([
+    notifications_low_balance_last_notification/1, notifications_low_balance_last_notification/2,
+    set_notifications_low_balance_last_notification/2
+]).
+-export([
+    notifications_low_balance_sent_low_balance/1, notifications_low_balance_sent_low_balance/2,
+    set_notifications_low_balance_sent_low_balance/2
+]).
+-export([
+    notifications_low_balance_threshold/1, notifications_low_balance_threshold/2,
+    set_notifications_low_balance_threshold/2
+]).
 -export([org/1, org/2, set_org/2]).
 -export([preflow/1, preflow/2, set_preflow/2]).
 -export([preflow_always/1, preflow_always/2, set_preflow_always/2]).
@@ -50,7 +78,6 @@
 -export([voicemail_notify/1, voicemail_notify/2, set_voicemail_notify/2]).
 -export([voicemail_notify_callback/1, voicemail_notify_callback/2, set_voicemail_notify_callback/2]).
 -export([zones/1, zones/2, set_zones/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -169,7 +196,9 @@ caller_id_options_outbound_privacy(Doc, Default) ->
 
 -spec set_caller_id_options_outbound_privacy(doc(), binary()) -> doc().
 set_caller_id_options_outbound_privacy(Doc, CallerIdOptionsOutboundPrivacy) ->
-    kz_json:set_value([<<"caller_id_options">>, <<"outbound_privacy">>], CallerIdOptionsOutboundPrivacy, Doc).
+    kz_json:set_value(
+        [<<"caller_id_options">>, <<"outbound_privacy">>], CallerIdOptionsOutboundPrivacy, Doc
+    ).
 
 -spec caller_id_options_show_rate(doc()) -> kz_term:api_boolean().
 caller_id_options_show_rate(Doc) ->
@@ -337,7 +366,9 @@ notifications_first_occurrence(Doc, Default) ->
 
 -spec set_notifications_first_occurrence(doc(), kz_json:object()) -> doc().
 set_notifications_first_occurrence(Doc, NotificationsFirstOccurrence) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>], NotificationsFirstOccurrence, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>], NotificationsFirstOccurrence, Doc
+    ).
 
 -spec notifications_first_occurrence_sent_initial_call(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_call(Doc) ->
@@ -345,23 +376,40 @@ notifications_first_occurrence_sent_initial_call(Doc) ->
 
 -spec notifications_first_occurrence_sent_initial_call(doc(), Default) -> boolean() | Default.
 notifications_first_occurrence_sent_initial_call(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], Doc, Default
+    ).
 
 -spec set_notifications_first_occurrence_sent_initial_call(doc(), boolean()) -> doc().
-set_notifications_first_occurrence_sent_initial_call(Doc, NotificationsFirstOccurrenceSentInitialCall) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>], NotificationsFirstOccurrenceSentInitialCall, Doc).
+set_notifications_first_occurrence_sent_initial_call(
+    Doc, NotificationsFirstOccurrenceSentInitialCall
+) ->
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_call">>],
+        NotificationsFirstOccurrenceSentInitialCall,
+        Doc
+    ).
 
 -spec notifications_first_occurrence_sent_initial_registration(doc()) -> boolean().
 notifications_first_occurrence_sent_initial_registration(Doc) ->
     notifications_first_occurrence_sent_initial_registration(Doc, false).
 
--spec notifications_first_occurrence_sent_initial_registration(doc(), Default) -> boolean() | Default.
+-spec notifications_first_occurrence_sent_initial_registration(doc(), Default) ->
+    boolean() | Default.
 notifications_first_occurrence_sent_initial_registration(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], Doc, Default
+    ).
 
 -spec set_notifications_first_occurrence_sent_initial_registration(doc(), boolean()) -> doc().
-set_notifications_first_occurrence_sent_initial_registration(Doc, NotificationsFirstOccurrenceSentInitialRegistration) ->
-    kz_json:set_value([<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>], NotificationsFirstOccurrenceSentInitialRegistration, Doc).
+set_notifications_first_occurrence_sent_initial_registration(
+    Doc, NotificationsFirstOccurrenceSentInitialRegistration
+) ->
+    kz_json:set_value(
+        [<<"notifications">>, <<"first_occurrence">>, <<"sent_initial_registration">>],
+        NotificationsFirstOccurrenceSentInitialRegistration,
+        Doc
+    ).
 
 -spec notifications_low_balance(doc()) -> kz_term:api_object().
 notifications_low_balance(Doc) ->
@@ -381,11 +429,15 @@ notifications_low_balance_enabled(Doc) ->
 
 -spec notifications_low_balance_enabled(doc(), Default) -> boolean() | Default.
 notifications_low_balance_enabled(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"low_balance">>, <<"enabled">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"low_balance">>, <<"enabled">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_enabled(doc(), boolean()) -> doc().
 set_notifications_low_balance_enabled(Doc, NotificationsLowBalanceEnabled) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"enabled">>], NotificationsLowBalanceEnabled, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"enabled">>], NotificationsLowBalanceEnabled, Doc
+    ).
 
 -spec notifications_low_balance_last_notification(doc()) -> kz_term:api_integer().
 notifications_low_balance_last_notification(Doc) ->
@@ -393,11 +445,17 @@ notifications_low_balance_last_notification(Doc) ->
 
 -spec notifications_low_balance_last_notification(doc(), Default) -> integer() | Default.
 notifications_low_balance_last_notification(Doc, Default) ->
-    kz_json:get_integer_value([<<"notifications">>, <<"low_balance">>, <<"last_notification">>], Doc, Default).
+    kz_json:get_integer_value(
+        [<<"notifications">>, <<"low_balance">>, <<"last_notification">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_last_notification(doc(), integer()) -> doc().
 set_notifications_low_balance_last_notification(Doc, NotificationsLowBalanceLastNotification) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"last_notification">>], NotificationsLowBalanceLastNotification, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"last_notification">>],
+        NotificationsLowBalanceLastNotification,
+        Doc
+    ).
 
 -spec notifications_low_balance_sent_low_balance(doc()) -> kz_term:api_boolean().
 notifications_low_balance_sent_low_balance(Doc) ->
@@ -405,11 +463,17 @@ notifications_low_balance_sent_low_balance(Doc) ->
 
 -spec notifications_low_balance_sent_low_balance(doc(), Default) -> boolean() | Default.
 notifications_low_balance_sent_low_balance(Doc, Default) ->
-    kz_json:get_boolean_value([<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], Doc, Default).
+    kz_json:get_boolean_value(
+        [<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_sent_low_balance(doc(), boolean()) -> doc().
 set_notifications_low_balance_sent_low_balance(Doc, NotificationsLowBalanceSentLowBalance) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>], NotificationsLowBalanceSentLowBalance, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"sent_low_balance">>],
+        NotificationsLowBalanceSentLowBalance,
+        Doc
+    ).
 
 -spec notifications_low_balance_threshold(doc()) -> kz_term:api_number().
 notifications_low_balance_threshold(Doc) ->
@@ -417,11 +481,17 @@ notifications_low_balance_threshold(Doc) ->
 
 -spec notifications_low_balance_threshold(doc(), Default) -> number() | Default.
 notifications_low_balance_threshold(Doc, Default) ->
-    kz_json:get_float_value([<<"notifications">>, <<"low_balance">>, <<"threshold">>], Doc, Default).
+    kz_json:get_float_value(
+        [<<"notifications">>, <<"low_balance">>, <<"threshold">>], Doc, Default
+    ).
 
 -spec set_notifications_low_balance_threshold(doc(), number()) -> doc().
 set_notifications_low_balance_threshold(Doc, NotificationsLowBalanceThreshold) ->
-    kz_json:set_value([<<"notifications">>, <<"low_balance">>, <<"threshold">>], NotificationsLowBalanceThreshold, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"low_balance">>, <<"threshold">>],
+        NotificationsLowBalanceThreshold,
+        Doc
+    ).
 
 -spec org(doc()) -> kz_term:api_binary().
 org(Doc) ->
@@ -577,7 +647,9 @@ voicemail_notify_callback(Doc, Default) ->
 
 -spec set_voicemail_notify_callback(doc(), kz_json:object()) -> doc().
 set_voicemail_notify_callback(Doc, VoicemailNotifyCallback) ->
-    kz_json:set_value([<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc).
+    kz_json:set_value(
+        [<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc
+    ).
 
 -spec zones(doc()) -> kz_term:api_object().
 zones(Doc) ->

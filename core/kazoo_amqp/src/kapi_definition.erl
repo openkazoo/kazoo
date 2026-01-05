@@ -7,19 +7,20 @@
 -module(kapi_definition).
 
 %% #kapi_definition record accessors
--export([name/1
-        ,friendly_name/1
-        ,description/1
-        ,build_fun/1
-        ,validate_fun/1
-        ,publish_fun/1
-        ,binding/1
-        ,restrict_to/1
-        ,required_headers/1
-        ,optional_headers/1
-        ,values/1
-        ,types/1
-        ]).
+-export([
+    name/1,
+    friendly_name/1,
+    description/1,
+    build_fun/1,
+    validate_fun/1,
+    publish_fun/1,
+    binding/1,
+    restrict_to/1,
+    required_headers/1,
+    optional_headers/1,
+    values/1,
+    types/1
+]).
 
 -include_lib("kz_amqp_util.hrl").
 

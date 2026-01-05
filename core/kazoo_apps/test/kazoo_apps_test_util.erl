@@ -1,8 +1,9 @@
 -module(kazoo_apps_test_util).
 
--export([setup/0
-        ,cleanup/1
-        ]).
+-export([
+    setup/0,
+    cleanup/1
+]).
 
 -include_lib("kazoo_fixturedb/include/kz_fixturedb.hrl").
 -include("kazoo_apps.hrl").
@@ -20,17 +21,19 @@ setup() ->
     {'ok', SubConfig} = get_fixture(?FIXTURE_CHILD_ACCOUNT_ID, ?TEST_CAT),
     {'ok', ResellerOnly} = get_fixture(?FIXTURE_RESELLER_ACCOUNT_ID, ?RESELLER_ONLY),
 
-    #{sub_config => SubConfig
-     ,reseller_only_config => ResellerOnly
-     ,system_config => get_fixture_value(<<"default">>, ?KZ_CONFIG_DB, ?TEST_CAT)
-     ,system_only => get_fixture_value(<<"default">>, ?KZ_CONFIG_DB, ?SYSTEM_ONLY)
-     ,kapps_cache_pid => KappsCachePid
-     ,fixtures_pid => FixturesPid
-     }.
+    #{
+        sub_config => SubConfig,
+        reseller_only_config => ResellerOnly,
+        system_config => get_fixture_value(<<"default">>, ?KZ_CONFIG_DB, ?TEST_CAT),
+        system_only => get_fixture_value(<<"default">>, ?KZ_CONFIG_DB, ?SYSTEM_ONLY),
+        kapps_cache_pid => KappsCachePid,
+        fixtures_pid => FixturesPid
+    }.
 
-cleanup(#{kapps_cache_pid := KappsCachePid
-         ,fixtures_pid := FixturesPid
-         }) ->
+cleanup(#{
+    kapps_cache_pid := KappsCachePid,
+    fixtures_pid := FixturesPid
+}) ->
     try
         process_flag('trap_exit', 'true'),
         exit(KappsCachePid, 'shutdown'),
@@ -50,7 +53,8 @@ cleanup(#{kapps_cache_pid := KappsCachePid
 cleanup(_Msg) ->
     ?LOG_DEBUG("unmatched clause: ~p", [_Msg]).
 
-wait_for_shutdown([]) -> 'ok';
+wait_for_shutdown([]) ->
+    'ok';
 wait_for_shutdown(Pids) ->
     receive
         {'EXIT', Pid, _Reason} ->
@@ -59,5 +63,5 @@ wait_for_shutdown(Pids) ->
             ?LOG_DEBUG("waiting for ~p: ~p", [Pids, Msg]),
             wait_for_shutdown(Pids)
     after 5000 ->
-            ?LOG_DEBUG("timed out waiting for ~p", [Pids])
+        ?LOG_DEBUG("timed out waiting for ~p", [Pids])
     end.

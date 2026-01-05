@@ -8,8 +8,7 @@
 
 %% behaviour: tasks_provider
 
--export([init/0
-        ]).
+-export([init/0]).
 
 %% Triggerables
 -export([handle_req/1]).
@@ -42,8 +41,12 @@ handle_req(AccountDb) ->
     EarlyDays = kapps_config:get_integer(?MOD_CAT, <<"how_many_early_days">>, 5),
     {DueTimestamp, IsDaysEarlyYet} = is_days_early_yet(EarlyDays),
 
-    ShouldBill = kapps_account_config:get_global(AccountId, ?MOD_CAT, <<"bill_early_enabled">>, 'false'),
-    ShouldRemind = kapps_account_config:get_global(AccountId, ?MOD_CAT, <<"reminder_enabled">>, 'false'),
+    ShouldBill = kapps_account_config:get_global(
+        AccountId, ?MOD_CAT, <<"bill_early_enabled">>, 'false'
+    ),
+    ShouldRemind = kapps_account_config:get_global(
+        AccountId, ?MOD_CAT, <<"reminder_enabled">>, 'false'
+    ),
 
     handle_req(AccountId, DueTimestamp, IsDaysEarlyYet, ShouldBill, ShouldRemind).
 
@@ -55,7 +58,8 @@ handle_req(AccountDb) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_req(kz_term:ne_binary(), kz_time:gregorian_seconds(), boolean(), boolean(), boolean()) -> 'ok'.
+-spec handle_req(kz_term:ne_binary(), kz_time:gregorian_seconds(), boolean(), boolean(), boolean()) ->
+    'ok'.
 handle_req(_, _, 'false', _ShouldBill, _ShouldRemind) ->
     'ok';
 handle_req(AccountId, DueTimestamp, 'true', 'true', _ShouldRemind) ->
@@ -79,9 +83,9 @@ is_days_early_yet(EarlyDays) ->
 is_days_early_yet({Year, Month, Day}, EarlyDays) ->
     LastDay = calendar:last_day_of_the_month(Year, Month),
     DueTimestamp =
-        calendar:datetime_to_gregorian_seconds({kz_date:normalize({Year, Month, LastDay + 1})
-                                               ,{0, 0, 1}
-                                               }),
+        calendar:datetime_to_gregorian_seconds({
+            kz_date:normalize({Year, Month, LastDay + 1}), {0, 0, 1}
+        }),
     {DueTimestamp, LastDay - EarlyDays < Day}.
 
 %%% End of Module.

@@ -13,7 +13,6 @@
 -export([stop_time/1, stop_time/2, set_stop_time/2]).
 -export([value/1, value/2, set_value/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

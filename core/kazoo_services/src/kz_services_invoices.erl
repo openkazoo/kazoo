@@ -21,10 +21,10 @@
 
 -opaque invoices() :: [kz_services_invoice:invoice()].
 -type fold_fun() :: fun((kz_services_invoice:invoice(), Acc) -> Acc).
--export_type([invoices/0
-             ,fold_fun/0
-             ]
-            ).
+-export_type([
+    invoices/0,
+    fold_fun/0
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -47,73 +47,83 @@ create(Services) ->
 -spec annotate(kz_services:services(), invoices(), invoices()) -> invoices().
 annotate(Services, CurrentInvoices, ProposedInvoices) ->
     Dict =
-        foldl(fun(Invoice, D) ->
-                      Key = kz_services_invoice:bookkeeper_hash(Invoice),
-                      dict:store(Key, {Invoice, 'undefined'}, D)
-              end
-             ,dict:new()
-             ,CurrentInvoices
-             ),
+        foldl(
+            fun(Invoice, D) ->
+                Key = kz_services_invoice:bookkeeper_hash(Invoice),
+                dict:store(Key, {Invoice, 'undefined'}, D)
+            end,
+            dict:new(),
+            CurrentInvoices
+        ),
     TentativeInvoices =
         dict:to_list(
-          foldl(fun(Invoice, D) ->
-                        Key = kz_services_invoice:bookkeeper_hash(Invoice),
-                        dict:update(Key
-                                   ,fun({Current, _}) ->
-                                            {Current, Invoice}
-                                    end
-                                   ,{'undefined', Invoice}
-                                   ,D
-                                   )
-                end
-               ,Dict
-               ,ProposedInvoices
-               )
-         ),
+            foldl(
+                fun(Invoice, D) ->
+                    Key = kz_services_invoice:bookkeeper_hash(Invoice),
+                    dict:update(
+                        Key,
+                        fun({Current, _}) ->
+                            {Current, Invoice}
+                        end,
+                        {'undefined', Invoice},
+                        D
+                    )
+                end,
+                Dict,
+                ProposedInvoices
+            )
+        ),
     do_annotate(Services, [Invoices || {_BookkeeperHash, Invoices} <- TentativeInvoices], []).
 
--type tentative_invoices() :: [{kz_services_invoice:invoice() | 'undefined', kz_services_invoice:invoice() | 'undefined'}].
+-type tentative_invoices() :: [
+    {kz_services_invoice:invoice() | 'undefined', kz_services_invoice:invoice() | 'undefined'}
+].
 -spec do_annotate(kz_services:services(), tentative_invoices(), invoices()) -> invoices().
-do_annotate(_Services, [], Invoices) -> Invoices;
-do_annotate(Services, [{CurrentInvoice, 'undefined'}|TentativeInvoices], Invoices) ->
+do_annotate(_Services, [], Invoices) ->
+    Invoices;
+do_annotate(Services, [{CurrentInvoice, 'undefined'} | TentativeInvoices], Invoices) ->
     %% All plans associated with a bookkeeper was removed
     CurrentItems = kz_services_invoice:items(CurrentInvoice),
     ProposedItems = kz_services_items:reset(CurrentItems),
     Items = kz_services_items:annotate(CurrentItems, ProposedItems),
-    Setters = [{fun kz_services_invoice:set_items/2, Items}
-              ,{fun kz_services_invoice:set_activation_charges/2
-               ,kz_services_activation_items:empty()
-               }
-              ],
-    do_annotate(Services
-               ,TentativeInvoices
-               ,[kz_services_invoice:setters(CurrentInvoice, Setters)|Invoices]
-               );
-do_annotate(Services, [{'undefined', ProposedInvoice}|TentativeInvoices], Invoices) ->
+    Setters = [
+        {fun kz_services_invoice:set_items/2, Items},
+        {fun kz_services_invoice:set_activation_charges/2, kz_services_activation_items:empty()}
+    ],
+    do_annotate(
+        Services,
+        TentativeInvoices,
+        [kz_services_invoice:setters(CurrentInvoice, Setters) | Invoices]
+    );
+do_annotate(Services, [{'undefined', ProposedInvoice} | TentativeInvoices], Invoices) ->
     %% A plan(s) associated with a new bookkeeper was added
     ProposedItems = kz_services_invoice:items(ProposedInvoice),
     CurrentItems = kz_services_items:reset(ProposedItems),
     Items = kz_services_items:annotate(CurrentItems, ProposedItems),
     ActivationItems = kz_services_activation_items:create(Items),
-    Setters = [{fun kz_services_invoice:set_items/2, Items}
-              ,{fun kz_services_invoice:set_activation_charges/2, ActivationItems}
-              ],
-    do_annotate(Services
-               ,TentativeInvoices
-               ,[kz_services_invoice:setters(ProposedInvoice, Setters)|Invoices]
-               );
-do_annotate(Services, [{CurrentInvoice, ProposedInvoice}|TentativeInvoices], Invoices) ->
+    Setters = [
+        {fun kz_services_invoice:set_items/2, Items},
+        {fun kz_services_invoice:set_activation_charges/2, ActivationItems}
+    ],
+    do_annotate(
+        Services,
+        TentativeInvoices,
+        [kz_services_invoice:setters(ProposedInvoice, Setters) | Invoices]
+    );
+do_annotate(Services, [{CurrentInvoice, ProposedInvoice} | TentativeInvoices], Invoices) ->
     CurrentItems = kz_services_invoice:items(CurrentInvoice),
     ProposedItems = kz_services_invoice:items(ProposedInvoice),
     Items = kz_services_items:annotate(CurrentItems, ProposedItems),
     ActivationItems = kz_services_activation_items:create(Items),
-    Setters = [{fun kz_services_invoice:set_items/2, Items}
-              ,{fun kz_services_invoice:set_activation_charges/2, ActivationItems}
-              ],
-    do_annotate(Services
-               ,TentativeInvoices
-               ,[kz_services_invoice:setters(ProposedInvoice, Setters)|Invoices]
-               ).
+    Setters = [
+        {fun kz_services_invoice:set_items/2, Items},
+        {fun kz_services_invoice:set_activation_charges/2, ActivationItems}
+    ],
+    do_annotate(
+        Services,
+        TentativeInvoices,
+        [kz_services_invoice:setters(ProposedInvoice, Setters) | Invoices]
+    ).
 
 -spec create_current_invoices(kz_services:services()) -> invoices().
 create_current_invoices(Services) ->
@@ -132,18 +142,20 @@ create_invoices(Services, Plans) ->
 -spec create_invoices_foldl(kz_services:services()) -> kz_services_plans:foldl_fun().
 create_invoices_foldl(Services) ->
     fun(BookkeeperHash, PlansList, Invoices) ->
-            Plan = kz_services_plans:merge(PlansList),
-            [kz_services_invoice:create(Services, BookkeeperHash, Plan)
-             |Invoices
-            ]
+        Plan = kz_services_plans:merge(PlansList),
+        [
+            kz_services_invoice:create(Services, BookkeeperHash, Plan)
+            | Invoices
+        ]
     end.
 
 -spec reset(kz_services:services()) -> kz_services:services().
 reset(Services) ->
-    Routines = [fun kz_services:reset_invoices/1
-               ,fun kz_services:reset_updates/1
-               ,fun kz_services:reset_quantities/1
-               ],
+    Routines = [
+        fun kz_services:reset_invoices/1,
+        fun kz_services:reset_updates/1,
+        fun kz_services:reset_quantities/1
+    ],
     lists:foldl(fun(F, S) -> F(S) end, Services, Routines).
 
 %%------------------------------------------------------------------------------
@@ -152,10 +164,11 @@ reset(Services) ->
 %%------------------------------------------------------------------------------
 -spec foldl(fold_fun(), Acc, invoices()) -> Acc.
 foldl(FoldFun, Acc, Invoices) ->
-    lists:foldl(fun(Invoice, A) -> FoldFun(Invoice, A) end
-               ,Acc
-               ,Invoices
-               ).
+    lists:foldl(
+        fun(Invoice, A) -> FoldFun(Invoice, A) end,
+        Acc,
+        Invoices
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -163,7 +176,8 @@ foldl(FoldFun, Acc, Invoices) ->
 %%------------------------------------------------------------------------------
 -spec public_json(kz_services:services() | invoices()) -> kz_json:objects().
 public_json(Thing) ->
-    [kz_services_invoice:public_json(Invoice)
+    [
+        kz_services_invoice:public_json(Invoice)
      || Invoice <- maybe_services(Thing)
     ].
 
@@ -182,9 +196,10 @@ has_changes(Thing) ->
 -spec changed(kz_services:services() | invoices()) -> invoices().
 changed(Thing) ->
     Invoices = maybe_services(Thing),
-    [Invoice
-     || Invoice <- Invoices
-            ,kz_services_invoice:has_changes(Invoice)
+    [
+        Invoice
+     || Invoice <- Invoices,
+        kz_services_invoice:has_changes(Invoice)
     ].
 
 %%------------------------------------------------------------------------------
@@ -202,9 +217,10 @@ has_additions(Thing) ->
 -spec additions(kz_services:services() | invoices()) -> invoices().
 additions(Thing) ->
     Invoices = maybe_services(Thing),
-    [Invoice
-     || Invoice <- Invoices
-            ,kz_services_invoice:has_additions(Invoice)
+    [
+        Invoice
+     || Invoice <- Invoices,
+        kz_services_invoice:has_additions(Invoice)
     ].
 
 %%------------------------------------------------------------------------------
@@ -222,7 +238,8 @@ has_billable_additions(Thing) ->
 -spec billable_additions(kz_services:services() | invoices()) -> invoices().
 billable_additions(Thing) ->
     Invoices = maybe_services(Thing),
-    [Invoice
+    [
+        Invoice
      || Invoice <- Invoices,
         kz_services_invoice:has_billable_additions(Invoice)
     ].

@@ -5,78 +5,96 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_service_plan).
 
--export([all_items_key/0
-        ,merge_overrides/2
-        ]).
+-export([
+    all_items_key/0,
+    merge_overrides/2
+]).
 -export([new/0]).
--export([type/0
-        ,type/1
-        ,set_type/1
-        ]).
--export([bookkeeper/1
-        ,bookkeeper/2
-        ,set_bookkeeper/2
-        ]).
--export([bookkeeper_vendor_id/1
-        ,bookkeeper_vendor_id/2
-        ,set_bookkeeper_vendor_id/2
-        ]).
--export([bookkeeper_id/1
-        ,bookkeeper_id/2
-        ,set_bookkeeper_id/2
-        ]).
--export([bookkeeper_type/1
-        ,bookkeeper_type/2
-        ,set_bookkeeper_type/2
-        ]).
--export([ratedeck_id/1
-        ,ratedeck_id/2
-        ,set_ratedeck_id/2
-        ]).
--export([ratedeck_name/1
-        ,ratedeck_name/2
-        ,set_ratedeck_name/2
-        ]).
--export([asr/1
-        ,asr/2
-        ]).
--export([im/1
-        ,im/2
-        ]).
--export([applications/1
-        ,applications/2
-        ,set_applications/2
-        ]).
--export([grouping_category/1
-        ,grouping_category/2
-        ,set_grouping_category/2
-        ]).
--export([merge_strategy/1
-        ,merge_strategy/2
-        ,set_merge_strategy/2
-        ]).
--export([merge_priority/1
-        ,merge_priority/2
-        ,set_merge_priority/2
-        ]).
--export([plan/1
-        ,plan/2
-        ,set_plan/2
-        ]).
--export([categories/1
-        ,category/2
-        ,category/3
-        ,category_plan/1
-        ,category_plan/2
-        ]).
--export([items/2
-        ,item/3
-        ,item/4
-        ]).
--export([limits/1
-        ,limits/2
-        ,set_limits/2
-        ]).
+-export([
+    type/0,
+    type/1,
+    set_type/1
+]).
+-export([
+    bookkeeper/1,
+    bookkeeper/2,
+    set_bookkeeper/2
+]).
+-export([
+    bookkeeper_vendor_id/1,
+    bookkeeper_vendor_id/2,
+    set_bookkeeper_vendor_id/2
+]).
+-export([
+    bookkeeper_id/1,
+    bookkeeper_id/2,
+    set_bookkeeper_id/2
+]).
+-export([
+    bookkeeper_type/1,
+    bookkeeper_type/2,
+    set_bookkeeper_type/2
+]).
+-export([
+    ratedeck_id/1,
+    ratedeck_id/2,
+    set_ratedeck_id/2
+]).
+-export([
+    ratedeck_name/1,
+    ratedeck_name/2,
+    set_ratedeck_name/2
+]).
+-export([
+    asr/1,
+    asr/2
+]).
+-export([
+    im/1,
+    im/2
+]).
+-export([
+    applications/1,
+    applications/2,
+    set_applications/2
+]).
+-export([
+    grouping_category/1,
+    grouping_category/2,
+    set_grouping_category/2
+]).
+-export([
+    merge_strategy/1,
+    merge_strategy/2,
+    set_merge_strategy/2
+]).
+-export([
+    merge_priority/1,
+    merge_priority/2,
+    set_merge_priority/2
+]).
+-export([
+    plan/1,
+    plan/2,
+    set_plan/2
+]).
+-export([
+    categories/1,
+    category/2,
+    category/3,
+    category_plan/1,
+    category_plan/2
+]).
+-export([
+    items/2,
+    item/3,
+    item/4
+]).
+-export([
+    limits/1,
+    limits/2,
+    set_limits/2
+]).
 
 -include("kz_documents.hrl").
 

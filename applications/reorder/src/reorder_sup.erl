@@ -15,8 +15,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('reorder_listener')
-                  ]).
+-define(CHILDREN, [?WORKER('reorder_listener')]).
 
 %%==============================================================================
 %% API functions

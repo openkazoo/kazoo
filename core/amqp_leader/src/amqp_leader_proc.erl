@@ -6,57 +6,64 @@
 -module(amqp_leader_proc).
 -behaviour(gen_server).
 
--compile({no_auto_import,[node/1]}).
+-compile({no_auto_import, [node/1]}).
 
 %% API functions
--export([start/6
-        ,start_link/6
-        ,leader_call/2, leader_call/3
-        ,leader_cast/2
-        ,call/2, call/3
-        ,cast/2
-        ,reply/2
-        ]).
+-export([
+    start/6,
+    start_link/6,
+    leader_call/2, leader_call/3,
+    leader_cast/2,
+    call/2, call/3,
+    cast/2,
+    reply/2
+]).
 
--export([alive/1
-        ,down/1
-        ,candidates/1
-        ,workers/1
-        ,broadcast/3
-        ,leader_node/1
-        ]).
+-export([
+    alive/1,
+    down/1,
+    candidates/1,
+    workers/1,
+    broadcast/3,
+    leader_node/1
+]).
 
 -export([s/1]).
 
 %% gen_server callbacks
--export([init/1,
-         handle_call/3,
-         handle_cast/2,
-         handle_info/2,
-         terminate/2,
-         code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
--record(state, {name                   :: atom()
-               ,leader                 :: sign() | undefined
-               ,role                   :: role() | undefined
-               ,elected = 0            :: integer()
-               ,restarted = 0          :: integer()
-               ,callback_module        :: atom()
-               ,callback_state         :: any()
-               ,down = []              :: kz_term:atoms()
-               ,candidates = [node()]  :: kz_term:atoms()
-               }).
+-record(state, {
+    name :: atom(),
+    leader :: sign() | undefined,
+    role :: role() | undefined,
+    elected = 0 :: integer(),
+    restarted = 0 :: integer(),
+    callback_module :: atom(),
+    callback_state :: any(),
+    down = [] :: kz_term:atoms(),
+    candidates = [node()] :: kz_term:atoms()
+}).
 
--record(sign, {elected                 :: integer()
-              ,restarted               :: integer()
-              ,node = node()           :: atom()
-              ,name                    :: atom()
-              ,sync                    :: any()
-              }).
+-record(sign, {
+    elected :: integer(),
+    restarted :: integer(),
+    node = node() :: atom(),
+    name :: atom(),
+    sync :: any()
+}).
 
--record(?MODULE, {from :: sign()
-                 ,msg :: join | {leader, sign()} | {sync} | {from_leader, any()}
-                 }).
+-record(?MODULE, {
+    from :: sign(),
+    msg :: join | {leader, sign()} | {sync} | {from_leader, any()}
+}).
 
 -type role() :: 'candidate' | 'leader'.
 -type state() :: #state{}.
@@ -64,25 +71,25 @@
 -type routine_ret() :: state() | {state(), routines()} | {'stop', any()}.
 -type routine() :: {fun((state(), any()) -> routine_ret()), any()}.
 -type routines() :: [routine()].
--type recipient() :: pid()
-                    | atom()
-                    | {atom(), atom()}
-                    | {state(), atom()}
-                    | {atom(), sign()}
-                    | sign()
-                    | kz_term:ne_binary().
+-type recipient() ::
+    pid()
+    | atom()
+    | {atom(), atom()}
+    | {state(), atom()}
+    | {atom(), sign()}
+    | sign()
+    | kz_term:ne_binary().
 -type from() :: any().
 
 -include("amqp_leader.hrl").
 
 -define(is_leader, State#state.role =:= 'leader').
--define(from_leader, (State#state.role =/= 'leader')
-        andalso
-          (From#sign.node =:= State#state.leader#sign.node
-           andalso From#sign.elected =:= State#state.leader#sign.elected
-           andalso From#sign.restarted =:= State#state.leader#sign.restarted
-          )
-       ).
+-define(from_leader,
+    (State#state.role =/= 'leader') andalso
+        (From#sign.node =:= State#state.leader#sign.node andalso
+            From#sign.elected =:= State#state.leader#sign.elected andalso
+            From#sign.restarted =:= State#state.leader#sign.restarted)
+).
 %%%=============================================================================
 %%% API functions
 %%%=============================================================================
@@ -95,13 +102,17 @@
 start(Name, CandidateNodes, OptArgs, Mod, Arg, Options) ->
     start_it('start', Name, CandidateNodes, OptArgs, Mod, Arg, Options).
 
--spec start_link(atom(), kz_term:atoms(), list(), atom(), list(), list()) -> kz_types:startlink_ret().
+-spec start_link(atom(), kz_term:atoms(), list(), atom(), list(), list()) ->
+    kz_types:startlink_ret().
 start_link(Name, CandidateNodes, OptArgs, Mod, Arg, Options) ->
     start_it('start_link', Name, CandidateNodes, OptArgs, Mod, Arg, Options).
 
--spec start_it(atom(), atom(), kz_term:atoms(), list(), atom(), list(), list()) -> kz_types:startlink_ret().
+-spec start_it(atom(), atom(), kz_term:atoms(), list(), atom(), list(), list()) ->
+    kz_types:startlink_ret().
 start_it(StartFun, Name, CandidateNodes, OptArgs, Mod, Arg, Options) ->
-    gen_server:StartFun({'local', Name}, ?MODULE, [Name, CandidateNodes, OptArgs, Mod, Arg, Options], []).
+    gen_server:StartFun(
+        {'local', Name}, ?MODULE, [Name, CandidateNodes, OptArgs, Mod, Arg, Options], []
+    ).
 
 -spec leader_call(atom(), any()) -> any().
 leader_call(Name, Request) ->
@@ -128,8 +139,10 @@ call(Name, Request, Timeout) ->
     gen_server:call(Name, Request, Timeout).
 
 -spec reply({pid(), any()}, any()) -> term().
-reply({Pid, _} = From, Reply) when is_pid(Pid)
-                                   andalso erlang:node(Pid) =:= node() ->
+reply({Pid, _} = From, Reply) when
+    is_pid(Pid) andalso
+        erlang:node(Pid) =:= node()
+->
     gen_server:reply(From, Reply);
 reply({From, Tag}, Reply) ->
     send(From, {Tag, Reply}).
@@ -174,9 +187,10 @@ s(Name) ->
 init([Name, _CandidateNodes, _OptArgs, Mod, Arg, _Options]) ->
     kz_util:put_callid(kapi_leader:queue()),
     gen_server:cast(self(), {'init', Arg}),
-    State = #state{name = Name
-                   ,callback_module = Mod
-                  },
+    State = #state{
+        name = Name,
+        callback_module = Mod
+    },
     {'ok', State}.
 
 %%------------------------------------------------------------------------------
@@ -187,15 +201,13 @@ init([Name, _CandidateNodes, _OptArgs, Mod, Arg, _Options]) ->
 handle_call(s, _, State) ->
     {reply, {self(), State}, State};
 handle_call({'leader_call', Msg}, From, State) when ?is_leader ->
-    Routines = [{fun call_handle_leader_call/2, {From, Msg}}
-               ],
+    Routines = [{fun call_handle_leader_call/2, {From, Msg}}],
     noreply(State, Routines);
 handle_call({'leader_call', Msg}, From, #state{name = Name} = State) ->
     send(leader(State), {'leader_call', {{Name, node()}, From}, Msg}),
     noreply(State, []);
 handle_call(Call, From, State) ->
-    Routines = [{fun call_handle_call/2, {From, Call}}
-               ],
+    Routines = [{fun call_handle_call/2, {From, Call}}],
     noreply(State, Routines).
 
 %%------------------------------------------------------------------------------
@@ -206,15 +218,13 @@ handle_call(Call, From, State) ->
 handle_cast({'init', Arg}, State) ->
     init(State, Arg);
 handle_cast({'leader_cast', Msg}, State) when ?is_leader ->
-    Routines = [{fun call_handle_leader_cast/2, Msg}
-               ],
+    Routines = [{fun call_handle_leader_cast/2, Msg}],
     noreply(State, Routines);
 handle_cast({'leader_cast', Msg}, State) ->
     send(leader(State), {'leader_cast', Msg}),
     noreply(State, []);
 handle_cast(Msg, State) ->
-    Routines = [{fun call_handle_cast/2, Msg}
-               ],
+    Routines = [{fun call_handle_cast/2, Msg}],
     noreply(State, Routines).
 
 %%------------------------------------------------------------------------------
@@ -224,97 +234,88 @@ handle_cast(Msg, State) ->
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 handle_info(#?MODULE{from = From, msg = 'join'} = Msg, State) when ?is_leader ->
     lager:debug("message ~p", [Msg]),
-    Routines = [{fun announce_leader/2, {From, 'me'}}
-                ,{fun add_candidates/2, From}
-                ,{fun call_elected/2, From}
-               ],
+    Routines = [
+        {fun announce_leader/2, {From, 'me'}},
+        {fun add_candidates/2, From},
+        {fun call_elected/2, From}
+    ],
     noreply(State, Routines);
-
 handle_info(#?MODULE{from = From, msg = 'join'} = Msg, State) ->
     lager:debug("message ~p", [Msg]),
-    Routines = [{fun add_candidates/2, From}
-               ],
+    Routines = [{fun add_candidates/2, From}],
     noreply(State, Routines);
-
 handle_info(#?MODULE{msg = {'leader', Me}} = Msg, #state{leader = Me} = State) when ?is_leader ->
     lager:debug("message ~p", [Msg]),
-    Routines = [{fun increase_elected/2, []}
-                ,{fun set_leader/2, 'me'}
-                ,{fun announce_leader/2, {'broadcast', sign(State)}}
-               ],
+    Routines = [
+        {fun increase_elected/2, []},
+        {fun set_leader/2, 'me'},
+        {fun announce_leader/2, {'broadcast', sign(State)}}
+    ],
     noreply(State, Routines);
-
 handle_info(#?MODULE{msg = {'leader', NotMe}} = Msg, State) when ?is_leader ->
     lager:debug("message ~p", [Msg]),
     case NotMe > sign(State) of
         'true' ->
-            Routines = [{fun set_leader/2, NotMe}
-                        ,{fun set_role/2, 'candidate'}
-                        ,{fun announce_leader/2, {'broadcast', 'me'}}
-                        ,{fun surrender/2, NotMe}
-                        ,{fun call_surrendered/2, 'undefined'}
-                       ],
+            Routines = [
+                {fun set_leader/2, NotMe},
+                {fun set_role/2, 'candidate'},
+                {fun announce_leader/2, {'broadcast', 'me'}},
+                {fun surrender/2, NotMe},
+                {fun call_surrendered/2, 'undefined'}
+            ],
             noreply(State, Routines);
         'false' ->
-            Routines = [{fun announce_leader/2, {NotMe, 'me'}}
-                       ],
+            Routines = [{fun announce_leader/2, {NotMe, 'me'}}],
             noreply(State, Routines)
     end;
-
 handle_info(#?MODULE{from = From, msg = {'leader', NewLeader}} = Msg, State) when ?from_leader ->
     lager:debug("message ~p", [Msg]),
-    Routines = [{fun set_leader/2, NewLeader},
-                {fun call_surrendered/2, 'undefined'}
-               ],
+    Routines = [
+        {fun set_leader/2, NewLeader},
+        {fun call_surrendered/2, 'undefined'}
+    ],
     noreply(State, Routines);
-
 handle_info(#?MODULE{from = From, msg = {'sync'}} = Msg, State) when ?from_leader ->
     lager:debug("message ~p", [Msg]),
-    Routines = [{fun call_surrendered/2, 'undefined'}
-                ,{fun add_candidates/2, From}
-               ],
+    Routines = [
+        {fun call_surrendered/2, 'undefined'},
+        {fun add_candidates/2, From}
+    ],
     noreply(State, Routines);
-
 handle_info(#?MODULE{from = From, msg = Msg}, State) when ?from_leader ->
-    Routines = [{fun call_from_leader/2, Msg}
-               ],
+    Routines = [{fun call_from_leader/2, Msg}],
     noreply(State, Routines);
-
 handle_info({'leader_call', From, Request}, State) when ?is_leader ->
-    Routines = [{fun call_handle_leader_call/2, {From, Request}}
-               ],
+    Routines = [{fun call_handle_leader_call/2, {From, Request}}],
     noreply(State, Routines);
-
-handle_info({{Pid, _} = From, Reply}, State) when is_pid(Pid)
-                                                  andalso erlang:node(Pid) =:= node() ->
+handle_info({{Pid, _} = From, Reply}, State) when
+    is_pid(Pid) andalso
+        erlang:node(Pid) =:= node()
+->
     gen_server:reply(From, Reply),
     noreply(State, []);
-
 handle_info({'DOWN', Node}, State) when ?is_leader ->
-    Routines = [{fun call_handle_DOWN/2, Node}
-               ],
+    Routines = [{fun call_handle_DOWN/2, Node}],
     noreply(State, Routines);
-
 handle_info({'DOWN', Node} = Msg, #state{leader = Leader} = State) ->
     lager:debug("message ~p", [Msg]),
     case node(Leader) of
         Node ->
-            Routines = [{fun increase_elected/2, []}
-                        ,{fun set_leader/2, 'me'}
-                        ,{fun set_role/2, 'leader'}
-                        ,{fun set_sync/2, sync(Leader)}
-                        ,{fun call_elected/2, 'undefined'}
-                        ,{fun announce_leader/2, {'broadcast', Leader}}
-                       ],
+            Routines = [
+                {fun increase_elected/2, []},
+                {fun set_leader/2, 'me'},
+                {fun set_role/2, 'leader'},
+                {fun set_sync/2, sync(Leader)},
+                {fun call_elected/2, 'undefined'},
+                {fun announce_leader/2, {'broadcast', Leader}}
+            ],
             noreply(State, Routines);
         _ ->
             Routines = [],
             noreply(State, Routines)
     end;
-
 handle_info(Info, State) ->
-    Routines = [{fun call_handle_info/2, Info}
-               ],
+    Routines = [{fun call_handle_info/2, Info}],
     noreply(State, Routines).
 
 %%------------------------------------------------------------------------------
@@ -350,29 +351,33 @@ code_change(_OldVsn, State, _Extra) ->
 init(#state{callback_module = Mod, name = Name} = State, Arg) ->
     'true' = amqp_leader_listener:is_ready(),
     case catch Mod:init(Arg) of
-        {'stop', _Reason} = Stop -> Stop;
-        {'ignore', _, _} -> 'ignore';
-        {'EXIT', Reason} -> {'stop', Reason};
+        {'stop', _Reason} = Stop ->
+            Stop;
+        {'ignore', _, _} ->
+            'ignore';
+        {'EXIT', Reason} ->
+            {'stop', Reason};
         {'ok', ModState} ->
             NewState = State#state{callback_state = ModState},
-            send({Name, 'broadcast'}, #?MODULE{from=sign(NewState), msg='join'}),
+            send({Name, 'broadcast'}, #?MODULE{from = sign(NewState), msg = 'join'}),
             receive
                 #?MODULE{msg = {'leader', Leader}, from = Leader} ->
-                    Routines = [{fun set_leader/2, Leader}
-                                ,{fun set_role/2, 'candidate'}
-                                ,{fun add_candidates/2, Leader}
-                                ,{fun call_surrendered/2, 'undefined'}
-                                ,{fun announce_leader/2, {Leader, 'me'}}
-                               ],
+                    Routines = [
+                        {fun set_leader/2, Leader},
+                        {fun set_role/2, 'candidate'},
+                        {fun add_candidates/2, Leader},
+                        {fun call_surrendered/2, 'undefined'},
+                        {fun announce_leader/2, {Leader, 'me'}}
+                    ],
                     noreply(NewState, Routines)
-            after
-                3000 ->
-                    Routines = [{fun set_leader/2, 'me'}
-                                ,{fun set_role/2, 'leader'}
-                                ,{fun call_elected/2, 'undefined'}
-                                ,{fun announce_leader/2, {'broadcast', 'me'}}
-                               ],
-                    noreply(NewState, Routines)
+            after 3000 ->
+                Routines = [
+                    {fun set_leader/2, 'me'},
+                    {fun set_role/2, 'leader'},
+                    {fun call_elected/2, 'undefined'},
+                    {fun announce_leader/2, {'broadcast', 'me'}}
+                ],
+                noreply(NewState, Routines)
             end;
         Else ->
             lager:warning("~s initialization bad return ~p", [Mod, Else]),
@@ -410,8 +415,11 @@ call_elected(#state{callback_module = Mod, leader = Leader} = State, Node) when 
     send({name(State), Node}, #?MODULE{from = sign(State2), msg = {'sync'}}),
     case Action of
         'ok' ->
-            send({name(State2), 'broadcast'}, #?MODULE{from = sign(State2), msg = {'from_leader', Sync}});
-        'reply' -> 'ok'
+            send({name(State2), 'broadcast'}, #?MODULE{
+                from = sign(State2), msg = {'from_leader', Sync}
+            });
+        'reply' ->
+            'ok'
     end,
     State2.
 
@@ -492,21 +500,22 @@ call_from_leader(State, Sync) when not (?is_leader) ->
 
 -spec call_handle_DOWN(state(), atom()) -> state().
 call_handle_DOWN(State, Node) when ?is_leader ->
-   case exec_callback(State, {'handle_DOWN', [Node]}) of
-       {'ok', ModState} ->
-           set_callback_state(State, ModState);
-       {'ok', Msg, ModState} ->
-           send({State, 'broadcast'}, Msg),
-           set_callback_state(State, ModState)
-   end.
+    case exec_callback(State, {'handle_DOWN', [Node]}) of
+        {'ok', ModState} ->
+            set_callback_state(State, ModState);
+        {'ok', Msg, ModState} ->
+            send({State, 'broadcast'}, Msg),
+            set_callback_state(State, ModState)
+    end.
 
--type callback_ret() :: {'reply', any(), any(), any()}
-                        | {'reply', any(), any()}
-                        | {'stop', any(), any(), any()}
-                        | {'stop', any(), any()}
-                        | {'noreply', any()}
-                        | {'ok', any(), any()}
-                        | {'ok', any()}.
+-type callback_ret() ::
+    {'reply', any(), any(), any()}
+    | {'reply', any(), any()}
+    | {'stop', any(), any(), any()}
+    | {'stop', any(), any()}
+    | {'noreply', any()}
+    | {'ok', any(), any()}
+    | {'ok', any()}.
 -spec exec_callback(state(), {atom(), list()}) -> callback_ret().
 exec_callback(#state{callback_module = Mod} = State, {Callback, Args}) ->
     ModState = callback_state(State),
@@ -579,8 +588,10 @@ announce_leader(State, {To, #sign{} = From}) ->
 send(Pid, Msg) when is_atom(Pid); node() =:= erlang:node(Pid); node() =:= element(2, Pid) ->
     lager:debug("local message ~p: ~p", [Msg, Pid]),
     Pid ! Msg;
-send({Name, Node}, Msg) when is_atom(Name)
-                             andalso is_atom(Node) ->
+send({Name, Node}, Msg) when
+    is_atom(Name) andalso
+        is_atom(Node)
+->
     Route = kapi_leader:route(Name, Node),
     send(Route, Msg);
 send({#state{name = Name}, Node}, Msg) ->
@@ -594,21 +605,28 @@ send(#sign{name = Name, node = Node}, Msg) ->
     send({Name, Node}, Msg);
 send(Route, Msg) when is_binary(Route) ->
     lager:debug("amqp message ~p: ~p", [Msg, Route]),
-    Props = [{<<"Message">>, kz_term:to_hex_binary(erlang:term_to_binary(Msg))}
-             | kz_api:default_headers(<<"leader">>, <<"message">>, ?APP_NAME, ?APP_VERSION)
-            ],
+    Props = [
+        {<<"Message">>, kz_term:to_hex_binary(erlang:term_to_binary(Msg))}
+        | kz_api:default_headers(<<"leader">>, <<"message">>, ?APP_NAME, ?APP_VERSION)
+    ],
     kapi_leader:publish_req(Route, Props).
 
 -spec node(sign() | pid()) -> atom().
 node(#sign{node = Node}) when is_atom(Node) -> Node.
 
 -spec sign(state()) -> sign().
-sign(#state{elected = Elected, restarted = Restarted, name = Name
-           %% ,candidates = Candidates
-           } = State) ->
-    #sign{elected = Elected
-          ,restarted = -Restarted
-          ,name = Name
-          ,sync = sync(State)
-          %% ,candidates = Candidates
-         }.
+sign(
+    #state{
+        elected = Elected,
+        restarted = Restarted,
+        name = Name
+        %% ,candidates = Candidates
+    } = State
+) ->
+    #sign{
+        elected = Elected,
+        restarted = -Restarted,
+        name = Name,
+        sync = sync(State)
+        %% ,candidates = Candidates
+    }.

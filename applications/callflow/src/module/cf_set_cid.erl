@@ -32,13 +32,13 @@ handle(Data, Call) ->
 
     lager:info("update with name: ~s num: ~s", [NewCIDName, NewCIDNumber]),
 
-    Updates = [{fun set_cid_name/2, NewCIDName}
-              ,{fun set_cid_number/2, NewCIDNumber}
-              ],
+    Updates = [
+        {fun set_cid_name/2, NewCIDName},
+        {fun set_cid_number/2, NewCIDNumber}
+    ],
     {'ok', Call1} = cf_exe:get_call(Call),
     cf_exe:set_call(kapps_call:exec(Updates, Call1)),
     cf_exe:continue(Call1).
-
 
 -spec set_cid_name(kz_term:api_binary(), kapps_call:call()) -> kapps_call:call().
 set_cid_name(<<>>, Call) ->

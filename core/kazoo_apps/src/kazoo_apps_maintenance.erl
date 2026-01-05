@@ -5,13 +5,14 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_apps_maintenance).
 
--export([start/1
-        ,stop/1
-        ,restart/1
-        ,make_autostart_distinct/0
-        ,ready/0
-        ,check/0
-        ]).
+-export([
+    start/1,
+    stop/1,
+    restart/1,
+    make_autostart_distinct/0,
+    ready/0,
+    check/0
+]).
 
 -include("kazoo_apps.hrl").
 
@@ -79,23 +80,27 @@ ready() ->
 -spec check() -> kz_term:sup_no_return().
 check() ->
     Configured = kapps_controller:start_which_kapps(),
-    Running = [kz_term:to_binary(Application)
-               || Application <- kapps_controller:running_apps()
-              ],
-    Props = [{'unexpected', lists:subtract(Running, Configured)}
-            ,{'missing', lists:subtract(Configured, Running)}
-            ,{'running', Running}
-            ,{'configured', Configured}
-            ],
+    Running = [
+        kz_term:to_binary(Application)
+     || Application <- kapps_controller:running_apps()
+    ],
+    Props = [
+        {'unexpected', lists:subtract(Running, Configured)},
+        {'missing', lists:subtract(Configured, Running)},
+        {'running', Running},
+        {'configured', Configured}
+    ],
     check(Props, 'no_return').
 
 -spec check(kz_term:proplist(), kz_term:sup_no_return()) -> kz_term:sup_no_return().
-check([], Return) -> Return;
-check([{_, []}|Tail], Return) ->
+check([], Return) ->
+    Return;
+check([{_, []} | Tail], Return) ->
     check(Tail, Return);
-check([{Type, Applications}| Tail], Return) ->
+check([{Type, Applications} | Tail], Return) ->
     List = kz_binary:join(lists:sort(Applications), $,),
-    _ = case length(Applications) > 1 of
+    _ =
+        case length(Applications) > 1 of
             'true' ->
                 io:format("~10s applications: ~s~n", [Type, List]);
             'false' ->
@@ -111,9 +116,10 @@ check([{Type, Applications}| Tail], Return) ->
 maybe_add_autostart_application(Application) ->
     Configured = kapps_controller:start_which_kapps(),
     case lists:member(Application, Configured) of
-        'true' -> io:format("started application ~s~n", [Application]);
+        'true' ->
+            io:format("started application ~s~n", [Application]);
         'false' ->
-            _ = persist_application([Application|Configured]),
+            _ = persist_application([Application | Configured]),
             io:format("started and added ~s to autostart applications~n", [Application])
     end.
 
@@ -121,9 +127,10 @@ maybe_add_autostart_application(Application) ->
 maybe_remove_autostart_application(Application) ->
     Configured = kapps_controller:start_which_kapps(),
     case lists:member(Application, Configured) of
-        'false' -> io:format("stopped kazoo application ~s~n", [Application]);
+        'false' ->
+            io:format("stopped kazoo application ~s~n", [Application]);
         'true' ->
-            _ = persist_application(lists:delete(Application,Configured)),
+            _ = persist_application(lists:delete(Application, Configured)),
             io:format("stopped and removed ~s from autostart applications~n", [Application])
     end.
 

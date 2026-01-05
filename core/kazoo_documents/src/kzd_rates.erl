@@ -45,9 +45,11 @@
 -type doc() :: kz_json:object().
 -type docs() :: [doc()].
 -type weight_range() :: 1..100.
--export_type([doc/0, docs/0
-             ,weight_range/0
-             ]).
+-export_type([
+    doc/0,
+    docs/0,
+    weight_range/0
+]).
 
 -define(SCHEMA, <<"rates">>).
 
@@ -113,8 +115,8 @@ direction(Doc) ->
 direction(Doc, Default) ->
     case kz_json:get_value([<<"direction">>], Doc) of
         'undefined' -> Default;
-        <<"inbound">>=V -> [V];
-        <<"outbound">>=V -> [V];
+        <<"inbound">> = V -> [V];
+        <<"outbound">> = V -> [V];
         Directions when is_list(Directions) -> Directions
     end.
 
@@ -301,12 +303,13 @@ constrain_weight(X) -> X.
 -spec from_json(kz_json:object()) -> doc().
 from_json(JObj) ->
     Rate = kz_doc:public_fields(JObj),
-    Fs = [fun set_type/1
-         ,fun ensure_id/1
-         ,fun maybe_fix_direction/1
-         ,fun set_pvt_rate_cost/1
-         ,fun clean_internal_surcharge/1
-         ],
+    Fs = [
+        fun set_type/1,
+        fun ensure_id/1,
+        fun maybe_fix_direction/1,
+        fun set_pvt_rate_cost/1,
+        fun clean_internal_surcharge/1
+    ],
     lists:foldl(fun(F, R) -> F(R) end, Rate, Fs).
 
 -spec from_map(map()) -> doc().
@@ -328,11 +331,12 @@ ensure_id(Rate) ->
 
 -spec ensure_id(doc(), kz_term:api_ne_binary()) -> doc().
 ensure_id(Rate, 'undefined') ->
-    ID = list_to_binary([iso_country_code(Rate, <<"XX">>)
-                        ,<<"-">>
-                        ,kz_term:to_binary(prefix(Rate))
-                        ,rate_suffix(Rate)
-                        ]),
+    ID = list_to_binary([
+        iso_country_code(Rate, <<"XX">>),
+        <<"-">>,
+        kz_term:to_binary(prefix(Rate)),
+        rate_suffix(Rate)
+    ]),
     kz_doc:set_id(Rate, ID);
 ensure_id(Rate, ID) ->
     kz_doc:set_id(Rate, ID).
@@ -346,25 +350,29 @@ type(Doc) -> kz_doc:type(Doc, type()).
 -spec set_type(doc()) -> doc().
 set_type(Doc) -> kz_doc:set_type(Doc, type()).
 
--spec set_pvt_rate_cost (doc()) -> doc().
+-spec set_pvt_rate_cost(doc()) -> doc().
 set_pvt_rate_cost(Rate) ->
     case kz_json:get_float_value(<<"internal_rate_cost">>, Rate) of
-        'undefined' -> Rate;
-        Value->
-            kz_json:set_values([{<<"pvt_rate_cost">>, Value}
-                               ,{<<"pvt_internal_rate_cost">>, Value}
-                               ,{<<"internal_rate_cost">>, 'null'}
-                               ]
-                              ,Rate
-                              )
+        'undefined' ->
+            Rate;
+        Value ->
+            kz_json:set_values(
+                [
+                    {<<"pvt_rate_cost">>, Value},
+                    {<<"pvt_internal_rate_cost">>, Value},
+                    {<<"internal_rate_cost">>, 'null'}
+                ],
+                Rate
+            )
     end.
 
 -spec clean_internal_surcharge(doc()) -> doc().
 clean_internal_surcharge(Rate) ->
     case kz_json:get_float_value(<<"internal_surcharge">>, Rate) of
-        'undefined' -> Rate;
-        Value->
-            NewRate = set_private_surcharge(Rate,Value),
+        'undefined' ->
+            Rate;
+        Value ->
+            NewRate = set_private_surcharge(Rate, Value),
             kz_json:set_value(<<"internal_surcharge">>, 'null', NewRate)
     end.
 
@@ -395,11 +403,13 @@ private_cost(Rate, Default0) ->
 
 -spec set_private_cost(doc(), float()) -> doc().
 set_private_cost(Rate, Cost) when is_float(Cost) ->
-    kz_json:set_values([{<<"pvt_internal_rate_cost">>, Cost}
-                       ,{<<"pvt_rate_cost">>, Cost}
-                       ]
-                      ,Rate
-                      ).
+    kz_json:set_values(
+        [
+            {<<"pvt_internal_rate_cost">>, Cost},
+            {<<"pvt_rate_cost">>, Cost}
+        ],
+        Rate
+    ).
 
 -spec private_surcharge(doc()) -> kz_currency:units().
 private_surcharge(Rate) ->

@@ -7,18 +7,19 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_filter).
 
--export([build/1
-        ,build_with_mapper/2, build_with_mapper/3
-        ,is_defined/1, is_only_time_filter/2
+-export([
+    build/1,
+    build_with_mapper/2, build_with_mapper/3,
+    is_defined/1,
+    is_only_time_filter/2,
 
-        ,by_doc/2, by_doc/3
-        ]).
+    by_doc/2, by_doc/3
+]).
 
 -include("crossbar.hrl").
 
 -ifdef(TEST).
--export([filter_doc_by_querystring/2
-        ]).
+-export([filter_doc_by_querystring/2]).
 -endif.
 
 -type filter_fun() :: fun((kz_json:object()) -> boolean()).
@@ -35,7 +36,8 @@ build(Context) ->
 
 %% @equiv build_with_mapper(Context, UserMapper, is_defined(Context))
 
--spec build_with_mapper(cb_context:context(), crossbar_view:user_mapper_fun()) -> crossbar_view:mapper_fun().
+-spec build_with_mapper(cb_context:context(), crossbar_view:user_mapper_fun()) ->
+    crossbar_view:mapper_fun().
 build_with_mapper(Context, UserMapper) ->
     build_with_mapper(Context, UserMapper, is_defined(Context)).
 
@@ -45,12 +47,15 @@ build_with_mapper(Context, UserMapper) ->
 %% on the view result.
 %% @end
 %%------------------------------------------------------------------------------
--spec build_with_mapper(cb_context:context(), crossbar_view:user_mapper_fun(), boolean()) -> crossbar_view:mapper_fun().
+-spec build_with_mapper(cb_context:context(), crossbar_view:user_mapper_fun(), boolean()) ->
+    crossbar_view:mapper_fun().
 build_with_mapper(Context, UserMapper, 'false') when is_function(UserMapper, 3) ->
     fun(Object, Acc) -> UserMapper(Context, Object, Acc) end;
-build_with_mapper(_, UserMapper, 'false') when UserMapper =:= 'undefined'
-                                               orelse is_function(UserMapper, 1)
-                                               orelse is_function(UserMapper, 2) ->
+build_with_mapper(_, UserMapper, 'false') when
+    UserMapper =:= 'undefined' orelse
+        is_function(UserMapper, 1) orelse
+        is_function(UserMapper, 2)
+->
     UserMapper;
 build_with_mapper(Context, UserMapper, 'true') ->
     FilterFun = build(Context, 'true'),
@@ -62,8 +67,9 @@ build_with_mapper(Context, UserMapper, 'true') ->
 %%------------------------------------------------------------------------------
 -spec is_defined(cb_context:context()) -> boolean().
 is_defined(Context) ->
-    cb_context:fetch(Context, 'has_qs_filter', 'true') %% set by crossbar_view build load params only
-        andalso kz_json:any(fun is_filter_key/1, cb_context:query_string(Context)).
+    %% set by crossbar_view build load params only
+    cb_context:fetch(Context, 'has_qs_filter', 'true') andalso
+        kz_json:any(fun is_filter_key/1, cb_context:query_string(Context)).
 
 %%------------------------------------------------------------------------------
 %% @doc Check if only time filters are defined in query string, useful to
@@ -76,25 +82,31 @@ is_only_time_filter(Context, FilterKey) ->
 
     case kz_term:is_empty(QueryString) of
         'true' -> 'false';
-        'false' ->
-            does_query_string_have_time_filters(QueryString, FilterKey)
+        'false' -> does_query_string_have_time_filters(QueryString, FilterKey)
     end.
 
 -spec does_query_string_have_time_filters(kz_json:object(), kz_term:ne_binary()) -> boolean().
 does_query_string_have_time_filters(QueryString, FilterKey) ->
-    Fun = fun({<<"created_from">>, _}) -> 'true';
-             ({<<"created_to">>, _}) -> 'true';
-             ({<<"modified_from">>, _}) -> 'true';
-             ({<<"modified_to">>, _}) -> 'true';
-             ({Key, _}=KV) ->
-                  case is_filter_key(KV) of
-                      'false' -> 'true'; % handles non-filter query string params
-                      'true' ->
-                          lager:debug("checking qs key ~s against filter key ~s", [Key, FilterKey]),
-                          Key =:= <<FilterKey/binary, "_from">>
-                              orelse Key =:= <<FilterKey/binary, "_to">>
-                  end
-          end,
+    Fun = fun
+        ({<<"created_from">>, _}) ->
+            'true';
+        ({<<"created_to">>, _}) ->
+            'true';
+        ({<<"modified_from">>, _}) ->
+            'true';
+        ({<<"modified_to">>, _}) ->
+            'true';
+        ({Key, _} = KV) ->
+            case is_filter_key(KV) of
+                % handles non-filter query string params
+                'false' ->
+                    'true';
+                'true' ->
+                    lager:debug("checking qs key ~s against filter key ~s", [Key, FilterKey]),
+                    Key =:= <<FilterKey/binary, "_from">> orelse
+                        Key =:= <<FilterKey/binary, "_to">>
+            end
+    end,
     kz_json:all(Fun, QueryString).
 
 %% @equiv by_doc(Doc, Context, is_defined(Context))
@@ -111,8 +123,7 @@ by_doc(Doc, Context) ->
 -spec by_doc(kz_term:api_object(), cb_context:context(), boolean()) -> boolean().
 by_doc(_, _, 'false') -> 'true';
 by_doc('undefined', _, 'true') -> 'true';
-by_doc(Doc, Context, 'true') ->
-    filter_doc_by_querystring(Doc, cb_context:query_string(Context)).
+by_doc(Doc, Context, 'true') -> filter_doc_by_querystring(Doc, cb_context:query_string(Context)).
 
 %%%=============================================================================
 %%% Load view internal functions
@@ -123,10 +134,11 @@ by_doc(Doc, Context, 'true') ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec build(cb_context:context(), boolean()) -> filter_fun().
-build(_, 'false') -> fun kz_term:always_true/1;
+build(_, 'false') ->
+    fun kz_term:always_true/1;
 build(Context, 'true') ->
     fun(Doc) ->
-            filter_doc_by_querystring(Doc, cb_context:query_string(Context))
+        filter_doc_by_querystring(Doc, cb_context:query_string(Context))
     end.
 
 %%------------------------------------------------------------------------------
@@ -135,35 +147,37 @@ build(Context, 'true') ->
 %% on the view result.
 %% @end
 %%------------------------------------------------------------------------------
--spec build_filter_map_fun(cb_context:context(), filter_fun(), crossbar_view:user_mapper_fun()) -> crossbar_view:mapper_fun().
+-spec build_filter_map_fun(cb_context:context(), filter_fun(), crossbar_view:user_mapper_fun()) ->
+    crossbar_view:mapper_fun().
 build_filter_map_fun(_, FilterFun, 'undefined') ->
     fun(JObj, Acc) ->
-            case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
-                'true' -> [JObj|Acc];
-                'false' -> Acc
-            end
+        case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
+            'true' -> [JObj | Acc];
+            'false' -> Acc
+        end
     end;
 build_filter_map_fun(_, FilterFun, UserMapper) when is_function(UserMapper, 1) ->
     fun(JObjs) ->
-            Filtered0 = [JObj
-                         || JObj <- JObjs,
-                            FilterFun(kz_json:get_json_value(<<"doc">>, JObj))
-                        ],
-            UserMapper(Filtered0)
+        Filtered0 = [
+            JObj
+         || JObj <- JObjs,
+            FilterFun(kz_json:get_json_value(<<"doc">>, JObj))
+        ],
+        UserMapper(Filtered0)
     end;
 build_filter_map_fun(_, FilterFun, UserMapper) when is_function(UserMapper, 2) ->
     fun(JObj, Acc) ->
-            case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
-                'true' -> UserMapper(JObj, Acc);
-                'false' -> Acc
-            end
+        case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
+            'true' -> UserMapper(JObj, Acc);
+            'false' -> Acc
+        end
     end;
 build_filter_map_fun(Context, FilterFun, UserMapper) when is_function(UserMapper, 3) ->
     fun(JObj, Acc) ->
-            case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
-                'true' -> UserMapper(Context, JObj, Acc);
-                'false' -> Acc
-            end
+        case FilterFun(kz_json:get_json_value(<<"doc">>, JObj)) of
+            'true' -> UserMapper(Context, JObj, Acc);
+            'false' -> Acc
+        end
     end.
 
 %%------------------------------------------------------------------------------
@@ -235,11 +249,13 @@ lowerbound(DocTimestamp, QSTimestamp) ->
     QSTimestamp =< DocTimestamp.
 
 -spec should_filter(binary(), kz_term:ne_binary()) -> boolean().
-should_filter(Val, Val) -> 'true';
+should_filter(Val, Val) ->
+    'true';
 should_filter(Val, FilterVal) ->
     try kz_json:unsafe_decode(FilterVal) of
         List when is_list(List) -> lists:member(Val, List);
-        Val -> 'true';
+        Val ->
+            'true';
         _Data ->
             lager:debug("data is not a list: ~p", [_Data]),
             'false'
@@ -250,9 +266,10 @@ should_filter(Val, FilterVal) ->
 -spec should_filter(kz_json:object(), kz_term:ne_binary(), kz_json:json_term()) -> boolean().
 should_filter(Doc, Key, Val) ->
     Keys = binary_key_to_json_key(Key),
-    should_filter(kz_json:get_binary_value(Keys, Doc, <<>>)
-                 ,kz_term:to_binary(Val)
-                 ).
+    should_filter(
+        kz_json:get_binary_value(Keys, Doc, <<>>),
+        kz_term:to_binary(Val)
+    ).
 
 -spec has_key(kz_json:object(), kz_term:ne_binary()) -> boolean().
 has_key(Doc, Key) ->

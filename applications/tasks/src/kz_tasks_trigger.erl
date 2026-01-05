@@ -11,36 +11,40 @@
 -export([status/0]).
 
 %%% gen_server callbacks
--export([init/1
-        ,handle_cast/2
-        ,handle_call/3
-        ,handle_info/2
-        ,code_change/3
-        ,terminate/2
-        ]).
+-export([
+    init/1,
+    handle_cast/2,
+    handle_call/3,
+    handle_info/2,
+    code_change/3,
+    terminate/2
+]).
 
 -ifdef(TEST).
--export([seconds_until_next_day/1
-        ,seconds_until_next_hour/1
-        ,seconds_until_next_minute/1
-        ]).
+-export([
+    seconds_until_next_day/1,
+    seconds_until_next_hour/1,
+    seconds_until_next_minute/1
+]).
 -endif.
 
 -include("tasks.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {minute_ref = minute_timer() :: reference()
-               ,hour_ref = hour_timer() :: reference()
-               ,day_ref = day_timer() :: reference()
-               ,browse_dbs_ref = browse_dbs_timer() :: reference() %%TODO: gen_listen for DB news!
-               }).
+-record(state, {
+    minute_ref = minute_timer() :: reference(),
+    hour_ref = hour_timer() :: reference(),
+    day_ref = day_timer() :: reference(),
+    %%TODO: gen_listen for DB news!
+    browse_dbs_ref = browse_dbs_timer() :: reference()
+}).
 
 -type state() :: #state{}.
 
--define(CLEANUP_TIMER
-       ,kapps_config:get_pos_integer(?CONFIG_CAT, <<"browse_dbs_interval_s">>, ?SECONDS_IN_DAY)
-       ).
+-define(CLEANUP_TIMER,
+    kapps_config:get_pos_integer(?CONFIG_CAT, <<"browse_dbs_interval_s">>, ?SECONDS_IN_DAY)
+).
 
 %%%=============================================================================
 %%% API
@@ -82,18 +86,23 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call('status', _From, #state{minute_ref = Minute
-                                   ,hour_ref = Hour
-                                   ,day_ref = Day
-                                   ,browse_dbs_ref = Browse
-                                   }=State) ->
-    Timers = [{'minute', erlang:read_timer(Minute)}
-             ,{'hour', erlang:read_timer(Hour)}
-             ,{'day', erlang:read_timer(Day)}
-             ,{'cleanup', erlang:read_timer(Browse)}
-             ],
+handle_call(
+    'status',
+    _From,
+    #state{
+        minute_ref = Minute,
+        hour_ref = Hour,
+        day_ref = Day,
+        browse_dbs_ref = Browse
+    } = State
+) ->
+    Timers = [
+        {'minute', erlang:read_timer(Minute)},
+        {'hour', erlang:read_timer(Hour)},
+        {'day', erlang:read_timer(Day)},
+        {'cleanup', erlang:read_timer(Browse)}
+    ],
     {'reply', Timers, State};
-
 handle_call(_Request, _From, State) ->
     lager:debug("unhandled call ~p from ~p", [_Request, _From]),
     {'reply', {'error', 'not_implemented'}, State}.
@@ -103,10 +112,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'cleanup_finished', Ref}, #state{browse_dbs_ref = Ref}=State) ->
+handle_cast({'cleanup_finished', Ref}, #state{browse_dbs_ref = Ref} = State) ->
     lager:info("cleanup finished for ~p, starting timer", [Ref]),
     {'noreply', State#state{browse_dbs_ref = browse_dbs_timer()}, 'hibernate'};
-
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast ~p", [_Msg]),
     {'noreply', State}.
@@ -122,24 +130,19 @@ handle_info({'EXIT', _Pid, 'normal'}, State) ->
 handle_info({'EXIT', _Pid, _Reason}, State) ->
     lager:error("job ~p crashed: ~p", [_Pid, _Reason]),
     {'noreply', State};
-
-handle_info({'timeout', Ref, _Msg}, #state{minute_ref = Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{minute_ref = Ref} = State) ->
     spawn_jobs(Ref, ?TRIGGER_MINUTELY),
     {'noreply', State#state{minute_ref = minute_timer()}};
-
-handle_info({'timeout', Ref, _Msg}, #state{hour_ref = Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{hour_ref = Ref} = State) ->
     spawn_jobs(Ref, ?TRIGGER_HOURLY),
     {'noreply', State#state{hour_ref = hour_timer()}};
-
-handle_info({'timeout', Ref, _Msg}, #state{day_ref = Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{day_ref = Ref} = State) ->
     spawn_jobs(Ref, ?TRIGGER_DAILY),
     {'noreply', State#state{day_ref = day_timer()}};
-
-handle_info({'timeout', Ref, _Msg}, #state{browse_dbs_ref = Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{browse_dbs_ref = Ref} = State) ->
     _ = kz_util:spawn(fun tasks_bindings:map/2, [?TRIGGER_AUTO_COMPACTION, Ref]),
     lager:info("triggering auto compaction job with ref ~p", [Ref]),
     {'noreply', State};
-
 handle_info(_Info, State) ->
     lager:debug("unhandled message ~p", [_Info]),
     {'noreply', State}.

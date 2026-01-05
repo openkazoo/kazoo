@@ -20,7 +20,6 @@
 -export([tts_text/1, tts_text/2, set_tts_text/2]).
 -export([tts_voice/1, tts_voice/2, set_tts_voice/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

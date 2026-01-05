@@ -166,11 +166,12 @@ is_private_legacy(Doc) ->
 -spec is_private_legacy(doc(), Default) -> boolean() | Default.
 is_private_legacy(Doc, Default) ->
     kz_term:is_true(
-      kz_json:get_first_defined(is_private_comment_paths(), Doc, Default)
-     ).
+        kz_json:get_first_defined(is_private_comment_paths(), Doc, Default)
+    ).
 
 -spec migrate_to_is_private(doc()) -> doc().
 migrate_to_is_private(Doc) ->
-    set_is_private(kz_json:delete_key(superduper_comment_path(), Doc)
-                  ,is_private_legacy(Doc)
-                  ).
+    set_is_private(
+        kz_json:delete_key(superduper_comment_path(), Doc),
+        is_private_legacy(Doc)
+    ).

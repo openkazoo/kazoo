@@ -29,7 +29,9 @@
 
 -export([handle/2]).
 
--define(DEFAULT_USE_ACCOUNT_CALLER_ID, kapps_config:get_is_true(?CF_CONFIG_CAT, <<"default_use_account_caller_id">>, 'true')).
+-define(DEFAULT_USE_ACCOUNT_CALLER_ID,
+    kapps_config:get_is_true(?CF_CONFIG_CAT, <<"default_use_account_caller_id">>, 'true')
+).
 -define(DEFAULT_PIN_LENGTH, kapps_config:get_integer(?CF_CONFIG_CAT, <<"default_pin_length">>, 10)).
 
 %%------------------------------------------------------------------------------
@@ -43,7 +45,9 @@ handle(Data, Call) ->
 
     Pin = kz_json:get_value(<<"pin">>, Data, <<>>),
     Retries = kz_json:get_integer_value(<<"retries">>, Data, 3),
-    Interdigit = kz_json:get_integer_value(<<"interdigit">>, Data, kapps_call_command:default_interdigit_timeout()),
+    Interdigit = kz_json:get_integer_value(
+        <<"interdigit">>, Data, kapps_call_command:default_interdigit_timeout()
+    ),
 
     case try_collect_pin(Call, Pin, Retries, Interdigit) of
         'allow' -> allow_dial(Data, Call, Retries, Interdigit);
@@ -54,7 +58,8 @@ handle(Data, Call) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec try_collect_pin(kapps_call:call(), binary(), non_neg_integer(), pos_integer()) -> 'allow' | 'fail'.
+-spec try_collect_pin(kapps_call:call(), binary(), non_neg_integer(), pos_integer()) ->
+    'allow' | 'fail'.
 try_collect_pin(_Call, <<>>, _Retries, _Interdigit) ->
     lager:warning("no pin set on DISA object, permitting"),
     'allow';
@@ -68,12 +73,14 @@ try_collect_pin(Call, Pin, Retries, Interdigit) ->
     PinLength = erlang:max(?DEFAULT_PIN_LENGTH, byte_size(Pin)),
 
     lager:debug("collecting up to ~p digits for pin", [PinLength]),
-    case kapps_call_command:collect_digits(PinLength
-                                          ,kapps_call_command:default_collect_timeout()
-                                          ,Interdigit
-                                          ,NoopId
-                                          ,Call
-                                          )
+    case
+        kapps_call_command:collect_digits(
+            PinLength,
+            kapps_call_command:default_collect_timeout(),
+            Interdigit,
+            NoopId,
+            Call
+        )
     of
         {'ok', Pin} ->
             lager:info("pin matches, permitting"),
@@ -108,11 +115,13 @@ maybe_route_to_callflow(Data, Call, Retries, Interdigit, Number) ->
     case cf_flow:lookup(Number, kapps_call:account_id(Call)) of
         {'ok', Flow, NoMatch} ->
             lager:info("callflow ~s satisfies request", [kz_doc:id(Flow)]),
-            Updates = [{fun kapps_call:set_request/2
-                       ,list_to_binary([Number, "@", kapps_call:request_realm(Call)])
-                       }
-                      ,{fun kapps_call:set_to/2, list_to_binary([Number, "@", kapps_call:to_realm(Call)])}
-                      ],
+            Updates = [
+                {
+                    fun kapps_call:set_request/2,
+                    list_to_binary([Number, "@", kapps_call:request_realm(Call)])
+                },
+                {fun kapps_call:set_to/2, list_to_binary([Number, "@", kapps_call:to_realm(Call)])}
+            ],
             cf_exe:set_call(kapps_call:exec(Updates, Call)),
             maybe_restrict_call(Data, Call, Number, Flow);
         _ ->
@@ -128,18 +137,23 @@ maybe_route_to_callflow(Data, Call, Retries, Interdigit, Number) ->
 %% for this module will be resulted to an empty binary)
 %% @end
 %%------------------------------------------------------------------------------
--spec collect_destination_number(kapps_call:call(), kz_json:object(), pos_integer()) -> kz_term:ne_binary().
+-spec collect_destination_number(kapps_call:call(), kz_json:object(), pos_integer()) ->
+    kz_term:ne_binary().
 collect_destination_number(Call, Data, Interdigit) ->
     MaxDigits = kz_json:get_integer_value(<<"max_digits">>, Data, 15),
     Timeout = kapps_call_command:default_collect_timeout(),
     lager:debug("collecting max ~p digits for destination number", [MaxDigits]),
     try_collect_destination_number(Call, Interdigit, MaxDigits, Timeout).
 
--spec try_collect_destination_number(kapps_call:call(), pos_integer(), pos_integer(), pos_integer()) -> kz_term:ne_binary().
+-spec try_collect_destination_number(
+    kapps_call:call(), pos_integer(), pos_integer(), pos_integer()
+) -> kz_term:ne_binary().
 try_collect_destination_number(Call, Interdigit, MaxDigits, Timeout) ->
     case kapps_call_command:collect_digits(MaxDigits, Timeout, Interdigit, Call) of
-        {'ok', <<>>} -> try_collect_destination_number(Call, Interdigit, MaxDigits, Timeout);
-        {'ok', Digits} -> knm_converters:normalize(Digits);
+        {'ok', <<>>} ->
+            try_collect_destination_number(Call, Interdigit, MaxDigits, Timeout);
+        {'ok', Digits} ->
+            knm_converters:normalize(Digits);
         {'error', _E} ->
             lager:info("caller hungup while collecting destination number"),
             cf_exe:stop(Call)
@@ -149,7 +163,9 @@ try_collect_destination_number(Call, Interdigit, MaxDigits, Timeout) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_restrict_call(kz_json:object(), kapps_call:call(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+-spec maybe_restrict_call(
+    kz_json:object(), kapps_call:call(), kz_term:ne_binary(), kz_json:object()
+) -> 'ok'.
 maybe_restrict_call(Data, Call, Number, Flow) ->
     case should_restrict_call(Data, Call, Number) of
         'true' ->
@@ -179,7 +195,8 @@ start_preconnect_audio(Data, Call) ->
         <<"ringing">> ->
             lager:debug("playing ringing..."),
             play_ringing(Data, Call);
-        _Else -> lager:debug("unknown preconnect audio type: ~p", [_Else])
+        _Else ->
+            lager:debug("unknown preconnect audio type: ~p", [_Else])
     end.
 
 %%------------------------------------------------------------------------------
@@ -188,10 +205,11 @@ start_preconnect_audio(Data, Call) ->
 %%------------------------------------------------------------------------------
 -spec play_dialtone(kapps_call:call()) -> 'ok'.
 play_dialtone(Call) ->
-    Tone = kz_json:from_list([{<<"Frequencies">>, [<<"350">>, <<"440">>]}
-                             ,{<<"Duration-ON">>, <<"10000">>}
-                             ,{<<"Duration-OFF">>, <<"0">>}
-                             ]),
+    Tone = kz_json:from_list([
+        {<<"Frequencies">>, [<<"350">>, <<"440">>]},
+        {<<"Duration-ON">>, <<"10000">>},
+        {<<"Duration-OFF">>, <<"0">>}
+    ]),
     kapps_call_command:tones([Tone], Call).
 
 %%------------------------------------------------------------------------------
@@ -201,11 +219,12 @@ play_dialtone(Call) ->
 -spec play_ringing(kz_json:object(), kapps_call:call()) -> 'ok'.
 play_ringing(Data, Call) ->
     RingRepeatCount = kz_json:get_integer_value(<<"ring_repeat_count">>, Data, 1),
-    Tone = kz_json:from_list([{<<"Frequencies">>, [<<"440">>, <<"480">>]}
-                             ,{<<"Duration-ON">>, <<"2000">>}
-                             ,{<<"Duration-OFF">>, <<"4000">>}
-                             ,{<<"Repeat">>, RingRepeatCount}
-                             ]),
+    Tone = kz_json:from_list([
+        {<<"Frequencies">>, [<<"440">>, <<"480">>]},
+        {<<"Duration-ON">>, <<"2000">>},
+        {<<"Duration-OFF">>, <<"4000">>},
+        {<<"Repeat">>, RingRepeatCount}
+    ]),
     kapps_call_command:tones([Tone], Call).
 
 %%------------------------------------------------------------------------------
@@ -236,14 +255,16 @@ keep_original_cid(Call) ->
 %%------------------------------------------------------------------------------
 -spec set_cid(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kapps_call:call().
 set_cid(Number, Name, Call) ->
-    Props = [{<<"Retain-CID">>, 'true'}
-            ,{<<"Caller-ID-Number">>, Number}
-            ,{<<"Caller-ID-Name">>, Name}
-            ],
-    Updates = [fun(C) -> kapps_call:set_caller_id_number(Number, C) end
-              ,fun(C) -> kapps_call:set_caller_id_name(Name, C) end
-              ,fun(C) -> kapps_call:set_custom_channel_vars(Props, C) end
-              ],
+    Props = [
+        {<<"Retain-CID">>, 'true'},
+        {<<"Caller-ID-Number">>, Number},
+        {<<"Caller-ID-Name">>, Name}
+    ],
+    Updates = [
+        fun(C) -> kapps_call:set_caller_id_number(Number, C) end,
+        fun(C) -> kapps_call:set_caller_id_name(Name, C) end,
+        fun(C) -> kapps_call:set_custom_channel_vars(Props, C) end
+    ],
     kapps_call:exec(Updates, Call).
 
 %%------------------------------------------------------------------------------
@@ -264,9 +285,13 @@ should_restrict_call(Data, Call, Number) ->
 -spec should_restrict_call_by_account(kapps_call:call(), kz_term:ne_binary()) -> boolean().
 should_restrict_call_by_account(Call, Number) ->
     case kzd_accounts:fetch(kapps_call:account_id(Call)) of
-        {'error', _} -> 'false';
+        {'error', _} ->
+            'false';
         {'ok', JObj} ->
             Classification = knm_converters:classify(Number),
             lager:info("classified number as ~p", [Classification]),
-            <<"deny">> =:= kz_json:get_ne_binary_value([<<"call_restriction">>, Classification, <<"action">>], JObj)
+            <<"deny">> =:=
+                kz_json:get_ne_binary_value(
+                    [<<"call_restriction">>, Classification, <<"action">>], JObj
+                )
     end.

@@ -6,13 +6,14 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_websockets).
 
--export([init/0
-        ,authenticate/1
-        ,authorize/1
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ]).
+-export([
+    init/0,
+    authenticate/1,
+    authorize/1,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2
+]).
 
 -include("crossbar.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -20,15 +21,16 @@
 
 -define(CB_LIST, <<"websockets/crossbar_listing">>).
 
--define(TO_JSON(Binding, Event)
-       ,kz_json:from_list([{<<"binding">>, Binding}
-                          ,{<<"event">>, Event}
-                          ])
-       ).
+-define(TO_JSON(Binding, Event),
+    kz_json:from_list([
+        {<<"binding">>, Binding},
+        {<<"event">>, Event}
+    ])
+).
 
--define(AVAILABLE
-       ,kapps_config:get_json(<<"blackhole">>, <<"bindings">>)
-       ).
+-define(AVAILABLE,
+    kapps_config:get_json(<<"blackhole">>, <<"bindings">>)
+).
 
 %%%=============================================================================
 %%% API
@@ -121,11 +123,13 @@ validate(Context, Id) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec authenticate_req(cb_context:context(), http_method(), req_nouns()) -> {'true', cb_context:context()} |'false'.
+-spec authenticate_req(cb_context:context(), http_method(), req_nouns()) ->
+    {'true', cb_context:context()} | 'false'.
 authenticate_req(Context, ?HTTP_GET, [{<<"websockets">>, []}]) ->
     lager:debug("authenticating request"),
     {'true', Context};
-authenticate_req(_Context, _Verb, _Nouns) -> 'false'.
+authenticate_req(_Context, _Verb, _Nouns) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -135,7 +139,8 @@ authenticate_req(_Context, _Verb, _Nouns) -> 'false'.
 authorize_req(?HTTP_GET, [{<<"websockets">>, []}]) ->
     lager:debug("authorizing request"),
     'true';
-authorize_req(_Verb, _Nouns) -> 'false'.
+authorize_req(_Verb, _Nouns) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc Load running web sockets
@@ -163,10 +168,10 @@ validate_websocket(Context, Id, ?HTTP_GET) ->
 %%------------------------------------------------------------------------------
 -spec summary_available(cb_context:context()) -> cb_context:context().
 summary_available(Context) ->
-    cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                ,{fun cb_context:set_resp_data/2, ?AVAILABLE}
-                                ]).
-
+    cb_context:setters(Context, [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_data/2, ?AVAILABLE}
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc Attempt to load a summarized listing of all instances of this
@@ -188,11 +193,13 @@ read(Id, Context) ->
 
 read_resp(Context, 'success') ->
     read_success_resp(Context, cb_context:resp_data(Context));
-read_resp(Context, _Error) -> Context.
+read_resp(Context, _Error) ->
+    Context.
 
 read_success_resp(Context, RespData) when is_list(RespData) ->
     cb_context:set_resp_data(Context, kz_json:merge(RespData));
-read_success_resp(Context, _RespData) -> Context.
+read_success_resp(Context, _RespData) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -200,14 +207,17 @@ read_success_resp(Context, _RespData) -> Context.
 %%------------------------------------------------------------------------------
 -spec websockets_req(cb_context:context(), kz_term:proplist()) -> cb_context:context().
 websockets_req(Context, Props) ->
-    Req = [{<<"Msg-ID">>, cb_context:req_id(Context)}
-          ,{<<"Account-ID">>, cb_context:account_id(Context)}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION) ++ Props
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_websockets:publish_get_req/1
-                                    ,{'blackhole', 'true'}
-                                    )
+    Req = [
+        {<<"Msg-ID">>, cb_context:req_id(Context)},
+        {<<"Account-ID">>, cb_context:account_id(Context)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION) ++ Props
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_websockets:publish_get_req/1,
+            {'blackhole', 'true'}
+        )
     of
         {'error', _R} ->
             lager:error("could not reach websockets tracking: ~p", [_R]),
@@ -227,15 +237,16 @@ websockets_resp(Context, JObjs) ->
 
 -spec websockets_resp(cb_context:context(), kz_json:objects(), any()) -> cb_context:context().
 websockets_resp(Context, [], RespData) ->
-    cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                ,{fun cb_context:set_resp_data/2, RespData}
-                                ]);
-websockets_resp(Context, [JObj|JObjs], RespData) ->
+    cb_context:setters(Context, [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_data/2, RespData}
+    ]);
+websockets_resp(Context, [JObj | JObjs], RespData) ->
     case kz_json:get_value(<<"Data">>, JObj) of
         'undefined' ->
             websockets_resp(Context, JObjs, RespData);
         Data when is_list(Data) ->
             websockets_resp(Context, JObjs, RespData ++ Data);
         Data ->
-            websockets_resp(Context, JObjs, [Data|RespData])
+            websockets_resp(Context, JObjs, [Data | RespData])
     end.

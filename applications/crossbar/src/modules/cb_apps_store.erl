@@ -6,17 +6,18 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_apps_store).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/3
-        ,resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3
-        ,authenticate/1
-        ,authorize/1
-        ,validate/1, validate/2, validate/3, validate/4
-        ,content_types_provided/3 ,content_types_provided/4
-        ,put/2
-        ,post/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/3,
+    resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3,
+    authenticate/1,
+    authorize/1,
+    validate/1, validate/2, validate/3, validate/4,
+    content_types_provided/3, content_types_provided/4,
+    put/2,
+    post/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -34,7 +35,9 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.apps_store">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.apps_store">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.apps_store">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.apps_store">>, ?MODULE, 'resource_exists'),
     _ = crossbar_bindings:bind(<<"*.authenticate">>, ?MODULE, 'authenticate'),
@@ -92,7 +95,7 @@ resource_exists(_, _, _) -> 'true'.
 %%------------------------------------------------------------------------------
 
 -spec content_types_provided(cb_context:context(), path_token(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 content_types_provided(Context, Id, ?ICON) ->
     Context1 = load_app_from_master_account(Context, Id),
     case cb_context:resp_status(Context1) of
@@ -100,32 +103,42 @@ content_types_provided(Context, Id, ?ICON) ->
             JObj = cb_context:doc(Context1),
             Icon = kz_json:get_value(?ICON, JObj),
             case kz_doc:attachment_content_type(JObj, Icon) of
-                'undefined' -> Context1;
+                'undefined' ->
+                    Context1;
                 CT ->
                     [Type, SubType] = binary:split(CT, <<"/">>),
                     lager:debug("found attachment of content type: ~s/~s~n", [Type, SubType]),
-                    cb_context:set_content_types_provided(Context1, [{'to_binary', [{Type, SubType}]}])
+                    cb_context:set_content_types_provided(Context1, [
+                        {'to_binary', [{Type, SubType}]}
+                    ])
             end;
-        _ -> Context1
+        _ ->
+            Context1
     end;
-content_types_provided(Context, _, _) -> Context.
+content_types_provided(Context, _, _) ->
+    Context.
 
 -spec content_types_provided(cb_context:context(), path_token(), path_token(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 content_types_provided(Context, Id, ?SCREENSHOT, Number) ->
     Context1 = load_app_from_master_account(Context, Id),
     case cb_context:resp_status(Context1) of
         'success' ->
             case maybe_get_screenshot(Context1, Number) of
-                'error' -> Context;
+                'error' ->
+                    Context;
                 {'ok', _, Attachment} ->
                     CT = kz_json:get_value(<<"content_type">>, Attachment),
                     [Type, SubType] = binary:split(CT, <<"/">>),
-                    cb_context:set_content_types_provided(Context1, [{'to_binary', [{Type, SubType}]}])
+                    cb_context:set_content_types_provided(Context1, [
+                        {'to_binary', [{Type, SubType}]}
+                    ])
             end;
-        _Status -> Context1
+        _Status ->
+            Context1
     end;
-content_types_provided(Context, _, _, _) -> Context.
+content_types_provided(Context, _, _, _) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -137,10 +150,10 @@ authenticate(Context) ->
     authenticate(cb_context:req_verb(Context), cb_context:req_nouns(Context)).
 
 -spec authenticate(http_method(), req_nouns()) -> boolean().
-authenticate(?HTTP_GET, [{<<"apps_store">>,[_Id, ?ICON]}]) ->
+authenticate(?HTTP_GET, [{<<"apps_store">>, [_Id, ?ICON]}]) ->
     lager:debug("authenticating request"),
     'true';
-authenticate(?HTTP_GET, [{<<"apps_store">>,[_Id, ?SCREENSHOT, _Number]}]) ->
+authenticate(?HTTP_GET, [{<<"apps_store">>, [_Id, ?SCREENSHOT, _Number]}]) ->
     lager:debug("authenticating request"),
     'true';
 authenticate(_Verb, _Nouns) ->
@@ -151,10 +164,10 @@ authorize(Context) ->
     authorize(cb_context:req_verb(Context), cb_context:req_nouns(Context)).
 
 -spec authorize(http_method(), req_nouns()) -> boolean().
-authorize(?HTTP_GET, [{<<"apps_store">>,[_Id, ?ICON]}]) ->
+authorize(?HTTP_GET, [{<<"apps_store">>, [_Id, ?ICON]}]) ->
     lager:debug("authorizing request"),
     'true';
-authorize(?HTTP_GET, [{<<"apps_store">>,[_Id, ?SCREENSHOT, _Number]}]) ->
+authorize(?HTTP_GET, [{<<"apps_store">>, [_Id, ?SCREENSHOT, _Number]}]) ->
     lager:debug("authorizing request"),
     'true';
 authorize(_Verb, _Nouns) ->
@@ -168,7 +181,6 @@ authorize(_Verb, _Nouns) ->
 -spec validate(cb_context:context()) -> cb_context:context().
 validate(Context) ->
     load_apps(Context).
-
 
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
 validate(Context, ?BLACKLIST) ->
@@ -184,7 +196,8 @@ validate(Context, AppId, ?ICON) ->
         _ -> Context1
     end.
 
--spec validate(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 validate(Context, AppId, ?SCREENSHOT, Number) ->
     Context1 = load_app_from_master_account(Context, AppId),
     case cb_context:resp_status(Context1) of
@@ -202,10 +215,10 @@ post(Context, ?BLACKLIST) ->
     Blacklist = kz_json:get_value(<<"blacklist">>, ReqData, []),
     Doc = kz_json:set_value(<<"blacklist">>, Blacklist, cb_context:doc(Context)),
     return_only_blacklist(
-      crossbar_doc:save(
-        cb_context:set_doc(Context, Doc)
-       )
-     );
+        crossbar_doc:save(
+            cb_context:set_doc(Context, Doc)
+        )
+    );
 post(Context, AppId) ->
     Context1 = crossbar_doc:save(Context),
     case cb_context:resp_status(Context1) of
@@ -213,7 +226,8 @@ post(Context, AppId) ->
             JObj = cb_context:doc(Context1),
             RespData = kz_json:get_value(AppId, kzd_apps_store:apps(JObj)),
             cb_context:set_resp_data(Context, RespData);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -228,7 +242,8 @@ put(Context, Id) ->
             JObj = cb_context:doc(Context1),
             RespData = kz_json:get_value(Id, kzd_apps_store:apps(JObj)),
             cb_context:set_resp_data(Context, RespData);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -241,7 +256,8 @@ delete(Context, _Id) ->
     case cb_context:resp_status(Context1) of
         'success' ->
             cb_context:set_resp_data(Context, kz_json:new());
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 %%%=============================================================================
@@ -284,21 +300,25 @@ return_only_blacklist(Context) ->
             Blacklist = kz_json:get_value(<<"blacklist">>, RespData, []),
             NewRespData =
                 kz_json:from_list([
-                                   {<<"blacklist">>, Blacklist}
-                                  ]),
+                    {<<"blacklist">>, Blacklist}
+                ]),
             cb_context:set_resp_data(Context, NewRespData);
-        _ -> Context
+        _ ->
+            Context
     end.
 
--spec validate_app(cb_context:context(), kz_term:ne_binary(), http_method()) -> cb_context:context().
+-spec validate_app(cb_context:context(), kz_term:ne_binary(), http_method()) ->
+    cb_context:context().
 validate_app(Context, Id, ?HTTP_GET) ->
     Context1 = load_app(Context, Id),
     case cb_context:resp_status(Context1) of
         'success' ->
-            cb_context:set_resp_data(Context1
-                                    ,kz_doc:public_fields(cb_context:doc(Context1))
-                                    );
-        _ -> Context1
+            cb_context:set_resp_data(
+                Context1,
+                kz_doc:public_fields(cb_context:doc(Context1))
+            );
+        _ ->
+            Context1
     end;
 validate_app(Context, Id, ?HTTP_PUT) ->
     Context1 = validate_modification(Context, Id),
@@ -343,10 +363,11 @@ can_modify(Context, Id) ->
             Props = [{<<"details">>, Id}],
             cb_context:add_system_error('forbidden', kz_json:from_list(Props), Context);
         App ->
-            cb_context:store(cb_context:set_resp_status(Context, 'success')
-                            ,Id
-                            ,App
-                            )
+            cb_context:store(
+                cb_context:set_resp_status(Context, 'success'),
+                Id,
+                App
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -357,11 +378,13 @@ can_modify(Context, Id) ->
 load_apps(Context) ->
     AccountId = cb_context:account_id(Context),
     Apps = cb_apps_util:allowed_apps(AccountId),
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, 'success'}
-                       ,{fun cb_context:set_resp_data/2, normalize_apps_result(Apps)}
-                       ]
-                      ).
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, 'success'},
+            {fun cb_context:set_resp_data/2, normalize_apps_result(Apps)}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -373,27 +396,31 @@ normalize_apps_result(Apps) ->
     normalize_apps_result(Apps, []).
 
 -spec normalize_apps_result(kz_json:objects(), kz_json:objects()) -> kz_json:objects().
-normalize_apps_result([], Acc) -> Acc;
-normalize_apps_result([App|Apps], Acc) ->
+normalize_apps_result([], Acc) ->
+    Acc;
+normalize_apps_result([App | Apps], Acc) ->
     case kzd_app:is_published(App) of
-        'false' -> normalize_apps_result(Apps, Acc);
+        'false' ->
+            normalize_apps_result(Apps, Acc);
         'true' ->
             JObj =
                 kz_json:from_list(
-                  [{<<"id">>, kz_doc:id(App)}
-                  ,{<<"name">>, kzd_app:name(App)}
-                  ,{<<"i18n">>, kzd_app:i18n(App)}
-                  ,{<<"tags">>, kzd_app:tags(App)}
-                  ,{<<"api_url">>, kzd_app:api_url(App)}
-                  ,{<<"source_url">>, kzd_app:source_url(App)}
-                  ,{<<"account_id">>, kzd_app:account_id(App)}
-                  ,{<<"users">>, kzd_app:users(App)}
-                  ,{<<"allowed_users">>, kzd_app:allowed_users(App)}
-                  ,{<<"masqueradable">>, kzd_app:masqueradable(App)}
-                  ,{<<"phase">>, kzd_app:phase(App)}
-                  ,{<<"extends">>, kzd_app:extends(App)}
-                  ]),
-            normalize_apps_result(Apps, [JObj|Acc])
+                    [
+                        {<<"id">>, kz_doc:id(App)},
+                        {<<"name">>, kzd_app:name(App)},
+                        {<<"i18n">>, kzd_app:i18n(App)},
+                        {<<"tags">>, kzd_app:tags(App)},
+                        {<<"api_url">>, kzd_app:api_url(App)},
+                        {<<"source_url">>, kzd_app:source_url(App)},
+                        {<<"account_id">>, kzd_app:account_id(App)},
+                        {<<"users">>, kzd_app:users(App)},
+                        {<<"allowed_users">>, kzd_app:allowed_users(App)},
+                        {<<"masqueradable">>, kzd_app:masqueradable(App)},
+                        {<<"phase">>, kzd_app:phase(App)},
+                        {<<"extends">>, kzd_app:extends(App)}
+                    ]
+                ),
+            normalize_apps_result(Apps, [JObj | Acc])
     end.
 
 %%------------------------------------------------------------------------------
@@ -404,30 +431,38 @@ normalize_apps_result([App|Apps], Acc) ->
 load_app(Context, AppId) ->
     AccountId = cb_context:account_id(Context),
     case cb_apps_util:allowed_app(AccountId, AppId) of
-        'undefined' -> bad_app_error(Context, AppId);
+        'undefined' ->
+            bad_app_error(Context, AppId);
         App ->
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_doc/2
-                                ,kz_json:set_value(<<"account_id">>, kzd_app:account_id(App), App)}
-                               ,{fun cb_context:set_resp_status/2, 'success'}
-                               ]
-                              )
+            cb_context:setters(
+                Context,
+                [
+                    {
+                        fun cb_context:set_doc/2,
+                        kz_json:set_value(<<"account_id">>, kzd_app:account_id(App), App)
+                    },
+                    {fun cb_context:set_resp_status/2, 'success'}
+                ]
+            )
     end.
 
--spec load_app_from_master_account(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
+-spec load_app_from_master_account(cb_context:context(), kz_term:ne_binary()) ->
+    cb_context:context().
 load_app_from_master_account(Context, AppId) ->
     {'ok', MasterAccountDb} = kapps_util:get_master_account_db(),
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     DefaultApps = cb_apps_util:load_default_apps(),
     case [JObj || JObj <- DefaultApps, kz_doc:id(JObj) == AppId] of
         [AppJObj] ->
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_account_id/2, MasterAccountId}
-                               ,{fun cb_context:set_account_db/2, MasterAccountDb}
-                               ,{fun cb_context:set_doc/2, AppJObj}
-                               ,{fun cb_context:set_resp_status/2, 'success'}
-                               ]
-                              );
+            cb_context:setters(
+                Context,
+                [
+                    {fun cb_context:set_account_id/2, MasterAccountId},
+                    {fun cb_context:set_account_db/2, MasterAccountDb},
+                    {fun cb_context:set_doc/2, AppJObj},
+                    {fun cb_context:set_resp_status/2, 'success'}
+                ]
+            );
         _Else ->
             bad_app_error(Context, AppId)
     end.
@@ -438,10 +473,11 @@ load_app_from_master_account(Context, AppId) ->
 %%------------------------------------------------------------------------------
 -spec bad_app_error(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 bad_app_error(Context, AppId) ->
-    cb_context:add_system_error('bad_identifier'
-                               ,kz_json:from_list([{<<"details">>, AppId}])
-                               ,Context
-                               ).
+    cb_context:add_system_error(
+        'bad_identifier',
+        kz_json:from_list([{<<"details">>, AppId}]),
+        Context
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc install a new app on the account
@@ -456,10 +492,11 @@ prepare_install(Context, Id) ->
             Data = cb_context:req_data(Context),
             AppName = kz_json:get_value(<<"name">>, cb_context:fetch(Context, Id)),
             UpdatedApps =
-                kz_json:set_value(Id
-                                 ,kz_json:set_value(<<"name">>, AppName, Data)
-                                 ,Apps
-                                 ),
+                kz_json:set_value(
+                    Id,
+                    kz_json:set_value(<<"name">>, AppName, Data),
+                    Apps
+                ),
             UpdatedDoc = kzd_apps_store:set_apps(Doc, UpdatedApps),
             cb_context:set_doc(Context, UpdatedDoc);
         _ ->
@@ -499,10 +536,11 @@ prepare_update(Context, Id) ->
             Data = cb_context:req_data(Context),
             AppName = kz_json:get_value(<<"name">>, cb_context:fetch(Context, Id)),
             UpdatedApps =
-                kz_json:set_value(Id
-                                 ,kz_json:set_value(<<"name">>, AppName, Data)
-                                 ,Apps
-                                 ),
+                kz_json:set_value(
+                    Id,
+                    kz_json:set_value(<<"name">>, AppName, Data),
+                    Apps
+                ),
             UpdatedDoc = kzd_apps_store:set_apps(Doc, UpdatedApps),
             cb_context:set_doc(Context, UpdatedDoc)
     end.
@@ -522,17 +560,16 @@ get_icon(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_get_screenshot(cb_context:context(), kz_term:ne_binary()) ->
-          'error' |
-          {'ok', kz_term:ne_binary(), kz_json:object()}.
+    'error'
+    | {'ok', kz_term:ne_binary(), kz_json:object()}.
 maybe_get_screenshot(Context, Number) ->
     JObj = cb_context:doc(Context),
     Screenshots = kz_json:get_value(<<"screenshots">>, JObj),
-    try lists:nth(kz_term:to_integer(Number)+1, Screenshots) of
+    try lists:nth(kz_term:to_integer(Number) + 1, Screenshots) of
         Name ->
             case kz_doc:attachment(JObj, Name) of
                 'undefined' -> 'error';
-                Attachment ->
-                    {'ok', Name, Attachment}
+                Attachment -> {'ok', Name, Attachment}
             end
     catch
         _:_ -> 'error'
@@ -546,9 +583,10 @@ maybe_get_screenshot(Context, Number) ->
 get_screenshot(Context, Number) ->
     case maybe_get_screenshot(Context, Number) of
         'error' ->
-            crossbar_util:response_bad_identifier(<<?SCREENSHOT/binary , "/", Number/binary>>
-                                                 ,Context
-                                                 );
+            crossbar_util:response_bad_identifier(
+                <<?SCREENSHOT/binary, "/", Number/binary>>,
+                Context
+            );
         {'ok', Name, _} ->
             get_attachment(Context, Name)
     end.
@@ -560,20 +598,21 @@ get_screenshot(Context, Number) ->
 -spec load_apps_store(cb_context:context()) -> cb_context:context().
 load_apps_store(Context) ->
     Context1 = crossbar_doc:load(kzd_apps_store:id(), Context, ?TYPE_CHECK_OPTION_ANY),
-    case {cb_context:resp_status(Context1)
-         ,cb_context:resp_error_code(Context1)
-         }
-    of
+    case {cb_context:resp_status(Context1), cb_context:resp_error_code(Context1)} of
         {'error', 404} ->
             AccountId = cb_context:account_id(Context),
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_resp_status/2, 'success'}
-                               ,{fun cb_context:set_resp_data/2, kz_json:new()}
-                               ,{fun cb_context:set_doc/2, kzd_apps_store:new(AccountId)}
-                               ]
-                              );
-        {'success', _} -> Context1;
-        {'error', _} -> Context1
+            cb_context:setters(
+                Context,
+                [
+                    {fun cb_context:set_resp_status/2, 'success'},
+                    {fun cb_context:set_resp_data/2, kz_json:new()},
+                    {fun cb_context:set_doc/2, kzd_apps_store:new(AccountId)}
+                ]
+            );
+        {'success', _} ->
+            Context1;
+        {'error', _} ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -582,7 +621,7 @@ load_apps_store(Context) ->
 %%------------------------------------------------------------------------------
 
 -spec get_attachment(cb_context:context(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 get_attachment(Context, Id) ->
     JObj = cb_context:doc(Context),
     case kz_doc:attachment(JObj, Id) of
@@ -594,7 +633,7 @@ get_attachment(Context, Id) ->
     end.
 
 -spec get_attachment(cb_context:context(), kz_term:ne_binary(), kz_json:object(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 get_attachment(Context, Id, JObj, Attachment) ->
     Db = kz_doc:account_db(JObj),
     AppId = kz_doc:id(JObj),
@@ -602,20 +641,25 @@ get_attachment(Context, Id, JObj, Attachment) ->
         {'error', R} ->
             Reason = kz_term:to_binary(R),
             lager:error("failed to fetch attachment, ~s in ~s, (account: ~s)", [Id, AppId, Db]),
-            cb_context:add_system_error('datastore_fault', kz_json:from_list([{<<"details">>, Reason}]), Context);
+            cb_context:add_system_error(
+                'datastore_fault', kz_json:from_list([{<<"details">>, Reason}]), Context
+            );
         {'ok', AttachBin} ->
             add_attachment(Context, Id, Attachment, AttachBin)
     end.
 
 -spec add_attachment(cb_context:context(), kz_term:ne_binary(), kz_json:object(), binary()) ->
-          cb_context:context().
+    cb_context:context().
 add_attachment(Context, Id, Attachment, AttachBin) ->
     RespHeaders =
-        #{<<"content-disposition">> => <<"attachment; filename=", Id/binary>>
-         ,<<"content-type">> => kz_json:get_value(<<"content_type">>, Attachment)
-         },
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_data/2, AttachBin}
-                       ,{fun cb_context:add_resp_headers/2, RespHeaders}
-                       ]
-                      ).
+        #{
+            <<"content-disposition">> => <<"attachment; filename=", Id/binary>>,
+            <<"content-type">> => kz_json:get_value(<<"content_type">>, Attachment)
+        },
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_data/2, AttachBin},
+            {fun cb_context:add_resp_headers/2, RespHeaders}
+        ]
+    ).

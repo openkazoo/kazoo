@@ -13,18 +13,20 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/2, start_link/3, start_link/4
-        ,listener/1
-        ,fsm/1
-        ,status/1
-        ]).
+-export([
+    start_link/2, start_link/3, start_link/4,
+    listener/1,
+    fsm/1,
+    status/1
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(CHILDREN, [?WORKER_ARGS_TYPE('acdc_agent_listener', [self() | Args], 'transient')
-                  ,?WORKER_ARGS_TYPE('acdc_agent_fsm', [self() | Args], 'transient')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_ARGS_TYPE('acdc_agent_listener', [self() | Args], 'transient'),
+    ?WORKER_ARGS_TYPE('acdc_agent_fsm', [self() | Args], 'transient')
+]).
 
 %%%=============================================================================
 %%% API functions
@@ -38,11 +40,13 @@
 start_link(ThiefCall, QueueId) ->
     supervisor:start_link(?SERVER, [ThiefCall, QueueId]).
 
--spec start_link(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_types:startlink_ret().
+-spec start_link(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_types:startlink_ret().
 start_link(AcctId, AgentId, AgentJObj) ->
     supervisor:start_link(?SERVER, [AcctId, AgentId, AgentJObj]).
 
--spec start_link(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) -> kz_types:startlink_ret().
+-spec start_link(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) ->
+    kz_types:startlink_ret().
 start_link(AcctId, AgentId, AgentJObj, Queues) ->
     supervisor:start_link(?SERVER, [AcctId, AgentId, AgentJObj, Queues]).
 
@@ -62,20 +66,26 @@ status(Supervisor) ->
             ?PRINT("Agent Supervisor ~p is dead", [Supervisor])
     end.
 
--define(AGENT_INFO_FIELDS, kapps_config:get(?CONFIG_CAT, <<"agent_info_fields">>
-                                           ,[<<"first_name">>, <<"last_name">>, <<"username">>, <<"email">>]
-                                           )).
+-define(AGENT_INFO_FIELDS,
+    kapps_config:get(
+        ?CONFIG_CAT,
+        <<"agent_info_fields">>,
+        [<<"first_name">>, <<"last_name">>, <<"username">>, <<"email">>]
+    )
+).
 
 augment_status(Status, LPid) ->
     Fs = ?AGENT_INFO_FIELDS,
     [{F, acdc_agent_listener:agent_info(LPid, F)} || F <- Fs] ++ Status.
 
-print_status([]) -> 'ok';
-print_status([{_, 'undefined'}|T]) -> print_status(T);
-print_status([{K, V}|T]) when is_binary(V) ->
+print_status([]) ->
+    'ok';
+print_status([{_, 'undefined'} | T]) ->
+    print_status(T);
+print_status([{K, V} | T]) when is_binary(V) ->
     ?PRINT("  ~s: ~s", [K, V]),
     print_status(T);
-print_status([{K, V}|T]) ->
+print_status([{K, V} | T]) ->
     ?PRINT("  ~s: ~p", [K, V]),
     print_status(T).
 

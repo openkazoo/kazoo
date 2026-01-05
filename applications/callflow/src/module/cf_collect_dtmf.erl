@@ -52,7 +52,9 @@ handle(Data, Call) ->
         end,
     AlreadyCollected1 = truncate_after_terminator(AlreadyCollected, terminators(Data)),
 
-    maybe_collect_more_digits(Data, kapps_call:set_dtmf_collection('undefined', Call), AlreadyCollected1).
+    maybe_collect_more_digits(
+        Data, kapps_call:set_dtmf_collection('undefined', Call), AlreadyCollected1
+    ).
 
 -spec maybe_collect_more_digits(kz_json:object(), kapps_call:call(), binary()) -> 'ok'.
 maybe_collect_more_digits(Data, Call, AlreadyCollected) ->
@@ -62,7 +64,9 @@ maybe_collect_more_digits(Data, Call, AlreadyCollected) ->
     maybe_collect_more_digits(Data, Call, AlreadyCollected, AlreadyCollectedSize, MaxDigits),
     cf_exe:continue(Call).
 
--spec maybe_collect_more_digits(kz_json:object(), kapps_call:call(), binary(), non_neg_integer(), pos_integer()) -> 'ok'.
+-spec maybe_collect_more_digits(
+    kz_json:object(), kapps_call:call(), binary(), non_neg_integer(), pos_integer()
+) -> 'ok'.
 maybe_collect_more_digits(Data, Call, AlreadyCollected, ACS, Max) when ACS >= Max ->
     lager:debug("early DTMF met collection criteria, not collecting any more digits"),
     <<Head:Max/binary, _/binary>> = AlreadyCollected,
@@ -70,25 +74,29 @@ maybe_collect_more_digits(Data, Call, AlreadyCollected, ACS, Max) when ACS >= Ma
 
     cf_exe:set_call(kapps_call:set_dtmf_collection(Head, CollectionName, Call));
 maybe_collect_more_digits(Data, Call, AlreadyCollected, ACS, Max) ->
-    collect_more_digits(Data, Call, AlreadyCollected, Max-ACS).
+    collect_more_digits(Data, Call, AlreadyCollected, Max - ACS).
 
 -spec collect_more_digits(kz_json:object(), kapps_call:call(), binary(), pos_integer()) -> 'ok'.
 collect_more_digits(Data, Call, AlreadyCollected, MaxDigits) ->
-    case kapps_call_command:collect_digits(MaxDigits
-                                          ,collect_timeout(Data)
-                                          ,interdigit(Data)
-                                          ,'undefined'
-                                          ,terminators(Data)
-                                          ,Call
-                                          )
+    case
+        kapps_call_command:collect_digits(
+            MaxDigits,
+            collect_timeout(Data),
+            interdigit(Data),
+            'undefined',
+            terminators(Data),
+            Call
+        )
     of
         {'ok', Ds} ->
             CollectionName = collection_name(Data),
             lager:debug("collected ~s~s for ~s", [AlreadyCollected, Ds, CollectionName]),
 
             cf_exe:set_call(
-              kapps_call:set_dtmf_collection(<<AlreadyCollected/binary, Ds/binary>>, CollectionName, Call)
-             );
+                kapps_call:set_dtmf_collection(
+                    <<AlreadyCollected/binary, Ds/binary>>, CollectionName, Call
+                )
+            );
         {'error', _E} ->
             lager:debug("failed to collect DTMF: ~p", [_E])
     end.
@@ -99,11 +107,14 @@ truncate_after_terminator(AlreadyCollected, Terminators) ->
 
 -ifdef(TEST).
 truncate_after_terminator_test_() ->
-    [?_assertEqual(<<"1234">>, truncate_after_terminator(<<"1234#456#789">>, [<<"#">>, <<"*">>]))
-    ,?_assertEqual(<<"1234">>, truncate_after_terminator(<<"1234">>, [<<"#">>]))
-    ,?_assertEqual(<<"123">>, truncate_after_terminator(<<"123#">>, [<<"#">>, <<"*">>]))
-    ,?_assertEqual(<<"1">>, truncate_after_terminator(<<"1*2#3">>, [<<"#">>, <<"*">>]))
-    ,?_assertEqual(<<>>, truncate_after_terminator(<<"#234">>, [<<"#">>]))
+    [
+        ?_assertEqual(
+            <<"1234">>, truncate_after_terminator(<<"1234#456#789">>, [<<"#">>, <<"*">>])
+        ),
+        ?_assertEqual(<<"1234">>, truncate_after_terminator(<<"1234">>, [<<"#">>])),
+        ?_assertEqual(<<"123">>, truncate_after_terminator(<<"123#">>, [<<"#">>, <<"*">>])),
+        ?_assertEqual(<<"1">>, truncate_after_terminator(<<"1*2#3">>, [<<"#">>, <<"*">>])),
+        ?_assertEqual(<<>>, truncate_after_terminator(<<"#234">>, [<<"#">>]))
     ].
 -endif.
 
@@ -138,11 +149,12 @@ interdigit(Data) ->
 -spec terminators(kz_json:object()) -> kz_term:ne_binaries().
 terminators(Data) ->
     case kz_json:get_first_defined([<<"terminator">>, <<"terminators">>], Data) of
-        'undefined' -> [<<"#">>];
+        'undefined' ->
+            [<<"#">>];
         <<_/binary>> = T ->
             'true' = lists:member(T, ?ANY_DIGIT),
             [T];
-        [_|_] = Ts ->
+        [_ | _] = Ts ->
             'true' = lists:all(fun(T) -> lists:member(T, ?ANY_DIGIT) end, Ts),
             lists:usort(Ts)
     end.

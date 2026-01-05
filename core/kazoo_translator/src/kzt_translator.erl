@@ -8,42 +8,54 @@
 %%%-----------------------------------------------------------------------------
 -module(kzt_translator).
 
--export([exec/4
-        ,get_user_vars/1
-        ,set_user_vars/2
-        ]).
+-export([
+    exec/4,
+    get_user_vars/1,
+    set_user_vars/2
+]).
 
 -include("kzt.hrl").
 
 -spec exec(kz_term:ne_binary(), kapps_call:call(), binary(), kz_term:api_binary() | list()) ->
-          exec_return().
+    exec_return().
 exec(RequesterQ, Call, 'undefined', Cmds) ->
     exec(RequesterQ, Call, <<"text/xml">>, Cmds);
 exec(RequesterQ, Call, CT, Cmds) when not is_binary(CT) ->
     exec(RequesterQ, Call, kz_term:to_binary(CT), Cmds);
 exec(RequesterQ, Call, CT, Cmds) ->
-    case [{M, Cmd1} || M <- find_candidate_translators(just_the_type(CT)),
-                       begin {IsRecognized, Cmd1} = is_recognized(M, Cmds), IsRecognized end
-         ] of
-        [] -> throw({'error', 'unrecognized_cmds'});
-        [{Translator, Cmds1}|_] ->
+    case
+        [
+            {M, Cmd1}
+         || M <- find_candidate_translators(just_the_type(CT)),
+            begin
+                {IsRecognized, Cmd1} = is_recognized(M, Cmds),
+                IsRecognized
+            end
+        ]
+    of
+        [] ->
+            throw({'error', 'unrecognized_cmds'});
+        [{Translator, Cmds1} | _] ->
             _ = publish_processing(RequesterQ, Call),
             Translator:exec(Call, Cmds1)
     end.
 
 publish_processing(RequesterQ, Call) ->
     PubFun = fun(P) -> kapi_pivot:publish_processing(RequesterQ, P) end,
-    kz_amqp_worker:cast([{<<"Call-ID">>, kapps_call:call_id(Call)}
-                         | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                        ]
-                       ,PubFun
-                       ).
+    kz_amqp_worker:cast(
+        [
+            {<<"Call-ID">>, kapps_call:call_id(Call)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ],
+        PubFun
+    ).
 
 -spec just_the_type(kz_term:ne_binary()) -> kz_term:ne_binary().
 just_the_type(ContentType) ->
     case binary:split(ContentType, <<";">>) of
-        [ContentType] -> kz_binary:strip(ContentType);
-        [JustContentType | _Other]=L ->
+        [ContentType] ->
+            kz_binary:strip(ContentType);
+        [JustContentType | _Other] = L ->
             lager:debug("just using content type ~s, ignoring ~p", L),
             kz_binary:strip(JustContentType)
     end.
@@ -72,7 +84,7 @@ find_candidate_translators(_) ->
 -spec is_recognized(atom(), binary()) -> {boolean(), any()}.
 is_recognized(M, Cmds) ->
     case catch M:parse_cmds(Cmds) of
-        {'json', _Msg, _B, _A}=Err -> throw(Err);
+        {'json', _Msg, _B, _A} = Err -> throw(Err);
         {'error', _E} -> {'false', []};
         {'ok', Resp} -> {'true', Resp}
     end.

@@ -24,7 +24,9 @@
 -export([name/1, name/2, set_name/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
 -export([notifications_email/1, notifications_email/2, set_notifications_email/2]).
--export([notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2]).
+-export([
+    notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2
+]).
 -export([numbers/1, numbers/2, set_numbers/2]).
 -export([number/2, number/3, set_number/3]).
 -export([reference_number/1, reference_number/2, set_reference_number/2]).
@@ -47,7 +49,6 @@
 %% Utilities
 -export([get_transition/2]).
 -export([find_port_authority/1]).
-
 
 -include("kz_documents.hrl").
 
@@ -286,7 +287,9 @@ notifications_email_send_to(Doc, Default) ->
 
 -spec set_notifications_email_send_to(doc(), any()) -> doc().
 set_notifications_email_send_to(Doc, NotificationsEmailSendTo) ->
-    kz_json:set_value([<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc
+    ).
 
 -spec numbers(doc()) -> kz_term:api_object().
 numbers(Doc) ->
@@ -523,7 +526,8 @@ set_pvt_tranisitions(Doc, Transitions) ->
 -spec get_transition(doc(), kz_term:ne_binary()) -> kz_json:objects().
 get_transition(Doc, ToState) ->
     ToStatePath = [<<"transition">>, <<"new">>],
-    [Transition
+    [
+        Transition
      || Transition <- pvt_transitions(Doc, []),
         kz_json:get_ne_binary_value(ToStatePath, Transition) =:= ToState
     ].
@@ -571,7 +575,7 @@ find_port_authority(Doc) ->
     end.
 
 -spec find_port_authority(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
-          kz_term:api_binary().
+    kz_term:api_binary().
 find_port_authority(MasterAccountId, SubmittedAccountId, 'undefined') ->
     lager:debug("account id is undefined, checking master"),
     find_port_authority(MasterAccountId, SubmittedAccountId, MasterAccountId);
@@ -582,8 +586,10 @@ find_port_authority(MasterAccountId, SubmittedAccountId, AccountId) ->
     WhiteAuthority = kzd_whitelabel:fetch_port_authority(AccountId, 'undefined'),
     find_port_authority(MasterAccountId, SubmittedAccountId, AccountId, WhiteAuthority).
 
--spec find_port_authority(kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          kz_term:api_binary().
+-spec find_port_authority(
+    kz_term:api_ne_binary(), kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()
+) ->
+    kz_term:api_binary().
 find_port_authority(MasterAccountId, SubmittedAccountId, AccountId, 'undefined') ->
     ParentId = kzd_accounts:get_authoritative_parent_id(AccountId, MasterAccountId),
     lager:debug("no port authority key found for ~s, checking parent ~s", [AccountId, ParentId]),
@@ -596,9 +602,10 @@ find_port_authority(MasterAccountId, SubmittedAccountId, AccountId, 'undefined')
     end;
 find_port_authority(MasterAccountId, AccountId, AccountId, AccountId) ->
     ParentId = kzd_accounts:get_authoritative_parent_id(AccountId, MasterAccountId),
-    lager:debug("port authority is same as submitted account ~s, checking parent ~s port authority"
-               ,[AccountId, ParentId]
-               ),
+    lager:debug(
+        "port authority is same as submitted account ~s, checking parent ~s port authority",
+        [AccountId, ParentId]
+    ),
     case ParentId of
         AccountId ->
             lager:debug("reached to top level account"),

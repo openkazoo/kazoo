@@ -24,7 +24,9 @@
 -export([name/1, name/2, set_name/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
 -export([notifications_email/1, notifications_email/2, set_notifications_email/2]).
--export([notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2]).
+-export([
+    notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2
+]).
 -export([numbers/1, numbers/2, set_numbers/2]).
 -export([number/2, number/3, set_number/3]).
 -export([reference_number/1, reference_number/2, set_reference_number/2]).
@@ -32,7 +34,6 @@
 -export([signing_date/1, signing_date/2, set_signing_date/2]).
 -export([transfer_date/1, transfer_date/2, set_transfer_date/2]).
 -export([winning_carrier/1, winning_carrier/2, set_winning_carrier/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -271,7 +272,9 @@ notifications_email_send_to(Doc, Default) ->
 
 -spec set_notifications_email_send_to(doc(), any()) -> doc().
 set_notifications_email_send_to(Doc, NotificationsEmailSendTo) ->
-    kz_json:set_value([<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc
+    ).
 
 -spec numbers(doc()) -> kz_term:api_object().
 numbers(Doc) ->

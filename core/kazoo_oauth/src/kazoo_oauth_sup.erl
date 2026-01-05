@@ -14,8 +14,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('kazoo_oauth_maintenance')
-                  ]).
+-define(CHILDREN, [?WORKER('kazoo_oauth_maintenance')]).
 
 %%==============================================================================
 %% API functions

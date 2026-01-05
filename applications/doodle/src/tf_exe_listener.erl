@@ -13,14 +13,15 @@
 
 -export([tf_context/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("doodle.hrl").
 
@@ -52,16 +53,21 @@ tf_context() ->
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
-                           ,?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                            ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                            ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -81,9 +87,10 @@ init([]) ->
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('tf_context', _From, #{queue := Queue} = State) ->
-    Reply = #{channel => kz_amqp_channel:consumer_channel()
-             ,queue => Queue
-             },
+    Reply = #{
+        channel => kz_amqp_channel:consumer_channel(),
+        queue => Queue
+    },
     {'reply', Reply, State};
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.

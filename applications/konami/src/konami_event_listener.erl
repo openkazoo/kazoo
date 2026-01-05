@@ -6,94 +6,105 @@
 -module(konami_event_listener).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,add_call_binding/1, add_call_binding/2
-        ,rm_call_binding/1, rm_call_binding/2
-        ,add_konami_binding/1, rm_konami_binding/1
-        ,handle_call_event/2
-        ,handle_originate_event/2
-        ,handle_metaflow_req/2
-        ,handle_konami/2
-        ,queue_name/0
-        ,bindings/0, bindings/1
-        ,originate/1
+-export([
+    start_link/0,
+    add_call_binding/1, add_call_binding/2,
+    rm_call_binding/1, rm_call_binding/2,
+    add_konami_binding/1,
+    rm_konami_binding/1,
+    handle_call_event/2,
+    handle_originate_event/2,
+    handle_metaflow_req/2,
+    handle_konami/2,
+    queue_name/0,
+    bindings/0, bindings/1,
+    originate/1,
 
-        ,fsms/0, metaflows/0
-        ]).
+    fsms/0,
+    metaflows/0
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3,
 
-        ,cleanup_bindings/1
-        ]).
+    cleanup_bindings/1
+]).
 
 -include("konami.hrl").
 -include_lib("kazoo_events/include/kz_hooks.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {cleanup_ref :: reference()
-               }).
+-record(state, {cleanup_ref :: reference()}).
 -type state() :: #state{}.
 
--define(CLEANUP_TIMEOUT
-       ,kapps_config:get_integer(?APP_NAME, <<"event_cleanup_timeout_ms">>, ?MILLISECONDS_IN_HOUR)
-       ).
+-define(CLEANUP_TIMEOUT,
+    kapps_config:get_integer(?APP_NAME, <<"event_cleanup_timeout_ms">>, ?MILLISECONDS_IN_HOUR)
+).
 
 %% By convention, we put the options here in macros, but not required.
 -define(BINDINGS, [{'self', []}]).
--define(RESPONDERS, [{{?MODULE, 'handle_call_event'}
-                     ,[{<<"call_event">>, <<"*">>}
-                      ,{<<"error">>, <<"*">>}
-                      ]
-                     }
-                    ,{{?MODULE, 'handle_originate_event'}
-                     ,[{<<"resource">>, <<"*">>}
-                      ,{<<"error">>, <<"*">>}
-                      ]
-                     }
-                    ,{{?MODULE, 'handle_metaflow_req'}
-                     ,[{<<"metaflow">>, <<"action">>}]
-                     }
-                    ,{{?MODULE, 'handle_konami'}
-                     ,[{?APP_NAME, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [
+    {{?MODULE, 'handle_call_event'}, [
+        {<<"call_event">>, <<"*">>},
+        {<<"error">>, <<"*">>}
+    ]},
+    {{?MODULE, 'handle_originate_event'}, [
+        {<<"resource">>, <<"*">>},
+        {<<"error">>, <<"*">>}
+    ]},
+    {{?MODULE, 'handle_metaflow_req'}, [{<<"metaflow">>, <<"action">>}]},
+    {{?MODULE, 'handle_konami'}, [{?APP_NAME, <<"*">>}]}
+]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
 
--define(TRACKED_CALL_EVENTS, [<<"CHANNEL_ANSWER">>
-                             ,<<"CHANNEL_BRIDGE">>
-                             ,<<"CHANNEL_DESTROY">>
-                             ,<<"CHANNEL_REPLACED">>
-                             ,<<"CHANNEL_TRANSFEREE">>
-                             ,<<"DTMF">>
-                             ]).
+-define(TRACKED_CALL_EVENTS, [
+    <<"CHANNEL_ANSWER">>,
+    <<"CHANNEL_BRIDGE">>,
+    <<"CHANNEL_DESTROY">>,
+    <<"CHANNEL_REPLACED">>,
+    <<"CHANNEL_TRANSFEREE">>,
+    <<"DTMF">>
+]).
 
--define(DYN_BINDINGS(CallId), 'call', [{'restrict_to', ?TRACKED_CALL_EVENTS}
-                                      ,{'callid', CallId}
-                                      ]
-       ).
--define(DYN_BINDINGS(CallId, Events), 'call', [{'restrict_to', Events}
-                                              ,{'callid', CallId}
-                                              ]
-       ).
--define(META_BINDINGS(CallId), 'metaflow', [{'callid', CallId}
-                                           ,{'action', <<"*">>}
-                                           ,{'restrict_to', ['action']}
-                                           ,'federate'
-                                           ]
-       ).
--define(KONAMI_BINDINGS(CallId), 'konami', [{'callid', CallId}
-                                           ,{'restrict_to', ['transferred']}
-                                           ]
-       ).
+-define(DYN_BINDINGS(CallId),
+    'call',
+    [
+        {'restrict_to', ?TRACKED_CALL_EVENTS},
+        {'callid', CallId}
+    ]
+).
+-define(DYN_BINDINGS(CallId, Events),
+    'call',
+    [
+        {'restrict_to', Events},
+        {'callid', CallId}
+    ]
+).
+-define(META_BINDINGS(CallId),
+    'metaflow',
+    [
+        {'callid', CallId},
+        {'action', <<"*">>},
+        {'restrict_to', ['action']},
+        'federate'
+    ]
+).
+-define(KONAMI_BINDINGS(CallId),
+    'konami',
+    [
+        {'callid', CallId},
+        {'restrict_to', ['transferred']}
+    ]
+).
 -define(KONAMI_REG(CallId), {'p', 'l', {'konami_event', CallId}}).
 
 %%%=============================================================================
@@ -106,42 +117,51 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
-                           ,?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                            ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                            ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 -spec bindings() -> [{kz_term:ne_binary(), kz_term:atoms() | kz_term:ne_binaries()}].
 bindings() ->
-    [{props:get_value('callid', Props), props:get_value('restrict_to', Props)}
+    [
+        {props:get_value('callid', Props), props:get_value('restrict_to', Props)}
      || {'call', Props} <- gen_listener:bindings(?SERVER)
     ].
 
--spec bindings(kz_term:ne_binary()) -> [{kz_term:ne_binary(), kz_term:atoms() | kz_term:ne_binaries()}].
+-spec bindings(kz_term:ne_binary()) ->
+    [{kz_term:ne_binary(), kz_term:atoms() | kz_term:ne_binaries()}].
 bindings(CallId) ->
-    [{CallId, props:get_value('restrict_to', Props)}
+    [
+        {CallId, props:get_value('restrict_to', Props)}
      || {'call', Props} <- gen_listener:bindings(?SERVER),
         props:get_value('callid', Props) =:= CallId
     ].
 
 -spec add_konami_binding(kz_term:api_binary()) -> 'ok'.
 add_konami_binding('undefined') -> 'ok';
-add_konami_binding(CallId) ->
-    gen_listener:add_binding(?SERVER, ?KONAMI_BINDINGS(CallId)).
+add_konami_binding(CallId) -> gen_listener:add_binding(?SERVER, ?KONAMI_BINDINGS(CallId)).
 
 -spec rm_konami_binding(kz_term:api_binary()) -> 'ok'.
-rm_konami_binding('undefined') -> 'ok';
+rm_konami_binding('undefined') ->
+    'ok';
 rm_konami_binding(<<_/binary>> = CallId) ->
     gen_listener:rm_binding(?SERVER, ?KONAMI_BINDINGS(CallId)).
 
 -spec add_call_binding(kz_term:api_ne_binary() | kapps_call:call()) -> 'ok'.
-add_call_binding('undefined') -> 'ok';
+add_call_binding('undefined') ->
+    'ok';
 add_call_binding(CallId) when is_binary(CallId) ->
     lager:debug("add fsm binding for call ~s: ~p", [CallId, ?TRACKED_CALL_EVENTS]),
     catch gproc:reg(?KONAMI_REG({'fsm', CallId})),
@@ -152,8 +172,11 @@ add_call_binding(Call) ->
     catch gproc:reg(?KONAMI_REG({'fsm', kapps_call:account_id(Call)})),
     add_call_binding(kapps_call:call_id_direct(Call)).
 
--spec add_call_binding(kz_term:api_ne_binary() | kapps_call:call(), kz_term:ne_binaries() | kz_term:atoms()) -> 'ok'.
-add_call_binding('undefined', _) -> 'ok';
+-spec add_call_binding(
+    kz_term:api_ne_binary() | kapps_call:call(), kz_term:ne_binaries() | kz_term:atoms()
+) -> 'ok'.
+add_call_binding('undefined', _) ->
+    'ok';
 add_call_binding(CallId, Events) when is_binary(CallId) ->
     lager:debug("add pid binding for call ~s: ~p", [CallId, Events]),
     catch gproc:reg(?KONAMI_REG({'pid', CallId})),
@@ -165,7 +188,8 @@ add_call_binding(Call, Events) ->
     add_call_binding(kapps_call:call_id_direct(Call), Events).
 
 -spec rm_call_binding(kz_term:api_ne_binary() | kapps_call:call()) -> 'ok'.
-rm_call_binding('undefined') -> 'ok';
+rm_call_binding('undefined') ->
+    'ok';
 rm_call_binding(CallId) ->
     catch gproc:unreg(?KONAMI_REG({'fsm', CallId})),
     case call_has_listeners(CallId) of
@@ -174,7 +198,8 @@ rm_call_binding(CallId) ->
     end.
 
 -spec rm_call_binding(kz_term:api_binary(), kz_term:ne_binaries()) -> 'ok'.
-rm_call_binding('undefined', _Evts) -> 'ok';
+rm_call_binding('undefined', _Evts) ->
+    'ok';
 rm_call_binding(CallId, Events) ->
     catch gproc:unreg(?KONAMI_REG({'pid', CallId})),
     case call_has_listeners(CallId) of
@@ -204,8 +229,9 @@ really_remove_call_bindings(CallId, Events) ->
 
 -spec handle_call_event(kz_json:object(), kz_term:proplist()) -> any().
 handle_call_event(JObj, Props) ->
-    'true' = kapi_call:event_v(JObj)
-        orelse kapi_dialplan:error_v(JObj),
+    'true' =
+        kapi_call:event_v(JObj) orelse
+            kapi_dialplan:error_v(JObj),
     kz_util:put_callid(JObj),
     handle_call_event(JObj, Props, kz_call_event:event_name(JObj)).
 
@@ -231,13 +257,16 @@ handle_metaflow_req(JObj, _Props) ->
 
     CallId = kz_call_event:call_id(JObj),
     Evt = kz_json:from_list(
-            [{<<"module">>, kz_json:get_value(<<"Action">>, JObj)}
-            ,{<<"data">>, kz_json:set_value(<<"dtmf_leg">>
-                                           ,CallId
-                                           ,kz_json:get_value(<<"Data">>, JObj, kz_json:new())
-                                           )
-             }
-            ]),
+        [
+            {<<"module">>, kz_json:get_value(<<"Action">>, JObj)},
+            {<<"data">>,
+                kz_json:set_value(
+                    <<"dtmf_leg">>,
+                    CallId,
+                    kz_json:get_value(<<"Data">>, JObj, kz_json:new())
+                )}
+        ]
+    ),
     relay_to_fsm(CallId, <<"metaflow_exe">>, Evt).
 
 -spec handle_konami(kz_json:object(), kz_term:proplist()) -> 'ok'.
@@ -255,12 +284,14 @@ queue_name() -> gen_listener:queue_name(?SERVER).
 
 -spec relay_to_fsms(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> any().
 relay_to_fsms(CallId, Event, JObj) ->
-    [konami_code_statem:event(FSM, CallId, Event, JObj)
+    [
+        konami_code_statem:event(FSM, CallId, Event, JObj)
      || FSM <- fsms_for_callid(CallId)
     ].
 
 -spec fsms_for_callid(kz_term:api_ne_binary() | '_') -> kz_term:pids().
-fsms_for_callid('undefined') -> [];
+fsms_for_callid('undefined') ->
+    [];
 fsms_for_callid(CallId) ->
     %% {{'p', 'l', Key}, PidToMatch, ValueToMatch}
     MatchHead = {?KONAMI_REG({'fsm', CallId}), '$1', '_'},
@@ -284,10 +315,11 @@ relay_to_fsm(CallId, Event, JObj) ->
 
 -spec relay_to_pids(kz_term:ne_binary(), kz_json:object()) -> any().
 relay_to_pids(CallId, JObj) ->
-    [begin
-         kapps_call_command:relay_event(Pid, JObj),
-         lager:debug("relaying ~p to ~p", [kz_util:get_event_type(JObj), Pid])
-     end
+    [
+        begin
+            kapps_call_command:relay_event(Pid, JObj),
+            lager:debug("relaying ~p to ~p", [kz_util:get_event_type(JObj), Pid])
+        end
      || Pid <- pids_for_callid(CallId)
     ].
 
@@ -313,7 +345,7 @@ originate(Req) ->
 %%------------------------------------------------------------------------------
 -spec init([]) -> {'ok', state()}.
 init([]) ->
-    {'ok', #state{cleanup_ref=cleanup_timer()}}.
+    {'ok', #state{cleanup_ref = cleanup_timer()}}.
 
 cleanup_timer() ->
     erlang:start_timer(?CLEANUP_TIMEOUT, self(), 'ok').
@@ -354,9 +386,9 @@ handle_cast(_Msg, State) ->
 handle_info(?HOOK_EVT(AccountId, <<"CHANNEL_ANSWER">> = EventName, Event), State) ->
     _ = relay_to_fsms(AccountId, EventName, Event),
     {'noreply', State};
-handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref=Ref}=State) ->
+handle_info({'timeout', Ref, _Msg}, #state{cleanup_ref = Ref} = State) ->
     _P = kz_util:spawn(fun cleanup_bindings/1, [self()]),
-    {'noreply', State#state{cleanup_ref=cleanup_timer()}};
+    {'noreply', State#state{cleanup_ref = cleanup_timer()}};
 handle_info(_Info, State) ->
     {'noreply', State}.
 
@@ -402,17 +434,22 @@ cleanup_bindings(Srv) ->
     cleanup_bindings(Srv, gen_listener:bindings(Srv)).
 
 -spec cleanup_bindings(kz_types:server_ref(), gen_listener:bindings()) -> 'ok'.
-cleanup_bindings(_Srv, []) -> 'ok';
-cleanup_bindings(Srv, [{Binding, Props}|Bindings]) ->
+cleanup_bindings(_Srv, []) ->
+    'ok';
+cleanup_bindings(Srv, [{Binding, Props} | Bindings]) ->
     maybe_remove_binding(Srv, Binding, Props, props:get_value('callid', Props)),
     cleanup_bindings(Srv, Bindings).
 
--spec maybe_remove_binding(kz_types:server_ref(), atom(), kz_term:proplist(), kz_term:api_binary()) -> 'ok'.
-maybe_remove_binding(_Srv, _Binding, _Props, 'undefined') -> 'ok';
+-spec maybe_remove_binding(kz_types:server_ref(), atom(), kz_term:proplist(), kz_term:api_binary()) ->
+    'ok'.
+maybe_remove_binding(_Srv, _Binding, _Props, 'undefined') ->
+    'ok';
 maybe_remove_binding(Srv, Binding, Props, CallId) ->
     case {fsms_for_callid(CallId), pids_for_callid(CallId)} of
         {[], []} ->
-            lager:debug("~p: no pids for call-id '~s', removing binding '~s'", [Srv, CallId, Binding]),
+            lager:debug("~p: no pids for call-id '~s', removing binding '~s'", [
+                Srv, CallId, Binding
+            ]),
             gen_listener:rm_binding(Srv, Binding, Props);
         {_FSMs, _Pids} ->
             lager:debug("binding ~p still has FSMs: ~p and pids: ~p", [Binding, _FSMs, _Pids])

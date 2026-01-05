@@ -14,7 +14,6 @@
 -export([patterns/1, patterns/2, set_patterns/2]).
 -export([pattern/2, pattern/3, set_pattern/3]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

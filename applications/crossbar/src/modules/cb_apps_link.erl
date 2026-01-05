@@ -7,12 +7,13 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_apps_link).
 
--export([init/0
-        ,authorize/1
-        ,allowed_methods/1
-        ,resource_exists/1
-        ,validate/2
-        ]).
+-export([
+    init/0,
+    authorize/1,
+    allowed_methods/1,
+    resource_exists/1,
+    validate/2
+]).
 
 -include("crossbar.hrl").
 
@@ -71,7 +72,6 @@ allowed_methods(?AUTHORIZE) ->
 -spec resource_exists(path_token()) -> 'true'.
 resource_exists(?AUTHORIZE) -> 'true'.
 
-
 %%------------------------------------------------------------------------------
 %% @doc Check the request (request body, query string params, path tokens, etc)
 %% and load necessary information.
@@ -83,9 +83,11 @@ resource_exists(?AUTHORIZE) -> 'true'.
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
 validate(Context, ?AUTHORIZE) ->
     JObj = kz_json:from_list(
-             [{<<"auth_token">>, auth_info(Context)}
-             ,{<<"account">>, account_info(Context)}
-             ]),
+        [
+            {<<"auth_token">>, auth_info(Context)},
+            {<<"account">>, account_info(Context)}
+        ]
+    ),
     crossbar_util:response(JObj, Context).
 
 -spec account_info(cb_context:context()) -> kz_json:object().
@@ -93,13 +95,15 @@ account_info(Context) ->
     AccountId = get_request_account(Context),
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     kz_json:from_list(
-      [{<<"account_id">>, AccountId}
-      ,{<<"account_name">>, kzd_accounts:fetch_name(AccountId)}
-      ,{<<"language">>, crossbar_util:get_language(AccountId)}
-      ,{<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
-      ,{<<"reseller_id">>, kz_services_reseller:get_id(AccountId)}
-      ,{<<"is_master">>, AccountId =:= MasterAccountId}
-      ]).
+        [
+            {<<"account_id">>, AccountId},
+            {<<"account_name">>, kzd_accounts:fetch_name(AccountId)},
+            {<<"language">>, crossbar_util:get_language(AccountId)},
+            {<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)},
+            {<<"reseller_id">>, kz_services_reseller:get_id(AccountId)},
+            {<<"is_master">>, AccountId =:= MasterAccountId}
+        ]
+    ).
 
 -spec auth_info(cb_context:context()) -> kz_json:object().
 auth_info(Context) ->
@@ -108,17 +112,19 @@ auth_info(Context) ->
     OwnerId = kz_json:get_value(<<"owner_id">>, JObj),
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
     kz_json:from_list(
-      [{<<"account_id">>, AccountId}
-      ,{<<"owner_id">>, OwnerId}
-      ,{<<"account_name">>, kzd_accounts:fetch_name(AccountId)}
-      ,{<<"method">>, kz_json:get_value(<<"method">>, JObj)}
-      ,{<<"created">>, kz_doc:created(JObj)}
-      ,{<<"language">>, crossbar_util:get_language(AccountId, OwnerId)}
-      ,{<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
-      ,{<<"reseller_id">>, kz_services_reseller:get_id(AccountId)}
-      ,{<<"apps">>, crossbar_util:load_apps(AccountId, OwnerId)}
-      ,{<<"is_master">>, AccountId =:= MasterAccountId}
-      ]).
+        [
+            {<<"account_id">>, AccountId},
+            {<<"owner_id">>, OwnerId},
+            {<<"account_name">>, kzd_accounts:fetch_name(AccountId)},
+            {<<"method">>, kz_json:get_value(<<"method">>, JObj)},
+            {<<"created">>, kz_doc:created(JObj)},
+            {<<"language">>, crossbar_util:get_language(AccountId, OwnerId)},
+            {<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)},
+            {<<"reseller_id">>, kz_services_reseller:get_id(AccountId)},
+            {<<"apps">>, crossbar_util:load_apps(AccountId, OwnerId)},
+            {<<"is_master">>, AccountId =:= MasterAccountId}
+        ]
+    ).
 
 -spec get_request_account(cb_context:context()) -> kz_term:ne_binary().
 get_request_account(Context) ->

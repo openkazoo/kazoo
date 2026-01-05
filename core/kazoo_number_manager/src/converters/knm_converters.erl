@@ -8,16 +8,21 @@
 
 -include("knm.hrl").
 
--export([normalize/1, normalize/2, normalize/3
-        ,is_normalized/1
-        ,is_npan/1, to_npan/1
-        ,is_1npan/1, to_1npan/1
-        ,to_db/1
-        ,is_reconcilable/1, is_reconcilable/2, are_reconcilable/1
-        ,classify/1, available_classifiers/0
-        ,available_converters/0
-        ,default_converter/0
-        ]).
+-export([
+    normalize/1, normalize/2, normalize/3,
+    is_normalized/1,
+    is_npan/1,
+    to_npan/1,
+    is_1npan/1,
+    to_1npan/1,
+    to_db/1,
+    is_reconcilable/1, is_reconcilable/2,
+    are_reconcilable/1,
+    classify/1,
+    available_classifiers/0,
+    available_converters/0,
+    default_converter/0
+]).
 
 -ifdef(TEST).
 -export([available_classifiers/1]).
@@ -30,69 +35,88 @@
 -define(KEY_RECONCILE_REGEX, <<"reconcile_regex">>).
 
 -define(CLASSIFIER_TOLLFREE_US,
-        kz_json:from_list([{<<"regex">>, <<"^\\+1((?:800|88\\d|877|866|855|844|833|822)\\d{7})\$">>}
-                          ,{<<"friendly_name">>, <<"US TollFree">>}
-                          ,{<<"pretty_print">>, <<"SS(###) ### - ####">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^\\+1((?:800|88\\d|877|866|855|844|833|822)\\d{7})\$">>},
+        {<<"friendly_name">>, <<"US TollFree">>},
+        {<<"pretty_print">>, <<"SS(###) ### - ####">>}
+    ])
+).
 
 -define(CLASSIFIER_TOLL_US,
-        kz_json:from_list([{<<"regex">>, <<"^\\+1(900\\d{7})\$">>}
-                          ,{<<"friendly_name">>, <<"US Toll">>}
-                          ,{<<"pretty_print">>, <<"SS(###) ### - ####">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^\\+1(900\\d{7})\$">>},
+        {<<"friendly_name">>, <<"US Toll">>},
+        {<<"pretty_print">>, <<"SS(###) ### - ####">>}
+    ])
+).
 
 -define(CLASSIFIER_EMERGENCY,
-        kz_json:from_list([{<<"regex">>, <<"^(911|922|933|988|833|811|711|999)\$">>}
-                          ,{<<"emergency">>, 'true'}
-                          ,{<<"friendly_name">>, <<"Emergency Dispatcher">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^(911|922|933|988|833|811|711|999)\$">>},
+        {<<"emergency">>, 'true'},
+        {<<"friendly_name">>, <<"Emergency Dispatcher">>}
+    ])
+).
 
 -define(CLASSIFIER_CARIBBEAN,
-        kz_json:from_list([{<<"regex">>, <<"^\\+?1((?:684|264|268|242|246|441|284|345|767|809|829|849|473|671|876|664|670|787|939|869|758|784|721|868|649|340)\\d{7})\$">>}
-                          ,{<<"friendly_name">>, <<"Caribbean">>}
-                          ,{<<"pretty_print">>, <<"SS(###) ### - ####">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>,
+            <<"^\\+?1((?:684|264|268|242|246|441|284|345|767|809|829|849|473|671|876|664|670|787|939|869|758|784|721|868|649|340)\\d{7})\$">>},
+        {<<"friendly_name">>, <<"Caribbean">>},
+        {<<"pretty_print">>, <<"SS(###) ### - ####">>}
+    ])
+).
 
 -define(CLASSIFIER_DID_US,
-        kz_json:from_list([{<<"regex">>, <<"^(\\+?1)?([2-9][0-9]{2}[2-9][0-9]{6})\$">>}
-                          ,{<<"friendly_name">>, <<"US DID">>}
-                          ,{<<"pretty_print">>, <<"SS(###) ### - ####">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^(\\+?1)?([2-9][0-9]{2}[2-9][0-9]{6})\$">>},
+        {<<"friendly_name">>, <<"US DID">>},
+        {<<"pretty_print">>, <<"SS(###) ### - ####">>}
+    ])
+).
 
 -define(CLASSIFIER_INTERNATIONAL,
-        kz_json:from_list([{<<"regex">>, <<"^\\+([2-9]\\d{7,})\$">>}
-                          ,{<<"friendly_name">>, <<"International">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^\\+([2-9]\\d{7,})\$">>},
+        {<<"friendly_name">>, <<"International">>}
+    ])
+).
 
 -define(CLASSIFIER_UNKNOWN,
-        kz_json:from_list([{<<"regex">>, <<"^(.*)\$">>}
-                          ,{<<"friendly_name">>, <<"Unknown">>}
-                          ])).
+    kz_json:from_list([
+        {<<"regex">>, <<"^(.*)\$">>},
+        {<<"friendly_name">>, <<"Unknown">>}
+    ])
+).
 
 -define(DEFAULT_CLASSIFIERS,
-        kz_json:from_list([{<<"tollfree_us">>, ?CLASSIFIER_TOLLFREE_US}
-                          ,{<<"toll_us">>, ?CLASSIFIER_TOLL_US}
-                          ,{<<"emergency">>, ?CLASSIFIER_EMERGENCY}
-                          ,{<<"caribbean">>, ?CLASSIFIER_CARIBBEAN}
-                          ,{<<"did_us">>, ?CLASSIFIER_DID_US}
-                          ,{<<"international">>, ?CLASSIFIER_INTERNATIONAL}
-                          ,{<<"unknown">>, ?CLASSIFIER_UNKNOWN}
-                          ])).
+    kz_json:from_list([
+        {<<"tollfree_us">>, ?CLASSIFIER_TOLLFREE_US},
+        {<<"toll_us">>, ?CLASSIFIER_TOLL_US},
+        {<<"emergency">>, ?CLASSIFIER_EMERGENCY},
+        {<<"caribbean">>, ?CLASSIFIER_CARIBBEAN},
+        {<<"did_us">>, ?CLASSIFIER_DID_US},
+        {<<"international">>, ?CLASSIFIER_INTERNATIONAL},
+        {<<"unknown">>, ?CLASSIFIER_UNKNOWN}
+    ])
+).
 
--define(DEFAULT_CONVERTER
-       ,kapps_config:get_ne_binary(?KNM_CONFIG_CAT, <<"converter">>, ?DEFAULT_CONVERTER_B)
-       ).
--define(RECONCILE_REGEX
-       ,kapps_config:get_ne_binary(?KNM_CONFIG_CAT, ?KEY_RECONCILE_REGEX, ?DEFAULT_RECONCILE_REGEX)
-       ).
+-define(DEFAULT_CONVERTER,
+    kapps_config:get_ne_binary(?KNM_CONFIG_CAT, <<"converter">>, ?DEFAULT_CONVERTER_B)
+).
+-define(RECONCILE_REGEX,
+    kapps_config:get_ne_binary(?KNM_CONFIG_CAT, ?KEY_RECONCILE_REGEX, ?DEFAULT_RECONCILE_REGEX)
+).
 
--define(CLASSIFIERS
-       ,kapps_config:get_json(?KNM_CONFIG_CAT, <<"classifiers">>, ?DEFAULT_CLASSIFIERS)
-       ).
+-define(CLASSIFIERS,
+    kapps_config:get_json(?KNM_CONFIG_CAT, <<"classifiers">>, ?DEFAULT_CLASSIFIERS)
+).
 
--define(RECONCILE_REGEX(AccountId)
-       ,kapps_account_config:get_global(AccountId, ?KNM_CONFIG_CAT, ?KEY_RECONCILE_REGEX, ?DEFAULT_RECONCILE_REGEX)
-       ).
+-define(RECONCILE_REGEX(AccountId),
+    kapps_account_config:get_global(
+        AccountId, ?KNM_CONFIG_CAT, ?KEY_RECONCILE_REGEX, ?DEFAULT_RECONCILE_REGEX
+    )
+).
 
 -define(CONVERTER_MOD, kz_term:to_atom(<<"knm_converter_", (?DEFAULT_CONVERTER)/binary>>, 'true')).
 
@@ -100,33 +124,40 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize(kz_term:ne_binary()) -> kz_term:ne_binary();
-               (kz_term:ne_binaries()) -> kz_term:ne_binaries().
-normalize(Num=?NE_BINARY) ->
+-spec normalize
+    (kz_term:ne_binary()) -> kz_term:ne_binary();
+    (kz_term:ne_binaries()) -> kz_term:ne_binaries().
+normalize(Num = ?NE_BINARY) ->
     (?CONVERTER_MOD):normalize(Num);
-normalize(Nums)
-  when is_list(Nums) ->
+normalize(Nums) when
+    is_list(Nums)
+->
     [normalize(Num) || Num <- Nums].
 
--spec normalize(kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binary();
-               (kz_term:ne_binaries(), kz_term:api_ne_binary()) -> kz_term:ne_binaries().
-normalize(Num=?NE_BINARY, 'undefined') ->
+-spec normalize
+    (kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_term:ne_binary();
+    (kz_term:ne_binaries(), kz_term:api_ne_binary()) -> kz_term:ne_binaries().
+normalize(Num = ?NE_BINARY, 'undefined') ->
     normalize(Num);
-normalize(Num=?NE_BINARY, AccountId) ->
+normalize(Num = ?NE_BINARY, AccountId) ->
     (?CONVERTER_MOD):normalize(Num, AccountId);
-normalize(Nums, 'undefined')
-  when is_list(Nums) ->
+normalize(Nums, 'undefined') when
+    is_list(Nums)
+->
     normalize(Nums);
-normalize(Nums, AccountId)
-  when is_list(Nums) ->
+normalize(Nums, AccountId) when
+    is_list(Nums)
+->
     [normalize(Num, AccountId) || Num <- Nums].
 
--spec normalize(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binary();
-               (kz_term:ne_binaries(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binaries().
-normalize(Num=?NE_BINARY, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan) ->
+-spec normalize
+    (kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binary();
+    (kz_term:ne_binaries(), kz_term:ne_binary(), kz_json:object()) -> kz_term:ne_binaries().
+normalize(Num = ?NE_BINARY, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan) ->
     (?CONVERTER_MOD):normalize(Num, AccountId, DialPlan);
-normalize(Nums, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan)
-  when is_list(Nums) ->
+normalize(Nums, ?MATCH_ACCOUNT_RAW(AccountId), DialPlan) when
+    is_list(Nums)
+->
     [normalize(Num, AccountId, DialPlan) || Num <- Nums].
 
 %%------------------------------------------------------------------------------
@@ -173,10 +204,11 @@ to_1npan(Num) ->
 %% @doc Given a number determine the database name it belongs to..
 %% @end
 %%------------------------------------------------------------------------------
--spec to_db(<<_:40,_:_*8>>) -> kz_term:api_binary().
+-spec to_db(<<_:40, _:_*8>>) -> kz_term:api_binary().
 to_db(<<NumPrefix:5/binary, _/binary>>) ->
     kz_http_util:urlencode(<<?KNM_DB_PREFIX, NumPrefix/binary>>);
-to_db(_) -> 'undefined'.
+to_db(_) ->
+    'undefined'.
 
 %%------------------------------------------------------------------------------
 %% @doc Returns `{Reconcilables, NotReconcilables}'.
@@ -205,9 +237,9 @@ is_reconcilable_by_regex(Num, Regex) ->
         'nomatch' ->
             lager:debug("number '~s' is not reconcilable", [Num]),
             'false';
-        _ -> 'true'
+        _ ->
+            'true'
     end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -253,13 +285,15 @@ default_converter() -> ?CONVERTER_MOD.
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec classify_number(kz_term:ne_binary(), kz_term:proplist() | kz_term:ne_binary()) -> kz_term:api_binary().
+-spec classify_number(kz_term:ne_binary(), kz_term:proplist() | kz_term:ne_binary()) ->
+    kz_term:api_binary().
 classify_number(Num, []) ->
     lager:debug("unable to classify number ~s", [Num]),
     'undefined';
-classify_number(Num, [{Classification, Classifier}|Classifiers]) ->
+classify_number(Num, [{Classification, Classifier} | Classifiers]) ->
     case re:run(Num, get_classifier_regex(Classifier)) of
-        'nomatch' -> classify_number(Num, Classifiers);
+        'nomatch' ->
+            classify_number(Num, Classifiers);
         _ ->
             lager:debug("number '~s' is classified as ~s", [Num, Classification]),
             kz_term:to_binary(Classification)
@@ -280,16 +314,19 @@ get_classifier_regex(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec correct_depreciated_classifiers(kz_json:key(), kz_json:json_term(), kz_json:object()) ->
-                                                 kz_json:object().
+    kz_json:object().
 correct_depreciated_classifiers(ClassifierName, <<Regex/binary>>, CorrectedClassifiers) ->
-    ClassifierSettings = kz_json:from_list([{<<"regex">>, Regex}
-                                           ,{<<"friendly_name">>, ClassifierName}
-                                           ]),
+    ClassifierSettings = kz_json:from_list([
+        {<<"regex">>, Regex},
+        {<<"friendly_name">>, ClassifierName}
+    ]),
     kz_json:set_value(ClassifierName, ClassifierSettings, CorrectedClassifiers);
 correct_depreciated_classifiers(ClassifierName, ClassifierSettings, CorrectedClassifiers) ->
     case kz_json:get_value(<<"friendly_name">>, ClassifierSettings) of
         'undefined' ->
-            UpdatedSettings = kz_json:set_value(<<"friendly_name">>, ClassifierName, ClassifierSettings),
+            UpdatedSettings = kz_json:set_value(
+                <<"friendly_name">>, ClassifierName, ClassifierSettings
+            ),
             kz_json:set_value(ClassifierName, UpdatedSettings, CorrectedClassifiers);
         _Else ->
             kz_json:set_value(ClassifierName, ClassifierSettings, CorrectedClassifiers)

@@ -6,17 +6,19 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_config).
 
--export([get/1, get/2, get/3
-        ,get_atom/2, get_atom/3
-        ,get_boolean/2, get_boolean/3
-        ,get_integer/2, get_integer/3
-        ,get_string/2, get_string/3
-        ,get_raw_string/2, get_raw_string/3
-        ,get_node_section_name/0
-        ,set/3, unset/2
-        ,get_section/1
-        ,zone/0, zone/1
-        ]).
+-export([
+    get/1, get/2, get/3,
+    get_atom/2, get_atom/3,
+    get_boolean/2, get_boolean/3,
+    get_integer/2, get_integer/3,
+    get_string/2, get_string/3,
+    get_raw_string/2, get_raw_string/3,
+    get_node_section_name/0,
+    set/3,
+    unset/2,
+    get_section/1,
+    zone/0, zone/1
+]).
 
 -include("kazoo_config.hrl").
 
@@ -43,18 +45,16 @@ get(Section, Key, Default) ->
 %% @doc Return values of the config file
 %% @end
 %%------------------------------------------------------------------------------
--spec get_atom(section(), atom()) -> [atom(),...] | ?DEFAULT_DEFAULTS.
+-spec get_atom(section(), atom()) -> [atom(), ...] | ?DEFAULT_DEFAULTS.
 get_atom(Section, Key) ->
     get_atom(Section, Key, ?DEFAULT_DEFAULTS).
 
--spec get_atom(section(), atom(), Default) -> [atom(),...] | Default.
+-spec get_atom(section(), atom(), Default) -> [atom(), ...] | Default.
 get_atom(Section, Key, Default) ->
     case get(Section, Key, Default) of
         Default -> Default;
-        [_|_]=Values ->
-            [kz_term:to_atom(Value, 'true') || Value <- Values];
-        Value ->
-            [kz_term:to_atom(Value, 'true')]
+        [_ | _] = Values -> [kz_term:to_atom(Value, 'true') || Value <- Values];
+        Value -> [kz_term:to_atom(Value, 'true')]
     end.
 
 -spec get_boolean(section(), atom()) -> boolean().
@@ -72,15 +72,15 @@ get_boolean(Section, Key, Default) ->
 %% @doc Return values of the config file
 %% @end
 %%------------------------------------------------------------------------------
--spec get_integer(section(), atom()) -> [integer(),...] | ?DEFAULT_DEFAULTS.
+-spec get_integer(section(), atom()) -> [integer(), ...] | ?DEFAULT_DEFAULTS.
 get_integer(Section, Key) ->
     get_integer(Section, Key, ?DEFAULT_DEFAULTS).
 
--spec get_integer(section(), atom(), Default) -> [integer(),...] | Default.
+-spec get_integer(section(), atom(), Default) -> [integer(), ...] | Default.
 get_integer(Section, Key, Default) ->
     case get(Section, Key, Default) of
         Default -> Default;
-        [_|_]=Values -> [kz_term:to_integer(Value) || Value <- Values];
+        [_ | _] = Values -> [kz_term:to_integer(Value) || Value <- Values];
         Value -> [kz_term:to_integer(Value)]
     end.
 
@@ -88,27 +88,27 @@ get_integer(Section, Key, Default) ->
 %% @doc Return values of the config file
 %% @end
 %%------------------------------------------------------------------------------
--spec get_string(section(), atom()) -> [string(),...] | ?DEFAULT_DEFAULTS.
+-spec get_string(section(), atom()) -> [string(), ...] | ?DEFAULT_DEFAULTS.
 get_string(Section, Key) ->
     get_string(Section, Key, ?DEFAULT_DEFAULTS).
 
--spec get_string(section(), atom(), Default) -> [string(),...] | Default.
+-spec get_string(section(), atom(), Default) -> [string(), ...] | Default.
 get_string(Section, Key, Default) ->
     case get(Section, Key, Default) of
         Default -> Default;
-        [_|_]=Values -> [kz_term:to_lower_string(Value) || Value <- Values];
+        [_ | _] = Values -> [kz_term:to_lower_string(Value) || Value <- Values];
         Value -> [kz_term:to_lower_string(Value)]
     end.
 
--spec get_raw_string(section(), atom()) -> [string(),...] | ?DEFAULT_DEFAULTS.
+-spec get_raw_string(section(), atom()) -> [string(), ...] | ?DEFAULT_DEFAULTS.
 get_raw_string(Section, Key) ->
     get_raw_string(Section, Key, ?DEFAULT_DEFAULTS).
 
--spec get_raw_string(section(), atom(), Default) -> [string(),...] | Default.
+-spec get_raw_string(section(), atom(), Default) -> [string(), ...] | Default.
 get_raw_string(Section, Key, Default) ->
     case get(Section, Key, Default) of
         Default -> Default;
-        [_|_]=Values -> Values;
+        [_ | _] = Values -> Values;
         Value -> Value
     end.
 
@@ -150,7 +150,8 @@ set(NewSection, Props) ->
 unset(Section, Key) ->
     Props = load(),
     case props:get_value(Section, Props) of
-        'undefined' -> 'ok';
+        'undefined' ->
+            'ok';
         Val ->
             NewSection = props:delete(Key, Val),
             set({Section, NewSection}, props:delete(Section, Props))
@@ -195,7 +196,8 @@ get_section(Section) ->
 format_sections(Sections) -> format_sections(Sections, 'zone', []).
 
 -spec format_sections(kz_term:proplist(), atom(), kz_term:proplist()) -> kz_term:proplist().
-format_sections([], _, Acc) -> local_sections(lists:reverse(Acc));
+format_sections([], _, Acc) ->
+    local_sections(lists:reverse(Acc));
 format_sections([Section | T], ZoneFilter, Acc) ->
     case props:get_value('host', Section, 'zone') of
         'zone' ->
@@ -205,13 +207,15 @@ format_sections([Section | T], ZoneFilter, Acc) ->
     end.
 
 -spec format_zone_section(kz_term:proplist(), kz_term:proplist(), atom(), kz_term:proplist()) ->
-          kz_term:proplist().
+    kz_term:proplist().
 format_zone_section(Section, Sections, ZoneFilter, Acc) ->
     case props:get_value(ZoneFilter, Section, 'generic') of
         'generic' ->
             format_sections(Sections, ZoneFilter, [{'generic', Section} | Acc]);
         Zone ->
-            format_sections(Sections, ZoneFilter, [{{'zone', kz_term:to_atom(Zone, 'true')}, Section} | Acc])
+            format_sections(Sections, ZoneFilter, [
+                {{'zone', kz_term:to_atom(Zone, 'true')}, Section} | Acc
+            ])
     end.
 
 %%------------------------------------------------------------------------------
@@ -235,7 +239,7 @@ local_sections([Section | T], Acc) ->
 -type section_type() :: {'generic' | kz_term:ne_binary() | {'zone', atom()}, kz_term:proplist()}.
 
 -spec add_section('generics' | 'zones', section_type(), kz_term:proplist()) ->
-          kz_term:proplist().
+    kz_term:proplist().
 add_section(Group, Value, Props) ->
     props:set_value(Group, [Value | props:get_value(Group, Props, [])], Props).
 
@@ -243,9 +247,10 @@ add_section(Group, Value, Props) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec is_local_section({kz_term:ne_binary() | atom(), any()}) -> {'false', 'generic'} |
-          {'false', 'zone'} |
-          {boolean(), kz_term:ne_binary()}.
+-spec is_local_section({kz_term:ne_binary() | atom(), any()}) ->
+    {'false', 'generic'}
+    | {'false', 'zone'}
+    | {boolean(), kz_term:ne_binary()}.
 is_local_section({'generic', _}) ->
     {'false', 'generic'};
 is_local_section({{'zone', Zone}, _}) ->
@@ -268,8 +273,10 @@ is_local_section({SectionHost, _}) ->
 -spec get_values(atom(), kz_term:proplist()) -> list().
 get_values(Key, Sections) -> get_values(Sections, Key, []).
 
-get_values([], _, []) -> [];
-get_values([], _, Acc) -> Acc;
+get_values([], _, []) ->
+    [];
+get_values([], _, Acc) ->
+    Acc;
 get_values([{_, Values} | T], Key, Acc) ->
     V = props:get_all_values(Key, Values),
     get_values(T, Key, lists:append(V, Acc)).
@@ -298,7 +305,8 @@ zone() ->
             Zone = maybe_zone_from_env(),
             application:set_env(?APP, 'zone', Zone),
             Zone;
-        {'ok', Zone} -> Zone
+        {'ok', Zone} ->
+            Zone
     end.
 
 -spec zone(atom()) -> kz_term:ne_binary() | atom().

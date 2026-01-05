@@ -8,53 +8,58 @@
 -export([start/0, start/1]).
 
 %% Driver callbacks
--export([new_connection/1
-        ,format_error/1
-        ]).
+-export([
+    new_connection/1,
+    format_error/1
+]).
 
 %% Server callbacks
--export([server_info/1
-        ,server_url/1
-        ,get_db/2
-        ,db_url/2
-        ]).
-
+-export([
+    server_info/1,
+    server_url/1,
+    get_db/2,
+    db_url/2
+]).
 
 %% DB operations
--export([db_create/3
-        ,db_delete/2
-        ,db_view_cleanup/2
-        ,db_info/1, db_info/2
-        ,db_exists/2
-        ,db_archive/3
-        ,db_list/2
-        ]).
+-export([
+    db_create/3,
+    db_delete/2,
+    db_view_cleanup/2,
+    db_info/1, db_info/2,
+    db_exists/2,
+    db_archive/3,
+    db_list/2
+]).
 
 %% Document operations
--export([open_doc/4
-        ,lookup_doc_rev/3
-        ,save_doc/4
-        ,save_docs/4
-        ,del_doc/4
-        ,del_docs/4
-        ,ensure_saved/4
-        ]).
+-export([
+    open_doc/4,
+    lookup_doc_rev/3,
+    save_doc/4,
+    save_docs/4,
+    del_doc/4,
+    del_docs/4,
+    ensure_saved/4
+]).
 
 %% Attachment-related
--export([fetch_attachment/4
-        ,stream_attachment/5
-        ,put_attachment/6
-        ,delete_attachment/5
-        ,attachment_url/5
-        ]).
+-export([
+    fetch_attachment/4,
+    stream_attachment/5,
+    put_attachment/6,
+    delete_attachment/5,
+    attachment_url/5
+]).
 
 %% View-related
--export([design_info/3
-        ,all_design_docs/3
-        ,get_results/4
-        ,get_results_count/4
-        ,all_docs/3
-        ]).
+-export([
+    design_info/3,
+    all_design_docs/3,
+    get_results/4,
+    get_results_count/4,
+    all_docs/3
+]).
 
 -include("kz_fixturedb.hrl").
 
@@ -146,31 +151,38 @@ db_list(Server, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec open_doc(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> doc_resp().
+-spec open_doc(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) ->
+    doc_resp().
 open_doc(Server, DbName, DocId, Options) ->
     kz_fixturedb_doc:open_doc(Server, DbName, DocId, Options).
 
--spec lookup_doc_rev(server_map(), kz_term:ne_binary(), kz_term:ne_binary()) -> {ok, kz_term:ne_binary()} | fixture_error().
+-spec lookup_doc_rev(server_map(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {ok, kz_term:ne_binary()} | fixture_error().
 lookup_doc_rev(Server, DbName, DocId) ->
     kz_fixturedb_doc:lookup_doc_rev(Server, DbName, DocId).
 
--spec save_doc(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) -> doc_resp().
+-spec save_doc(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) ->
+    doc_resp().
 save_doc(Server, DbName, Doc, Options) ->
     kz_fixturedb_doc:save_doc(Server, DbName, Doc, Options).
 
--spec save_docs(server_map(), kz_term:ne_binary(), kz_data:documents(), kz_data:options()) -> docs_resp().
+-spec save_docs(server_map(), kz_term:ne_binary(), kz_data:documents(), kz_data:options()) ->
+    docs_resp().
 save_docs(Server, DbName, Docs, Options) ->
     kz_fixturedb_doc:save_docs(Server, DbName, Docs, Options).
 
--spec del_doc(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) -> docs_resp().
+-spec del_doc(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) ->
+    docs_resp().
 del_doc(Server, DbName, Doc, Options) ->
     kz_fixturedb_doc:del_doc(Server, DbName, Doc, Options).
 
--spec del_docs(server_map(), kz_term:ne_binary(), kz_data:documents(), kz_data:options()) -> docs_resp().
+-spec del_docs(server_map(), kz_term:ne_binary(), kz_data:documents(), kz_data:options()) ->
+    docs_resp().
 del_docs(Server, DbName, Docs, Options) ->
     kz_fixturedb_doc:del_docs(Server, DbName, Docs, Options).
 
--spec ensure_saved(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) -> doc_resp().
+-spec ensure_saved(server_map(), kz_term:ne_binary(), kz_data:document(), kz_data:options()) ->
+    doc_resp().
 ensure_saved(Server, DbName, Doc, Options) ->
     kz_fixturedb_doc:ensure_saved(Server, DbName, Doc, Options).
 
@@ -182,23 +194,37 @@ ensure_saved(Server, DbName, Doc, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> {ok, binary()} | fixture_error().
+-spec fetch_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {ok, binary()} | fixture_error().
 fetch_attachment(Server, DbName, DocId, AName) ->
     kz_fixturedb_attachments:fetch_attachment(Server, DbName, DocId, AName).
 
--spec stream_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()) -> {ok, reference()} | fixture_error().
+-spec stream_attachment(
+    server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pid()
+) -> {ok, reference()} | fixture_error().
 stream_attachment(Server, DbName, DocId, AName, Caller) ->
     kz_fixturedb_attachments:stream_attachment(Server, DbName, DocId, AName, Caller).
 
--spec put_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> doc_resp().
+-spec put_attachment(
+    server_map(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_data:options()
+) -> doc_resp().
 put_attachment(Server, DbName, DocId, AName, Contents, Options) ->
     kz_fixturedb_attachments:put_attachment(Server, DbName, DocId, AName, Contents, Options).
 
--spec delete_attachment(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> docs_resp().
+-spec delete_attachment(
+    server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()
+) -> docs_resp().
 delete_attachment(Server, DbName, DocId, AName, Options) ->
     kz_fixturedb_attachments:delete_attachment(Server, DbName, DocId, AName, Options).
 
--spec attachment_url(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> kz_term:ne_binary().
+-spec attachment_url(
+    server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()
+) -> kz_term:ne_binary().
 attachment_url(Server, DbName, DocId, AName, Options) ->
     kz_fixturedb_attachments:attachment_url(Server, DbName, DocId, AName, Options).
 
@@ -218,11 +244,13 @@ design_info(Server, DbName, Design) ->
 all_design_docs(Server, DbName, Options) ->
     kz_fixturedb_view:all_design_docs(Server, DbName, Options).
 
--spec get_results(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> docs_resp().
+-spec get_results(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) ->
+    docs_resp().
 get_results(Server, DbName, Design, Options) ->
     kz_fixturedb_view:get_results(Server, DbName, Design, Options).
 
--spec get_results_count(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) -> {ok, non_neg_integer()} | fixture_error().
+-spec get_results_count(server_map(), kz_term:ne_binary(), kz_term:ne_binary(), kz_data:options()) ->
+    {ok, non_neg_integer()} | fixture_error().
 get_results_count(Server, DbName, Design, Options) ->
     kz_fixturedb_view:get_results_count(Server, DbName, Design, Options).
 

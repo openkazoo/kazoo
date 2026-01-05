@@ -16,7 +16,6 @@
 -type build_media_url() :: kz_term:api_binary() | kz_term:binaries() | kz_json:object().
 -type build_media_url_ret() :: kz_term:ne_binary() | {'error', atom()}.
 
-
 -spec playback(build_media_url()) -> build_media_url_ret().
 playback('undefined') ->
     {'error', 'invalid_media_name'};
@@ -36,7 +35,9 @@ playback(<<"prompt://", PromptPath/binary>>, Options) ->
             Media = kz_media_map:prompt_path(AccountId, PromptId, Language),
             playback(Media, Options);
         [AccountId, PromptId] ->
-            lager:info("got req for prompt ~s without language, checking account ~s", [PromptId, AccountId]),
+            lager:info("got req for prompt ~s without language, checking account ~s", [
+                PromptId, AccountId
+            ]),
             Language = kz_media_util:prompt_language(AccountId),
             Media = kz_media_map:prompt_path(AccountId, PromptId, Language),
             playback(Media, Options);
@@ -47,29 +48,30 @@ playback(<<"prompt://", PromptPath/binary>>, Options) ->
 playback(<<Media/binary>>, JObj) ->
     lager:debug("lookup media url for ~s", [Media]),
     kz_media_file:get_uri(Media, JObj);
-playback(Path, JObj)
-  when is_list(Path) ->
+playback(Path, JObj) when
+    is_list(Path)
+->
     kz_media_file:get_uri(Path, JObj);
 playback(Doc, JObj) ->
     lager:debug("building media url from doc"),
     case kz_media_util:store_path_from_doc(Doc) of
-        #media_store_path{}=Media -> kz_media_file:get_uri(Media, JObj);
+        #media_store_path{} = Media -> kz_media_file:get_uri(Media, JObj);
         Error -> Error
     end.
 
 -spec store(kz_json:object(), kz_term:ne_binary()) ->
-          build_media_url_ret().
+    build_media_url_ret().
 store(JObj, AName) ->
     Media = kz_media_util:store_path_from_doc(JObj, AName),
     kz_media_file:get_uri(Media, ?STREAM_TYPE_STORE).
 
 -spec store(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary()) ->
-          build_media_url_ret().
+    build_media_url_ret().
 store(Db, Id, Attachment) ->
     store(Db, Id, Attachment, []).
 
 -spec store(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kz_term:proplist()) ->
-          build_media_url_ret().
+    build_media_url_ret().
 store(Db, {Type, Id}, Attachment, Options) ->
     store(Db, Id, Attachment, [{'doc_type', Type} | Options]);
 store(Db, ?NE_BINARY = Id, Attachment, Options) ->

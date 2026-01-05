@@ -9,30 +9,33 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/3
-        ,stop/1
-        ]).
+-export([
+    start_link/3,
+    stop/1
+]).
 -export([send_diagnostics/2]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("acdc.hrl").
 
 -define(MESSAGE_LINE_LENGTH, 100).
 
--record(state, {account_id            :: kz_term:ne_binary()
-               ,queue_id              :: kz_term:ne_binary()
-               ,manager               :: kz_term:api_pid()
-               ,observer              :: kz_term:api_pid()
-               ,observer_group_leader :: kz_term:api_pid()
-               }).
+-record(state, {
+    account_id :: kz_term:ne_binary(),
+    queue_id :: kz_term:ne_binary(),
+    manager :: kz_term:api_pid(),
+    observer :: kz_term:api_pid(),
+    observer_group_leader :: kz_term:api_pid()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -73,23 +76,30 @@ send_diagnostics(Srv, Message) ->
 %%------------------------------------------------------------------------------
 -spec init({kz_term:ne_binary(), kz_term:ne_binary(), pid()}) -> {'ok', state()} | {'stop', any()}.
 init({AccountId, QueueId, Observer}) ->
-    kz_util:put_callid(<<AccountId/binary, "-", QueueId/binary, "-", (kz_term:to_binary(Observer))/binary>>),
+    kz_util:put_callid(
+        <<AccountId/binary, "-", QueueId/binary, "-", (kz_term:to_binary(Observer))/binary>>
+    ),
 
-    InitFuns = [{fun set_up_group_leader/1, [Observer], #state.observer_group_leader}
-               ,{fun monitor_manager/2, [AccountId, QueueId], #state.manager}
-               ,{fun print_header/0, []}
-               ],
+    InitFuns = [
+        {fun set_up_group_leader/1, [Observer], #state.observer_group_leader},
+        {fun monitor_manager/2, [AccountId, QueueId], #state.manager},
+        {fun print_header/0, []}
+    ],
     case lists:foldl(fun init_fold/2, [], InitFuns) of
-        {'error', _}=E -> {'stop', E};
+        {'error', _} = E ->
+            {'stop', E};
         StateAssignments ->
             lager:debug("started"),
 
-            {'ok', lists:foldl(fun({Index, Value}, State) -> setelement(Index, State, Value) end
-                              ,#state{account_id=AccountId
-                                     ,queue_id=QueueId
-                                     }
-                              ,StateAssignments
-                              )}
+            {'ok',
+                lists:foldl(
+                    fun({Index, Value}, State) -> setelement(Index, State, Value) end,
+                    #state{
+                        account_id = AccountId,
+                        queue_id = QueueId
+                    },
+                    StateAssignments
+                )}
     end.
 
 %%------------------------------------------------------------------------------
@@ -99,7 +109,6 @@ init({AccountId, QueueId, Observer}) ->
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('stop', _From, State) ->
     {'stop', 'normal', 'ok', State};
-
 handle_call(_Request, _From, State) ->
     lager:debug("unhandled call: ~p", [_Request]),
     {'reply', 'ok', State}.
@@ -112,7 +121,6 @@ handle_call(_Request, _From, State) ->
 handle_cast({'send_diagnostics', Message}, State) ->
     print(lists:flatten(Message)),
     {'noreply', State};
-
 handle_cast(_Message, State) ->
     lager:debug("unhandled cast: ~p", [_Message]),
     {'noreply', State}.
@@ -122,13 +130,17 @@ handle_cast(_Message, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'DOWN', _, 'process', Manager, Reason}, #state{manager=Manager}=State) ->
+handle_info({'DOWN', _, 'process', Manager, Reason}, #state{manager = Manager} = State) ->
     %% Stop the diagnostics process if the manager goes down
     print(io_lib:format("manager pid ~p went down (~p)", [Manager, Reason])),
     {'stop', 'normal', State};
-handle_info({'DOWN', _, 'process', Pid, Reason}, #state{observer=Observer
-                                                       ,observer_group_leader=GroupLeader
-                                                       }=State) when Observer =:= Pid; GroupLeader =:= Pid ->
+handle_info(
+    {'DOWN', _, 'process', Pid, Reason},
+    #state{
+        observer = Observer,
+        observer_group_leader = GroupLeader
+    } = State
+) when Observer =:= Pid; GroupLeader =:= Pid ->
     %% Stop the diagnostics process if the observer goes down to avoid wasting resources for
     %% diagnostics
     lager:debug("observer pid ~p went down (~p)", [Pid, Reason]),
@@ -145,7 +157,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{manager=Manager}) ->
+terminate(_Reason, #state{manager = Manager}) ->
     catch acdc_queue_manager:remove_diagnostics_receiver(Manager, self()),
 
     catch print(io_lib:format("stopping diagnostics: ~p", [_Reason])),
@@ -168,15 +180,15 @@ code_change(_OldVsn, State, _Extra) ->
 %% error if one occurs during any of those funs.
 %% @end
 %%------------------------------------------------------------------------------
-init_fold(_, {'error', _}=E) -> E;
+init_fold(_, {'error', _} = E) ->
+    E;
 init_fold({Fun, Args}, StateAssignments) ->
     apply(Fun, Args),
     StateAssignments;
 init_fold({Fun, Args, StateAssignment}, StateAssignments) ->
     case apply(Fun, Args) of
-        {'error', _}=E -> E;
-        InitFunResult ->
-            [{StateAssignment, InitFunResult} | StateAssignments]
+        {'error', _} = E -> E;
+        InitFunResult -> [{StateAssignment, InitFunResult} | StateAssignments]
     end.
 
 %%------------------------------------------------------------------------------
@@ -186,7 +198,8 @@ init_fold({Fun, Args, StateAssignment}, StateAssignments) ->
 %%------------------------------------------------------------------------------
 set_up_group_leader(Observer) ->
     case get_observer_group_leader(Observer) of
-        'undefined' -> {'error', 'unknown_group_leader'};
+        'undefined' ->
+            {'error', 'unknown_group_leader'};
         GroupLeader ->
             group_leader(GroupLeader, self()),
             monitor('process', Observer),
@@ -202,7 +215,8 @@ set_up_group_leader(Observer) ->
 %%------------------------------------------------------------------------------
 monitor_manager(AccountId, QueueId) ->
     case acdc_queues_sup:find_queue_supervisor(AccountId, QueueId) of
-        'undefined' -> {'error', 'manager_process_not_found'};
+        'undefined' ->
+            {'error', 'manager_process_not_found'};
         QueueSup ->
             Manager = acdc_queue_sup:manager(QueueSup),
             monitor_manager(Manager)
@@ -250,9 +264,10 @@ print_header() ->
 -spec print_separator() -> 'ok'.
 print_separator() ->
     Format = create_format_of_length(?MESSAGE_LINE_LENGTH, "|-------------|-~-{{lineLength}}s-|~n"),
-    io:format(Format
-             ,[lists:foldl(fun(_, Acc) -> "-" ++ Acc end, "", lists:seq(1, ?MESSAGE_LINE_LENGTH))]
-             ).
+    io:format(
+        Format,
+        [lists:foldl(fun(_, Acc) -> "-" ++ Acc end, "", lists:seq(1, ?MESSAGE_LINE_LENGTH))]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Print the specified diagnostics message to the console.
@@ -263,7 +278,8 @@ print(Message) ->
     print(Message, 'true').
 
 -spec print(string(), boolean()) -> 'ok'.
-print("", _) -> print_separator();
+print("", _) ->
+    print_separator();
 print(Message, ShouldPrintTimestamp) ->
     case ShouldPrintTimestamp of
         'true' -> io:format("| ~b ", [kz_time:current_tstamp()]);
@@ -284,15 +300,19 @@ split_next_part(Message) ->
     split_next_part(Message, "", 'false', ?MESSAGE_LINE_LENGTH).
 
 -spec split_next_part(string(), string(), boolean(), non_neg_integer()) -> {string(), string()}.
-split_next_part("", Part, _, _) -> {Part, ""};
-split_next_part(Rest, Part, 'true', 0) -> {Part, Rest};
+split_next_part("", Part, _, _) ->
+    {Part, ""};
+split_next_part(Rest, Part, 'true', 0) ->
+    {Part, Rest};
 split_next_part(Rest, _, 'false', 0) ->
     %% Blank line, ignore
     split_next_part(Rest);
-split_next_part([$\n|Rest], Part, _, _) -> {Part, Rest};
-split_next_part([Ch|Rest], Part, IsNotBlankLine, RemainingCharCount) ->
-    IsNotBlankLine1 = IsNotBlankLine
-        orelse Ch =/= 32,
+split_next_part([$\n | Rest], Part, _, _) ->
+    {Part, Rest};
+split_next_part([Ch | Rest], Part, IsNotBlankLine, RemainingCharCount) ->
+    IsNotBlankLine1 =
+        IsNotBlankLine orelse
+            Ch =/= 32,
     split_next_part(Rest, [Part, Ch], IsNotBlankLine1, RemainingCharCount - 1).
 
 %%------------------------------------------------------------------------------

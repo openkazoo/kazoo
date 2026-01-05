@@ -13,20 +13,25 @@
 
 -define(EMPTY_JSON_OBJECT, ?JSON_WRAPPER([])).
 
--type non_object_json_term() :: boolean()
-                              | json_string() | <<>>
-                              | json_number()
-                              | json_array().
+-type non_object_json_term() ::
+    boolean()
+    | json_string()
+    | <<>>
+    | json_number()
+    | json_array().
 
--type non_null_json_term() :: non_object_json_term()
-                            | object().
+-type non_null_json_term() ::
+    non_object_json_term()
+    | object().
 
 %% Denotes term definitions for JSON.
 
--type flat_json_term() :: boolean()
-                        | json_string() | <<>>
-                        | json_number()
-                        | flat_json_array().
+-type flat_json_term() ::
+    boolean()
+    | json_string()
+    | <<>>
+    | json_number()
+    | flat_json_array().
 %% Denotes all valid term definitions for JSON for a flatten JSON.
 
 -type api_json_term() :: json_term() | 'undefined'.
@@ -39,10 +44,10 @@
 -type json_term() :: non_null_json_term() | <<>>.
 
 %% We want non-empty keys when generating objects
--type keys() :: [key(),...].
+-type keys() :: [key(), ...].
 
 %% Denotes a flatten version of JSON proplist, `[{full_path, value}]'.
--type flat_proplist() :: [{keys(), flat_json_term()},...].
+-type flat_proplist() :: [{keys(), flat_json_term()}, ...].
 
 %% Denotes array in JSON.
 -type json_array() :: json_terms() | [].
@@ -97,12 +102,13 @@
 
 -type json_proplists() :: [json_proplist()].
 
--type encode_option() :: 'uescape'
-                       | 'pretty'
-                       | 'force_utf8'
-                       | 'escape_forward_slashes'
-                       | {'bytes_per_iter', non_neg_integer()}
-                       | {'bytes_per_red', non_neg_integer()}.
+-type encode_option() ::
+    'uescape'
+    | 'pretty'
+    | 'force_utf8'
+    | 'escape_forward_slashes'
+    | {'bytes_per_iter', non_neg_integer()}
+    | {'bytes_per_red', non_neg_integer()}.
 %% `jiffy' encode option.
 
 -type encode_options() :: [encode_option()].

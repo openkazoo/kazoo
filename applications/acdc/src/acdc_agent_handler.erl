@@ -8,19 +8,20 @@
 -module(acdc_agent_handler).
 
 %% Listener callbacks
--export([handle_status_update/2
-        ,handle_sync_req/2
-        ,handle_sync_resp/2
-        ,handle_call_event/2
-        ,handle_new_channel/2
-        ,handle_destroyed_channel/2
-        ,handle_originate_resp/2
-        ,handle_member_message/2
-        ,handle_agent_message/2
-        ,handle_config_change/2
-        ,handle_presence_probe/2
-        ,handle_queue_started_notif/2
-        ]).
+-export([
+    handle_status_update/2,
+    handle_sync_req/2,
+    handle_sync_resp/2,
+    handle_call_event/2,
+    handle_new_channel/2,
+    handle_destroyed_channel/2,
+    handle_originate_resp/2,
+    handle_member_message/2,
+    handle_agent_message/2,
+    handle_config_change/2,
+    handle_presence_probe/2,
+    handle_queue_started_notif/2
+]).
 
 -include("acdc.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -55,10 +56,14 @@ handle_status_update(JObj, _Props) ->
             'true' = kapi_acdc_agent:restart_v(JObj),
             _ = acdc_agents_sup:restart_agent(AccountId, AgentId),
             'ok';
-        Event -> maybe_agent_queue_change(AccountId, AgentId, Event
-                                         ,kz_json:get_value(<<"Queue-ID">>, JObj)
-                                         ,JObj
-                                         )
+        Event ->
+            maybe_agent_queue_change(
+                AccountId,
+                AgentId,
+                Event,
+                kz_json:get_value(<<"Queue-ID">>, JObj),
+                JObj
+            )
     end.
 
 -spec login(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
@@ -68,7 +73,13 @@ login(AccountId, AgentId, JObj) ->
         _ -> login_success(JObj)
     end.
 
--spec maybe_agent_queue_change(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+-spec maybe_agent_queue_change(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_json:object()
+) -> 'ok'.
 maybe_agent_queue_change(AccountId, AgentId, <<"login_queue">>, QueueId, JObj) ->
     lager:debug("queue login for agent ~s into ~s", [AgentId, QueueId]),
     case maybe_start_agent(AccountId, AgentId, JObj) of
@@ -78,13 +89,15 @@ maybe_agent_queue_change(AccountId, AgentId, <<"login_queue">>, QueueId, JObj) -
 maybe_agent_queue_change(AccountId, AgentId, <<"logout_queue">>, QueueId, JObj) ->
     lager:debug("queue logout for agent ~s into ~s", [AgentId, QueueId]),
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
-        'undefined' -> lager:debug("agent process for ~s already stopped");
+        'undefined' ->
+            lager:debug("agent process for ~s already stopped");
         Sup ->
             maybe_update_presence(Sup, JObj),
             acdc_agent_fsm:rm_acdc_queue(acdc_agent_sup:fsm(Sup), QueueId)
     end.
 
--spec maybe_start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> pid() | 'fail'.
+-spec maybe_start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    pid() | 'fail'.
 maybe_start_agent(AccountId, AgentId, JObj) ->
     try maybe_start_agent(AccountId, AgentId) of
         {'ok', Sup} ->
@@ -100,7 +113,9 @@ maybe_start_agent(AccountId, AgentId, JObj) ->
             end;
         {'exists', Sup} ->
             FSM = acdc_agent_sup:fsm(Sup),
-            acdc_agent_fsm:update_presence(FSM, presence_id(JObj), presence_state(JObj, 'undefined')),
+            acdc_agent_fsm:update_presence(
+                FSM, presence_id(JObj), presence_state(JObj, 'undefined')
+            ),
             Sup;
         {'error', _E} ->
             acdc_agent_stats:agent_logged_out(AccountId, AgentId),
@@ -118,28 +133,33 @@ login_success(JObj) ->
 
 login_resp(JObj, Status) ->
     case {kz_json:get_value(<<"Server-ID">>, JObj), kz_json:get_value(<<"Msg-ID">>, JObj)} of
-        {'undefined', _} -> lager:debug("not publishing a login resp: no server_id");
-        {<<>>, _} -> lager:debug("not publishing a login resp: no server_id");
-        {_, 'undefined'} -> lager:debug("not publishing a login resp: no msg_id");
+        {'undefined', _} ->
+            lager:debug("not publishing a login resp: no server_id");
+        {<<>>, _} ->
+            lager:debug("not publishing a login resp: no server_id");
+        {_, 'undefined'} ->
+            lager:debug("not publishing a login resp: no msg_id");
         {ServerID, MsgId} ->
-            Prop = [{<<"Status">>, Status}
-                   ,{<<"Msg-ID">>, MsgId}
-                    | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                   ],
+            Prop = [
+                {<<"Status">>, Status},
+                {<<"Msg-ID">>, MsgId}
+                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ],
             kapi_acdc_agent:publish_login_resp(ServerID, Prop)
     end.
 
 -spec maybe_start_agent(kz_term:api_binary(), kz_term:api_binary()) ->
-          {'ok', pid()} |
-          {'exists', pid()} |
-          {'error', any()}.
+    {'ok', pid()}
+    | {'exists', pid()}
+    | {'error', any()}.
 maybe_start_agent(AccountId, AgentId) ->
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
         'undefined' ->
             lager:debug("agent ~s (~s) not found, starting", [AgentId, AccountId]),
             case kz_datamgr:open_doc(kz_util:format_account_id(AccountId, 'encoded'), AgentId) of
-                {'ok', AgentJObj} -> acdc_agents_sup:new(AgentJObj);
-                {'error', _E}=E ->
+                {'ok', AgentJObj} ->
+                    acdc_agents_sup:new(AgentJObj);
+                {'error', _E} = E ->
                     lager:debug("error opening agent doc: ~p", [_E]),
                     E
             end;
@@ -152,49 +172,62 @@ maybe_stop_agent(AccountId, AgentId, JObj) ->
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
         'undefined' ->
             lager:debug("agent ~s(~s) not found, nothing to do", [AgentId, AccountId]),
-            catch acdc_util:presence_update(AccountId, presence_id(JObj, AgentId), ?PRESENCE_RED_SOLID),
+            catch acdc_util:presence_update(
+                AccountId, presence_id(JObj, AgentId), ?PRESENCE_RED_SOLID
+            ),
             acdc_agent_stats:agent_logged_out(AccountId, AgentId);
         Sup when is_pid(Sup) ->
             lager:debug("agent ~s(~s) is logging out, stopping ~p", [AgentId, AgentId, Sup]),
             case catch acdc_agent_sup:fsm(Sup) of
                 APid when is_pid(APid) ->
-                    acdc_agent_fsm:update_presence(APid, presence_id(JObj), presence_state(JObj, ?PRESENCE_RED_SOLID)),
+                    acdc_agent_fsm:update_presence(
+                        APid, presence_id(JObj), presence_state(JObj, ?PRESENCE_RED_SOLID)
+                    ),
                     acdc_agent_fsm:agent_logout(APid);
-                _P -> lager:debug("failed to find agent fsm for ~s: ~p", [AgentId, _P])
+                _P ->
+                    lager:debug("failed to find agent fsm for ~s: ~p", [AgentId, _P])
             end
-
     end.
 
 maybe_pause_agent(AccountId, AgentId, <<"infinity">>, Alias, JObj) ->
     maybe_pause_agent(AccountId, AgentId, 'infinity', Alias, JObj);
 maybe_pause_agent(AccountId, AgentId, Timeout, Alias, JObj) ->
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
-        'undefined' -> lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
+        'undefined' ->
+            lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
         Sup when is_pid(Sup) ->
             lager:debug("agent ~s(~s) is pausing (~p) for ~p", [AccountId, AgentId, Alias, Timeout]),
             FSM = acdc_agent_sup:fsm(Sup),
-            acdc_agent_fsm:update_presence(FSM,  presence_id(JObj), presence_state(JObj, 'undefined')),
+            acdc_agent_fsm:update_presence(
+                FSM, presence_id(JObj), presence_state(JObj, 'undefined')
+            ),
             acdc_agent_fsm:pause(FSM, Timeout, Alias)
     end.
 
 maybe_resume_agent(AccountId, AgentId, JObj) ->
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
-        'undefined' -> lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
+        'undefined' ->
+            lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
         Sup when is_pid(Sup) ->
             lager:debug("agent ~s(~s) is resuming: ~p", [AccountId, AgentId, Sup]),
             FSM = acdc_agent_sup:fsm(Sup),
-            acdc_agent_fsm:update_presence(FSM,  presence_id(JObj), presence_state(JObj, 'undefined')),
+            acdc_agent_fsm:update_presence(
+                FSM, presence_id(JObj), presence_state(JObj, 'undefined')
+            ),
             acdc_agent_fsm:resume(FSM)
     end.
 
 -spec maybe_end_wrapup_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 maybe_end_wrapup_agent(AccountId, AgentId, JObj) ->
     case acdc_agents_sup:find_agent_supervisor(AccountId, AgentId) of
-        'undefined' -> lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
+        'undefined' ->
+            lager:debug("agent ~s (~s) not found, nothing to do", [AgentId, AccountId]);
         Sup when is_pid(Sup) ->
             lager:debug("agent ~s(~s) is ending wrapup: ~p", [AccountId, AgentId, Sup]),
             FSM = acdc_agent_sup:fsm(Sup),
-            acdc_agent_fsm:update_presence(FSM,  presence_id(JObj), presence_state(JObj, 'undefined')),
+            acdc_agent_fsm:update_presence(
+                FSM, presence_id(JObj), presence_state(JObj, 'undefined')
+            ),
             acdc_agent_fsm:end_wrapup(FSM)
     end.
 
@@ -225,7 +258,13 @@ handle_call_event(JObj, Props) ->
             end
     end.
 
--spec handle_call_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_types:server_ref(), kz_json:object(), kz_term:proplist()) -> any().
+-spec handle_call_event(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_types:server_ref(),
+    kz_json:object(),
+    kz_term:proplist()
+) -> any().
 handle_call_event(Category, <<"CHANNEL_DESTROY">> = Name, FSM, JObj, Props) ->
     Urls = props:get_value('cdr_urls', Props),
     CallId = kz_json:get_value(<<"Call-ID">>, JObj),
@@ -247,7 +286,8 @@ handle_new_channel(JObj, AccountId) ->
     handle_new_channel_acct(JObj, AccountId).
 
 -spec handle_new_channel_acct(kz_json:object(), kz_term:api_binary()) -> 'ok'.
-handle_new_channel_acct(_, 'undefined') -> 'ok';
+handle_new_channel_acct(_, 'undefined') ->
+    'ok';
 handle_new_channel_acct(JObj, AccountId) ->
     FromUser = hd(binary:split(kz_json:get_value(<<"From">>, JObj), <<"@">>)),
     ToUser = hd(binary:split(kz_json:get_value(<<"To">>, JObj), <<"@">>)),
@@ -259,11 +299,13 @@ handle_new_channel_acct(JObj, AccountId) ->
     lager:debug("new channel in acct ~s: from ~s to ~s(~s)", [AccountId, FromUser, ToUser, ReqUser]),
 
     case kz_call_event:call_direction(JObj) of
-        <<"inbound">> -> gproc:send(?NEW_CHANNEL_REG(AccountId, FromUser), ?NEW_CHANNEL_FROM(CallId));
+        <<"inbound">> ->
+            gproc:send(?NEW_CHANNEL_REG(AccountId, FromUser), ?NEW_CHANNEL_FROM(CallId));
         <<"outbound">> ->
             gproc:send(?NEW_CHANNEL_REG(AccountId, ToUser), ?NEW_CHANNEL_TO(CallId, MemberCallId)),
             gproc:send(?NEW_CHANNEL_REG(AccountId, ReqUser), ?NEW_CHANNEL_TO(CallId, MemberCallId));
-        _ -> lager:debug("invalid call direction for call ~s", [CallId])
+        _ ->
+            lager:debug("invalid call direction for call ~s", [CallId])
     end.
 
 %%------------------------------------------------------------------------------
@@ -286,14 +328,22 @@ handle_destroyed_channel(JObj, AccountId) ->
     lager:debug("destroyed channel in acct ~s: from ~s to ~s", [AccountId, FromUser, ToUser]),
 
     case kz_call_event:call_direction(JObj) of
-        <<"inbound">> -> gproc:send(?DESTROYED_CHANNEL_REG(AccountId, FromUser)
-                                   ,?DESTROYED_CHANNEL(CallId, HangupCause));
+        <<"inbound">> ->
+            gproc:send(
+                ?DESTROYED_CHANNEL_REG(AccountId, FromUser),
+                ?DESTROYED_CHANNEL(CallId, HangupCause)
+            );
         <<"outbound">> ->
-            gproc:send(?DESTROYED_CHANNEL_REG(AccountId, FromUser)
-                      ,?DESTROYED_CHANNEL(CallId, HangupCause)),
-            gproc:send(?DESTROYED_CHANNEL_REG(AccountId, ToUser)
-                      ,?DESTROYED_CHANNEL(CallId, HangupCause));
-        _ -> 'ok'
+            gproc:send(
+                ?DESTROYED_CHANNEL_REG(AccountId, FromUser),
+                ?DESTROYED_CHANNEL(CallId, HangupCause)
+            ),
+            gproc:send(
+                ?DESTROYED_CHANNEL_REG(AccountId, ToUser),
+                ?DESTROYED_CHANNEL(CallId, HangupCause)
+            );
+        _ ->
+            'ok'
     end.
 
 -spec handle_originate_resp(kz_json:object(), kz_term:proplist()) -> 'ok'.
@@ -353,23 +403,27 @@ handle_config_change(JObj, _Props) ->
 
 -spec handle_change(kz_json:object(), kz_term:ne_binary()) -> 'ok'.
 handle_change(JObj, <<"user">>) ->
-    handle_agent_change(kz_json:get_value(<<"Database">>, JObj)
-                       ,kz_json:get_value(<<"Account-ID">>, JObj)
-                       ,kz_json:get_value(<<"ID">>, JObj)
-                       ,kz_json:get_value(<<"Event-Name">>, JObj)
-                       );
+    handle_agent_change(
+        kz_json:get_value(<<"Database">>, JObj),
+        kz_json:get_value(<<"Account-ID">>, JObj),
+        kz_json:get_value(<<"ID">>, JObj),
+        kz_json:get_value(<<"Event-Name">>, JObj)
+    );
 handle_change(JObj, <<"device">>) ->
-    handle_device_change(kz_json:get_value(<<"Database">>, JObj)
-                        ,kz_json:get_value(<<"Account-ID">>, JObj)
-                        ,kz_json:get_value(<<"ID">>, JObj)
-                        ,kz_json:get_value(<<"Rev">>, JObj)
-                        ,kz_json:get_value(<<"Event-Name">>, JObj)
-                        );
+    handle_device_change(
+        kz_json:get_value(<<"Database">>, JObj),
+        kz_json:get_value(<<"Account-ID">>, JObj),
+        kz_json:get_value(<<"ID">>, JObj),
+        kz_json:get_value(<<"Rev">>, JObj),
+        kz_json:get_value(<<"Event-Name">>, JObj)
+    );
 handle_change(JObj, <<"undefined">>) ->
     lager:debug("undefined type for change"),
-    case kz_datamgr:open_cache_doc(kz_json:get_value(<<"Database">>, JObj)
-                                  ,kz_json:get_value(<<"ID">>, JObj)
-                                  )
+    case
+        kz_datamgr:open_cache_doc(
+            kz_json:get_value(<<"Database">>, JObj),
+            kz_json:get_value(<<"ID">>, JObj)
+        )
     of
         {'ok', Doc} ->
             Type = kz_doc:type(Doc),
@@ -390,12 +444,16 @@ handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_CREATED, Cnt) ->
             case kz_doc:revision(EP) of
                 Rev ->
                     gproc:send(?ENDPOINT_UPDATE_REG(AccountId, DeviceId), ?ENDPOINT_CREATED(EP)),
-                    gproc:send(?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)), ?ENDPOINT_CREATED(EP));
+                    gproc:send(
+                        ?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)),
+                        ?ENDPOINT_CREATED(EP)
+                    );
                 _OldRev ->
                     timer:sleep(250),
-                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_CREATED, Cnt+1)
+                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_CREATED, Cnt + 1)
             end;
-        _ -> lager:debug("ignoring the fact that device ~s was created", [DeviceId])
+        _ ->
+            lager:debug("ignoring the fact that device ~s was created", [DeviceId])
     end;
 handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_EDITED, Cnt) ->
     case kz_endpoint:get(DeviceId, AccountDb) of
@@ -403,12 +461,16 @@ handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_EDITED, Cnt) ->
             case kz_doc:revision(EP) of
                 Rev ->
                     gproc:send(?ENDPOINT_UPDATE_REG(AccountId, DeviceId), ?ENDPOINT_EDITED(EP)),
-                    gproc:send(?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)), ?ENDPOINT_EDITED(EP));
+                    gproc:send(
+                        ?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)),
+                        ?ENDPOINT_EDITED(EP)
+                    );
                 _OldRev ->
                     timer:sleep(250),
-                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_EDITED, Cnt+1)
+                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_EDITED, Cnt + 1)
             end;
-        _ -> lager:debug("ignoring the fact that device ~s was edited", [DeviceId])
+        _ ->
+            lager:debug("ignoring the fact that device ~s was edited", [DeviceId])
     end;
 handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_DELETED, Cnt) ->
     case kz_endpoint:get(DeviceId, AccountDb) of
@@ -416,12 +478,16 @@ handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_DELETED, Cnt) ->
             case kz_doc:revision(EP) of
                 Rev ->
                     gproc:send(?ENDPOINT_UPDATE_REG(AccountId, DeviceId), ?ENDPOINT_DELETED(EP)),
-                    gproc:send(?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)), ?ENDPOINT_DELETED(EP));
+                    gproc:send(
+                        ?OWNER_UPDATE_REG(AccountId, kz_json:get_value(<<"owner_id">>, EP)),
+                        ?ENDPOINT_DELETED(EP)
+                    );
                 _OldRev ->
                     timer:sleep(250),
-                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_DELETED, Cnt+1)
+                    handle_device_change(AccountDb, AccountId, DeviceId, Rev, ?DOC_DELETED, Cnt + 1)
             end;
-        _ -> lager:debug("ignoring the fact that device ~s was edited", [DeviceId])
+        _ ->
+            lager:debug("ignoring the fact that device ~s was edited", [DeviceId])
     end.
 
 handle_agent_change(_AccountDb, AccountId, AgentId, ?DOC_CREATED) ->
@@ -447,31 +513,34 @@ handle_presence_probe(JObj, _Props) ->
         {'ok', AcctDb} ->
             AccountId = kz_util:format_account_id(AcctDb, 'raw'),
             maybe_respond_to_presence_probe(JObj, AccountId);
-        _ -> lager:debug("ignoring presence probe from realm ~s", [Realm])
+        _ ->
+            lager:debug("ignoring presence probe from realm ~s", [Realm])
     end.
 
 maybe_respond_to_presence_probe(JObj, AccountId) ->
     case kz_json:get_value(<<"Username">>, JObj) of
         'undefined' -> lager:debug("no user on presence probe for ~s", [AccountId]);
-        AgentId ->
-            update_probe(JObj, acdc_agents_sup:find_agent_supervisor(AccountId, AgentId))
+        AgentId -> update_probe(JObj, acdc_agents_sup:find_agent_supervisor(AccountId, AgentId))
     end.
 
-update_probe(_JObj, 'undefined') -> 'ok';
+update_probe(_JObj, 'undefined') ->
+    'ok';
 update_probe(JObj, P) when is_pid(P) ->
     lager:debug("agent is active with supervisor: ~p", [P]),
     send_probe(JObj, ?PRESENCE_GREEN).
 
 send_probe(JObj, State) ->
-    To = <<(kz_json:get_value(<<"Username">>, JObj))/binary
-          ,"@"
-          ,(kz_json:get_value(<<"Realm">>, JObj))/binary
-         >>,
+    To = <<
+        (kz_json:get_value(<<"Username">>, JObj))/binary,
+        "@",
+        (kz_json:get_value(<<"Realm">>, JObj))/binary
+    >>,
     PresenceUpdate =
-        [{<<"State">>, State}
-        ,{<<"Presence-ID">>, To}
-        ,{<<"Call-ID">>, kz_term:to_hex_binary(crypto:hash('md5', To))}
-         | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        [
+            {<<"State">>, State},
+            {<<"Presence-ID">>, To},
+            {<<"Call-ID">>, kz_term:to_hex_binary(crypto:hash('md5', To))}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
         ],
     kapi_presence:publish_update(PresenceUpdate).
 

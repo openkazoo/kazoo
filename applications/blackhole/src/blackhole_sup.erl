@@ -18,12 +18,13 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER('blackhole_listener')
-                  ,?WORKER('blackhole_tracking')
-                  ,?WORKER('blackhole_bindings')
-                  ,?WORKER('blackhole_init')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER('blackhole_listener'),
+    ?WORKER('blackhole_tracking'),
+    ?WORKER('blackhole_bindings'),
+    ?WORKER('blackhole_init')
+]).
 
 %%==============================================================================
 %% API functions

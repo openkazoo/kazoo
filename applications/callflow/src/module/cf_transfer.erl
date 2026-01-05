@@ -30,9 +30,11 @@
 -spec handle(kz_json:object(), kapps_call:call()) -> no_return().
 handle(Data, Call) ->
     kapps_call:put_callid(Call),
-    [Capture|_] = kz_json:get_list_value(<<"captures">>, Data, [<<"no_match">>]),
+    [Capture | _] = kz_json:get_list_value(<<"captures">>, Data, [<<"no_match">>]),
     TransferTo = kz_json:get_ne_binary_value(<<"target">>, Data, Capture),
-    TransferLeg = transfer_leg(kz_json:get_ne_binary_value(<<"leg">>, Data, default_transfer_leg(Capture))),
+    TransferLeg = transfer_leg(
+        kz_json:get_ne_binary_value(<<"leg">>, Data, default_transfer_leg(Capture))
+    ),
 
     case kz_json:get_ne_binary_value(<<"transfer_type">>, Data, <<"blind">>) of
         <<"attended">> -> kapps_call_command:transfer(<<"attended">>, TransferTo, Call);

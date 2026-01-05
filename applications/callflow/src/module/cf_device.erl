@@ -24,14 +24,16 @@ handle(Data, Call) ->
         {'ok', _} ->
             lager:info("completed successful bridge to the device"),
             cf_exe:stop(Call);
-        {'fail', _}=Reason -> maybe_handle_bridge_failure(Reason, Call);
+        {'fail', _} = Reason ->
+            maybe_handle_bridge_failure(Reason, Call);
         {'error', _R} when is_atom(_R) ->
             lager:info("failed to build endpoint from device: ~p", [_R]),
             cf_exe:continue(Call);
         {'error', _R} ->
-            lager:info("error bridging to device: ~s"
-                      ,[kz_json:get_ne_binary_value(<<"Error-Message">>, _R)]
-                      ),
+            lager:info(
+                "error bridging to device: ~s",
+                [kz_json:get_ne_binary_value(<<"Error-Message">>, _R)]
+            ),
             cf_exe:continue(Call)
     end.
 
@@ -47,20 +49,29 @@ maybe_handle_bridge_failure(Reason, Call) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec bridge_to_endpoints(kz_json:object(), kapps_call:call()) ->
-          cf_api_bridge_return().
+    cf_api_bridge_return().
 bridge_to_endpoints(Data, Call) ->
     EndpointId = kz_json:get_ne_binary_value(<<"id">>, Data),
     Params = kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Data),
     Strategy = kz_json:get_ne_binary_value(<<"dial_strategy">>, Data, <<"simultaneous">>),
     case kz_endpoint:build(EndpointId, Params, Call) of
-        {'error', _}=E -> E;
+        {'error', _} = E ->
+            E;
         {'ok', Endpoints} ->
             FailOnSingleReject = kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined'),
             Timeout = kz_json:get_integer_value(<<"timeout">>, Data, ?DEFAULT_TIMEOUT_S),
             IgnoreEarlyMedia = kz_endpoints:ignore_early_media(Endpoints),
             CustomHeaders = kz_json:get_ne_json_value(<<"custom_sip_headers">>, Data),
 
-            kapps_call_command:b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia
-                                       ,'undefined', CustomHeaders, <<"false">>, FailOnSingleReject, Call
-                                       )
+            kapps_call_command:b_bridge(
+                Endpoints,
+                Timeout,
+                Strategy,
+                IgnoreEarlyMedia,
+                'undefined',
+                CustomHeaders,
+                <<"false">>,
+                FailOnSingleReject,
+                Call
+            )
     end.

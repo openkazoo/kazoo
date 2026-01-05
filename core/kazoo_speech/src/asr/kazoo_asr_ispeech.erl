@@ -46,28 +46,46 @@ accepted_content_types() ->
 
 -spec default_url() -> kz_term:ne_binary().
 default_url() ->
-    kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"asr_url">>, <<"http://api.ispeech.org/api/json">>).
+    kapps_config:get_ne_binary(
+        ?MOD_CONFIG_CAT, <<"asr_url">>, <<"http://api.ispeech.org/api/json">>
+    ).
 
 -spec default_api_key() -> binary().
 default_api_key() ->
     kapps_config:get_binary(?MOD_CONFIG_CAT, <<"asr_api_key">>, <<>>).
 
--spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> asr_resp().
+-spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    asr_resp().
 freeform(Content, ContentType, Locale, Options) ->
-    case kazoo_asr_util:maybe_convert_content(Content, ContentType, accepted_content_types(), preferred_content_type()) of
-        {'error', _}=E -> E;
+    case
+        kazoo_asr_util:maybe_convert_content(
+            Content, ContentType, accepted_content_types(), preferred_content_type()
+        )
+    of
+        {'error', _} = E -> E;
         {Content1, ContentType1} -> exec_freeform(Content1, ContentType1, Locale, Options)
     end.
 
--spec commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          provider_return().
+-spec commands(
+    kz_term:ne_binary(),
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) ->
+    provider_return().
 commands(Content, Commands, ContentType, Locale, Options) ->
-    case kazoo_asr_util:maybe_convert_content(Content, ContentType, accepted_content_types(), preferred_content_type()) of
-        {'error', _}=E -> E;
+    case
+        kazoo_asr_util:maybe_convert_content(
+            Content, ContentType, accepted_content_types(), preferred_content_type()
+        )
+    of
+        {'error', _} = E -> E;
         {Content1, ContentType1} -> exec_commands(Content1, Commands, ContentType1, Locale, Options)
     end.
 
--spec make_request(kz_term:ne_binary(), kz_term:proplist(), iolist(), kz_term:proplist()) -> kz_http:ret().
+-spec make_request(kz_term:ne_binary(), kz_term:proplist(), iolist(), kz_term:proplist()) ->
+    kz_http:ret().
 make_request(BaseUrl, Headers, Body, Opts) ->
     case props:get_value('receiver', Opts) of
         Pid when is_pid(Pid) ->
@@ -80,7 +98,7 @@ make_request(BaseUrl, Headers, Body, Opts) ->
     end.
 
 -spec handle_response(kz_http:ret()) -> asr_resp() | provider_return().
-handle_response({'error', _R}=E) ->
+handle_response({'error', _R} = E) ->
     lager:debug("asr failed with error ~p", [_R]),
     E;
 handle_response({'http_req_id', ReqID}) ->
@@ -99,18 +117,19 @@ handle_response({'ok', _Code, _Hdrs, Content2}) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec exec_freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          asr_resp().
+    asr_resp().
 exec_freeform(Content, ContentType, Locale, Options) ->
     BaseUrl = default_url(),
     lager:debug("sending request to ~s", [BaseUrl]),
-    Props = [{<<"apikey">>, default_api_key()}
-            ,{<<"action">>, <<"recognize">>}
-            ,{<<"freeform">>, <<"1">>}
-            ,{<<"content-type">>, ContentType}
-            ,{<<"output">>, <<"json">>}
-            ,{<<"locale">>, Locale}
-            ,{<<"audio">>, base64:encode(Content)}
-            ],
+    Props = [
+        {<<"apikey">>, default_api_key()},
+        {<<"action">>, <<"recognize">>},
+        {<<"freeform">>, <<"1">>},
+        {<<"content-type">>, ContentType},
+        {<<"output">>, <<"json">>},
+        {<<"locale">>, Locale},
+        {<<"audio">>, base64:encode(Content)}
+    ],
     Headers = [{"Content-Type", "application/x-www-form-urlencoded"}],
     Body = kz_http_util:props_to_querystring(Props),
     lager:debug("asr req body: ~s", [Body]),
@@ -121,8 +140,14 @@ exec_freeform(Content, ContentType, Locale, Options) ->
 %% @doc Send a command list ASR request to iSpeech
 %% @end
 %%------------------------------------------------------------------------------
--spec exec_commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          provider_return().
+-spec exec_commands(
+    kz_term:ne_binary(),
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) ->
+    provider_return().
 exec_commands(Bin, Commands, ContentType, Locale, Opts) ->
     BaseUrl = default_url(),
 
@@ -130,16 +155,17 @@ exec_commands(Bin, Commands, ContentType, Locale, Opts) ->
 
     lager:debug("sending request to ~s", [BaseUrl]),
 
-    Props = [{<<"apikey">>, default_api_key()}
-            ,{<<"action">>, <<"recognize">>}
-            ,{<<"alias">>, <<"command1|YESNOMAYBE">>}
-            ,{<<"YESNOMAYBE">>, Commands1}
-            ,{<<"command1">>, <<"say %YESNOMAYBE%">>}
-            ,{<<"content-type">>, ContentType}
-            ,{<<"output">>, <<"json">>}
-            ,{<<"locale">>, Locale}
-            ,{<<"audio">>, base64:encode(Bin)}
-            ],
+    Props = [
+        {<<"apikey">>, default_api_key()},
+        {<<"action">>, <<"recognize">>},
+        {<<"alias">>, <<"command1|YESNOMAYBE">>},
+        {<<"YESNOMAYBE">>, Commands1},
+        {<<"command1">>, <<"say %YESNOMAYBE%">>},
+        {<<"content-type">>, ContentType},
+        {<<"output">>, <<"json">>},
+        {<<"locale">>, Locale},
+        {<<"audio">>, base64:encode(Bin)}
+    ],
     Headers = [{"Content-Type", "application/json"}],
 
     Body = kz_json:encode(kz_json:from_list(Props)),

@@ -50,8 +50,13 @@
 -export([node/1, node/2, set_node/2]).
 -export([other_leg_call_id/1, other_leg_call_id/2, set_other_leg_call_id/2]).
 -export([other_leg_caller_id_name/1, other_leg_caller_id_name/2, set_other_leg_caller_id_name/2]).
--export([other_leg_caller_id_number/1, other_leg_caller_id_number/2, set_other_leg_caller_id_number/2]).
--export([other_leg_destination_number/1, other_leg_destination_number/2, set_other_leg_destination_number/2]).
+-export([
+    other_leg_caller_id_number/1, other_leg_caller_id_number/2, set_other_leg_caller_id_number/2
+]).
+-export([
+    other_leg_destination_number/1, other_leg_destination_number/2,
+    set_other_leg_destination_number/2
+]).
 -export([other_leg_direction/1, other_leg_direction/2, set_other_leg_direction/2]).
 -export([presence_id/1, presence_id/2, set_presence_id/2]).
 -export([remote_sdp/1, remote_sdp/2, set_remote_sdp/2]).
@@ -67,9 +72,10 @@
 -export([to_uri/1, to_uri/2, set_to_uri/2]).
 -export([user_agent/1, user_agent/2, set_user_agent/2]).
 
--export([create_doc_id/1, create_doc_id/2, create_doc_id/3
-        ,type/0
-        ]).
+-export([
+    create_doc_id/1, create_doc_id/2, create_doc_id/3,
+    type/0
+]).
 
 -include("kz_documents.hrl").
 
@@ -799,26 +805,27 @@ user_agent(Doc, Default) ->
 set_user_agent(Doc, UserAgent) ->
     kz_json:set_value([<<"user_agent">>], UserAgent, Doc).
 
-
 -spec create_doc_id(kz_term:ne_binary()) -> kz_term:ne_binary().
-create_doc_id(?NE_BINARY=CallId) ->
+create_doc_id(?NE_BINARY = CallId) ->
     {Year, Month, _} = erlang:date(),
     create_doc_id(CallId, Year, Month).
 
 -spec create_doc_id(kz_term:ne_binary(), kz_time:gregorian_seconds()) -> kz_term:ne_binary().
-create_doc_id(?NE_BINARY=CallId, Timestamp) when is_integer(Timestamp) ->
+create_doc_id(?NE_BINARY = CallId, Timestamp) when is_integer(Timestamp) ->
     {{Year, Month, _}, _} = calendar:gregorian_seconds_to_datetime(Timestamp),
     create_doc_id(CallId, Year, Month).
 
 -spec create_doc_id(kz_term:ne_binary(), kz_time:year(), kz_time:month()) -> kz_term:ne_binary().
-create_doc_id(?NE_BINARY=CallId, Year, Month)
-  when is_integer(Year),
-       is_integer(Month) ->
-    list_to_binary([kz_term:to_binary(Year)
-                   ,kz_date:pad_month(Month)
-                   ,"-"
-                   ,CallId
-                   ]).
+create_doc_id(?NE_BINARY = CallId, Year, Month) when
+    is_integer(Year),
+    is_integer(Month)
+->
+    list_to_binary([
+        kz_term:to_binary(Year),
+        kz_date:pad_month(Month),
+        "-",
+        CallId
+    ]).
 
 -spec type() -> binary().
 type() -> ?PVT_TYPE.

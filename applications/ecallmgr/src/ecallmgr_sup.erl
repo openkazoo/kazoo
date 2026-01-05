@@ -14,11 +14,12 @@
 -export([start_link/0]).
 -export([init/1]).
 
--define(CHILDREN, [?SUPER('ecallmgr_auxiliary_sup')
-                  ,?SUPER('ecallmgr_call_sup')
-                  ,?SUPER('ecallmgr_conference_sup')
-                  ,?SUPER('ecallmgr_fs_sup')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('ecallmgr_auxiliary_sup'),
+    ?SUPER('ecallmgr_call_sup'),
+    ?SUPER('ecallmgr_conference_sup'),
+    ?SUPER('ecallmgr_fs_sup')
+]).
 
 %%==============================================================================
 %% API functions

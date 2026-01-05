@@ -20,19 +20,21 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_shared_auth).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,authorize/1
-        ,authenticate/1
-        ,validate/1
-        ,put/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    authorize/1,
+    authenticate/1,
+    validate/1,
+    put/1
+]).
 
 -include("crossbar.hrl").
 
 -define(AUTHORITATIVE_CROSSBAR,
-        kapps_config:get_string(<<"crossbar.shared_auth">>, <<"authoritative_crossbar">>)).
+    kapps_config:get_string(<<"crossbar.shared_auth">>, <<"authoritative_crossbar">>)
+).
 
 %%%=============================================================================
 %%% API
@@ -44,7 +46,9 @@
 %%------------------------------------------------------------------------------
 -spec init() -> ok.
 init() ->
-    lager:debug("shared auth started up, using ~s as authoritative crossbar", [?AUTHORITATIVE_CROSSBAR]),
+    lager:debug("shared auth started up, using ~s as authoritative crossbar", [
+        ?AUTHORITATIVE_CROSSBAR
+    ]),
     _ = crossbar_bindings:bind(<<"*.authenticate">>, ?MODULE, 'authenticate'),
     _ = crossbar_bindings:bind(<<"*.authorize">>, ?MODULE, 'authorize'),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.shared_auth">>, ?MODULE, 'allowed_methods'),
@@ -82,7 +86,7 @@ authorize(Context) ->
     authorize(Context, cb_context:req_nouns(Context)).
 
 -spec authorize(cb_context:context(), req_nouns()) -> boolean().
-authorize(_, [{<<"shared_auth">>, _}]) ->'true';
+authorize(_, [{<<"shared_auth">>, _}]) -> 'true';
 authorize(_, _) -> 'false'.
 
 %%------------------------------------------------------------------------------
@@ -125,7 +129,8 @@ authenticate(_, _) -> 'false'.
 validate(Context) ->
     validate_request(Context, cb_context:req_verb(Context), cb_context:auth_doc(Context)).
 
--spec validate_request(cb_context:context(), http_method(), kz_term:api_object()) -> cb_context:context().
+-spec validate_request(cb_context:context(), http_method(), kz_term:api_object()) ->
+    cb_context:context().
 validate_request(Context, ?HTTP_PUT, _) ->
     _ = cb_context:put_reqid(Context),
     SharedToken = kz_json:get_value(<<"shared_token">>, cb_context:req_data(Context)),
@@ -135,26 +140,27 @@ validate_request(Context, ?HTTP_PUT, _) ->
             RemoteData = kz_json:get_value(<<"data">>, kz_json:decode(Payload)),
             case import_missing_data(RemoteData) of
                 'true' ->
-                    cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                                ,{fun cb_context:set_doc/2, RemoteData}
-                                                ,{fun cb_context:set_auth_token/2, SharedToken}
-                                                ]);
+                    cb_context:setters(Context, [
+                        {fun cb_context:set_resp_status/2, 'success'},
+                        {fun cb_context:set_doc/2, RemoteData},
+                        {fun cb_context:set_auth_token/2, SharedToken}
+                    ]);
                 'false' ->
                     cb_context:add_system_error('datastore_fault', Context)
             end;
         {'forbidden', _} ->
             lager:debug("authoritative shared auth request forbidden"),
             cb_context:add_system_error('invalid_credentials', Context);
-        {'error', _}=E ->
+        {'error', _} = E ->
             lager:debug("authoritative shared auth request error: ~p", [E]),
             cb_context:add_system_error('datastore_unreachable', Context)
     end;
-
 validate_request(Context, ?HTTP_GET, 'undefined') ->
     _ = cb_context:put_reqid(Context),
-    lager:debug("valid shared auth request received but there is no authorizing doc (noauth running?)"),
+    lager:debug(
+        "valid shared auth request received but there is no authorizing doc (noauth running?)"
+    ),
     cb_context:add_system_error('invalid_credentials', Context);
-
 validate_request(Context, ?HTTP_GET, JObj) ->
     _ = cb_context:put_reqid(Context),
     lager:debug("valid shared auth request received, creating response"),
@@ -165,12 +171,14 @@ validate_request(Context, ?HTTP_GET, JObj) ->
             Db = kz_util:format_account_id(AccountId, 'encoded'),
             case kz_datamgr:open_doc(Db, UserId) of
                 {'ok', User} ->
-                    RespData = kz_json:from_list([{<<"account">>, Account}
-                                                 ,{<<"user">>, User}
-                                                 ]),
-                    cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                                ,{fun cb_context:set_resp_data/2, RespData}
-                                                ]);
+                    RespData = kz_json:from_list([
+                        {<<"account">>, Account},
+                        {<<"user">>, User}
+                    ]),
+                    cb_context:setters(Context, [
+                        {fun cb_context:set_resp_status/2, 'success'},
+                        {fun cb_context:set_resp_data/2, RespData}
+                    ]);
                 {'error', R} ->
                     lager:debug("failed to get user for response ~p", [R]),
                     cb_context:add_system_error('datastore_fault', Context)
@@ -200,19 +208,22 @@ put(Context) ->
 -spec create_local_token(cb_context:context()) -> cb_context:context().
 create_local_token(Context) ->
     JObj = cb_context:doc(Context),
-    Token = kz_json:from_list([{<<"account_id">>, kz_json:get_value([<<"account">>, <<"_id">>], JObj, <<>>)}
-                              ,{<<"owner_id">>, kz_json:get_value([<<"user">>, <<"_id">>], JObj, <<>>)}
-                              ,{<<"created">>, kz_time:now_s()}
-                              ,{<<"modified">>, kz_time:now_s()}
-                              ,{<<"method">>, kz_term:to_binary(?MODULE)}
-                              ,{<<"shared_token">>, cb_context:auth_token(Context)}
-                              ]),
+    Token = kz_json:from_list([
+        {<<"account_id">>, kz_json:get_value([<<"account">>, <<"_id">>], JObj, <<>>)},
+        {<<"owner_id">>, kz_json:get_value([<<"user">>, <<"_id">>], JObj, <<>>)},
+        {<<"created">>, kz_time:now_s()},
+        {<<"modified">>, kz_time:now_s()},
+        {<<"method">>, kz_term:to_binary(?MODULE)},
+        {<<"shared_token">>, cb_context:auth_token(Context)}
+    ]),
     case kz_datamgr:save_doc(?KZ_TOKEN_DB, Token) of
         {'ok', Doc} ->
             AuthToken = kz_doc:id(Doc),
             lager:debug("created new local auth token ~s", [AuthToken]),
-            Context1 = cb_context:set_doc(cb_context:set_auth_token(Context, AuthToken)
-                                         ,Doc),
+            Context1 = cb_context:set_doc(
+                cb_context:set_auth_token(Context, AuthToken),
+                Doc
+            ),
             crossbar_util:response(crossbar_util:response_auth(JObj), Context1);
         {'error', R} ->
             lager:debug("could not create new local auth token, ~p", [R]),
@@ -225,16 +236,17 @@ create_local_token(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec authenticate_shared_token(kz_term:api_binary(), nonempty_string()) ->
-          {'ok', string() | binary()} |
-          {'error', atom()} |
-          {'forbidden', atom()}.
+    {'ok', string() | binary()}
+    | {'error', atom()}
+    | {'forbidden', atom()}.
 authenticate_shared_token('undefined', _) ->
     {'forbidden', 'missing_shared_token'};
 authenticate_shared_token(SharedToken, XBarUrl) ->
     Url = lists:flatten(XBarUrl, "/shared_auth"),
-    Headers = [{"Accept", "application/json"}
-              ,{"X-Auth-Token", kz_term:to_list(SharedToken)}
-              ],
+    Headers = [
+        {"Accept", "application/json"},
+        {"X-Auth-Token", kz_term:to_list(SharedToken)}
+    ],
     lager:debug("validating shared token ~s via ~s", [SharedToken, Url]),
     case kz_http:get(Url, Headers) of
         {'ok', 200, _, Resp} -> {'ok', Resp};
@@ -249,16 +261,19 @@ authenticate_shared_token(SharedToken, XBarUrl) ->
 %%------------------------------------------------------------------------------
 -spec import_missing_data(kz_json:object()) -> boolean().
 import_missing_data(RemoteData) ->
-    import_missing_data(kz_json:get_json_value(<<"account">>, RemoteData)
-                       ,kz_json:get_json_value(<<"user">>, RemoteData)
-                       ).
+    import_missing_data(
+        kz_json:get_json_value(<<"account">>, RemoteData),
+        kz_json:get_json_value(<<"user">>, RemoteData)
+    ).
 
-import_missing_data('undefined', _User) -> 'false';
-import_missing_data(_Account, 'undefined') -> 'false';
+import_missing_data('undefined', _User) ->
+    'false';
+import_missing_data(_Account, 'undefined') ->
+    'false';
 import_missing_data(Account, User) ->
     AccountId = kz_doc:account_id(Account),
-    import_missing_account(AccountId, Account)
-        andalso import_missing_user(AccountId, kz_doc:id(User), User).
+    import_missing_account(AccountId, Account) andalso
+        import_missing_user(AccountId, kz_doc:id(User), User).
 
 %%------------------------------------------------------------------------------
 %% @doc If a remote host authenticates the shared token it will return
@@ -281,14 +296,19 @@ import_missing_account(AccountId, Account) ->
             %% use the one we got from shared auth
             case kzd_accounts:fetch(AccountId) of
                 {'error', 'not_found'} ->
-                    lager:debug("missing local account definition, creating from shared auth response"),
+                    lager:debug(
+                        "missing local account definition, creating from shared auth response"
+                    ),
                     Doc = kz_doc:delete_revision(Account),
                     Event = <<"*.execute.post.accounts">>,
 
-                    Context = cb_context:setters(cb_context:new()
-                                                ,[{fun cb_context:set_account_db/2,  Db}
-                                                 ,{fun cb_context:set_doc/2, Doc}
-                                                 ]),
+                    Context = cb_context:setters(
+                        cb_context:new(),
+                        [
+                            {fun cb_context:set_account_db/2, Db},
+                            {fun cb_context:set_doc/2, Doc}
+                        ]
+                    ),
                     PostContext = crossbar_bindings:fold(Event, [Context, AccountId]),
 
                     case cb_context:resp_status(PostContext) of
@@ -323,7 +343,8 @@ import_missing_account(AccountId, Account) ->
 %% an account and user, ensure the user exists locally (creating if not)
 %% @end
 %%------------------------------------------------------------------------------
--spec import_missing_user(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()) -> boolean().
+-spec import_missing_user(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_json:object()) ->
+    boolean().
 import_missing_user(_, 'undefined', _) ->
     lager:debug("shared auth reply did not define an user id"),
     'false';
@@ -336,10 +357,13 @@ import_missing_user(AccountId, UserId, User) ->
         _Else ->
             Doc = kz_doc:delete_revision(User),
             Event = <<"*.execute.put.users">>,
-            Context = cb_context:setters(cb_context:new()
-                                        ,[{fun cb_context:set_account_db/2,  Db}
-                                         ,{fun cb_context:set_doc/2, Doc}
-                                         ]),
+            Context = cb_context:setters(
+                cb_context:new(),
+                [
+                    {fun cb_context:set_account_db/2, Db},
+                    {fun cb_context:set_doc/2, Doc}
+                ]
+            ),
             PostContext = crossbar_bindings:fold(Event, [Context, AccountId]),
 
             case cb_context:resp_status(PostContext) of

@@ -20,7 +20,7 @@
 -module(kazoo_bindings_tests).
 
 -ifdef(PROPER).
-- include_lib("proper/include/proper.hrl").
+-include_lib("proper/include/proper.hrl").
 -endif.
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -34,33 +34,36 @@ binding_matches(B, R) ->
 
     kazoo_bindings:matches(BRev, RRev).
 
--define(ROUTINGS, [<<"foo.bar.zot">>
-                  ,<<"foo.quux.zot">>
-                  ,<<"foo.bar.quux.zot">>
-                  ,<<"foo.zot">>
-                  ,<<"foo">>
-                  ,<<"xap">>
-                  ]).
+-define(ROUTINGS, [
+    <<"foo.bar.zot">>,
+    <<"foo.quux.zot">>,
+    <<"foo.bar.quux.zot">>,
+    <<"foo.zot">>,
+    <<"foo">>,
+    <<"xap">>
+]).
 
--define(BINDINGS, [{<<"#">>, ['true', 'true', 'true', 'true', 'true', 'true']}
-                  ,{<<"foo.*.zot">>, ['true', 'true', 'false', 'false', 'false', 'false']}
-                  ,{<<"foo.#.zot">>, ['true', 'true', 'true', 'true', 'false', 'false']}
-                  ,{<<"*.bar.#">>, ['true', 'false', 'true', 'false', 'false', 'false']}
-                  ,{<<"*">>, ['false', 'false', 'false', 'false', 'true', 'true']}
-                  ,{<<"#.tow">>, ['false', 'false', 'false', 'false', 'false', 'false']}
-                  ,{<<"#.quux.zot">>, ['false', 'true', 'true', 'false', 'false', 'false']}
-                  ,{<<"xap.#">>, ['false', 'false', 'false', 'false', 'false', 'true']}
-                  ,{<<"#.*">>, ['true', 'true', 'true', 'true', 'true', 'true']}
-                  ,{<<"#.bar.*">>, ['true', 'false', 'false', 'false', 'false', 'false']}
-                  ]).
+-define(BINDINGS, [
+    {<<"#">>, ['true', 'true', 'true', 'true', 'true', 'true']},
+    {<<"foo.*.zot">>, ['true', 'true', 'false', 'false', 'false', 'false']},
+    {<<"foo.#.zot">>, ['true', 'true', 'true', 'true', 'false', 'false']},
+    {<<"*.bar.#">>, ['true', 'false', 'true', 'false', 'false', 'false']},
+    {<<"*">>, ['false', 'false', 'false', 'false', 'true', 'true']},
+    {<<"#.tow">>, ['false', 'false', 'false', 'false', 'false', 'false']},
+    {<<"#.quux.zot">>, ['false', 'true', 'true', 'false', 'false', 'false']},
+    {<<"xap.#">>, ['false', 'false', 'false', 'false', 'false', 'true']},
+    {<<"#.*">>, ['true', 'true', 'true', 'true', 'true', 'true']},
+    {<<"#.bar.*">>, ['true', 'false', 'false', 'false', 'false', 'false']}
+]).
 
 bindings_match_test_() ->
-    lists:map(fun({B, _}=Expected) ->
-                      Actual = lists:foldr(fun(R, Acc) -> [binding_matches(B, R) | Acc] end, [], ?ROUTINGS),
-                      ?_assertEqual(Expected, {B, Actual})
-              end
-             ,?BINDINGS
-             ).
+    lists:map(
+        fun({B, _} = Expected) ->
+            Actual = lists:foldr(fun(R, Acc) -> [binding_matches(B, R) | Acc] end, [], ?ROUTINGS),
+            ?_assertEqual(Expected, {B, Actual})
+        end,
+        ?BINDINGS
+    ).
 
 %% Left commented out because this was really useful for stepping through
 %% individual tests and I want to keep it here for reference in the future
@@ -74,16 +77,17 @@ bindings_match_test_() ->
 %%     ?assert(Result).
 
 weird_bindings_test_() ->
-    [?_assertEqual('true', binding_matches(<<"#.A.*">>, <<"A.a.A.a">>))
-    ,?_assertEqual('true', binding_matches(<<"#.*">>, <<"foo">>))
-    ,?_assertEqual('true', binding_matches(<<"#.*">>, <<"foo.bar">>))
-    ,?_assertEqual('false', binding_matches(<<"foo.#.*">>, <<"foo">>))
-    ,?_assertEqual('false', binding_matches(<<"#.*">>, <<>>))
-    ,?_assertEqual('true', binding_matches(<<"#.6.*.1.4.*">>, <<"6.a.a.6.a.1.4.a">>))
-    ,?_assertEqual('true', binding_matches(<<"*.u.*.7.7.#">>, <<"i.u.e.7.7.7.a">>))
-    ,?_assertEqual('true', binding_matches(<<"#.c.#.c.#">>, <<"c.c">>))
-    ,?_assertEqual('true', binding_matches(<<"#.Z.*.9.0.#">>, <<"1.Z.7.9.0.9.a.0">>))
-    ,?_assertEqual('true', binding_matches(<<"W0.*.m.m.#">>, <<"W0.m.m.m.5">>))
+    [
+        ?_assertEqual('true', binding_matches(<<"#.A.*">>, <<"A.a.A.a">>)),
+        ?_assertEqual('true', binding_matches(<<"#.*">>, <<"foo">>)),
+        ?_assertEqual('true', binding_matches(<<"#.*">>, <<"foo.bar">>)),
+        ?_assertEqual('false', binding_matches(<<"foo.#.*">>, <<"foo">>)),
+        ?_assertEqual('false', binding_matches(<<"#.*">>, <<>>)),
+        ?_assertEqual('true', binding_matches(<<"#.6.*.1.4.*">>, <<"6.a.a.6.a.1.4.a">>)),
+        ?_assertEqual('true', binding_matches(<<"*.u.*.7.7.#">>, <<"i.u.e.7.7.7.a">>)),
+        ?_assertEqual('true', binding_matches(<<"#.c.#.c.#">>, <<"c.c">>)),
+        ?_assertEqual('true', binding_matches(<<"#.Z.*.9.0.#">>, <<"1.Z.7.9.0.9.a.0">>)),
+        ?_assertEqual('true', binding_matches(<<"W0.*.m.m.#">>, <<"W0.m.m.m.5">>))
     ].
 
 %%% PropEr tests
@@ -92,38 +96,46 @@ weird_bindings_test_() ->
 -ifdef(PROPER).
 
 expands_test_() ->
-    {"Running PropEr tests"
-    ,{'timeout'
-     ,50000
-     ,?_assertEqual('true', proper:quickcheck(prop_expands(), [{'numtests', 10000}]))
-     }
-    }.
+    {"Running PropEr tests",
+        {'timeout', 50000,
+            ?_assertEqual('true', proper:quickcheck(prop_expands(), [{'numtests', 10000}]))}}.
 
 prop_expands() ->
-    ?FORALL(Paths
-           ,expanded_paths(),
-            ?WHENFAIL(io:format("Failed on ~p~n", [Paths])
-                     ,lists:all(fun kz_term:identity/1,
-                                [binding_matches(Pattern, Expanded) =:= Expected
-                                 || {Pattern, Expanded, Expected} <- Paths
-                                ])
-                     )
-           ).
+    ?FORALL(
+        Paths,
+        expanded_paths(),
+        ?WHENFAIL(
+            io:format("Failed on ~p~n", [Paths]),
+            lists:all(
+                fun kz_term:identity/1,
+                [
+                    binding_matches(Pattern, Expanded) =:= Expected
+                 || {Pattern, Expanded, Expected} <- Paths
+                ]
+            )
+        )
+    ).
 
 %%% GENERATORS
 
 %% Gives a list of paths that were expanded, some of them to fail on purpose,
 %% some of them not to.
 expanded_paths() ->
-    ?LET(P, path(),
-         begin
-             B = list_to_binary(P),
-             ?LET({{Expanded1, IsRight1},{Expanded2, IsRight2}},
-                  {wrong(P), right(P)},
-                  [{B, list_to_binary(Expanded1), IsRight1},
-                   {B, list_to_binary(Expanded2), IsRight2}
-                  ])
-         end).
+    ?LET(
+        P,
+        path(),
+        begin
+            B = list_to_binary(P),
+            ?LET(
+                {{Expanded1, IsRight1}, {Expanded2, IsRight2}},
+                {wrong(P), right(P)},
+                [
+                    {B, list_to_binary(Expanded1), IsRight1},
+                    {B, list_to_binary(Expanded2), IsRight2}
+                ]
+            )
+        end
+    ).
 
 %% Tries to make a pattern wrong. Will not always succeed because a pattern
 %% like "#" can be anything at all.
@@ -149,71 +161,105 @@ right(Path) ->
 %% Returns {Str, ShouldMatchOriginal}.
 wrong([], Bool, Acc) ->
     {lists:reverse(Acc), Bool};
-wrong("*.#." ++ Rest, Bool, Acc) -> %% the # messes stuff up, can't invalidate
+%% the # messes stuff up, can't invalidate
+wrong("*.#." ++ Rest, Bool, Acc) ->
     wrong(Rest, Bool, Acc);
-wrong("*.#", Bool, Acc) ->  %% same as above, end of string
+%% same as above, end of string
+wrong("*.#", Bool, Acc) ->
     {lists:reverse(Acc), Bool};
 wrong("*." ++ Rest, _Bool, Acc) ->
     wrong(Rest, 'false', Acc);
 wrong(".*", _Bool, Acc) ->
     {lists:reverse(Acc), 'false'};
-wrong(".#." ++ Rest, Bool, Acc) -> %% can't make this one wrong
-    wrong(Rest, Bool, [$.|Acc]);
-wrong("#." ++ Rest, Bool, Acc) -> %% same, start of string
+%% can't make this one wrong
+wrong(".#." ++ Rest, Bool, Acc) ->
+    wrong(Rest, Bool, [$. | Acc]);
+%% same, start of string
+wrong("#." ++ Rest, Bool, Acc) ->
     wrong(Rest, Bool, Acc);
-wrong(".#", Bool, Acc) -> %% same as above, end of string
+%% same as above, end of string
+wrong(".#", Bool, Acc) ->
     {lists:reverse(Acc), Bool};
-wrong([Char|Rest], Bool, Acc) when Char =/= $*, Char =/= $# ->
-    wrong(Rest, Bool, [Char|Acc]).
+wrong([Char | Rest], Bool, Acc) when Char =/= $*, Char =/= $# ->
+    wrong(Rest, Bool, [Char | Acc]).
 
 %% Returns an expanded string according to the rules
-right1([]) -> [];
+right1([]) ->
+    [];
 right1("*" ++ Rest) ->
-    ?LET(S, segment(), S++right1(Rest));
+    ?LET(S, segment(), S ++ right1(Rest));
 right1(".#" ++ Rest) ->
-    ?LET(X,
-         union([
-                "",
-                ?LAZY(?LET(S, segment(), [$.]++S)),
-                ?LAZY(?LET({A,B}, {segment(), segment()}, [$.]++A++[$.]++B)),
-                ?LAZY(?LET({A,B,C}, {segment(), segment(), segment()}, [$.]++A++[$.]++B++[$.]++C))
-               ]),
-         X ++ right1(Rest));
+    ?LET(
+        X,
+        union([
+            "",
+            ?LAZY(?LET(S, segment(), [$.] ++ S)),
+            ?LAZY(?LET({A, B}, {segment(), segment()}, [$.] ++ A ++ [$.] ++ B)),
+            ?LAZY(
+                ?LET(
+                    {A, B, C},
+                    {segment(), segment(), segment()},
+                    [$.] ++ A ++ [$.] ++ B ++ [$.] ++ C
+                )
+            )
+        ]),
+        X ++ right1(Rest)
+    );
 right1("#." ++ Rest) ->
-    ?LET(X,
-         union([
-                "",
-                ?LAZY(?LET(S, segment(), S++[$.])),
-                ?LAZY(?LET({A,B}, {segment(), segment()}, A++[$.]++B++[$.])),
-                ?LAZY(?LET({A,B,C}, {segment(), segment(), segment()}, A++[$.]++B++[$.]++C++[$.]))
-               ]),
-         X ++ right1(Rest));
-right1([Char|Rest]) ->
-    [Char|right1(Rest)].
+    ?LET(
+        X,
+        union([
+            "",
+            ?LAZY(?LET(S, segment(), S ++ [$.])),
+            ?LAZY(?LET({A, B}, {segment(), segment()}, A ++ [$.] ++ B ++ [$.])),
+            ?LAZY(
+                ?LET(
+                    {A, B, C},
+                    {segment(), segment(), segment()},
+                    A ++ [$.] ++ B ++ [$.] ++ C ++ [$.]
+                )
+            )
+        ]),
+        X ++ right1(Rest)
+    );
+right1([Char | Rest]) ->
+    [Char | right1(Rest)].
 
 %% Building a basic pattern/path string
 path() ->
-    ?LET(Base, ?LAZY(weighted_union([{3,a()}, {1,b()}])),
-         ?LET({H,T}, {union(["*.","#.",""]), union([".*",".#",""])},
-              H ++ Base ++ T)).
+    ?LET(
+        Base,
+        ?LAZY(weighted_union([{3, a()}, {1, b()}])),
+        ?LET(
+            {H, T},
+            {union(["*.", "#.", ""]), union([".*", ".#", ""])},
+            H ++ Base ++ T
+        )
+    ).
 
 a() ->
-    ?LET({X,Y}, {segment(), ?LAZY(union([b(), markers()]))},
-         X ++ [$.] ++ Y).
+    ?LET(
+        {X, Y},
+        {segment(), ?LAZY(union([b(), markers()]))},
+        X ++ [$.] ++ Y
+    ).
 
 b() ->
-    ?LET({X,Y}, {segment(), ?LAZY(union([b(), c()]))},
-         X ++ [$.] ++ Y).
+    ?LET(
+        {X, Y},
+        {segment(), ?LAZY(union([b(), c()]))},
+        X ++ [$.] ++ Y
+    ).
 
 c() ->
     segment().
 
 segment() ->
     ?SUCHTHAT(
-       X,
-       list(union([choose($a,$z), choose($A,$Z), choose($0,$9)])),
-       length(X) =/= 0
-      ).
+        X,
+        list(union([choose($a, $z), choose($A, $Z), choose($0, $9)])),
+        length(X) =/= 0
+    ).
 
 markers() ->
     ?LET(S, ?LAZY(union([[$#, $., c()], [$*, $., b()]])), lists:flatten(S)).

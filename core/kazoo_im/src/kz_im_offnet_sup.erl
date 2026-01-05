@@ -34,7 +34,8 @@
 worker() ->
     Pids = gproc:lookup_pids({'p', 'l', 'im_offnet'}),
     case length(Pids) of
-        0 -> {'error', 'no_connections'};
+        0 ->
+            {'error', 'no_connections'};
         Size ->
             Selected = rand:uniform(Size),
             lists:nth(Selected, Pids)
@@ -88,20 +89,22 @@ connections() ->
     end.
 
 -spec connections_fold(kz_json:key(), kz_json:object(), amqp_listener_connections()) ->
-          amqp_listener_connections().
+    amqp_listener_connections().
 connections_fold(K, V, Acc) ->
-    C = #amqp_listener_connection{name = K
-                                 ,broker = kz_json:get_value(<<"broker">>, V)
-                                 ,exchange = kz_json:get_value(<<"exchange">>, V)
-                                 ,type = kz_json:get_value(<<"type">>, V)
-                                 ,queue = kz_json:get_value(<<"queue">>, V)
-                                 ,options = connection_options(kz_json:get_json_value(<<"options">>, V, kz_json:new()))
-                                 },
+    C = #amqp_listener_connection{
+        name = K,
+        broker = kz_json:get_value(<<"broker">>, V),
+        exchange = kz_json:get_value(<<"exchange">>, V),
+        type = kz_json:get_value(<<"type">>, V),
+        queue = kz_json:get_value(<<"queue">>, V),
+        options = connection_options(kz_json:get_json_value(<<"options">>, V, kz_json:new()))
+    },
     [C | Acc].
 
 -spec connection_options(kz_json:object()) -> kz_term:proplist().
 connection_options(JObj) ->
-    [{kz_term:to_atom(K, 'true'), V}
+    [
+        {kz_term:to_atom(K, 'true'), V}
      || {K, V} <- kz_json:to_proplist(JObj)
     ].
 

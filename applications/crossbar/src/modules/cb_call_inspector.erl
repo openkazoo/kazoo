@@ -7,11 +7,12 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_call_inspector).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2
+]).
 
 -include("crossbar.hrl").
 
@@ -85,19 +86,22 @@ validate(Context) ->
             load_chunk_view(Context, ViewName, Options)
     end.
 
--spec load_chunk_view(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) -> cb_context:context().
+-spec load_chunk_view(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) ->
+    cb_context:context().
 load_chunk_view(Context, ViewName, Options0) ->
     AuthAccountId = cb_context:auth_account_id(Context),
-    C1 = cb_context:store(Context
-                         ,'is_reseller'
-                         ,kz_services_reseller:is_reseller(AuthAccountId)
-                         ),
-    Options = [{'is_chunked', 'true'}
-              ,{'chunk_size', ?MAX_BULK}
-              ,{'mapper', fun(JObjs) -> cdrs_listing_mapper(Context, JObjs) end}
-              ,'include_docs'
-               | Options0
-              ],
+    C1 = cb_context:store(
+        Context,
+        'is_reseller',
+        kz_services_reseller:is_reseller(AuthAccountId)
+    ),
+    Options = [
+        {'is_chunked', 'true'},
+        {'chunk_size', ?MAX_BULK},
+        {'mapper', fun(JObjs) -> cdrs_listing_mapper(Context, JObjs) end},
+        'include_docs'
+        | Options0
+    ],
     crossbar_view:load_modb(cb_cdrs:fix_qs_filter_keys(C1), ViewName, Options).
 
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
@@ -119,24 +123,28 @@ validate(Context, CallId) ->
 %%------------------------------------------------------------------------------
 -spec inspect_call_id(kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
 inspect_call_id(CallId, Context) ->
-    Req = [{<<"Call-ID">>, CallId}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_inspector:publish_lookup_req/1
-                                    ,{'call_inspector', fun kapi_inspector:lookup_resp_v/1, 'true'}
-                                    )
+    Req = [
+        {<<"Call-ID">>, CallId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_inspector:publish_lookup_req/1,
+            {'call_inspector', fun kapi_inspector:lookup_resp_v/1, 'true'}
+        )
     of
         {'ok', [JObj]} ->
-            Chunks   = sanitize(kz_json:get_value(<<"Chunks">>, JObj, [])),
+            Chunks = sanitize(kz_json:get_value(<<"Chunks">>, JObj, [])),
             Analysis = sanitize(kz_json:get_value(<<"Analysis">>, JObj, [])),
             Response = kz_json:from_list(
-                         [{<<"call-id">>, CallId}
-                         ,{<<"messages">>, Chunks}
-                         ,{<<"dialog_entities">>, kz_json:get_value(<<"Dialog-Entities">>, JObj, [])}
-                         ,{<<"analysis">>, Analysis}
-                         ]
-                        ),
+                [
+                    {<<"call-id">>, CallId},
+                    {<<"messages">>, Chunks},
+                    {<<"dialog_entities">>, kz_json:get_value(<<"Dialog-Entities">>, JObj, [])},
+                    {<<"analysis">>, Analysis}
+                ]
+            ),
             crossbar_util:response(Response, Context);
         {'timeout', _Resp} ->
             lager:debug("timeout: ~s ~p", [CallId, _Resp]),
@@ -155,18 +163,16 @@ sanitize(JObjs) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_view_options(req_nouns()) -> {kz_term:api_ne_binary(), crossbar_view:options()}.
-get_view_options([{<<"call_inspector">>, []}, {?KZ_ACCOUNTS_DB, _}|_]) ->
-    {?CB_LIST
-    ,[{'range_start_keymap', []}
-     ,{'range_end_keymap', crossbar_view:suffix_key_fun([kz_json:new()])}
-     ]
-    };
-get_view_options([{<<"call_inspector">>, []}, {<<"users">>, [OwnerId]}|_]) ->
-    {?CB_LIST_BY_USER
-    ,[{'range_start_keymap', [OwnerId]}
-     ,{'range_end_keymap', fun(Ts) -> [OwnerId, Ts, kz_json:new()] end}
-     ]
-    };
+get_view_options([{<<"call_inspector">>, []}, {?KZ_ACCOUNTS_DB, _} | _]) ->
+    {?CB_LIST, [
+        {'range_start_keymap', []},
+        {'range_end_keymap', crossbar_view:suffix_key_fun([kz_json:new()])}
+    ]};
+get_view_options([{<<"call_inspector">>, []}, {<<"users">>, [OwnerId]} | _]) ->
+    {?CB_LIST_BY_USER, [
+        {'range_start_keymap', [OwnerId]},
+        {'range_end_keymap', fun(Ts) -> [OwnerId, Ts, kz_json:new()] end}
+    ]};
 get_view_options(_) ->
     {'undefined', []}.
 
@@ -174,7 +180,8 @@ get_view_options(_) ->
 %% @doc Loads CDR docs from database and normalized the them.
 %% @end
 %%------------------------------------------------------------------------------
--spec cdrs_listing_mapper(cb_context:context(), kz_json:objects()) -> kz_json:objects() | {'error', kz_term:ne_binary()}.
+-spec cdrs_listing_mapper(cb_context:context(), kz_json:objects()) ->
+    kz_json:objects() | {'error', kz_term:ne_binary()}.
 cdrs_listing_mapper(Context, JObjs) ->
     CallIds = [kz_json:get_value([<<"doc">>, <<"call_id">>], JObj) || JObj <- JObjs],
 
@@ -183,7 +190,8 @@ cdrs_listing_mapper(Context, JObjs) ->
         {'ok', FilteredCallIds} ->
             lager:debug("found ~p dialogues", [length(FilteredCallIds)]),
 
-            [cb_cdrs:normalize_cdr(Context, <<"json">>, JObj)
+            [
+                cb_cdrs:normalize_cdr(Context, <<"json">>, JObj)
              || JObj <- JObjs,
                 lists:member(kz_json:get_value([<<"doc">>, <<"call_id">>], JObj), FilteredCallIds)
             ];
@@ -196,20 +204,25 @@ cdrs_listing_mapper(Context, JObjs) ->
 %% which cdr_id is on call_inspector data store
 %% @end
 %%------------------------------------------------------------------------------
--spec filter_callids(kz_term:ne_binaries()) -> {'ok', kz_term:ne_binaries()} |
-          {'error', kz_term:ne_binary()}.
-filter_callids([]) -> {'ok', []};
+-spec filter_callids(kz_term:ne_binaries()) ->
+    {'ok', kz_term:ne_binaries()}
+    | {'error', kz_term:ne_binary()}.
+filter_callids([]) ->
+    {'ok', []};
 filter_callids(CallIds) ->
-    Req = [{<<"Call-IDs">>, CallIds}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_inspector:publish_filter_req/1
-                                    ,{'call_inspector', fun kapi_inspector:filter_resp_v/1, 'true'}
-                                    )
+    Req = [
+        {<<"Call-IDs">>, CallIds}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_inspector:publish_filter_req/1,
+            {'call_inspector', fun kapi_inspector:filter_resp_v/1, 'true'}
+        )
     of
         {'ok', JObjs} ->
-            FilterIds = fun (JObj) -> kz_json:get_value(<<"Call-IDs">>, JObj, []) end,
+            FilterIds = fun(JObj) -> kz_json:get_value(<<"Call-IDs">>, JObj, []) end,
             {'ok', lists:usort(lists:flatmap(FilterIds, JObjs))};
         {'timeout', JObjs} ->
             lager:debug("timeout: got ~b response jobj though", [length(JObjs)]),

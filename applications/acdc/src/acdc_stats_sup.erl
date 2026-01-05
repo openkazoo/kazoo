@@ -9,9 +9,10 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0
-        ,stats_srv/0
-        ]).
+-export([
+    start_link/0,
+    stats_srv/0
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -20,10 +21,15 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER_NAME_ARGS('acdc_stats_etsmgr', 'acdc_stats_call', [acdc_stats:call_table_id(), acdc_stats:call_table_opts()])
-                  ,?WORKER_NAME_ARGS('acdc_stats_etsmgr', 'acdc_stats_status', [acdc_agent_stats:status_table_id(), acdc_agent_stats:status_table_opts()])
-                  ,?WORKER('acdc_stats')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_NAME_ARGS('acdc_stats_etsmgr', 'acdc_stats_call', [
+        acdc_stats:call_table_id(), acdc_stats:call_table_opts()
+    ]),
+    ?WORKER_NAME_ARGS('acdc_stats_etsmgr', 'acdc_stats_status', [
+        acdc_agent_stats:status_table_id(), acdc_agent_stats:status_table_opts()
+    ]),
+    ?WORKER('acdc_stats')
+]).
 
 %%%=============================================================================
 %%% API functions
@@ -38,8 +44,8 @@ start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 -spec stats_srv() ->
-          {'ok', pid()} |
-          {'error', 'not_found'}.
+    {'ok', pid()}
+    | {'error', 'not_found'}.
 stats_srv() ->
     case [P || {'acdc_stats', P, _, _} <- supervisor:which_children(?SERVER)] of
         [P] when is_pid(P) -> {'ok', P};

@@ -8,18 +8,18 @@
 -define(KNM_DEFAULT_COUNTRY, <<"US">>).
 
 -type knm_phone_number_return() ::
-        {'ok', knm_phone_number:knm_phone_number()} |
-        {'error', any()}.
+    {'ok', knm_phone_number:knm_phone_number()}
+    | {'error', any()}.
 
 -type quotes() :: kz_json:api_objects().
 
 -type dry_run_return() :: {'dry_run', quotes()}.
 
 -type knm_number_return() ::
-        {'ok', knm_number:knm_number()} |
-        dry_run_return() |
-        {'error', atom()} |
-        {'error', knm_errors:error()}.
+    {'ok', knm_number:knm_number()}
+    | dry_run_return()
+    | {'error', atom()}
+    | {'error', knm_errors:error()}.
 
 -define(PVT_ASSIGNED_TO, <<"pvt_assigned_to">>).
 -define(PVT_AUTH_BY, <<"pvt_authorizing_account">>).
@@ -90,39 +90,43 @@
 -define(LEGACY_TELNYX_E911, <<"telnyx_e911">>).
 -define(LEGACY_VITELITY_E911, <<"vitelity_e911">>).
 
--define(KAZOO_NUMBER_FEATURES, [?FEATURE_FAILOVER
-                               ,?FEATURE_FORCE_OUTBOUND
-                               ,?FEATURE_PREPEND
-                               ,?FEATURE_RINGBACK
-                               ]).
+-define(KAZOO_NUMBER_FEATURES, [
+    ?FEATURE_FAILOVER,
+    ?FEATURE_FORCE_OUTBOUND,
+    ?FEATURE_PREPEND,
+    ?FEATURE_RINGBACK
+]).
 
--define(EXTERNAL_NUMBER_FEATURES, [?FEATURE_CNAM
-                                  ,?FEATURE_CNAM_INBOUND
-                                  ,?FEATURE_CNAM_OUTBOUND
-                                  ,?FEATURE_E911
-                                  ,?FEATURE_PORT
-                                  ,?FEATURE_SMS
-                                  ,?FEATURE_MMS
-                                  ]).
+-define(EXTERNAL_NUMBER_FEATURES, [
+    ?FEATURE_CNAM,
+    ?FEATURE_CNAM_INBOUND,
+    ?FEATURE_CNAM_OUTBOUND,
+    ?FEATURE_E911,
+    ?FEATURE_PORT,
+    ?FEATURE_SMS,
+    ?FEATURE_MMS
+]).
 
--define(ADMIN_ONLY_FEATURES, [?FEATURE_RENAME_CARRIER
-                             ]).
+-define(ADMIN_ONLY_FEATURES, [?FEATURE_RENAME_CARRIER]).
 
--define(ALL_KNM_FEATURES, ?KAZOO_NUMBER_FEATURES ++ ?EXTERNAL_NUMBER_FEATURES ++ ?ADMIN_ONLY_FEATURES).
+-define(ALL_KNM_FEATURES,
+    ?KAZOO_NUMBER_FEATURES ++ ?EXTERNAL_NUMBER_FEATURES ++ ?ADMIN_ONLY_FEATURES
+).
 
 %% Keys on number document's root reserved to update features
--define(FEATURES_ROOT_KEYS, [?FEATURE_CNAM
-                            ,?FEATURE_E911
-                            ,?FEATURE_FAILOVER
-                            ,?FEATURE_FORCE_OUTBOUND
-                            ,?FEATURE_LOCAL
-                            ,?FEATURE_PORT
-                            ,?FEATURE_PREPEND
-                            ,?FEATURE_RENAME_CARRIER
-                            ,?FEATURE_RINGBACK
-                            ,?FEATURE_SMS
-                            ,?FEATURE_MMS
-                            ]).
+-define(FEATURES_ROOT_KEYS, [
+    ?FEATURE_CNAM,
+    ?FEATURE_E911,
+    ?FEATURE_FAILOVER,
+    ?FEATURE_FORCE_OUTBOUND,
+    ?FEATURE_LOCAL,
+    ?FEATURE_PORT,
+    ?FEATURE_PREPEND,
+    ?FEATURE_RENAME_CARRIER,
+    ?FEATURE_RINGBACK,
+    ?FEATURE_SMS,
+    ?FEATURE_MMS
+]).
 
 -define(CNAM_DISPLAY_NAME, <<"display_name">>).
 -define(CNAM_INBOUND_LOOKUP, <<"inbound_lookup">>).

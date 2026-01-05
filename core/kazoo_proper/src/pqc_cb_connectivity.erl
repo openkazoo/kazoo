@@ -5,16 +5,18 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_cb_connectivity).
 
--export([create/3
-        ,update/3
-        ,summary/2
-        ,delete/3
-        ]).
+-export([
+    create/3,
+    update/3,
+    summary/2,
+    delete/3
+]).
 
 %% Manual testing
--export([seq/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    cleanup/0
+]).
 
 %% API Shims
 
@@ -22,47 +24,53 @@
 
 -define(ACCOUNT_NAMES, [<<?MODULE_STRING>>]).
 
--spec create(pqc_cb_api:state(), kz_term:ne_binary(), kzd_connectivity:doc()) -> pqc_cb_api:response().
+-spec create(pqc_cb_api:state(), kz_term:ne_binary(), kzd_connectivity:doc()) ->
+    pqc_cb_api:response().
 create(API, AccountId, ConnectivityDoc) ->
     URL = connectivity_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API),
-    RequestEnvelope  = pqc_cb_api:create_envelope(ConnectivityDoc),
+    RequestEnvelope = pqc_cb_api:create_envelope(ConnectivityDoc),
 
-    pqc_cb_api:make_request(#{'response_codes' => [201]}
-                           ,fun kz_http:put/3
-                           ,URL
-                           ,RequestHeaders
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        #{'response_codes' => [201]},
+        fun kz_http:put/3,
+        URL,
+        RequestHeaders,
+        kz_json:encode(RequestEnvelope)
+    ).
 
--spec update(pqc_cb_api:state(), kz_term:ne_binary(), kzd_connectivity:doc()) -> pqc_cb_api:response().
+-spec update(pqc_cb_api:state(), kz_term:ne_binary(), kzd_connectivity:doc()) ->
+    pqc_cb_api:response().
 update(API, AccountId, ConnectivityDoc) ->
     URL = connectivity_url(AccountId, kz_doc:id(ConnectivityDoc)),
     RequestHeaders = pqc_cb_api:request_headers(API),
-    RequestEnvelope  = pqc_cb_api:create_envelope(ConnectivityDoc),
+    RequestEnvelope = pqc_cb_api:create_envelope(ConnectivityDoc),
 
-    pqc_cb_api:make_request(#{'response_codes' => [200]}
-                           ,fun kz_http:post/3
-                           ,URL
-                           ,RequestHeaders
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        #{'response_codes' => [200]},
+        fun kz_http:post/3,
+        URL,
+        RequestHeaders,
+        kz_json:encode(RequestEnvelope)
+    ).
 
 -spec summary(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
 summary(API, AccountId) ->
-    pqc_cb_api:make_request(#{'response_codes' => [200]}
-                           ,fun kz_http:get/2
-                           ,connectivity_url(AccountId)
-                           ,pqc_cb_api:request_headers(API)
-                           ).
+    pqc_cb_api:make_request(
+        #{'response_codes' => [200]},
+        fun kz_http:get/2,
+        connectivity_url(AccountId),
+        pqc_cb_api:request_headers(API)
+    ).
 
 -spec delete(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
 delete(API, AccountId, ConnectivityId) ->
-    pqc_cb_api:make_request(#{'response_codes' => [200]}
-                           ,fun kz_http:delete/2
-                           ,connectivity_url(AccountId, ConnectivityId)
-                           ,pqc_cb_api:request_headers(API)
-                           ).
+    pqc_cb_api:make_request(
+        #{'response_codes' => [200]},
+        fun kz_http:delete/2,
+        connectivity_url(AccountId, ConnectivityId),
+        pqc_cb_api:request_headers(API)
+    ).
 
 connectivity_url(AccountId) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "connectivity"], "/").
@@ -125,11 +133,14 @@ cleanup(API) ->
     pqc_cb_api:cleanup(API).
 
 connectivity_doc() ->
-    kz_doc:setters(kzd_connectivity:new()
-                  ,[{fun kzd_connectivity:set_account_auth_realm/2, kz_binary:rand_hex(4)}
-                   ,{fun kzd_connectivity:set_name/2, <<?MODULE_STRING>>}
-                   ,{fun kzd_connectivity:set_servers/2, []}
-                   ]).
+    kz_doc:setters(
+        kzd_connectivity:new(),
+        [
+            {fun kzd_connectivity:set_account_auth_realm/2, kz_binary:rand_hex(4)},
+            {fun kzd_connectivity:set_name/2, <<?MODULE_STRING>>},
+            {fun kzd_connectivity:set_servers/2, []}
+        ]
+    ).
 
 init_api() ->
     Model = initial_state(),
@@ -146,11 +157,13 @@ init_system() ->
     kz_util:put_callid(TestId),
 
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar', 'trunkstore']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_connectivity']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar', 'trunkstore']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_connectivity']
+    ],
 
     ?INFO("INIT FINISHED").

@@ -12,9 +12,10 @@
 %% Triggerables
 -export([handle_req/0]).
 
--export([rollover_accounts/2
-        ,refresh_ledger_view/2
-        ]).
+-export([
+    rollover_accounts/2,
+    refresh_ledger_view/2
+]).
 
 -include("tasks.hrl").
 
@@ -37,7 +38,8 @@ handle_req({Year, Month, _Day}) ->
         'true' ->
             _P = kz_util:spawn(fun refresh_ledger_view/2, [Year, Month]),
             lager:debug("refreshing ledger totals in ~p", [_P]);
-        'false' -> 'ok'
+        'false' ->
+            'ok'
     end.
 
 -spec refresh_ledger_view(kz_time:year(), kz_time:month()) -> 'ok'.
@@ -78,13 +80,15 @@ get_page(NextStartKey) ->
 get_page('undefined', PageSize) ->
     query([{'page_size', PageSize}]);
 get_page(NextStartKey, PageSize) ->
-    query([{'startkey', NextStartKey}
-          ,{'page_size', PageSize}
-          ]).
+    query([
+        {'startkey', NextStartKey},
+        {'page_size', PageSize}
+    ]).
 
 -spec query(kz_datamgr:view_options()) -> kz_datamgr:paginated_results().
 query(ViewOptions) ->
-    kz_datamgr:paginate_results(?KZ_ACCOUNTS_DB
-                               ,<<"accounts/listing_by_id">>
-                               ,ViewOptions
-                               ).
+    kz_datamgr:paginate_results(
+        ?KZ_ACCOUNTS_DB,
+        <<"accounts/listing_by_id">>,
+        ViewOptions
+    ).

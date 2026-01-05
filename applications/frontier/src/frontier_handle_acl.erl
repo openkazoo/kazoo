@@ -6,9 +6,10 @@
 %%%-----------------------------------------------------------------------------
 -module(frontier_handle_acl).
 
--export([handle_acl_req/2
-        ,lookup_acl_records/1, lookup_acl_records/2
-        ]).
+-export([
+    handle_acl_req/2,
+    lookup_acl_records/1, lookup_acl_records/2
+]).
 
 -include("frontier.hrl").
 
@@ -16,20 +17,22 @@
 handle_acl_req(Reqest, _Props) ->
     'true' = kapi_frontier:acls_req_v(Reqest),
     Entity = kz_json:get_value(<<"Entity">>, Reqest),
-    IncludeRealm  = kz_json:is_true(<<"With-Realm">>, Reqest, 'false'),
+    IncludeRealm = kz_json:is_true(<<"With-Realm">>, Reqest, 'false'),
     Payload = lookup_acl_records(Entity, IncludeRealm),
     send_response(Reqest, Payload).
 
 -spec send_response(kz_json:object(), kz_json:objects()) -> any().
 send_response(Reqest, Responses) ->
-    RespStub = kz_json:from_list([{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, Reqest)}
-                                  | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                                 ]),
+    RespStub = kz_json:from_list([
+        {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, Reqest)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ]),
     ServerID = kz_json:get_value(<<"Server-ID">>, Reqest),
     {DeviceACLs, RealmACLs} = lists:partition(fun frontier_utils:is_device/1, Responses),
-    Resp = lists:foldl(fun kz_json:merge_jobjs/2, RespStub, [make_section(DeviceACLs, <<"Device">>)
-                                                            ,make_section(RealmACLs, <<"Realm">>)
-                                                            ]),
+    Resp = lists:foldl(fun kz_json:merge_jobjs/2, RespStub, [
+        make_section(DeviceACLs, <<"Device">>),
+        make_section(RealmACLs, <<"Realm">>)
+    ]),
     lager:debug("publishing response"),
     kapi_frontier:publish_acls_resp(ServerID, Resp).
 
@@ -42,15 +45,20 @@ make_section([JObj], Section) ->
     UserAgent = kz_json:get_value([<<"value">>, <<"acls">>, <<"user_agent">>], JObj),
     make_section(Section, Order, CIDRs, UserAgent).
 
--spec make_section(kz_term:ne_binary(), kz_term:api_binary(), kz_term:api_binaries(), kz_term:api_binary()) -> kz_json:object().
-make_section(_, Order, CIDRs, _) when Order =:= 'undefined'
-                                      orelse CIDRs =:= 'undefined' ->
+-spec make_section(
+    kz_term:ne_binary(), kz_term:api_binary(), kz_term:api_binaries(), kz_term:api_binary()
+) -> kz_json:object().
+make_section(_, Order, CIDRs, _) when
+    Order =:= 'undefined' orelse
+        CIDRs =:= 'undefined'
+->
     kz_json:new();
 make_section(Section, Order, CIDRs, UserAgent) ->
-    Props = props:filter_undefined([{<<"Order">>, Order}
-                                   ,{<<"CIDR">>, CIDRs}
-                                   ,{<<"User-Agent">>, UserAgent}
-                                   ]),
+    Props = props:filter_undefined([
+        {<<"Order">>, Order},
+        {<<"CIDR">>, CIDRs},
+        {<<"User-Agent">>, UserAgent}
+    ]),
     kz_json:from_list([{Section, kz_json:from_list(Props)}]).
 
 -spec lookup_acl_records(kz_term:ne_binary(), boolean()) -> kz_json:objects().
@@ -92,29 +100,35 @@ build_view_options(Entity, IncludeRealm) ->
                 'true' -> [{'keys', Keys}];
                 _ -> [{'key', User}]
             end;
-        [JustRealm] -> [{'key', JustRealm}]
+        [JustRealm] ->
+            [{'key', JustRealm}]
     end.
 
 -spec make_deny_acl(kz_term:ne_binary(), boolean()) -> kz_json:objects().
 make_deny_acl(Entity, IncludeRealm) ->
     Realm = frontier_utils:extract_realm(Entity),
     IsDevice = Realm =/= Entity,
-    Type = case IsDevice of
-               'true' -> <<"device">>;
-               _ -> <<"realm">>
-           end,
-    ACL = kz_json:from_list([{<<"order">>, <<"allow,deny">>}
-                            ,{<<"cidrs">>, [<<"0.0.0.0/0">>]}
-                            ]),
-    Value = kz_json:from_list([{<<"type">>, Type}
-                              ,{<<"acls">>, ACL}
-                              ]),
-    Record = kz_json:from_list([{<<"id">>, 'undefined'}
-                               ,{<<"key">>, Entity}
-                               ,{<<"value">>, Value}
-                               ]),
-    case IsDevice
-        andalso IncludeRealm
+    Type =
+        case IsDevice of
+            'true' -> <<"device">>;
+            _ -> <<"realm">>
+        end,
+    ACL = kz_json:from_list([
+        {<<"order">>, <<"allow,deny">>},
+        {<<"cidrs">>, [<<"0.0.0.0/0">>]}
+    ]),
+    Value = kz_json:from_list([
+        {<<"type">>, Type},
+        {<<"acls">>, ACL}
+    ]),
+    Record = kz_json:from_list([
+        {<<"id">>, 'undefined'},
+        {<<"key">>, Entity},
+        {<<"value">>, Value}
+    ]),
+    case
+        IsDevice andalso
+            IncludeRealm
     of
         'true' -> [Record | make_deny_acl(Realm)];
         _ -> [Record]

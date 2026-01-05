@@ -24,7 +24,9 @@
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
     _ = declare_exchanges(),
-    kapps_maintenance:bind_and_register_views('registrar', 'registrar_maintenance', 'register_views'),
+    kapps_maintenance:bind_and_register_views(
+        'registrar', 'registrar_maintenance', 'register_views'
+    ),
     registrar_sup:start_link().
 
 %%------------------------------------------------------------------------------
@@ -35,7 +37,6 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
     _ = kapps_maintenance:unbind('register_views', 'registrar_maintenance', 'register_views'),
     'ok'.
-
 
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->

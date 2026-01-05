@@ -9,19 +9,21 @@
 -behaviour(gen_listener).
 
 %% API
--export([start_link/0
-        ,handle_media_req/2
-        ]).
+-export([
+    start_link/0,
+    handle_media_req/2
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("media.hrl").
 
@@ -40,11 +42,14 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', [{'media', []}]}
-                                     ,{'responders', [{{?MODULE, 'handle_media_req'}
-                                                      ,[{<<"media">>, <<"media_req">>}]}
-                                                     ]}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', [{'media', []}]},
+            {'responders', [{{?MODULE, 'handle_media_req'}, [{<<"media">>, <<"media_req">>}]}]}
+        ],
+        []
+    ).
 
 -spec handle_media_req(kz_json:object(), kz_term:proplist()) -> kz_amqp_worker:cast_return().
 handle_media_req(JObj, _Props) ->
@@ -127,29 +132,31 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_error_resp(kz_json:object(), atom() | kz_term:ne_binary()) ->
-          kz_amqp_worker:cast_return().
+    kz_amqp_worker:cast_return().
 send_error_resp(JObj, ErrMsg) ->
     MediaName = kz_json:get_value(<<"Media-Name">>, JObj),
-    Error = [{<<"Media-Name">>, MediaName}
-            ,{<<"Error-Code">>, <<"other">>}
-            ,{<<"Error-Msg">>, kz_term:to_binary(ErrMsg)}
-            ,{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
-             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-            ],
+    Error = [
+        {<<"Media-Name">>, MediaName},
+        {<<"Error-Code">>, <<"other">>},
+        {<<"Error-Msg">>, kz_term:to_binary(ErrMsg)},
+        {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     lager:debug("sending error reply ~s for ~s", [ErrMsg, MediaName]),
     ServerId = kz_json:get_value(<<"Server-ID">>, JObj),
     Publisher = fun(P) -> kapi_media:publish_error(ServerId, P) end,
     kz_amqp_worker:cast(Error, Publisher).
 
 -spec send_media_resp(kz_json:object(), kz_term:ne_binary()) ->
-          kz_amqp_worker:cast_return().
+    kz_amqp_worker:cast_return().
 send_media_resp(JObj, StreamURL) ->
     lager:debug("media stream URL: ~s", [StreamURL]),
-    Resp = [{<<"Media-Name">>, kz_json:get_value(<<"Media-Name">>, JObj)}
-           ,{<<"Stream-URL">>, StreamURL}
-           ,{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Media-Name">>, kz_json:get_value(<<"Media-Name">>, JObj)},
+        {<<"Stream-URL">>, StreamURL},
+        {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     ServerId = kz_json:get_value(<<"Server-ID">>, JObj),
     Publisher = fun(P) -> kapi_media:publish_resp(ServerId, P) end,
     kz_amqp_worker:cast(Resp, Publisher).

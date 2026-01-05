@@ -6,23 +6,24 @@
 %%%-----------------------------------------------------------------------------
 -module(kzt_twiml_util).
 
--export([get_terminators/1
-        ,loop_count/1
-        ,get_voice/1
-        ,get_engine/1
-        ,get_lang/1
-        ,finish_dtmf/1, finish_dtmf/2
-        ,get_finish_key/1
-        ,get_max_length/1
-        ,pause_for/1
-        ,action_url/1
-        ,timeout_s/1, timeout_s/2
-        ,num_digits/1
-        ,reject_prompt/1
-        ,reject_reason/1
-        ,reject_code/1
-        ,reject_status/1
-        ]).
+-export([
+    get_terminators/1,
+    loop_count/1,
+    get_voice/1,
+    get_engine/1,
+    get_lang/1,
+    finish_dtmf/1, finish_dtmf/2,
+    get_finish_key/1,
+    get_max_length/1,
+    pause_for/1,
+    action_url/1,
+    timeout_s/1, timeout_s/2,
+    num_digits/1,
+    reject_prompt/1,
+    reject_reason/1,
+    reject_code/1,
+    reject_status/1
+]).
 
 -include("kzt.hrl").
 
@@ -68,8 +69,10 @@ finish_dtmf(Props) -> finish_dtmf(Props, <<"#">>).
 -spec finish_dtmf(kz_term:proplist(), kz_term:ne_binary()) -> kz_term:api_ne_binary().
 finish_dtmf(Props, Default) when is_list(Props) ->
     case props:get_binary_value('finishOnKey', Props) of
-        'undefined' -> Default;
-        <<>> -> 'undefined';
+        'undefined' ->
+            Default;
+        <<>> ->
+            'undefined';
         DTMF ->
             'true' = lists:member(DTMF, ?ANY_DIGIT),
             DTMF

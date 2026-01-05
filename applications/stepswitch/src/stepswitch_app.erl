@@ -19,7 +19,9 @@
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_StartType, _StartArgs) ->
     _ = declare_exchanges(),
-    kapps_maintenance:bind_and_register_views('stepswitch', 'stepswitch_maintenance', 'register_views'),
+    kapps_maintenance:bind_and_register_views(
+        'stepswitch', 'stepswitch_maintenance', 'register_views'
+    ),
     _ = kapps_maintenance:refresh(?KZ_SIP_DB),
     _ = kapps_maintenance:refresh(?KZ_OFFNET_DB),
     stepswitch_sup:start_link().

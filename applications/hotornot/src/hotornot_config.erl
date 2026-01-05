@@ -5,31 +5,36 @@
 %%%-----------------------------------------------------------------------------
 -module(hotornot_config).
 
--export([default_minimum/0
-        ,default_increment/0
-        ,default_nocharge/0
-        ,default_surcharge/0
-        ,default_cost/0
-        ,default_internal_cost/0
+-export([
+    default_minimum/0,
+    default_increment/0,
+    default_nocharge/0,
+    default_surcharge/0,
+    default_cost/0,
+    default_internal_cost/0,
 
-        ,default_ratedeck/0
-        ,ratedecks/0
+    default_ratedeck/0,
+    ratedecks/0,
 
-        ,mobile_rate/0
+    mobile_rate/0,
 
-        ,filter_list/0
-        ,should_sort_by_weight/0
-        ,rate_version/0, set_rate_version/1
+    filter_list/0,
+    should_sort_by_weight/0,
+    rate_version/0,
+    set_rate_version/1,
 
-        ,should_account_filter_by_resource/1
+    should_account_filter_by_resource/1,
 
-        ,should_use_trie/0, use_trie/0, dont_use_trie/0
-        ,trie_module/0, use_trie_lru/0
-        ,trie_build_timeout_ms/0
-        ,lru_expires_s/0
+    should_use_trie/0,
+    use_trie/0,
+    dont_use_trie/0,
+    trie_module/0,
+    use_trie_lru/0,
+    trie_build_timeout_ms/0,
+    lru_expires_s/0,
 
-        ,should_publish_alert/1
-        ]).
+    should_publish_alert/1
+]).
 
 -include("hotornot.hrl").
 
@@ -59,10 +64,11 @@ default_internal_cost() ->
 
 -spec filter_list() -> kz_term:ne_binaries().
 filter_list() ->
-    kapps_config:get(?APP_NAME, <<"filter_list">>, [<<"direction">>
-                                                   ,<<"route_options">>
-                                                   ,<<"routes">>
-                                                   ]).
+    kapps_config:get(?APP_NAME, <<"filter_list">>, [
+        <<"direction">>,
+        <<"route_options">>,
+        <<"routes">>
+    ]).
 
 -spec default_ratedeck() -> kz_term:ne_binary().
 default_ratedeck() ->
@@ -74,10 +80,12 @@ mobile_rate() ->
 
 -spec ratedecks() -> kz_term:ne_binaries().
 ratedecks() ->
-    {'ok', Dbs} = kz_datamgr:db_list([{'startkey', ?KZ_RATES_DB}
-                                     ,{'endkey',   ?UNENCODED_RATEDECK_DB(<<"\ufff0">>)}
-                                     ]),
-    [kzd_ratedeck:format_ratedeck_db(Db)
+    {'ok', Dbs} = kz_datamgr:db_list([
+        {'startkey', ?KZ_RATES_DB},
+        {'endkey', ?UNENCODED_RATEDECK_DB(<<"\ufff0">>)}
+    ]),
+    [
+        kzd_ratedeck:format_ratedeck_db(Db)
      || Db <- Dbs
     ].
 
@@ -125,7 +133,9 @@ set_rate_version(Version) ->
 
 -spec should_account_filter_by_resource(kz_term:ne_binary()) -> boolean().
 should_account_filter_by_resource(AccountId) ->
-    kapps_account_config:get_from_reseller(AccountId, ?APP_NAME, <<"filter_by_resource_id">>, 'false').
+    kapps_account_config:get_from_reseller(
+        AccountId, ?APP_NAME, <<"filter_by_resource_id">>, 'false'
+    ).
 
 -spec lru_expires_s() -> non_neg_integer().
 -ifdef(TEST).
@@ -139,5 +149,7 @@ lru_expires_s() ->
 should_publish_alert('undefined') ->
     kapps_config:get_is_true(?APP_NAME, [<<"should_publish_system_alert">>, <<"both">>], 'true');
 should_publish_alert(Direction) ->
-    kapps_config:get_is_true(?APP_NAME, [<<"should_publish_system_alert">>, Direction], 'true')
-        orelse kapps_config:get_is_true(?APP_NAME, [<<"should_publish_system_alert">>, <<"both">>], 'true').
+    kapps_config:get_is_true(?APP_NAME, [<<"should_publish_system_alert">>, Direction], 'true') orelse
+        kapps_config:get_is_true(
+            ?APP_NAME, [<<"should_publish_system_alert">>, <<"both">>], 'true'
+        ).

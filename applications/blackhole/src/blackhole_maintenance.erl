@@ -7,11 +7,12 @@
 
 -export([start_module/1, start_module/2]).
 -export([stop_module/1, stop_module/2]).
--export([running_modules/0
-        ,active_sessions/0
-        ,active_sessions_by_ip/1
-        ,active_sessions_by_account/1
-        ]).
+-export([
+    running_modules/0,
+    active_sessions/0,
+    active_sessions_by_ip/1,
+    active_sessions_by_account/1
+]).
 
 -include("blackhole.hrl").
 -include_lib("kazoo/include/kz_system_config.hrl").
@@ -27,22 +28,26 @@ start_module(ModuleBin) ->
 
 -spec start_module(kz_term:text(), kz_term:text() | boolean()) -> 'ok'.
 start_module(ModuleBin, Persist) ->
-    Req = [{<<"Module">>, ModuleBin}
-          ,{<<"Action">>, <<"start">>}
-          ,{<<"Persist">>, kz_term:to_boolean(Persist)}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_websockets:publish_module_req/1
-                                    ,{'blackhole', fun kapi_websockets:module_resp_v/1, 'true'}
-                                    )
+    Req = [
+        {<<"Module">>, ModuleBin},
+        {<<"Action">>, <<"start">>},
+        {<<"Persist">>, kz_term:to_boolean(Persist)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_websockets:publish_module_req/1,
+            {'blackhole', fun kapi_websockets:module_resp_v/1, 'true'}
+        )
     of
         {'ok', JObjs} ->
             io:format("starting ~s:~n", [ModuleBin]),
             lists:foreach(fun print_module_resp/1, JObjs);
         {'timeout', JObjs} ->
             io:format("timed out waiting for responses~n"),
-            [io:format("resp: ~s~n", [kz_json:encode(JObj)]) || JObj <- JObjs], 'ok';
+            [io:format("resp: ~s~n", [kz_json:encode(JObj)]) || JObj <- JObjs],
+            'ok';
         {'error', _E} ->
             io:format("failed to start module ~s: ~p~n", [ModuleBin, _E])
     end.
@@ -58,22 +63,26 @@ stop_module(ModuleBin) ->
 
 -spec stop_module(kz_term:text(), kz_term:text() | boolean()) -> 'ok'.
 stop_module(ModuleBin, Persist) ->
-    Req = [{<<"Module">>, ModuleBin}
-          ,{<<"Action">>, <<"stop">>}
-          ,{<<"Persist">>, kz_term:to_boolean(Persist)}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_websockets:publish_module_req/1
-                                    ,{'blackhole', fun kapi_websockets:module_resp_v/1, 'true'}
-                                    )
+    Req = [
+        {<<"Module">>, ModuleBin},
+        {<<"Action">>, <<"stop">>},
+        {<<"Persist">>, kz_term:to_boolean(Persist)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_websockets:publish_module_req/1,
+            {'blackhole', fun kapi_websockets:module_resp_v/1, 'true'}
+        )
     of
         {'ok', JObjs} ->
             io:format("stopping ~s:~n", [ModuleBin]),
             lists:foreach(fun print_module_resp/1, JObjs);
         {'timeout', JObjs} ->
             io:format("timed out waiting for responses~n"),
-            [io:format("resp: ~s~n", [kz_json:encode(JObj)]) || JObj <- JObjs], 'ok';
+            [io:format("resp: ~s~n", [kz_json:encode(JObj)]) || JObj <- JObjs],
+            'ok';
         {'error', _E} ->
             io:format("failed to stop module ~s: ~p~n", [ModuleBin, _E])
     end.
@@ -111,18 +120,25 @@ active_sessions_by_account(<<AccountId/binary>>) ->
     print_sessions(Sessions).
 
 -spec print_sessions([bh_context:context()]) -> 'ok'.
-print_sessions([]) -> io:format("no active sessions~n");
-print_sessions({'error', 'not_found'}) -> io:format("no active sessions~n");
+print_sessions([]) ->
+    io:format("no active sessions~n");
+print_sessions({'error', 'not_found'}) ->
+    io:format("no active sessions~n");
 print_sessions(Sessions) ->
     io:format("Active websocket connections:~n"),
-    io:format("~22s | ~10s | ~12s | ~32s | ~s~n", [<<"Peer">>, <<"Uptime">>, <<"PID">>, <<"Account-ID">>, <<"Bindings">>]),
+    io:format("~22s | ~10s | ~12s | ~32s | ~s~n", [
+        <<"Peer">>, <<"Uptime">>, <<"PID">>, <<"Account-ID">>, <<"Bindings">>
+    ]),
     lists:foreach(fun print_session/1, Sessions).
 
 print_session(Context) ->
-    io:format("~22s | ~10s | ~12s | ~32s | ~s~n"
-             ,[bh_context:websocket_session_id(Context)
-              ,kz_time:pretty_print_elapsed_s(kz_time:elapsed_s(bh_context:timestamp(Context)))
-              ,kz_term:to_binary(bh_context:websocket_pid(Context))
-              ,bh_context:auth_account_id(Context)
-              ,bh_context:client_bindings(Context)
-              ]).
+    io:format(
+        "~22s | ~10s | ~12s | ~32s | ~s~n",
+        [
+            bh_context:websocket_session_id(Context),
+            kz_time:pretty_print_elapsed_s(kz_time:elapsed_s(bh_context:timestamp(Context))),
+            kz_term:to_binary(bh_context:websocket_pid(Context)),
+            bh_context:auth_account_id(Context),
+            bh_context:client_bindings(Context)
+        ]
+    ).

@@ -10,9 +10,9 @@
 -include("knm.hrl").
 
 -callback find_numbers(kz_term:ne_binary(), pos_integer(), knm_carriers:options()) ->
-    {'ok', knm_number:knm_numbers()} |
-    {'bulk', knm_number:knm_numbers()} |
-    {'error', any()}.
+    {'ok', knm_number:knm_numbers()}
+    | {'bulk', knm_number:knm_numbers()}
+    | {'error', any()}.
 
 -callback acquire_number(knm_number:knm_number()) ->
     knm_number:knm_number() | no_return().
@@ -30,8 +30,8 @@
     boolean().
 
 -callback check_numbers(kz_term:ne_binaries()) ->
-    {'ok', kz_json:object()} |
-    {'error', any()}.
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 
 -callback configuration() -> kz_json:object().
 
@@ -46,7 +46,8 @@
 -spec configuration(carrier()) -> kz_json:object().
 configuration(Carrier) ->
     try carrier_callback(Carrier, 'configuration', []) of
-        'no_callback' -> default_config(Carrier);
+        'no_callback' ->
+            default_config(Carrier);
         Value ->
             case kz_json:is_json_object(Value) of
                 'true' -> Value;
@@ -62,17 +63,20 @@ default_config(Carrier) ->
         {'ok', JObj} ->
             Default = kz_json:get_json_value(<<"default">>, JObj, kz_json:new()),
             kz_json:get_json_value(kz_term:to_binary(node()), JObj, Default);
-        _ -> kz_json:new()
+        _ ->
+            kz_json:new()
     end.
 
 -spec carrier_config(carrier()) -> binary().
 carrier_config(<<"knm_", Carrier/binary>>) ->
     Carrier;
-carrier_config(Carrier)
-  when is_binary(Carrier) ->
+carrier_config(Carrier) when
+    is_binary(Carrier)
+->
     Carrier;
-carrier_config(PN)
-  when is_tuple(PN) ->
+carrier_config(PN) when
+    is_tuple(PN)
+->
     carrier_config(knm_phone_number:module_name(PN));
 carrier_config(Carrier) ->
     kz_term:to_binary(Carrier).
@@ -80,11 +84,13 @@ carrier_config(Carrier) ->
 -spec carrier_module(carrier()) -> module().
 carrier_module(<<"knm_", _/binary>> = Carrier) ->
     kz_term:to_atom(Carrier, 'true');
-carrier_module(Carrier)
-  when is_binary(Carrier) ->
+carrier_module(Carrier) when
+    is_binary(Carrier)
+->
     kz_term:to_atom(<<"knm_", Carrier/binary>>, 'true');
-carrier_module(PN)
-  when is_tuple(PN) ->
+carrier_module(PN) when
+    is_tuple(PN)
+->
     carrier_module(knm_phone_number:module_name(PN)).
 
 -spec carrier_callback(carrier(), atom(), [term()]) -> 'no_callback' | term().

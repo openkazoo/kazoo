@@ -6,14 +6,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_cccps).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2, validate/3
-        ,put/1, put/2
-        ,post/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2, validate/3,
+    put/1, put/2,
+    post/2,
+    delete/2
+]).
 
 -include_lib("crossbar/src/crossbar.hrl").
 
@@ -105,9 +106,10 @@ validate_cccp(Context, ?AUTODIAL, ?HTTP_PUT) ->
     case (cb_context:auth_account_id(Context) == AccountId) of
         'true' ->
             ReqData = cb_context:req_data(Context),
-            Values = [{<<"account_id">>, cb_context:account_id(Context)}
-                     ,{<<"user_id">>, cb_context:auth_user_id(Context)}
-                     ],
+            Values = [
+                {<<"account_id">>, cb_context:account_id(Context)},
+                {<<"user_id">>, cb_context:auth_user_id(Context)}
+            ],
             JObj = kz_json:set_values(Values, ReqData),
             send_new_camping(JObj, cb_context:account_id(Context)),
             cb_context:set_resp_status(Context, 'success');
@@ -124,10 +126,11 @@ validate_cccp(Context, Id, ?HTTP_DELETE) ->
 
 -spec send_new_camping(kz_json:object(), kz_term:ne_binary()) -> 'ok'.
 send_new_camping(JObj, AccountId) ->
-    Req = [{<<"Camping-Request">>, JObj}
-          ,{<<"Account-ID">>, AccountId}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    Req = [
+        {<<"Camping-Request">>, JObj},
+        {<<"Account-ID">>, AccountId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kz_amqp_worker:cast(Req, fun kapi_camping:publish_req/1).
 
 %%------------------------------------------------------------------------------
@@ -222,7 +225,7 @@ on_successful_validation(Id, Context) ->
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].
 
 %%------------------------------------------------------------------------------
 %% @doc Checks whether cid and pin are unique
@@ -250,46 +253,52 @@ check_cid(Context) ->
                 'true' -> create(Context2);
                 _ -> error_cid_exists(Context2, CID)
             end
-
     end.
 
 -spec error_pin_exists(cb_context:context()) -> cb_context:context().
 error_pin_exists(Context) ->
-    cb_context:add_validation_error(<<"cccp">>
-                                   ,<<"unique">>
-                                   ,kz_json:from_list(
-                                      [{<<"message">>, <<"Pin already exists">>}]
-                                     )
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"cccp">>,
+        <<"unique">>,
+        kz_json:from_list(
+            [{<<"message">>, <<"Pin already exists">>}]
+        ),
+        Context
+    ).
 
 -spec error_number_is_not_reconcilable(cb_context:context(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 error_number_is_not_reconcilable(Context, CID) ->
-    cb_context:add_validation_error(<<"cccp">>
-                                   ,<<"unique">>
-                                   ,kz_json:from_list(
-                                      [{<<"message">>, <<"Number is non reconcilable">>}
-                                      ,{<<"cause">>, CID}
-                                      ])
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"cccp">>,
+        <<"unique">>,
+        kz_json:from_list(
+            [
+                {<<"message">>, <<"Number is non reconcilable">>},
+                {<<"cause">>, CID}
+            ]
+        ),
+        Context
+    ).
 
 error_cid_exists(Context, CID) ->
-    cb_context:add_validation_error(<<"cccp">>
-                                   ,<<"unique">>
-                                   ,kz_json:from_list(
-                                      [{<<"message">>, <<"CID already exists">>}
-                                      ,{<<"cause">>, CID}
-                                      ])
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"cccp">>,
+        <<"unique">>,
+        kz_json:from_list(
+            [
+                {<<"message">>, <<"CID already exists">>},
+                {<<"cause">>, CID}
+            ]
+        ),
+        Context
+    ).
 
 -spec unique_cid(cb_context:context()) -> boolean().
 unique_cid(Context) ->
     CID = kz_json:get_value(<<"cid">>, cb_context:req_data(Context)),
     case authorize_listing(CID, <<"cccps/cid_listing">>) of
-        {'ok',[]} -> 'true';
+        {'ok', []} -> 'true';
         _ -> 'false'
     end.
 
@@ -297,14 +306,14 @@ unique_cid(Context) ->
 unique_pin(Context) ->
     Pin = kz_json:get_value(<<"pin">>, cb_context:req_data(Context)),
     case authorize_listing(Pin, <<"cccps/pin_listing">>) of
-        {'ok',[]} -> 'true';
+        {'ok', []} -> 'true';
         _ -> 'false'
     end.
 
 -spec authorize_listing(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object() | kz_json:objects()} |
-          'empty' |
-          'error'.
+    {'ok', kz_json:object() | kz_json:objects()}
+    | 'empty'
+    | 'error'.
 authorize_listing(Value, View) ->
     ViewOptions = [{'key', Value}],
     case kz_datamgr:get_results(?KZ_CCCPS_DB, View, ViewOptions) of

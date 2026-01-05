@@ -6,22 +6,26 @@
 -module(kzd_bookkeeper).
 
 -export([new/0]).
--export([type/0
-        ,type/1
-        ,set_type/1
-        ]).
--export([name/1
-        ,name/2
-        ,set_name/2
-        ]).
--export([bookkeeper_type/1
-        ,bookkeeper_type/2
-        ,set_bookkeeper_type/2
-        ]).
--export([mappings/1
-        ,mappings/2
-        ,set_mappings/2
-        ]).
+-export([
+    type/0,
+    type/1,
+    set_type/1
+]).
+-export([
+    name/1,
+    name/2,
+    set_name/2
+]).
+-export([
+    bookkeeper_type/1,
+    bookkeeper_type/2,
+    set_bookkeeper_type/2
+]).
+-export([
+    mappings/1,
+    mappings/2,
+    set_mappings/2
+]).
 -export([mapping/3]).
 
 -include("kz_documents.hrl").

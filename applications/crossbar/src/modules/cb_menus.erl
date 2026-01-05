@@ -10,15 +10,16 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_menus).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -171,13 +172,18 @@ validate_patch(DocId, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec on_successful_validation(kz_term:api_binary(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 on_successful_validation('undefined', Context) ->
-    cb_context:set_doc(Context, kz_json:set_values([{<<"pvt_type">>, <<"menu">>}
-                                                   ,{<<"pvt_vsn">>, <<"2">>}
-                                                   ]
-                                                  ,cb_context:doc(Context)
-                                                  ));
+    cb_context:set_doc(
+        Context,
+        kz_json:set_values(
+            [
+                {<<"pvt_type">>, <<"menu">>},
+                {<<"pvt_vsn">>, <<"2">>}
+            ],
+            cb_context:doc(Context)
+        )
+    );
 on_successful_validation(DocId, Context) ->
     crossbar_doc:load_merge(DocId, Context, ?TYPE_CHECK_OPTION(<<"menu">>)).
 
@@ -187,4 +193,4 @@ on_successful_validation(DocId, Context) ->
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].

@@ -13,19 +13,20 @@
 -export([start/1, restart/1]).
 -export([remove/1]).
 
--export([start_cleanup_pass/0
-        ,cleanup_soft_deletes/1
-        ]).
+-export([
+    start_cleanup_pass/0,
+    cleanup_soft_deletes/1
+]).
 
 -export([register_views/0]).
 
 %% kt_compaction_reporter and kt_compactor mirror functions
--export([compaction/1
-        ,compaction/2
-        ]).
+-export([
+    compaction/1,
+    compaction/2
+]).
 
 -include("tasks.hrl").
-
 
 %%% API
 
@@ -47,14 +48,18 @@ help(Category, Action) ->
         {'error', Reason} -> print_error(Reason)
     end.
 
--spec add(kz_term:text(), kz_term:text(), kz_term:text(), kz_term:text(), kz_term:text()) -> 'no_return'.
+-spec add(kz_term:text(), kz_term:text(), kz_term:text(), kz_term:text(), kz_term:text()) ->
+    'no_return'.
 add(AuthAccount, Account, Category, Action, CSVFile) ->
     AuthAccountId = kz_util:format_account_id(AuthAccount),
     AccountId = kz_util:format_account_id(Account),
     case file:read_file(CSVFile) of
         {'ok', CSVBin} ->
             case kz_csv:count_rows(CSVBin) of
-                0 -> print_error(<<"Empty CSV or some row(s) longer than others or header missing">>);
+                0 ->
+                    print_error(
+                        <<"Empty CSV or some row(s) longer than others or header missing">>
+                    );
                 TotalRows ->
                     CSVName = filename:basename(CSVFile),
                     new_task(AuthAccountId, AccountId, Category, Action, TotalRows, CSVBin, CSVName)
@@ -67,14 +72,16 @@ add(AuthAccount, Account, Category, Action, CSVFile) ->
 add(AuthAccount, Account, Category, Action) ->
     AuthAccountId = kz_util:format_account_id(AuthAccount),
     AccountId = kz_util:format_account_id(Account),
-    case kz_tasks:new(AuthAccountId
-                     ,AccountId
-                     ,Category
-                     ,Action
-                     ,'undefined'
-                     ,'undefined'
-                     ,'undefined'
-                     )
+    case
+        kz_tasks:new(
+            AuthAccountId,
+            AccountId,
+            Category,
+            Action,
+            'undefined',
+            'undefined',
+            'undefined'
+        )
     of
         {'ok', TaskJObj} -> print_json(TaskJObj);
         {'error', Reason} -> handle_new_task_error(Reason, Category, Action)
@@ -149,16 +156,17 @@ compaction(<<"status">>) ->
             io:format("not running~n");
         StatsRows ->
             lists:foreach(
-              fun(Stats) ->
-                      lists:foreach(fun({K, V}) -> io:format("~s: ~s~n", [K, V]) end
-                                   ,Stats
-                                   ),
-                      io:format("~n")
-              end,
-              StatsRows)
+                fun(Stats) ->
+                    lists:foreach(
+                        fun({K, V}) -> io:format("~s: ~s~n", [K, V]) end,
+                        Stats
+                    ),
+                    io:format("~n")
+                end,
+                StatsRows
+            )
     end,
     'no_return';
-
 compaction(<<"history">>) ->
     maybe_print_compaction_history(kt_compaction_reporter:history()).
 
@@ -168,13 +176,10 @@ compaction(<<"history">>, <<Year:4/binary, Month:2/binary>>) ->
     maybe_print_compaction_history(compaction_history(Year, Month));
 compaction(<<"history">>, <<Year:4/binary, Month:1/binary>>) ->
     maybe_print_compaction_history(compaction_history(Year, Month));
-
 compaction(<<"history">>, <<JobId/binary>>) ->
     job_info(JobId);
-
 compaction(<<"compact_db">>, <<Db/binary>>) ->
     kt_compactor:compact_db(Db);
-
 compaction(<<"compact_node">>, <<Node/binary>>) ->
     kt_compactor:compact_node(Node).
 
@@ -186,8 +191,9 @@ print_json(Data) ->
     'no_return'.
 
 -spec print_error(any()) -> 'no_return'.
-print_error(Reason)
-  when is_atom(Reason); is_binary(Reason) ->
+print_error(Reason) when
+    is_atom(Reason); is_binary(Reason)
+->
     io:format("ERROR: ~s\n", [Reason]),
     'no_return';
 print_error(Reason) ->
@@ -202,23 +208,35 @@ attachment(TaskId, AName) ->
                 {'ok', AttachBin} ->
                     io:fwrite(AttachBin),
                     'no_return';
-                {'error', Reason} -> print_error(Reason)
+                {'error', Reason} ->
+                    print_error(Reason)
             end;
-        {'error', Reason} -> print_error(Reason)
+        {'error', Reason} ->
+            print_error(Reason)
     end.
 
--spec new_task(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), pos_integer(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'no_return'.
+-spec new_task(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    pos_integer(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary()
+) ->
+    'no_return'.
 new_task(AuthAccountId, AccountId, Category, Action, TotalRows, CSVBin, CSVName) ->
     case kz_tasks:new(AuthAccountId, AccountId, Category, Action, TotalRows, CSVBin, CSVName) of
         {'ok', TaskJObj} ->
             TaskId = kz_json:get_value([<<"_read_only">>, <<"id">>], TaskJObj),
-            case kz_datamgr:put_attachment(?KZ_TASKS_DB
-                                          ,TaskId
-                                          ,?KZ_TASKS_ANAME_IN
-                                          ,CSVBin
-                                          ,[{'content_type', <<"text/csv">>}]
-                                          )
+            case
+                kz_datamgr:put_attachment(
+                    ?KZ_TASKS_DB,
+                    TaskId,
+                    ?KZ_TASKS_ANAME_IN,
+                    CSVBin,
+                    [{'content_type', <<"text/csv">>}]
+                )
             of
                 {'ok', _} -> print_json(TaskJObj);
                 {'error', Reason} -> print_error(Reason)
@@ -227,14 +245,15 @@ new_task(AuthAccountId, AccountId, Category, Action, TotalRows, CSVBin, CSVName)
             handle_new_task_error(Reason, Category, Action)
     end.
 
--spec handle_new_task_error(atom() | kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
+-spec handle_new_task_error(atom() | kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    'no_return'.
 handle_new_task_error('unknown_category_action', Category, Action) ->
     print_error(<<"No such category / action: ", Category/binary, " ", Action/binary>>);
 handle_new_task_error(JObj, _, _) ->
     print_json(kz_json:from_list([{<<"errors">>, JObj}])).
 
 -spec compaction_history(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:json_terms()} | {'error', atom()}.
+    {'ok', kz_json:json_terms()} | {'error', atom()}.
 compaction_history(Year, Month) ->
     kt_compaction_reporter:history(kz_term:to_integer(Year), kz_term:to_integer(Month)).
 
@@ -249,21 +268,23 @@ job_info(JobId) ->
     'no_return'.
 
 -spec maybe_print_compaction_history({'ok', kz_json:json_terms()} | {'error', atom()}) ->
-          'no_return'.
+    'no_return'.
 maybe_print_compaction_history({'ok', []}) ->
     io:format("no history found~n"),
     'no_return';
 maybe_print_compaction_history({'ok', JObjs}) ->
-    Header = ["id"
-             ,"found"
-             ,"compacted"
-             ,"skipped"
-             ,"recovered"
-             ,"started_at"
-             ,"finished_at"
-             ,"exec_time"
-             ],
-    HLine = "+------------------------------+--------+-----------+---------+------------+---------------------+---------------------+--------------+",
+    Header = [
+        "id",
+        "found",
+        "compacted",
+        "skipped",
+        "recovered",
+        "started_at",
+        "finished_at",
+        "exec_time"
+    ],
+    HLine =
+        "+------------------------------+--------+-----------+---------+------------+---------------------+---------------------+--------------+",
     %% Format string for printing header and values of the table including "columns".
     FStr = "| ~.28s | ~6.6s | ~9.9s | ~7.7s | ~10.10s | ~.19s | ~.19s | ~12.12s |~n",
     %% Print top line of table, then prints the header and then another line below.
@@ -283,15 +304,16 @@ print_compaction_history_row(JObj, FStr) ->
     EndInt = Int([<<"worker">>, <<"finished">>]),
     DiskStartInt = Int([<<"storage">>, <<"disk">>, <<"start">>]),
     DiskEndInt = Int([<<"storage">>, <<"disk">>, <<"end">>]),
-    Row = [kz_doc:id(Doc)
-          ,Str([<<"databases">>, <<"found">>])
-          ,Str([<<"databases">>, <<"compacted">>])
-          ,Str([<<"databases">>, <<"skipped">>])
-          ,kz_util:pretty_print_bytes(DiskStartInt - DiskEndInt, 'truncated')
-          ,kz_term:to_list(kz_time:pretty_print_datetime(StartInt))
-          ,kz_term:to_list(kz_time:pretty_print_datetime(EndInt))
-          ,kz_term:to_list(kz_time:pretty_print_elapsed_s(EndInt - StartInt))
-          ],
+    Row = [
+        kz_doc:id(Doc),
+        Str([<<"databases">>, <<"found">>]),
+        Str([<<"databases">>, <<"compacted">>]),
+        Str([<<"databases">>, <<"skipped">>]),
+        kz_util:pretty_print_bytes(DiskStartInt - DiskEndInt, 'truncated'),
+        kz_term:to_list(kz_time:pretty_print_datetime(StartInt)),
+        kz_term:to_list(kz_time:pretty_print_datetime(EndInt)),
+        kz_term:to_list(kz_time:pretty_print_elapsed_s(EndInt - StartInt))
+    ],
     io:format(FStr, Row).
 
 %%% End of Module

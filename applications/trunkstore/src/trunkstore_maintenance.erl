@@ -6,11 +6,12 @@
 %%%-----------------------------------------------------------------------------
 -module(trunkstore_maintenance).
 
--export([clear_old_calls/0
-        ,classifier_inherit/2
-        ,classifier_deny/2
-        ,flush/0, flush/1
-        ]).
+-export([
+    clear_old_calls/0,
+    classifier_inherit/2,
+    classifier_deny/2,
+    flush/0, flush/1
+]).
 
 -include("ts.hrl").
 
@@ -21,21 +22,21 @@ flush() ->
 -spec flush(kz_term:ne_binary()) -> 'ok'.
 flush(Account) ->
     AccountId = kz_util:format_account_id(Account),
-    Flush = kz_cache:filter_local(?CACHE_NAME
-                                 ,fun(Key, _Value) -> is_ts_cache_object(Key, AccountId) end
-                                 ),
+    Flush = kz_cache:filter_local(
+        ?CACHE_NAME,
+        fun(Key, _Value) -> is_ts_cache_object(Key, AccountId) end
+    ),
     _ = [kz_cache:erase_local(?CACHE_NAME, Key) || {Key, _Value} <- Flush],
     'ok'.
 
 account_exists_with_realm(Realm) ->
     ViewOptions = [{'key', kz_term:to_lower_binary(Realm)}],
     case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_realm">>, ViewOptions) of
-        {'ok', []} -> 'false';
+        {'ok', []} ->
+            'false';
         {'ok', [AcctObj]} ->
-            {'true'
-            ,kz_json:get_value([<<"value">>, <<"account_db">>], AcctObj)
-            ,kz_json:get_value([<<"value">>, <<"account_id">>], AcctObj)
-            };
+            {'true', kz_json:get_value([<<"value">>, <<"account_db">>], AcctObj),
+                kz_json:get_value([<<"value">>, <<"account_id">>], AcctObj)};
         {'error', _E} ->
             lager:info("failed to lookup account view: ~p", [_E]),
             'ignore'
@@ -52,15 +53,17 @@ clear_old_calls() ->
     'ok'.
 
 clear_old_calls(Super) ->
-    Ps = [P || {_,P,_,_} <- supervisor:which_children(Super)],
-    [begin
-         {'dictionary', D} = erlang:process_info(P, 'dictionary'),
-         C = props:get_value('callid', D),
-         case kapps_call_command:channel_status(C) of
-             {'error', _} -> {P, C, exit(P, 'kill')};
-             _ -> {P, C, 'ok'}
-         end
-     end || P <- Ps
+    Ps = [P || {_, P, _, _} <- supervisor:which_children(Super)],
+    [
+        begin
+            {'dictionary', D} = erlang:process_info(P, 'dictionary'),
+            C = props:get_value('callid', D),
+            case kapps_call_command:channel_status(C) of
+                {'error', _} -> {P, C, exit(P, 'kill')};
+                _ -> {P, C, 'ok'}
+            end
+        end
+     || P <- Ps
     ].
 
 %%------------------------------------------------------------------------------
@@ -95,12 +98,14 @@ set_classifier_action(Action, Classifier, UserR) ->
     Classifiers = knm_converters:available_classifiers(),
     case lists:member(Classifier, kz_json:get_keys(Classifiers)) of
         'false' ->
-            io:format("\nNo ~p classifier among configured classifiers ~p\n", [Classifier, kz_json:get_keys(Classifiers)]),
+            io:format("\nNo ~p classifier among configured classifiers ~p\n", [
+                Classifier, kz_json:get_keys(Classifiers)
+            ]),
             exit('no_such_classifier');
         _ ->
             io:format("  ... found\n")
     end,
-    [User, Realm] = re:split(UserR, <<"@">>, [{'return','binary'}, {'parts',2}]),
+    [User, Realm] = re:split(UserR, <<"@">>, [{'return', 'binary'}, {'parts', 2}]),
     case account_exists_with_realm(Realm) of
         {'true', AcctDB, AcctID} ->
             {'ok', Opts} = ts_util:lookup_user_flags(User, Realm, AcctID),

@@ -6,16 +6,18 @@
 -module(kz_media_store_proxy).
 -behaviour(cowboy_handler).
 
--export([init/2
-        ,terminate/3
-        ]).
+-export([
+    init/2,
+    terminate/3
+]).
 
 -include("kazoo_media.hrl").
 
--record(state, {media :: media_store_path()
-               ,filename :: binary()
-               ,file :: file:io_device()
-               }).
+-record(state, {
+    media :: media_store_path(),
+    filename :: binary(),
+    file :: file:io_device()
+}).
 
 -type state() :: #state{}.
 
@@ -72,10 +74,10 @@ maybe_basic_authentication(Req) ->
 maybe_basic_authentication(Username, Password) ->
     AuthUsername = kapps_config:get_binary(?CONFIG_CAT, <<"proxy_username">>, <<>>),
     AuthPassword = kapps_config:get_binary(?CONFIG_CAT, <<"proxy_password">>, <<>>),
-    not kz_term:is_empty(AuthUsername)
-        andalso not kz_term:is_empty(AuthPassword)
-        andalso Username =:= AuthUsername
-        andalso Password =:= AuthPassword.
+    not kz_term:is_empty(AuthUsername) andalso
+        not kz_term:is_empty(AuthPassword) andalso
+        Username =:= AuthUsername andalso
+        Password =:= AuthPassword.
 
 -spec maybe_acl_authentication(cowboy_req:req()) -> boolean().
 maybe_acl_authentication(Req) ->
@@ -88,7 +90,7 @@ maybe_acl_authentication(Req) ->
 maybe_acl_authentication([], Ip) ->
     lager:debug("ip address ~s can not be authenticated via ACLs", [Ip]),
     'false';
-maybe_acl_authentication([ACL|ACLs], Ip) ->
+maybe_acl_authentication([ACL | ACLs], Ip) ->
     case kz_network_utils:verify_cidr(Ip, ACL) of
         'true' ->
             lager:debug("ip address ~s was authenticated via ACLs", [Ip]),
@@ -97,7 +99,8 @@ maybe_acl_authentication([ACL|ACLs], Ip) ->
             maybe_acl_authentication(ACLs, Ip)
     end.
 
--spec credentials(cowboy_req:req()) -> {kz_term:api_binary(), kz_term:api_binary(), cowboy_req:req()}.
+-spec credentials(cowboy_req:req()) ->
+    {kz_term:api_binary(), kz_term:api_binary(), cowboy_req:req()}.
 credentials(Req) ->
     case cowboy_req:header(<<"authorization">>, Req) of
         'undefined' ->
@@ -128,39 +131,43 @@ decoded_credentials(EncodedCredentials) ->
 
 -spec unauthorized(cowboy_req:req()) -> cowboy_req:req().
 unauthorized(Req0) ->
-    Req1 = cowboy_req:set_resp_header(<<"Www-Authenticate">>, <<"Basic realm=\"Kazoo Media Storage Proxy\"">>, Req0),
+    Req1 = cowboy_req:set_resp_header(
+        <<"Www-Authenticate">>, <<"Basic realm=\"Kazoo Media Storage Proxy\"">>, Req0
+    ),
     Req2 = cowboy_req:set_resp_body(unauthorized_body(), Req1),
     cowboy_req:reply(401, Req2).
 
 -spec unauthorized_body() -> kz_term:ne_binary().
 unauthorized_body() ->
-    <<"
-    <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"
-     \"http://www.w3.org/TR/1999/REC-html401-19991224/loose.dt\">
-    <HTML>
-      <HEAD>
-      <TITLE>Error</TITLE>
-      <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">
-      </HEAD>
-      <BODY><H1>401 Unauthorized.</H1></BODY>
-      </HTML>
-      ">>.
+    <<
+        "\n"
+        "    <!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n"
+        "     \"http://www.w3.org/TR/1999/REC-html401-19991224/loose.dt\">\n"
+        "    <HTML>\n"
+        "      <HEAD>\n"
+        "      <TITLE>Error</TITLE>\n"
+        "      <META HTTP-EQUIV=\"Content-Type\" CONTENT=\"text/html; charset=ISO-8859-1\">\n"
+        "      </HEAD>\n"
+        "      <BODY><H1>401 Unauthorized.</H1></BODY>\n"
+        "      </HTML>\n"
+        "      "
+    >>.
 
 -spec handle(cowboy_req:req(), state()) -> handler_return().
 handle(Req, State) ->
     handle_body(cowboy_req:read_body(Req), State).
 
 -spec handle_body(body(), state()) -> handler_return().
-handle_body({'more', Contents, Req}, #state{file=Device}=State) ->
+handle_body({'more', Contents, Req}, #state{file = Device} = State) ->
     lager:debug("recv part of file"),
     case file:write(Device, Contents) of
         'ok' -> handle(Req, State);
         {'error', Reason} -> {'ok', failure(Reason, Req), State}
     end;
-handle_body({'ok', <<>>, Req}, #state{file=Device}=State) ->
+handle_body({'ok', <<>>, Req}, #state{file = Device} = State) ->
     lager:debug("recv empty req body"),
     handle_close(Req, State, file:close(Device));
-handle_body({'ok', Contents, Req}, #state{file=Device}=State) ->
+handle_body({'ok', Contents, Req}, #state{file = Device} = State) ->
     lager:debug("recv file"),
     case file:write(Device, Contents) of
         'ok' -> handle_close(Req, State, file:close(Device));
@@ -180,15 +187,16 @@ validate_path_request(Req, Path) ->
     end.
 
 -spec setup_context(cowboy_req:req(), media_store_path()) -> handler_return().
-setup_context(Req, #media_store_path{att=Attachment}=Path) ->
+setup_context(Req, #media_store_path{att = Attachment} = Path) ->
     Filename = list_to_binary(["/tmp/", kz_binary:rand_hex(16), "_", Attachment]),
     case file:open(Filename, ['write', 'exclusive']) of
         {'ok', IODevice} ->
             lager:debug("opened ~s for writing", [Filename]),
-            State = #state{media=Path
-                          ,filename=Filename
-                          ,file=IODevice
-                          },
+            State = #state{
+                media = Path,
+                filename = Filename,
+                file = IODevice
+            },
             handle(Req, State);
         {'error', Reason} ->
             lager:debug("error ~p opening file ~s", [Reason, Filename]),
@@ -199,11 +207,12 @@ setup_context(Req, #media_store_path{att=Attachment}=Path) ->
 decode_url(Url) ->
     try binary_to_term(base64:decode(kz_util:uri_decode(Url))) of
         {Db, Id, Attachment, Options} ->
-            #media_store_path{db = Db
-                             ,id = Id
-                             ,att = Attachment
-                             ,opt = Options
-                             }
+            #media_store_path{
+                db = Db,
+                id = Id,
+                att = Attachment,
+                opt = Options
+            }
     catch
         _:_ -> 'error'
     end.
@@ -226,16 +235,16 @@ is_appropriate_content_type(Req, Path) ->
     end.
 
 -spec is_appropriate_extension(media_store_path()) -> validate_request_ret().
-is_appropriate_extension(#media_store_path{att=Attachment}=Path) ->
+is_appropriate_extension(#media_store_path{att = Attachment} = Path) ->
     Extension = filename:extension(Attachment),
     case kz_mime:from_extension(Extension) of
-        <<"audio/", _/binary>> = CT->
+        <<"audio/", _/binary>> = CT ->
             lager:debug("found content-type via extension: ~s", [CT]),
             {'ok', add_content_type(Path, CT)};
-        <<"video/", _/binary>> = CT->
+        <<"video/", _/binary>> = CT ->
             lager:debug("found content-type via extension: ~s", [CT]),
             {'ok', add_content_type(Path, CT)};
-        <<"image/", _/binary>> = CT->
+        <<"image/", _/binary>> = CT ->
             lager:debug("found content-type via extension: ~s", [CT]),
             {'ok', add_content_type(Path, CT)};
         _CT ->
@@ -244,20 +253,21 @@ is_appropriate_extension(#media_store_path{att=Attachment}=Path) ->
     end.
 
 -spec add_content_type(media_store_path(), kz_term:ne_binary()) -> media_store_path().
-add_content_type(#media_store_path{opt=Options}= Path, CT) ->
+add_content_type(#media_store_path{opt = Options} = Path, CT) ->
     NewOptions = props:set_value('content-type', CT, Options),
-    Path#media_store_path{opt=NewOptions}.
+    Path#media_store_path{opt = NewOptions}.
 
 -spec ensure_extension_present(media_store_path(), kz_term:ne_binary()) -> validate_request_ret().
-ensure_extension_present(#media_store_path{att=Attachment}=Path, CT) ->
-    case kz_term:is_empty(filename:extension(Attachment))
-        andalso kz_mime:to_extension(CT)
+ensure_extension_present(#media_store_path{att = Attachment} = Path, CT) ->
+    case
+        kz_term:is_empty(filename:extension(Attachment)) andalso
+            kz_mime:to_extension(CT)
     of
         'false' ->
             {'ok', add_content_type(Path, CT)};
         ?NE_BINARY = Extension ->
             NewName = <<Attachment/binary, ".", Extension/binary>>,
-            NewPath = Path#media_store_path{att=NewName},
+            NewPath = Path#media_store_path{att = NewName},
             {'ok', add_content_type(NewPath, CT)};
         _Else ->
             lager:debug("unable to correct missing extension for content-type: ~s", [CT]),
@@ -265,7 +275,7 @@ ensure_extension_present(#media_store_path{att=Attachment}=Path, CT) ->
     end.
 
 -spec store(state(), cowboy_req:req()) -> {'ok', cowboy_req:req(), state()}.
-store(#state{filename=Filename, media=Path}=State, Req) ->
+store(#state{filename = Filename, media = Path} = State, Req) ->
     case file:read_file(Filename) of
         {'ok', Data} ->
             store(Path, Data, State, Req);
@@ -275,12 +285,18 @@ store(#state{filename=Filename, media=Path}=State, Req) ->
     end.
 
 -spec store(media_store_path(), kz_term:ne_binary(), state(), cowboy_req:req()) ->
-          {'ok', cowboy_req:req(), state()}.
-store(#media_store_path{db=Db
-                       ,id=Id
-                       ,att=Attachment
-                       ,opt=Options
-                       }, Contents, State, Req) ->
+    {'ok', cowboy_req:req(), state()}.
+store(
+    #media_store_path{
+        db = Db,
+        id = Id,
+        att = Attachment,
+        opt = Options
+    },
+    Contents,
+    State,
+    Req
+) ->
     lager:debug("putting ~s onto ~s(~s)", [Attachment, Id, Db]),
     case kz_datamgr:put_attachment(Db, Id, Attachment, Contents, Options) of
         {'ok', JObj} ->
@@ -301,9 +317,10 @@ store(#media_store_path{db=Db
 success(JObj, Props, Req0) ->
     Body = io_lib:format("~s~n", [kz_json:encode(kz_json:set_value(<<"ok">>, 'true', JObj))]),
     Req1 = cowboy_req:set_resp_body(Body, Req0),
-    Headers = maps:from_list([{kz_term:to_binary(H), kz_term:to_binary(V)}
-                              || {H, V} <- props:get_value('headers', Props, [])
-                             ]),
+    Headers = maps:from_list([
+        {kz_term:to_binary(H), kz_term:to_binary(V)}
+     || {H, V} <- props:get_value('headers', Props, [])
+    ]),
     lager:info("replying with 200"),
     cowboy_req:reply(200, Headers, Req1).
 
@@ -320,9 +337,9 @@ reply_error(Code, Req) ->
     {'ok', cowboy_req:reply(Code, Req), 'ok'}.
 
 -spec terminate(any(), cowboy_req:req(), any()) -> 'ok'.
-terminate(_Reason, _Req, #state{file=Device, filename=Filename}) ->
-    catch(file:close(Device)),
-    catch(file:delete(Filename)),
+terminate(_Reason, _Req, #state{file = Device, filename = Filename}) ->
+    catch (file:close(Device)),
+    catch (file:delete(Filename)),
     lager:debug("closed files and terminated handler: ~p", [_Reason]);
 terminate(_Reason, _Req, _) ->
     lager:debug("terminating handler: ~p", [_Reason]).

@@ -6,12 +6,14 @@
 %%%-----------------------------------------------------------------------------
 -module(hon_util).
 
--export([candidate_rates/1, candidate_rates/2, candidate_rates/3
-        ,matching_rates/2
-        ,sort_rates/1
-        ,sort_rates_by_cost/1, sort_rates_by_weight/1
-        ,account_ratedeck/1, account_ratedeck/2
-        ]).
+-export([
+    candidate_rates/1, candidate_rates/2, candidate_rates/3,
+    matching_rates/2,
+    sort_rates/1,
+    sort_rates_by_cost/1,
+    sort_rates_by_weight/1,
+    account_ratedeck/1, account_ratedeck/2
+]).
 
 -ifdef(TEST).
 -export([build_keys/1]).
@@ -19,32 +21,35 @@
 
 -include("hotornot.hrl").
 
--define(MIN_PREFIX_LEN, 1). % how many chars to strip off the e164 DID
+% how many chars to strip off the e164 DID
+-define(MIN_PREFIX_LEN, 1).
 
--type candidate_rates_return() :: {'ok', kzd_rates:docs()} |
-                                  {'error', 'did_to_short'} |
-                                  kz_datamgr:data_error().
+-type candidate_rates_return() ::
+    {'ok', kzd_rates:docs()}
+    | {'error', 'did_to_short'}
+    | kz_datamgr:data_error().
 
 -spec candidate_rates(kz_term:ne_binary()) ->
-          candidate_rates_return().
+    candidate_rates_return().
 candidate_rates(ToDID) ->
     candidate_rates(ToDID, 'undefined', 'undefined').
 
 -spec candidate_rates(kz_term:ne_binary(), kz_term:api_ne_binary()) ->
-          candidate_rates_return().
+    candidate_rates_return().
 candidate_rates(ToDID, AccountId) ->
     candidate_rates(ToDID, AccountId, 'undefined').
 
 -spec candidate_rates(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          candidate_rates_return().
+    candidate_rates_return().
 candidate_rates(ToDID, AccountId, RatedeckId) ->
     E164 = knm_converters:normalize(ToDID),
     find_candidate_rates(E164, AccountId, RatedeckId).
 
 -spec find_candidate_rates(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          candidate_rates_return().
-find_candidate_rates(E164, AccountId, RatedeckId)
-  when byte_size(E164) > ?MIN_PREFIX_LEN ->
+    candidate_rates_return().
+find_candidate_rates(E164, AccountId, RatedeckId) when
+    byte_size(E164) > ?MIN_PREFIX_LEN
+->
     case hotornot_config:should_use_trie() of
         'false' -> fetch_candidate_rates(E164, AccountId, RatedeckId);
         'true' -> find_trie_rates(E164, AccountId, RatedeckId)
@@ -54,10 +59,11 @@ find_candidate_rates(DID, _AccountId, _RatedeckId) ->
     {'error', 'did_too_short'}.
 
 -spec find_trie_rates(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          candidate_rates_return().
+    candidate_rates_return().
 find_trie_rates(E164, AccountId, RatedeckId) ->
     case hon_trie:match_did(only_numeric(E164), AccountId, RatedeckId) of
-        {'ok', Result} -> {'ok', Result};
+        {'ok', Result} ->
+            {'ok', Result};
         {'error', _E} ->
             lager:warning("got error while searching did in trie, falling back to DB search"),
             Candidates = fetch_candidate_rates(E164, AccountId, RatedeckId),
@@ -70,45 +76,51 @@ maybe_update_trie(RatedeckId, Candidates) ->
     maybe_update_trie(RatedeckId, Candidates, hotornot_config:trie_module()).
 
 -spec maybe_update_trie(kz_term:ne_binary(), candidate_rates_return(), atom()) -> 'ok'.
-maybe_update_trie(RatedeckId, {'ok', [_|_]=Rates}, 'hon_trie_lru') ->
+maybe_update_trie(RatedeckId, {'ok', [_ | _] = Rates}, 'hon_trie_lru') ->
     hon_trie_lru:cache_rates(RatedeckId, Rates);
 maybe_update_trie(_RatedeckId, _Candidates, _Module) ->
     'ok'.
 
 -spec fetch_candidate_rates(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          candidate_rates_return().
+    candidate_rates_return().
 fetch_candidate_rates(E164, AccountId, RatedeckId) ->
     fetch_candidate_rates(E164, AccountId, RatedeckId, build_keys(E164)).
 
--spec fetch_candidate_rates(kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:ne_binaries()) ->
-          candidate_rates_return().
+-spec fetch_candidate_rates(
+    kz_term:ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:ne_binaries()
+) ->
+    candidate_rates_return().
 fetch_candidate_rates(_E164, _AccountId, _RatedeckId, []) ->
     {'error', 'did_too_short'};
 fetch_candidate_rates(E164, AccountId, RatedeckId, Keys) ->
     lager:debug("searching for prefixes for ~s: ~p", [E164, Keys]),
     RatedeckDb = account_ratedeck(AccountId, RatedeckId),
     case fetch_rates_from_ratedeck(RatedeckDb, Keys) of
-        {'ok', []}=OK -> OK;
-        {'error', _}=E -> E;
+        {'ok', []} = OK ->
+            OK;
+        {'error', _} = E ->
+            E;
         {'ok', ViewRows} ->
-            {'ok'
-            ,[kzd_rates:set_ratedeck_id(kz_json:get_json_value(<<"doc">>, ViewRow)
-                                       ,kzd_ratedeck:format_ratedeck_id(RatedeckDb)
-                                       )
-              || ViewRow <- ViewRows
-             ]
-            }
+            {'ok', [
+                kzd_rates:set_ratedeck_id(
+                    kz_json:get_json_value(<<"doc">>, ViewRow),
+                    kzd_ratedeck:format_ratedeck_id(RatedeckDb)
+                )
+             || ViewRow <- ViewRows
+            ]}
     end.
 
 -spec fetch_rates_from_ratedeck(kz_term:ne_binary(), [integer()]) ->
-          kz_datamgr:get_results_return().
+    kz_datamgr:get_results_return().
 fetch_rates_from_ratedeck(RatedeckDb, Keys) ->
-    kz_datamgr:get_results(RatedeckDb
-                          ,<<"rates/lookup">>
-                          ,[{'keys', Keys}
-                           ,'include_docs'
-                           ]
-                          ).
+    kz_datamgr:get_results(
+        RatedeckDb,
+        <<"rates/lookup">>,
+        [
+            {'keys', Keys},
+            'include_docs'
+        ]
+    ).
 
 -ifdef(TEST).
 
@@ -153,9 +165,10 @@ reseller_ratedeck(_AccountId, ResellerId) ->
             lager:debug("failed to find reseller ~s ratedeck, using default", [_AccountId]),
             hotornot_config:default_ratedeck();
         RatedeckId ->
-            lager:info("using reseller ~s ratedeck ~s for account ~s"
-                      ,[ResellerId, RatedeckId, _AccountId]
-                      ),
+            lager:info(
+                "using reseller ~s ratedeck ~s for account ~s",
+                [ResellerId, RatedeckId, _AccountId]
+            ),
             kzd_ratedeck:format_ratedeck_db(RatedeckId)
     end.
 -endif.
@@ -164,34 +177,37 @@ reseller_ratedeck(_AccountId, ResellerId) ->
 build_keys(Number) ->
     case only_numeric(Number) of
         <<>> -> [];
-        <<D:1/binary, Rest/binary>> ->
-            build_keys(Rest, D, [kz_term:to_integer(D)])
+        <<D:1/binary, Rest/binary>> -> build_keys(Rest, D, [kz_term:to_integer(D)])
     end.
 
 -spec only_numeric(binary()) -> binary().
 only_numeric(Number) ->
-    << <<N>> || <<N>> <= Number, is_numeric(N)>>.
+    <<<<N>> || <<N>> <= Number, is_numeric(N)>>.
 
 -spec is_numeric(integer()) -> boolean().
 is_numeric(N) ->
-    N >= $0
-        andalso N =< $9.
+    N >= $0 andalso
+        N =< $9.
 
 -spec build_keys(binary(), kz_term:ne_binary(), [integer()]) -> [integer()].
 build_keys(<<D:1/binary, Rest/binary>>, Prefix, Acc) ->
-    build_keys(Rest, <<Prefix/binary, D/binary>>, [kz_term:to_integer(<<Prefix/binary, D/binary>>) | Acc]);
-build_keys(<<>>, _, Acc) -> Acc.
+    build_keys(Rest, <<Prefix/binary, D/binary>>, [
+        kz_term:to_integer(<<Prefix/binary, D/binary>>) | Acc
+    ]);
+build_keys(<<>>, _, Acc) ->
+    Acc.
 
 -spec matching_rates(kzd_rates:docs(), kapi_rate:req()) ->
-          kzd_rates:docs().
+    kzd_rates:docs().
 matching_rates(Rates, RateReq) ->
     FilterList = hotornot_config:filter_list(),
-    lists:foldl(fun(Filter, Acc) ->
-                        lists:filter(fun(Rate) -> matching_rate(Rate, Filter, RateReq) end, Acc)
-                end
-               ,Rates
-               ,FilterList
-               ).
+    lists:foldl(
+        fun(Filter, Acc) ->
+            lists:filter(fun(Rate) -> matching_rate(Rate, Filter, RateReq) end, Acc)
+        end,
+        Rates,
+        FilterList
+    ).
 
 -spec sort_rates(kzd_rates:docs()) -> kzd_rates:docs().
 sort_rates(Rates) ->
@@ -214,52 +230,49 @@ sort_rates_by_cost(Rates) ->
 matching_rate(Rate, <<"direction">>, RateReq) ->
     case kapi_rate:direction(RateReq) of
         'undefined' -> 'true';
-        Direction ->
-            lists:member(Direction, kzd_rates:direction(Rate))
+        Direction -> lists:member(Direction, kzd_rates:direction(Rate))
     end;
-
 matching_rate(Rate, <<"route_options">>, RateReq) ->
     RouteOptions = kapi_rate:options(RateReq),
-    RouteFlags   = kapi_rate:outbound_flags(RateReq),
-    ResourceFlag = case kapi_rate:account_id(RateReq) of
-                       'undefined' -> [];
-                       AccountId -> maybe_add_resource_flag(RateReq, AccountId)
-                   end,
-    options_match(kzd_rates:options(Rate), RouteOptions++RouteFlags++ResourceFlag);
-
+    RouteFlags = kapi_rate:outbound_flags(RateReq),
+    ResourceFlag =
+        case kapi_rate:account_id(RateReq) of
+            'undefined' -> [];
+            AccountId -> maybe_add_resource_flag(RateReq, AccountId)
+        end,
+    options_match(kzd_rates:options(Rate), RouteOptions ++ RouteFlags ++ ResourceFlag);
 matching_rate(Rate, <<"routes">>, RateReq) ->
     ToDID = kapi_rate:to_did(RateReq),
     E164 = knm_converters:normalize(ToDID),
-    lists:any(fun(Regex) -> re:run(E164, Regex) =/= 'nomatch' end
-             ,kzd_rates:routes(Rate, [])
-             );
-
+    lists:any(
+        fun(Regex) -> re:run(E164, Regex) =/= 'nomatch' end,
+        kzd_rates:routes(Rate, [])
+    );
 matching_rate(Rate, <<"caller_id_numbers">>, RateReq) ->
     matching_rate_on_caller_id(Rate, kapi_rate:from_did(RateReq));
-
 matching_rate(Rate, <<"ratedeck_id">>, RateReq) ->
     AccountId = kapi_rate:account_id(RateReq),
     AccountRatedeck = kz_services_ratedecks:name(AccountId),
     RatedeckName = kzd_rates:ratedeck_id(Rate),
     AccountRatedeck =:= RatedeckName;
-
 matching_rate(Rate, <<"reseller">>, RateReq) ->
     AccountId = kapi_rate:account_id(RateReq),
     ResellerId = kz_services_reseller:get_id(AccountId),
     RateAccountId = kzd_rates:account_id(Rate),
     RateAccountId =:= ResellerId;
-
 matching_rate(Rate, <<"version">>, _RateReq) ->
     kzd_rates:rate_version(Rate) =:= hotornot_config:rate_version();
+matching_rate(_Rate, _FilterType, _RateReq) ->
+    'false'.
 
-matching_rate(_Rate, _FilterType, _RateReq) -> 'false'.
-
-matching_rate_on_caller_id(_Rate, 'undefined') -> 'true';
+matching_rate_on_caller_id(_Rate, 'undefined') ->
+    'true';
 matching_rate_on_caller_id(Rate, FromDID) ->
     E164 = knm_converters:normalize(FromDID),
-    lists:any(fun(Regex) -> re:run(E164, Regex) =/= 'nomatch' end
-             ,kzd_rates:caller_id_numbers(Rate, [<<".">>])
-             ).
+    lists:any(
+        fun(Regex) -> re:run(E164, Regex) =/= 'nomatch' end,
+        kzd_rates:caller_id_numbers(Rate, [<<".">>])
+    ).
 
 %% Return true if RateA has lower weight than RateB
 -spec sort_rate_by_weight(kzd_rates:doc(), kzd_rates:doc()) -> boolean().
@@ -291,14 +304,17 @@ sort_rate_by_cost(RateA, RateB) ->
 %% All Route options must exist in a carrier's options to keep the carrier
 %% in the list of carriers capable of handling the call
 -spec options_match(trunking_options(), trunking_options()) -> boolean().
-options_match([], []) -> 'true';
-options_match([], _) -> 'true';
+options_match([], []) ->
+    'true';
+options_match([], _) ->
+    'true';
 options_match(RateOptions, RouteOptions) ->
-    lists:all(fun(RouteOption) ->
-                      props:get_value(RouteOption, RateOptions, 'false') =/= 'false'
-              end
-             ,RouteOptions
-             ).
+    lists:all(
+        fun(RouteOption) ->
+            props:get_value(RouteOption, RateOptions, 'false') =/= 'false'
+        end,
+        RouteOptions
+    ).
 
 -spec maybe_add_resource_flag(kapi_rate:req(), kz_term:ne_binary()) -> kz_term:ne_binaries().
 maybe_add_resource_flag(RateReq, AccountId) ->
@@ -308,5 +324,6 @@ maybe_add_resource_flag(RateReq, AccountId) ->
                 'undefined' -> [];
                 ResourceId -> [ResourceId]
             end;
-        'false' -> []
+        'false' ->
+            []
     end.

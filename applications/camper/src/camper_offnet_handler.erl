@@ -13,15 +13,16 @@
 -behaviour(gen_listener).
 
 -export([start_link/1]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ,handle_resource_response/2
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3,
+    handle_resource_response/2
+]).
 
 -export([add_request/1]).
 
@@ -29,30 +30,30 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {exten :: kz_term:api_binary()
-               ,stored_call :: kapps_call:call()
-               ,queue :: kz_term:api_binary()
-               ,n_try :: non_neg_integer()
-               ,max_tries :: non_neg_integer()
-               ,try_after :: non_neg_integer()
-               ,stop_timer :: 'undefined' | timer:tref()
-               ,parked_call :: kz_term:api_binary()
-               ,offnet_ctl_q :: kz_term:api_binary()
-               ,moh :: kz_term:api_binary()
-               }).
+-record(state, {
+    exten :: kz_term:api_binary(),
+    stored_call :: kapps_call:call(),
+    queue :: kz_term:api_binary(),
+    n_try :: non_neg_integer(),
+    max_tries :: non_neg_integer(),
+    try_after :: non_neg_integer(),
+    stop_timer :: 'undefined' | timer:tref(),
+    parked_call :: kz_term:api_binary(),
+    offnet_ctl_q :: kz_term:api_binary(),
+    moh :: kz_term:api_binary()
+}).
 -type state() :: #state{}.
 
--define(MK_CALL_BINDING(CALLID), [{'callid', CALLID}
-                                 ,{'restrict_to', [<<"CHANNEL_DESTROY">>
-                                                  ,<<"CHANNEL_ANSWER">>
-                                                  ]}
-                                 ]).
+-define(MK_CALL_BINDING(CALLID), [
+    {'callid', CALLID},
+    {'restrict_to', [
+        <<"CHANNEL_DESTROY">>,
+        <<"CHANNEL_ANSWER">>
+    ]}
+]).
 
 -define(BINDINGS, [{'self', []}]).
--define(RESPONDERS, [{{?MODULE, 'handle_resource_response'}
-                     ,[{<<"*">>, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_resource_response'}, [{<<"*">>, <<"*">>}]}]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -63,47 +64,59 @@
 %%------------------------------------------------------------------------------
 -spec start_link(list()) -> kz_types:startlink_ret().
 start_link(Args) ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], Args).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        Args
+    ).
 
 -spec init([kz_json:object()]) -> {'ok', state()}.
 init([JObj]) ->
     Exten = kz_json:get_value(<<"Number">>, JObj),
     Call = kapps_call:from_json(kz_json:get_value(<<"Call">>, JObj)),
-    lager:info("Started offnet handler(~p) for request ~s->~s", [self(), kapps_call:from_user(Call), Exten]),
+    lager:info("Started offnet handler(~p) for request ~s->~s", [
+        self(), kapps_call:from_user(Call), Exten
+    ]),
 
     MaxTriesSystem = kapps_config:get_integer(?CAMPER_CONFIG_CAT, <<"tries">>, 10),
     MaxTries = kz_json:get_integer_value(<<"Tries">>, JObj, MaxTriesSystem),
 
-    TryIntervalSystem = kapps_config:get_integer(?CAMPER_CONFIG_CAT, <<"try_interval">>,3),
+    TryIntervalSystem = kapps_config:get_integer(?CAMPER_CONFIG_CAT, <<"try_interval">>, 3),
     TryInterval = timer:minutes(kz_json:get_value(<<"Try-Interval">>, JObj, TryIntervalSystem)),
 
     StopAfterSystem = kapps_config:get_integer(?CAMPER_CONFIG_CAT, <<"stop_after">>, 31),
     StopAfter = timer:minutes(kz_json:get_integer_value(<<"Stop-After">>, JObj, StopAfterSystem)),
 
-    {'ok', StopTimerRef} = timer:apply_after(StopAfter, 'gen_listener', 'cast', [self(), 'stop_campering']),
+    {'ok', StopTimerRef} = timer:apply_after(StopAfter, 'gen_listener', 'cast', [
+        self(), 'stop_campering'
+    ]),
 
-    Moh = case kzd_accounts:fetch(kapps_call:account_id(Call)) of
-              {'ok', JObj} ->
-                  kz_media_util:media_path(
+    Moh =
+        case kzd_accounts:fetch(kapps_call:account_id(Call)) of
+            {'ok', JObj} ->
+                kz_media_util:media_path(
                     kz_json:get_value([<<"music_on_hold">>, <<"media_id">>], JObj)
-                   );
-              _ -> 'undefined'
-          end,
+                );
+            _ ->
+                'undefined'
+        end,
 
-    {'ok', #state{exten = Exten
-                 ,stored_call = Call
-                 ,queue = 'undefined'
-                 ,n_try = 0
-                 ,max_tries = MaxTries
-                 ,stop_timer = StopTimerRef
-                 ,try_after = TryInterval
-                 ,moh = Moh
-                 }}.
+    {'ok', #state{
+        exten = Exten,
+        stored_call = Call,
+        queue = 'undefined',
+        n_try = 0,
+        max_tries = MaxTries,
+        stop_timer = StopTimerRef,
+        try_after = TryInterval,
+        moh = Moh
+    }}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -122,9 +135,13 @@ handle_call(_Request, _From, State) ->
 handle_cast({'gen_listener', {'created_queue', Q}}, #state{queue = 'undefined'} = S) ->
     gen_listener:cast(self(), 'count'),
     {'noreply', S#state{queue = Q}};
-handle_cast('count', #state{n_try=NTry
-                           ,max_tries=MaxTries
-                           }=State) ->
+handle_cast(
+    'count',
+    #state{
+        n_try = NTry,
+        max_tries = MaxTries
+    } = State
+) ->
     lager:debug("count"),
 
     case NTry < MaxTries of
@@ -135,41 +152,55 @@ handle_cast('count', #state{n_try=NTry
         'false' ->
             {'stop', 'normal', State}
     end;
-handle_cast('originate_park', #state{exten=Exten
-                                    ,stored_call=Call
-                                    ,queue=Q
-                                    }=State) ->
+handle_cast(
+    'originate_park',
+    #state{
+        exten = Exten,
+        stored_call = Call,
+        queue = Q
+    } = State
+) ->
     lager:debug("originate park"),
     originate_park(Exten, Call, Q),
     {'noreply', State};
 handle_cast({'offnet_ctl_queue', CtrlQ}, State) ->
     {'noreply', State#state{offnet_ctl_q = CtrlQ}};
-handle_cast('hangup_parked_call', #state{parked_call='undefined'}=State) ->
+handle_cast('hangup_parked_call', #state{parked_call = 'undefined'} = State) ->
     {'noreply', State};
-handle_cast('hangup_parked_call', #state{parked_call=ParkedCall
-                                        ,queue=Queue
-                                        ,offnet_ctl_q=CtrlQ
-                                        }=State) ->
+handle_cast(
+    'hangup_parked_call',
+    #state{
+        parked_call = ParkedCall,
+        queue = Queue,
+        offnet_ctl_q = CtrlQ
+    } = State
+) ->
     lager:debug("hangup park"),
 
-    Hangup = [{<<"Application-Name">>, <<"hangup">>}
-             ,{<<"Insert-At">>, <<"now">>}
-             ,{<<"Call-ID">>, ParkedCall}
-              | kz_api:default_headers(Queue, <<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
-             ],
+    Hangup = [
+        {<<"Application-Name">>, <<"hangup">>},
+        {<<"Insert-At">>, <<"now">>},
+        {<<"Call-ID">>, ParkedCall}
+        | kz_api:default_headers(Queue, <<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
+    ],
     kapi_dialplan:publish_command(CtrlQ, props:filter_undefined(Hangup)),
     {'noreply', State#state{parked_call = 'undefined'}};
-handle_cast({'parked', <<_/binary>> = CallId}, #state{moh=MOH
-                                                     ,queue=Queue
-                                                     ,offnet_ctl_q=CtrlQ
-                                                     ,stored_call=Call
-                                                     }=State) ->
-    Hold = [{<<"Application-Name">>, <<"hold">>}
-           ,{<<"Insert-At">>, <<"now">>}
-           ,{<<"Hold-Media">>, MOH}
-           ,{<<"Call-ID">>, CallId}
-            | kz_api:default_headers(Queue, <<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
-           ],
+handle_cast(
+    {'parked', <<_/binary>> = CallId},
+    #state{
+        moh = MOH,
+        queue = Queue,
+        offnet_ctl_q = CtrlQ,
+        stored_call = Call
+    } = State
+) ->
+    Hold = [
+        {<<"Application-Name">>, <<"hold">>},
+        {<<"Insert-At">>, <<"now">>},
+        {<<"Hold-Media">>, MOH},
+        {<<"Call-ID">>, CallId}
+        | kz_api:default_headers(Queue, <<"call">>, <<"command">>, ?APP_NAME, ?APP_VERSION)
+    ],
     kapi_dialplan:publish_command(CtrlQ, props:filter_undefined(Hold)),
     Req = build_bridge_request(CallId, Call, Queue),
     lager:debug("Publishing bridge request"),
@@ -214,32 +245,35 @@ handle_event(_JObj, _State) ->
 handle_resource_response(JObj, Props) ->
     Srv = props:get_value('server', Props),
     CallId = kz_json:get_value(<<"Call-ID">>, JObj),
-    case {kz_json:get_value(<<"Event-Category">>, JObj)
-         ,kz_json:get_value(<<"Event-Name">>, JObj)
-         }
+    case
+        {kz_json:get_value(<<"Event-Category">>, JObj), kz_json:get_value(<<"Event-Name">>, JObj)}
     of
         {<<"resource">>, <<"offnet_resp">>} ->
             ResResp = kz_json:get_value(<<"Resource-Response">>, JObj),
             handle_originate_ready(ResResp, Props);
-        {<<"call_event">>,<<"CHANNEL_ANSWER">>} ->
+        {<<"call_event">>, <<"CHANNEL_ANSWER">>} ->
             lager:debug("time to bridge"),
             gen_listener:cast(Srv, {'parked', CallId});
-        {<<"call_event">>,<<"CHANNEL_DESTROY">>} ->
+        {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             lager:debug("Got channel destroy, retrying..."),
             gen_listener:cast(Srv, 'wait');
-        {<<"resource">>,<<"originate_resp">>} ->
-            case {kz_json:get_value(<<"Application-Name">>, JObj)
-                 ,kz_json:get_value(<<"Application-Response">>, JObj)
-                 }
+        {<<"resource">>, <<"originate_resp">>} ->
+            case
+                {
+                    kz_json:get_value(<<"Application-Name">>, JObj),
+                    kz_json:get_value(<<"Application-Response">>, JObj)
+                }
             of
                 {<<"bridge">>, <<"SUCCESS">>} ->
                     lager:debug("Users bridged"),
                     gen_listener:cast(Srv, 'stop_campering');
-                _Ev -> lager:info("Unhandled event: ~p", [_Ev])
+                _Ev ->
+                    lager:info("Unhandled event: ~p", [_Ev])
             end;
-        {<<"error">>,<<"originate_resp">>} ->
+        {<<"error">>, <<"originate_resp">>} ->
             gen_listener:cast(Srv, 'hangup_parked_call');
-        _Ev -> lager:info("Unhandled event ~p", [_Ev])
+        _Ev ->
+            lager:info("Unhandled event ~p", [_Ev])
     end.
 
 %%------------------------------------------------------------------------------
@@ -270,30 +304,33 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec build_bridge_request(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec build_bridge_request(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) ->
+    kz_term:proplist().
 build_bridge_request(ParkedCallId, Call, Q) ->
     CIDNumber = kapps_call:kvs_fetch('cf_capture_group', Call),
     MsgId = kz_binary:rand_hex(6),
     PresenceId = kz_attributes:presence_id(Call),
     AcctId = kapps_call:account_id(Call),
-    {'ok', EP} = kz_endpoint:build(kapps_call:authorizing_id(Call)
-                                  ,kz_json:from_list([{<<"can_call_self">>, 'true'}])
-                                  ,Call
-                                  ),
-    props:filter_undefined([{<<"Resource-Type">>, <<"audio">>}
-                           ,{<<"Application-Name">>, <<"bridge">>}
-                           ,{<<"Existing-Call-ID">>, ParkedCallId}
-                           ,{<<"Endpoints">>, EP}
-                           ,{<<"Outbound-Caller-ID-Number">>, CIDNumber}
-                           ,{<<"Originate-Immediate">>, 'false'}
-                           ,{<<"Msg-ID">>, MsgId}
-                           ,{<<"Presence-ID">>, PresenceId}
-                           ,{<<"Account-ID">>, AcctId}
-                           ,{<<"Account-Realm">>, kapps_call:from_realm(Call)}
-                           ,{<<"Timeout">>, 10 * ?MILLISECONDS_IN_SECOND}
-                           ,{<<"From-URI-Realm">>, kapps_call:from_realm(Call)}
-                            | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
-                           ]).
+    {'ok', EP} = kz_endpoint:build(
+        kapps_call:authorizing_id(Call),
+        kz_json:from_list([{<<"can_call_self">>, 'true'}]),
+        Call
+    ),
+    props:filter_undefined([
+        {<<"Resource-Type">>, <<"audio">>},
+        {<<"Application-Name">>, <<"bridge">>},
+        {<<"Existing-Call-ID">>, ParkedCallId},
+        {<<"Endpoints">>, EP},
+        {<<"Outbound-Caller-ID-Number">>, CIDNumber},
+        {<<"Originate-Immediate">>, 'false'},
+        {<<"Msg-ID">>, MsgId},
+        {<<"Presence-ID">>, PresenceId},
+        {<<"Account-ID">>, AcctId},
+        {<<"Account-Realm">>, kapps_call:from_realm(Call)},
+        {<<"Timeout">>, 10 * ?MILLISECONDS_IN_SECOND},
+        {<<"From-URI-Realm">>, kapps_call:from_realm(Call)}
+        | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
+    ]).
 
 -spec originate_park(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) -> 'ok'.
 originate_park(<<_/binary>> = Exten, Call, <<_/binary>> = Q) ->
@@ -302,25 +339,27 @@ originate_park(<<_/binary>> = Exten, Call, <<_/binary>> = Q) ->
 -spec handle_originate_ready(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_originate_ready(JObj, Props) ->
     Srv = props:get_value('server', Props),
-    case {kz_json:get_value(<<"Event-Category">>, JObj)
-         ,kz_json:get_value(<<"Event-Name">>, JObj)
-         }
+    case
+        {kz_json:get_value(<<"Event-Category">>, JObj), kz_json:get_value(<<"Event-Name">>, JObj)}
     of
         {<<"dialplan">>, <<"originate_ready">>} ->
             Q = kz_json:get_value(<<"Server-ID">>, JObj),
             CallId = kz_json:get_value(<<"Call-ID">>, JObj),
             CtrlQ = kz_json:get_value(<<"Control-Queue">>, JObj),
-            Prop = [{<<"Call-ID">>, CallId}
-                   ,{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
-                    | kz_api:default_headers(gen_listener:queue_name(Srv), ?APP_NAME, ?APP_VERSION)
-                   ],
+            Prop = [
+                {<<"Call-ID">>, CallId},
+                {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
+                | kz_api:default_headers(gen_listener:queue_name(Srv), ?APP_NAME, ?APP_VERSION)
+            ],
             gen_listener:cast(Srv, {'offnet_ctl_queue', CtrlQ}),
             gen_listener:add_binding(Srv, {'call', ?MK_CALL_BINDING(CallId)}),
             kapi_dialplan:publish_originate_execute(Q, Prop);
-        _Ev -> lager:info("unkown event: ~p", [_Ev])
+        _Ev ->
+            lager:info("unkown event: ~p", [_Ev])
     end.
 
--spec build_offnet_request(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) -> kz_term:proplist().
+-spec build_offnet_request(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary()) ->
+    kz_term:proplist().
 build_offnet_request(Exten, Call, Q) ->
     {ECIDNum, ECIDName} = kz_attributes:caller_id(<<"emergency">>, Call),
     {CIDNumber, CIDName} = kz_attributes:caller_id(<<"external">>, Call),
@@ -328,20 +367,21 @@ build_offnet_request(Exten, Call, Q) ->
     PresenceId = kz_attributes:presence_id(Call),
     AcctId = kapps_call:account_id(Call),
     CallId = kz_binary:rand_hex(8),
-    props:filter_undefined([{<<"Resource-Type">>, <<"originate">>}
-                           ,{<<"Application-Name">>, <<"park">>}
-                           ,{<<"Emergency-Caller-ID-Name">>, ECIDName}
-                           ,{<<"Emergency-Caller-ID-Number">>, ECIDNum}
-                           ,{<<"Outbound-Caller-ID-Name">>, CIDName}
-                           ,{<<"Outbound-Caller-ID-Number">>, CIDNumber}
-                           ,{<<"Msg-ID">>, MsgId}
-                           ,{<<"Presence-ID">>, PresenceId}
-                           ,{<<"Account-ID">>, AcctId}
-                           ,{<<"Call-ID">>, CallId}
-                           ,{<<"Account-Realm">>, kapps_call:from_realm(Call)}
-                           ,{<<"Timeout">>, 10 * ?MILLISECONDS_IN_SECOND}
-                           ,{<<"To-DID">>, Exten}
-                           ,{<<"Format-From-URI">>, <<"true">>}
-                           ,{<<"From-URI-Realm">>, kapps_call:from_realm(Call)}
-                            | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
-                           ]).
+    props:filter_undefined([
+        {<<"Resource-Type">>, <<"originate">>},
+        {<<"Application-Name">>, <<"park">>},
+        {<<"Emergency-Caller-ID-Name">>, ECIDName},
+        {<<"Emergency-Caller-ID-Number">>, ECIDNum},
+        {<<"Outbound-Caller-ID-Name">>, CIDName},
+        {<<"Outbound-Caller-ID-Number">>, CIDNumber},
+        {<<"Msg-ID">>, MsgId},
+        {<<"Presence-ID">>, PresenceId},
+        {<<"Account-ID">>, AcctId},
+        {<<"Call-ID">>, CallId},
+        {<<"Account-Realm">>, kapps_call:from_realm(Call)},
+        {<<"Timeout">>, 10 * ?MILLISECONDS_IN_SECOND},
+        {<<"To-DID">>, Exten},
+        {<<"Format-From-URI">>, <<"true">>},
+        {<<"From-URI-Realm">>, kapps_call:from_realm(Call)}
+        | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
+    ]).

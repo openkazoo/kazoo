@@ -1,4 +1,3 @@
-
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2010-2021, 2600Hz
 %%% @doc
@@ -12,7 +11,6 @@
 -export([music_on_hold/1, music_on_hold/2, set_music_on_hold/2]).
 -export([music_on_hold_media_id/1, music_on_hold_media_id/2, set_music_on_hold_media_id/2]).
 -export([name/1, name/2, set_name/2]).
-
 
 -include("kz_documents.hrl").
 

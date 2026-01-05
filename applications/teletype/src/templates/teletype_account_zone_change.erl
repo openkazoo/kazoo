@@ -6,21 +6,23 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_account_zone_change).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
 -define(TEMPLATE_ID, <<"account_zone_change">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"zones">>, <<"zones">>, <<"Zones">>, <<"List of account's zones">>)
-           | ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(<<"zones">>, <<"zones">>, <<"Zones">>, <<"List of account's zones">>)
+            | ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Account '{{account.name}}' zone have changed">>).
 -define(TEMPLATE_CATEGORY, <<"account">>).
@@ -35,16 +37,17 @@
 -spec init() -> template_response().
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"account_zone_change">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -57,7 +60,7 @@ handle_req(_, 'false') ->
     teletype_util:notification_failed(?TEMPLATE_ID, <<"validation_failed">>);
 handle_req(JObj, 'true') ->
     lager:debug("valid data for ~s, processing...", [?TEMPLATE_ID]),
-    DataJObj  = kz_json:normalize(JObj),
+    DataJObj = kz_json:normalize(JObj),
     AccountId = kz_json:get_value(<<"account_id">>, DataJObj),
 
     case teletype_util:is_notice_enabled(AccountId, JObj, ?TEMPLATE_ID) of
@@ -67,22 +70,25 @@ handle_req(JObj, 'true') ->
 
 -spec process_req(kz_json:object()) -> template_response().
 process_req(DataJObj) ->
-    Macros = [{<<"system">>, teletype_util:system_params()}
-             ,{<<"zones">>, zones_data(DataJObj)}
-             ,{<<"account">>, teletype_util:account_params(DataJObj)}
-             ],
+    Macros = [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"zones">>, zones_data(DataJObj)},
+        {<<"account">>, teletype_util:account_params(DataJObj)}
+    ],
 
     RenderedTemplates = teletype_templates:render(?TEMPLATE_ID, Macros, DataJObj),
 
     {'ok', TemplateMetaJObj} =
-        teletype_templates:fetch_notification(?TEMPLATE_ID
-                                             ,kapi_notifications:account_id(DataJObj)
-                                             ),
+        teletype_templates:fetch_notification(
+            ?TEMPLATE_ID,
+            kapi_notifications:account_id(DataJObj)
+        ),
 
     Subject =
-        teletype_util:render_subject(kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT)
-                                    ,Macros
-                                    ),
+        teletype_util:render_subject(
+            kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj], ?TEMPLATE_SUBJECT),
+            Macros
+        ),
 
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, ?TEMPLATE_ID),
 

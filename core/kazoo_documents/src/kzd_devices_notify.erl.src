@@ -12,7 +12,6 @@
 -export([data_body_data/1, data_body_data/2, set_data_body_data/2]).
 -export([data_event/1, data_event/2, set_data_event/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

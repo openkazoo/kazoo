@@ -23,13 +23,14 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec put_attachment(gen_attachment:settings()
-                    ,gen_attachment:db_name()
-                    ,gen_attachment:doc_id()
-                    ,gen_attachment:att_name()
-                    ,gen_attachment:contents()
-                    ,gen_attachment:options()
-                    ) -> gen_attachment:put_response().
+-spec put_attachment(
+    gen_attachment:settings(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name(),
+    gen_attachment:contents(),
+    gen_attachment:options()
+) -> gen_attachment:put_response().
 put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
     CT = kz_mime:from_filename(AName),
 
@@ -37,19 +38,22 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
     Pid = azure_pid(Settings),
     AzureOptions = [{'content_type', kz_term:to_list(CT)}, 'return_headers'],
     Url = lists:concat([Container, "/", Name]),
-    Routines = [{fun kz_att_error:set_req_url/2, Url}
-                | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
-               ],
+    Routines = [
+        {fun kz_att_error:set_req_url/2, Url}
+        | kz_att_error:put_routines(Settings, DbName, DocId, AName, Contents, Options)
+    ],
     try
         case erlazure:put_block_blob(Pid, Container, Name, Contents, AzureOptions) of
             {'ok', Headers, _Body} ->
                 props:to_log(Headers, <<"AZURE HEADERS">>),
                 Data = base64:encode(term_to_binary({Settings#{file => Name}, Name})),
                 Metadata = kz_json:from_list(kz_att_util:headers_as_binaries(Headers)),
-                {'ok', [{'attachment', [{<<"azure">>, Data}
-                                       ,{<<"metadata">>, Metadata}
-                                       ]}
-                       ]};
+                {'ok', [
+                    {'attachment', [
+                        {<<"azure">>, Data},
+                        {<<"metadata">>, Metadata}
+                    ]}
+                ]};
             Resp ->
                 handle_erlazure_error_response(Resp, Routines)
         end
@@ -57,16 +61,19 @@ put_attachment(Settings, DbName, DocId, AName, Contents, Options) ->
         %% Next line left just for reference (cause it's not easy to spot it in the code)
         %%_:{{{'case_clause', {'error', {'failed_connect', _}}}, _StackTrace}, _FnFailing} ->
         _:{{{'case_clause', ErrorResp}, _StackTrace}, _FnFailing} ->
-            lager:debug("Failed to put the attachment.~nStackTrace: ~p~nFnFailing: ~p",
-                        [_StackTrace, _FnFailing]),
+            lager:debug(
+                "Failed to put the attachment.~nStackTrace: ~p~nFnFailing: ~p",
+                [_StackTrace, _FnFailing]
+            ),
             handle_erlazure_error_response(ErrorResp, Routines)
     end.
 
--spec fetch_attachment(gen_attachment:handler_props()
-                      ,gen_attachment:db_name()
-                      ,gen_attachment:doc_id()
-                      ,gen_attachment:att_name()
-                      ) -> gen_attachment:fetch_response().
+-spec fetch_attachment(
+    gen_attachment:handler_props(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name()
+) -> gen_attachment:fetch_response().
 fetch_attachment(HandlerProps, DbName, DocId, AName) ->
     Routines = kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName),
     case kz_json:get_value(<<"azure">>, HandlerProps) of
@@ -77,7 +84,8 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
             {Container, Name} = resolve_path(Settings, {DbName, DocId, AName}),
             Pid = azure_pid(Settings),
             case erlazure:get_blob(Pid, Container, Name) of
-                {'ok', _RespBody} = Resp -> Resp;
+                {'ok', _RespBody} = Resp ->
+                    Resp;
                 Resp ->
                     Url = lists:concat([Container, '/', Name]),
                     NewRoutines = [{fun kz_att_error:set_req_url/2, Url} | Routines],
@@ -100,10 +108,12 @@ resolve_path(#{container := Container} = Settings, AttInfo) ->
 
 -spec azure_default_fields() -> url_fields().
 azure_default_fields() ->
-    [{'group', [{'arg', <<"id">>}
-               ,{'const', <<"_">>}
-               ,{'arg', <<"attachment">>}
-               ]}
+    [
+        {'group', [
+            {'arg', <<"id">>},
+            {'const', <<"_">>},
+            {'arg', <<"attachment">>}
+        ]}
     ].
 
 -spec azure_format_url(map(), attachment_info()) -> kz_term:ne_binary().
@@ -118,17 +128,21 @@ azure_pid(Account, Key) ->
         'undefined' ->
             case kz_att_azure_sup:start_azure(Account, Key) of
                 {'ok', Pid} -> Pid;
-                {'error',{'already_started',Pid}} -> Pid
+                {'error', {'already_started', Pid}} -> Pid
             end;
-        Pid -> Pid
+        Pid ->
+            Pid
     end.
 
--spec handle_erlazure_error_response({'error', string() | binary() | atom()},
-                                     kz_att_error:update_routines()) -> kz_att_error:error().
+-spec handle_erlazure_error_response(
+    {'error', string() | binary() | atom()},
+    kz_att_error:update_routines()
+) -> kz_att_error:error().
 handle_erlazure_error_response({'error', {'failed_connect', _}} = _E, Routines) ->
     lager:error("Azure request failed: ~p", [_E]),
     kz_att_error:new('failed_to_connect', Routines);
-handle_erlazure_error_response({'error', Reason} = _E, Routines) -> % from erlazure:execute_request/2
+% from erlazure:execute_request/2
+handle_erlazure_error_response({'error', Reason} = _E, Routines) ->
     lager:error("Azure request failed : ~p", [_E]),
     kz_att_error:new(Reason, Routines);
 handle_erlazure_error_response(_E, Routines) ->

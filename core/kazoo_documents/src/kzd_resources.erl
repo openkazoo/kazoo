@@ -5,18 +5,19 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_resources).
 
--export([new/0
-        ,type/0, type/1
-        ]).
+-export([
+    new/0,
+    type/0, type/1
+]).
 -export([caller_id_options/1, caller_id_options/2, set_caller_id_options/2]).
 -export([caller_id_options_type/1, caller_id_options_type/2, set_caller_id_options_type/2]).
 -export([cid_rules/1, cid_rules/2, set_cid_rules/2]).
 -export([classifiers/1, classifiers/2, set_classifiers/2]).
--export([classifier_emergency/2,   classifier_emergency/3,   set_classifier_emergency/3]).
--export([classifier_enabled/2,     classifier_enabled/3,     set_classifier_enabled/3]).
--export([classifier_prefix/2,      classifier_prefix/3,      set_classifier_prefix/3]).
--export([classifier_regex/2,       classifier_regex/3,       set_classifier_regex/3]).
--export([classifier_suffix/2,      classifier_suffix/3,      set_classifier_suffix/3]).
+-export([classifier_emergency/2, classifier_emergency/3, set_classifier_emergency/3]).
+-export([classifier_enabled/2, classifier_enabled/3, set_classifier_enabled/3]).
+-export([classifier_prefix/2, classifier_prefix/3, set_classifier_prefix/3]).
+-export([classifier_regex/2, classifier_regex/3, set_classifier_regex/3]).
+-export([classifier_suffix/2, classifier_suffix/3, set_classifier_suffix/3]).
 -export([classifier_weight_cost/2, classifier_weight_cost/3, set_classifier_weight_cost/3]).
 -export([emergency/1, emergency/2, set_emergency/2]).
 -export([enabled/1, enabled/2, set_enabled/2]).
@@ -38,11 +39,12 @@
 -export([rules_test/1, rules_test/2, set_rules_test/2]).
 -export([weight_cost/1, weight_cost/2, set_weight_cost/2]).
 
--export([media_fax_option/1, media_fax_option/2
-        ,media_bypass_media/1, media_bypass_media/2
-        ,media_audio_codecs/1, media_audio_codecs/2
-        ,media_video_codecs/1, media_video_codecs/2
-        ]).
+-export([
+    media_fax_option/1, media_fax_option/2,
+    media_bypass_media/1, media_bypass_media/2,
+    media_audio_codecs/1, media_audio_codecs/2,
+    media_video_codecs/1, media_video_codecs/2
+]).
 
 -include("kz_documents.hrl").
 
@@ -122,7 +124,9 @@ classifier_emergency(Doc, ClassifierName, Default) ->
 
 -spec set_classifier_emergency(doc(), kz_json:key(), boolean()) -> doc().
 set_classifier_emergency(Doc, ClassifierName, ClassifiersEmergency) ->
-    kz_json:set_value([<<"classifiers">>, ClassifierName, <<"emergency">>], ClassifiersEmergency, Doc).
+    kz_json:set_value(
+        [<<"classifiers">>, ClassifierName, <<"emergency">>], ClassifiersEmergency, Doc
+    ).
 
 -spec classifier_enabled(doc(), kz_json:key()) -> boolean().
 classifier_enabled(Doc, ClassifierName) ->
@@ -182,7 +186,9 @@ classifier_weight_cost(Doc, ClassifierName, Default) ->
 
 -spec set_classifier_weight_cost(doc(), kz_json:key(), integer()) -> doc().
 set_classifier_weight_cost(Doc, ClassifierName, ClassifiersWeightCost) ->
-    kz_json:set_value([<<"classifiers">>, ClassifierName, <<"weight_cost">>], ClassifiersWeightCost, Doc).
+    kz_json:set_value(
+        [<<"classifiers">>, ClassifierName, <<"weight_cost">>], ClassifiersWeightCost, Doc
+    ).
 
 -spec emergency(doc()) -> boolean().
 emergency(Doc) ->

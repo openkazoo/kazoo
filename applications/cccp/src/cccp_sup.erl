@@ -16,11 +16,12 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('cccp_platform_sup')
-                  ,?SUPER('cccp_callback_sup')
-                  ,?WORKER('cccp_listener')
-                  ,?WORKER('cccp_shared_listener')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('cccp_platform_sup'),
+    ?SUPER('cccp_callback_sup'),
+    ?WORKER('cccp_listener'),
+    ?WORKER('cccp_shared_listener')
+]).
 
 %%==============================================================================
 %% API functions

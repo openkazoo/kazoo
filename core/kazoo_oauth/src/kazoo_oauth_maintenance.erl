@@ -8,25 +8,28 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0
-        ,stop/1
-        ]).
+-export([
+    start_link/0,
+    stop/1
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -export([register_oauth_app/5]).
 -export([register_common_providers/0]).
 
--export([refresh/0
-        ,refresh/1
-        ]).
+-export([
+    refresh/0,
+    refresh/1
+]).
 
 -include("kazoo_oauth.hrl").
 
@@ -52,16 +55,23 @@ refresh(?KZ_OAUTH_DB) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec register_oauth_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
+-spec register_oauth_app(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary()
+) -> any().
 register_oauth_app(AccountId, OAuthId, EMail, Secret, Provider) ->
-    Doc = kz_json:from_list([{<<"_id">>, OAuthId}
-                            ,{<<"pvt_account_id">>, AccountId}
-                            ,{<<"pvt_secret">>,Secret}
-                            ,{<<"pvt_email">>, EMail}
-                            ,{<<"pvt_user_prefix">>, kz_binary:rand_hex(16)}
-                            ,{<<"pvt_oauth_provider">>, Provider}
-                            ,{<<"pvt_type">>, <<"app">>}
-                            ]),
+    Doc = kz_json:from_list([
+        {<<"_id">>, OAuthId},
+        {<<"pvt_account_id">>, AccountId},
+        {<<"pvt_secret">>, Secret},
+        {<<"pvt_email">>, EMail},
+        {<<"pvt_user_prefix">>, kz_binary:rand_hex(16)},
+        {<<"pvt_oauth_provider">>, Provider},
+        {<<"pvt_type">>, <<"app">>}
+    ]),
     case kz_datamgr:open_doc(?KZ_OAUTH_DB, OAuthId) of
         {'ok', _JObj} -> {'error', <<"already registered">>};
         {'error', _} -> kz_datamgr:save_doc(?KZ_OAUTH_DB, Doc)
@@ -107,7 +117,7 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call(_Any, _From, #state{}=State) ->
+handle_call(_Any, _From, #state{} = State) ->
     {'reply', 'not_implemented', State}.
 
 %%------------------------------------------------------------------------------

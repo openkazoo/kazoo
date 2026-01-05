@@ -6,94 +6,113 @@
 -module(kzd_services).
 
 -export([new/0]).
--export([type/0
-        ,type/1
-        ,set_type/1
-        ]).
--export([account_quantities/1
-        ,account_quantities/2
-        ,set_account_quantities/2
-        ]).
--export([cascade_quantities/1
-        ,cascade_quantities/2
-        ,set_cascade_quantities/2
-        ]).
--export([manual_quantities/1
-        ,manual_quantities/2
-        ,set_manual_quantities/2
-        ]).
--export([overrides/1
-        ,overrides/2
-        ,set_overrides/2
-        ]).
--export([ratedeck_id/1
-        ,ratedeck_id/2
-        ,set_ratedeck_id/2
-        ]).
--export([ratedeck_name/1
-        ,ratedeck_name/2
-        ,set_ratedeck_name/2
-        ]).
--export([plans/1
-        ,plans/2
-        ,set_plans/2
-        ]).
--export([plan_ids/1
-        ,plan/2
-        ,plan/3
-        ,set_plan/3
-        ]).
--export([plan_vendor_id/2
-        ,plan_vendor_id/3
-        ,set_plan_vendor_id/3
-        ]).
--export([plan_overrides/2
-        ,plan_overrides/3
-        ,set_plan_overrides/3
-        ]).
--export([reseller_id/1
-        ,reseller_id/2
-        ,set_reseller_id/2
-        ,is_reseller/1
-        ,is_reseller/2
-        ,set_is_reseller/2
-        ]).
--export([tree/1
-        ,tree/2
-        ,set_tree/2
-        ]).
--export([bookkeeper/1
-        ,bookkeeper/2
-        ,set_bookkeeper/2
-        ,default_bookkeeper_type/0
-        ]).
--export([bookkeeper_vendor_id/1
-        ,bookkeeper_vendor_id/2
-        ,set_bookkeeper_vendor_id/2
-        ]).
--export([bookkeeper_id/1
-        ,bookkeeper_id/2
-        ,set_bookkeeper_id/2
-        ,default_bookkeeper_id/0
-        ]).
--export([bookkeeper_type/1
-        ,bookkeeper_type/2
-        ,set_bookkeeper_type/2
-        ]).
--export([status_good/0
-        ,status_delinquent/0
-        ,status/1
-        ,status/2
-        ,set_status/2
-        ]).
--export([payment_tokens/1
-        ,payment_tokens/2
-        ,set_payment_tokens/2
+-export([
+    type/0,
+    type/1,
+    set_type/1
+]).
+-export([
+    account_quantities/1,
+    account_quantities/2,
+    set_account_quantities/2
+]).
+-export([
+    cascade_quantities/1,
+    cascade_quantities/2,
+    set_cascade_quantities/2
+]).
+-export([
+    manual_quantities/1,
+    manual_quantities/2,
+    set_manual_quantities/2
+]).
+-export([
+    overrides/1,
+    overrides/2,
+    set_overrides/2
+]).
+-export([
+    ratedeck_id/1,
+    ratedeck_id/2,
+    set_ratedeck_id/2
+]).
+-export([
+    ratedeck_name/1,
+    ratedeck_name/2,
+    set_ratedeck_name/2
+]).
+-export([
+    plans/1,
+    plans/2,
+    set_plans/2
+]).
+-export([
+    plan_ids/1,
+    plan/2,
+    plan/3,
+    set_plan/3
+]).
+-export([
+    plan_vendor_id/2,
+    plan_vendor_id/3,
+    set_plan_vendor_id/3
+]).
+-export([
+    plan_overrides/2,
+    plan_overrides/3,
+    set_plan_overrides/3
+]).
+-export([
+    reseller_id/1,
+    reseller_id/2,
+    set_reseller_id/2,
+    is_reseller/1,
+    is_reseller/2,
+    set_is_reseller/2
+]).
+-export([
+    tree/1,
+    tree/2,
+    set_tree/2
+]).
+-export([
+    bookkeeper/1,
+    bookkeeper/2,
+    set_bookkeeper/2,
+    default_bookkeeper_type/0
+]).
+-export([
+    bookkeeper_vendor_id/1,
+    bookkeeper_vendor_id/2,
+    set_bookkeeper_vendor_id/2
+]).
+-export([
+    bookkeeper_id/1,
+    bookkeeper_id/2,
+    set_bookkeeper_id/2,
+    default_bookkeeper_id/0
+]).
+-export([
+    bookkeeper_type/1,
+    bookkeeper_type/2,
+    set_bookkeeper_type/2
+]).
+-export([
+    status_good/0,
+    status_delinquent/0,
+    status/1,
+    status/2,
+    set_status/2
+]).
+-export([
+    payment_tokens/1,
+    payment_tokens/2,
+    set_payment_tokens/2,
 
-        ,payment_token/2
-        ,payment_token/3
-        ,set_payment_token/3
-        ]).
+    payment_token/2,
+    payment_token/3,
+    set_payment_token/3
+]).
 
 -include("kz_documents.hrl").
 
@@ -588,5 +607,5 @@ payment_token(TokenId, JObj, Default) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_payment_token(doc(), kz_term:ne_binary(), kz_term:api_object()) -> doc().
-set_payment_token(JObj, ?NE_BINARY=TokenId, PaymentTokens) ->
+set_payment_token(JObj, ?NE_BINARY = TokenId, PaymentTokens) ->
     kz_json:set_value([<<"payment_tokens">>, TokenId], PaymentTokens, JObj).

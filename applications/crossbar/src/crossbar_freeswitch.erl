@@ -8,14 +8,14 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
-
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -export([reset/0]).
 
@@ -46,11 +46,12 @@
 
 -define(AUTHN_TIMEOUT, 5 * ?MILLISECONDS_IN_SECOND).
 
--record(state, {config = 'undefined' :: kz_term:api_binary()
-               ,is_running = 'false' :: boolean()
-               ,monitor :: kz_term:api_reference()
-               ,hourly_timer = hourly_timer() :: reference()
-               }).
+-record(state, {
+    config = 'undefined' :: kz_term:api_binary(),
+    is_running = 'false' :: boolean(),
+    monitor :: kz_term:api_reference(),
+    hourly_timer = hourly_timer() :: reference()
+}).
 -type state() :: #state{}.
 
 %% this shouldn't be here. we need to move this definition from
@@ -89,7 +90,7 @@ start_link() ->
 init([]) ->
     process_flag(trap_exit, 'true'),
     compile_templates(),
-    _  = gen_server:cast(self(), 'periodic_build'),
+    _ = gen_server:cast(self(), 'periodic_build'),
     {'ok', #state{}}.
 
 %%------------------------------------------------------------------------------
@@ -97,11 +98,10 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call('current', _From, #state{config='undefined'}=State) ->
+handle_call('current', _From, #state{config = 'undefined'} = State) ->
     {'reply', {'error', 'no_file'}, State};
-handle_call('current', _From, #state{config=Config}=State) ->
+handle_call('current', _From, #state{config = Config} = State) ->
     {'reply', {'ok', Config}, State};
-
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
@@ -110,30 +110,26 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast('periodic_build', #state{is_running='true'}=State) ->
+handle_cast('periodic_build', #state{is_running = 'true'} = State) ->
     {'noreply', State};
-handle_cast('periodic_build', #state{is_running='false'}=State) ->
+handle_cast('periodic_build', #state{is_running = 'false'} = State) ->
     {Pid, Monitor} = kz_util:spawn_monitor(fun build_freeswitch/1, [self()]),
     lager:debug("started new freeswitch offline configuration builder ~p", [Pid]),
-    {'noreply', State#state{is_running='true', monitor=Monitor}};
-
-handle_cast({'completed', File}, #state{config=Config}=State) ->
+    {'noreply', State#state{is_running = 'true', monitor = Monitor}};
+handle_cast({'completed', File}, #state{config = Config} = State) ->
     lager:debug("created new freeswitch offline configuration ~s", [File]),
     gen_server:cast(self(), {'delete', Config}),
-    {'noreply', State#state{is_running='false', config=File}};
-
+    {'noreply', State#state{is_running = 'false', config = File}};
 handle_cast({'delete', 'undefined'}, State) ->
     {'noreply', State};
 handle_cast({'delete', File}, State) ->
     lager:debug("removing prior freeswitch offline configuration ~s", [File]),
     kz_util:delete_file(File),
     {'noreply', State};
-
-handle_cast('reset', #state{config=Config}=State) ->
+handle_cast('reset', #state{config = Config} = State) ->
     lager:debug("resetting freeswitch state"),
     gen_server:cast(self(), {'delete', Config}),
-    {'noreply', State#state{is_running='false'}};
-
+    {'noreply', State#state{is_running = 'false'}};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
     {'noreply', State}.
@@ -143,17 +139,17 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'DOWN', MonitorRef, 'process', _, 'normal'}, #state{monitor=MonitorRef}=State) ->
-    {'noreply', State#state{is_running='false'}};
-handle_info({'DOWN', MonitorRef, _, _Pid, _Reason}, #state{monitor=MonitorRef}=State) ->
-    lager:debug("freeswitch offline configuration builder ~p died unexpectedly: ~p"
-               ,[_Pid, _Reason]),
-    {'noreply', State#state{is_running='false'}};
-
-handle_info({timeout, Ref, _Msg}, #state{hourly_timer = Ref}=State) ->
-    _  = gen_server:cast(self(), 'periodic_build'),
+handle_info({'DOWN', MonitorRef, 'process', _, 'normal'}, #state{monitor = MonitorRef} = State) ->
+    {'noreply', State#state{is_running = 'false'}};
+handle_info({'DOWN', MonitorRef, _, _Pid, _Reason}, #state{monitor = MonitorRef} = State) ->
+    lager:debug(
+        "freeswitch offline configuration builder ~p died unexpectedly: ~p",
+        [_Pid, _Reason]
+    ),
+    {'noreply', State#state{is_running = 'false'}};
+handle_info({timeout, Ref, _Msg}, #state{hourly_timer = Ref} = State) ->
+    _ = gen_server:cast(self(), 'periodic_build'),
     {'noreply', State#state{hourly_timer = hourly_timer()}};
-
 handle_info(_Info, State) ->
     {'noreply', State}.
 
@@ -176,7 +172,6 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
-
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
@@ -194,7 +189,7 @@ zip_directory(WorkDir0) ->
     WorkDir = kz_term:to_list(WorkDir0),
     ZipName = lists:concat([WorkDir, ".zip"]),
     Files = [kz_term:to_list(F) || F <- filelib:wildcard("*", WorkDir)],
-    {'ok', _} = zip:zip(ZipName , Files, [{'cwd', WorkDir}]),
+    {'ok', _} = zip:zip(ZipName, Files, [{'cwd', WorkDir}]),
     ZipName.
 
 -spec setup_directory() -> file:filename_all().
@@ -203,18 +198,23 @@ setup_directory() ->
     WorkRootDir = kapps_config:get_binary(?MOD_CONFIG_CAT, <<"work_dir">>, <<"/tmp/">>),
     WorkDir = filename:join([WorkRootDir, TopDir]),
     kz_util:make_dir(WorkDir),
-    Files = [{<<"directory">>, ?FS_DIRECTORY}
-            ,{<<"chatplan">>, ?FS_CHATPLAN}
-            ,{<<"dialplan">>, ?FS_DIALPLAN}
-            ],
-    Filter = kapps_config:get(?MOD_CONFIG_CAT, <<"files_to_include">>, ?DEFAULT_FS_INCLUDE_DIRECTORY_FILES),
+    Files = [
+        {<<"directory">>, ?FS_DIRECTORY},
+        {<<"chatplan">>, ?FS_CHATPLAN},
+        {<<"dialplan">>, ?FS_DIALPLAN}
+    ],
+    Filter = kapps_config:get(
+        ?MOD_CONFIG_CAT, <<"files_to_include">>, ?DEFAULT_FS_INCLUDE_DIRECTORY_FILES
+    ),
     _ = [kz_util:make_dir(filename:join([WorkDir, Dir])) || {Dir, _} <- Files],
-    _ = [kz_util:write_file(filename:join([WorkDir, D, xml_file_name(T)])
-                           ,xml_file_from_config(T)
-                           )
-         || {D, T} <- Files,
-            lists:member(kz_term:to_binary(T), Filter)
-        ],
+    _ = [
+        kz_util:write_file(
+            filename:join([WorkDir, D, xml_file_name(T)]),
+            xml_file_from_config(T)
+        )
+     || {D, T} <- Files,
+        lists:member(kz_term:to_binary(T), Filter)
+    ],
     _ = put(<<"WorkDir">>, WorkDir),
     _ = put(<<"Realms">>, []),
     WorkDir.
@@ -222,20 +222,26 @@ setup_directory() ->
 -spec process_realms() -> 'ok'.
 process_realms() ->
     Realms = get(<<"Realms">>),
-    Templates = [{<<"directory">>, ?FS_DIRECTORY_REALM}
-                ,{<<"chatplan">>, ?FS_CHATPLAN_REALM}
-                ,{<<"dialplan">>, ?FS_DIALPLAN_REALM}
-                ],
-    Filter = kapps_config:get(?MOD_CONFIG_CAT, <<"realm_templates_to_process">>, ?FS_REALM_TEMPLATES),
-    _ = [process_realms(Realms, D, T)
-         || {D, T} <- Templates,
-            lists:member(kz_term:to_binary(T), Filter)
-        ],
+    Templates = [
+        {<<"directory">>, ?FS_DIRECTORY_REALM},
+        {<<"chatplan">>, ?FS_CHATPLAN_REALM},
+        {<<"dialplan">>, ?FS_DIALPLAN_REALM}
+    ],
+    Filter = kapps_config:get(
+        ?MOD_CONFIG_CAT, <<"realm_templates_to_process">>, ?FS_REALM_TEMPLATES
+    ),
+    _ = [
+        process_realms(Realms, D, T)
+     || {D, T} <- Templates,
+        lists:member(kz_term:to_binary(T), Filter)
+    ],
     'ok'.
 
 -spec process_realms(kz_term:api_binaries(), kz_term:ne_binary(), atom()) -> 'ok'.
-process_realms('undefined', _Dir, _Module) -> 'ok';
-process_realms([], _, _) -> 'ok';
+process_realms('undefined', _Dir, _Module) ->
+    'ok';
+process_realms([], _, _) ->
+    'ok';
 process_realms([Realm | Realms], Dir, Module) ->
     process_realm(Realm, Dir, Module),
     process_realms(Realms, Dir, Module).
@@ -246,14 +252,16 @@ process_realm(Realm, Dir, Module) ->
     WorkDir = get(<<"WorkDir">>),
     OutDir = filename:join([WorkDir, Dir]),
     kz_util:make_dir(OutDir),
-    XMLFile = filename:join([OutDir, <<Realm/binary,".xml">>]),
+    XMLFile = filename:join([OutDir, <<Realm/binary, ".xml">>]),
     case kz_template:render(Module, Props) of
         {'ok', Result} ->
             kz_util:write_file(XMLFile, Result),
             lager:debug("wrote file ~s", [XMLFile]);
         {'error', E} ->
-            lager:debug("error rendering template ~s for realm ~s: ~p"
-                       ,[Module, Realm, E])
+            lager:debug(
+                "error rendering template ~s for realm ~s: ~p",
+                [Module, Realm, E]
+            )
     end.
 
 -spec build_freeswitch(pid()) -> any().
@@ -267,11 +275,11 @@ build_freeswitch(Pid) ->
 
 -spec crawl_numbers_db(kz_term:ne_binary()) -> 'ok'.
 crawl_numbers_db(NumberDb) ->
-    lager:debug("getting all numbers from ~s",[NumberDb]),
+    lager:debug("getting all numbers from ~s", [NumberDb]),
     Db = kz_term:to_binary(http_uri:encode(kz_term:to_list(NumberDb))),
     try kz_datamgr:all_docs(Db) of
         {'ok', []} ->
-            lager:debug("no number docs in ~s",[NumberDb]);
+            lager:debug("no number docs in ~s", [NumberDb]);
         {'ok', JObjs} ->
             Numbers = get_numbers(JObjs),
             maybe_export_numbers(Db, Numbers);
@@ -284,7 +292,8 @@ crawl_numbers_db(NumberDb) ->
 
 -spec get_numbers(kz_json:objects()) -> kz_term:ne_binaries().
 get_numbers(JObjs) ->
-    [Number
+    [
+        Number
      || JObj <- JObjs,
         case (Number = kz_doc:id(JObj)) of
             <<"_design/", _/binary>> -> 'false';
@@ -293,14 +302,17 @@ get_numbers(JObjs) ->
     ].
 
 -spec maybe_export_numbers(kz_term:ne_binary(), kz_term:ne_binaries()) -> 'ok'.
-maybe_export_numbers(_, []) -> 'ok';
-maybe_export_numbers(Db, [Number|Numbers]) ->
-    _ = case kz_datamgr:open_doc(Db, Number) of
+maybe_export_numbers(_, []) ->
+    'ok';
+maybe_export_numbers(Db, [Number | Numbers]) ->
+    _ =
+        case kz_datamgr:open_doc(Db, Number) of
             {'ok', JObj} ->
-                maybe_export_number(Number
-                                   ,kz_json:get_first_defined([?PVT_STATE, ?PVT_STATE_LEGACY], JObj)
-                                   ,kz_json:get_value(?PVT_ASSIGNED_TO, JObj)
-                                   );
+                maybe_export_number(
+                    Number,
+                    kz_json:get_first_defined([?PVT_STATE, ?PVT_STATE_LEGACY], JObj),
+                    kz_json:get_value(?PVT_ASSIGNED_TO, JObj)
+                );
             {'error', _R} ->
                 lager:debug("error fetching number ~s from ~d: ~p", [Number, Db, _R])
         end,
@@ -309,59 +321,78 @@ maybe_export_numbers(Db, [Number|Numbers]) ->
 -spec maybe_export_number(kz_term:ne_binary(), kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
 maybe_export_number(Number, ?NUMBER_STATE_IN_SERVICE, AccountId) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
-    ViewOptions = [{'key', Number}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'key', Number},
+        'include_docs'
+    ],
     %% TODO: This is not very DB friendly as we are iterating the numbers
     %%    and the callflows.  Once possible improvement might be to walk
     %%    the accounts, pulling all callflows and building for any assigned
     %%    reconcilable number (instead of walking the numbers).
     case kz_datamgr:get_results(AccountDb, ?CALLFLOW_VIEW, ViewOptions) of
         {'ok', []} ->
-            lager:debug("number ~s in service for account ~s but no callflows using it"
-                       ,[Number, AccountId]);
+            lager:debug(
+                "number ~s in service for account ~s but no callflows using it",
+                [Number, AccountId]
+            );
         {'ok', JObjs} ->
             Flows = [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs],
             process_callflows(Number, AccountId, Flows);
         {'error', _R} ->
-            lager:debug("unable to get callflows for number ~s in account ~s"
-                       ,[Number, AccountId])
+            lager:debug(
+                "unable to get callflows for number ~s in account ~s",
+                [Number, AccountId]
+            )
     end;
-maybe_export_number(_, _, _) -> 'ok'.
+maybe_export_number(_, _, _) ->
+    'ok'.
 
 -spec process_callflows(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
-process_callflows(_, _, []) -> 'ok';
+process_callflows(_, _, []) ->
+    'ok';
 process_callflows(Number, AccountId, [JObj | JObjs]) ->
     FlowId = kz_doc:id(JObj),
     Flow = kz_json:get_value(<<"flow">>, JObj),
-    lager:debug("processing callflow ~s in account ~s with number ~s"
-               ,[FlowId, AccountId, Number]),
+    lager:debug(
+        "processing callflow ~s in account ~s with number ~s",
+        [FlowId, AccountId, Number]
+    ),
     process_callflow(Number, AccountId, Flow),
     process_callflows(Number, AccountId, JObjs).
 
 -spec process_callflow(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_object()) -> 'ok'.
-process_callflow(_, _, 'undefined') -> 'ok';
+process_callflow(_, _, 'undefined') ->
+    'ok';
 process_callflow(Number, AccountId, Flow) ->
     Module = kz_json:get_value(<<"module">>, Flow),
-    Data = kz_json:get_value([<<"data">>,<<"id">>], Flow),
+    Data = kz_json:get_value([<<"data">>, <<"id">>], Flow),
     Children = kz_json:get_value(<<"children">>, Flow),
     process_callflow(Number, AccountId, Module, Data),
-    process_callflow(Number, AccountId
-                    ,case kz_json:is_empty(Children) of
-                         'true' -> 'undefined';
-                         _ -> Children
-                     end).
+    process_callflow(
+        Number,
+        AccountId,
+        case kz_json:is_empty(Children) of
+            'true' -> 'undefined';
+            _ -> Children
+        end
+    ).
 
--spec process_callflow(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) -> 'ok'.
-process_callflow(_, _, _, 'undefined') -> 'ok';
+-spec process_callflow(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()
+) -> 'ok'.
+process_callflow(_, _, _, 'undefined') ->
+    'ok';
 process_callflow(Number, AccountId, <<"device">>, DeviceId) ->
     lager:debug("found device ~s associated with ~s", [DeviceId, Number]),
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     case kz_datamgr:open_cache_doc(AccountDb, DeviceId) of
-        {'ok', JObj } -> process_device(Number, AccountId, JObj);
+        {'ok', JObj} ->
+            process_device(Number, AccountId, JObj);
         {'error', _R} ->
-            lager:debug("unable to get device ~s from account ~s: ~p"
-                       ,[DeviceId, AccountId, _R])
+            lager:debug(
+                "unable to get device ~s from account ~s: ~p",
+                [DeviceId, AccountId, _R]
+            )
     end;
 process_callflow(Number, AccountId, <<"user">>, UserId) ->
     lager:debug("found user ~s associated with ~s", [UserId, Number]),
@@ -369,18 +400,23 @@ process_callflow(Number, AccountId, <<"user">>, UserId) ->
     ViewOptions = [{'key', UserId}],
     case kz_datamgr:get_results(AccountDb, ?DEVICES_VIEW, ViewOptions) of
         {'ok', JObjs} ->
-            Devices = [kz_json:get_value([<<"value">>,<<"id">>], JObj)
-                       || JObj <- JObjs,
-                          kz_json:is_false([<<"value">>, <<"hotdesked">>], JObj)
-                      ],
-            [process_callflow(Number, AccountId, <<"device">>, DeviceId)
+            Devices = [
+                kz_json:get_value([<<"value">>, <<"id">>], JObj)
+             || JObj <- JObjs,
+                kz_json:is_false([<<"value">>, <<"hotdesked">>], JObj)
+            ],
+            [
+                process_callflow(Number, AccountId, <<"device">>, DeviceId)
              || DeviceId <- Devices
             ];
         {'error', _R} ->
-            lager:debug("unable to get user ~s from account ~s: ~p"
-                       ,[UserId, AccountId, _R])
+            lager:debug(
+                "unable to get user ~s from account ~s: ~p",
+                [UserId, AccountId, _R]
+            )
     end;
-process_callflow(_, _, _, _) -> 'ok'.
+process_callflow(_, _, _, _) ->
+    'ok'.
 
 -spec process_device(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 process_device(Number, AccountId, JObj) ->
@@ -393,97 +429,135 @@ process_device(Number, AccountId, JObj) ->
             render_templates(Number, AccountId, Username, Realm, Props),
             lager:debug("rendered templates");
         {'error', _R} ->
-            lager:debug("unable to query registrar for credentials of ~s@~s in account ~s: ~p"
-                       ,[Username, Realm, AccountId, _R])
+            lager:debug(
+                "unable to query registrar for credentials of ~s@~s in account ~s: ~p",
+                [Username, Realm, AccountId, _R]
+            )
     end.
 
--spec props_for_rendering(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:proplist().
+-spec props_for_rendering(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()
+) -> kz_term:proplist().
 props_for_rendering(Number, Username, Realm, Auth) ->
     props:filter_empty(
-      kz_json:recursive_to_proplist(
-        normalize(
-          kz_json:set_values([{<<"effective_caller_id_number">>, Number}
-                             ,{<<"username">>, Username}
-                             ,{<<"realm">>, Realm}
-                             ,{<<"number">>, Number}
-                             ]
-                            ,Auth
-                            )))).
+        kz_json:recursive_to_proplist(
+            normalize(
+                kz_json:set_values(
+                    [
+                        {<<"effective_caller_id_number">>, Number},
+                        {<<"username">>, Username},
+                        {<<"realm">>, Realm},
+                        {<<"number">>, Number}
+                    ],
+                    Auth
+                )
+            )
+        )
+    ).
 
 -spec normalize(kz_json:object()) -> kz_json:object().
 normalize(JObj) ->
     JHeaders = kz_json:get_value(<<"Custom-SIP-Headers">>, JObj, []),
     JVariables = kz_json:get_value(<<"Custom-Channel-Vars">>, JObj, []),
-    Headers = [[{<<"name">>, K}, {<<"value">>, V}]
-               || {K, V} <- kz_json:to_proplist(JHeaders)
-              ],
-    Variables = [[{<<"name">>, <<?CHANNEL_VAR_PREFIX, K/binary>>}, {<<"value">>, V}]
-                 || {K, V} <- kz_json:to_proplist(JVariables)
-                ],
-    kz_json:set_values([{<<"variables">>, Variables}
-                       ,{<<"headers">>, Headers}
-                       ]
-                      ,kz_json:normalize(
-                         kz_json:delete_keys([<<"Custom-SIP-Headers">>
-                                             ,<<"Custom-Channel-Vars">>
-                                             ]
-                                            ,JObj
-                                            )
-                        )).
-
--spec render_templates(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-render_templates(Number, AccountId, Username, Realm, Props) ->
-    Templates = [{"directory", ?FS_DIRECTORY}
-                ,{"chatplan", ?FS_CHATPLAN}
-                ,{"dialplan", ?FS_DIALPLAN}
-                ],
-    Filter = kapps_config:get(?MOD_CONFIG_CAT, <<"templates_to_process">>, ?DEFAULT_FS_TEMPLATES),
-    _ = [render_template(Number, AccountId, Username, Realm, Props, D, T)
-         || {D, T} <- Templates, lists:member(kz_term:to_binary(T), Filter)
+    Headers = [
+        [{<<"name">>, K}, {<<"value">>, V}]
+     || {K, V} <- kz_json:to_proplist(JHeaders)
+    ],
+    Variables = [
+        [{<<"name">>, <<?CHANNEL_VAR_PREFIX, K/binary>>}, {<<"value">>, V}]
+     || {K, V} <- kz_json:to_proplist(JVariables)
+    ],
+    kz_json:set_values(
+        [
+            {<<"variables">>, Variables},
+            {<<"headers">>, Headers}
         ],
+        kz_json:normalize(
+            kz_json:delete_keys(
+                [
+                    <<"Custom-SIP-Headers">>,
+                    <<"Custom-Channel-Vars">>
+                ],
+                JObj
+            )
+        )
+    ).
+
+-spec render_templates(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) -> 'ok'.
+render_templates(Number, AccountId, Username, Realm, Props) ->
+    Templates = [
+        {"directory", ?FS_DIRECTORY},
+        {"chatplan", ?FS_CHATPLAN},
+        {"dialplan", ?FS_DIALPLAN}
+    ],
+    Filter = kapps_config:get(?MOD_CONFIG_CAT, <<"templates_to_process">>, ?DEFAULT_FS_TEMPLATES),
+    _ = [
+        render_template(Number, AccountId, Username, Realm, Props, D, T)
+     || {D, T} <- Templates, lists:member(kz_term:to_binary(T), Filter)
+    ],
     'ok'.
 
--spec render_template(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), file:name_all(), atom()) -> 'ok'.
+-spec render_template(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    file:name_all(),
+    atom()
+) -> 'ok'.
 render_template(Number, AccountId, Username, Realm, Props, Dir, Module) ->
     maybe_accumulate_realm(lists:member(Realm, get(<<"Realms">>)), Realm),
     WorkDir = get(<<"WorkDir">>),
     OutDir = filename:join([WorkDir, Dir, Realm]),
     kz_util:make_dir(OutDir),
-    XMLFile = filename:join([OutDir, <<Username/binary,".xml">>]),
+    XMLFile = filename:join([OutDir, <<Username/binary, ".xml">>]),
     case kz_template:render(Module, Props) of
-        {'ok', Result} -> kz_util:write_file(XMLFile, Result);
+        {'ok', Result} ->
+            kz_util:write_file(XMLFile, Result);
         {'error', _R} ->
-            lager:debug("unable to render template ~s for ~s in account ~s: ~p"
-                       ,[Module, Number, AccountId, _R])
+            lager:debug(
+                "unable to render template ~s for ~s in account ~s: ~p",
+                [Module, Number, AccountId, _R]
+            )
     end.
 
 -spec maybe_accumulate_realm(boolean(), kz_term:ne_binary()) -> any().
 maybe_accumulate_realm('true', _) -> 'ok';
-maybe_accumulate_realm('false', Realm) ->
-    put(<<"Realms">>, [Realm | get(<<"Realms">>)]).
+maybe_accumulate_realm('false', Realm) -> put(<<"Realms">>, [Realm | get(<<"Realms">>)]).
 
--spec query_registrar(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok', kz_json:object()}
-              | {'error', any()}.
+-spec query_registrar(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 query_registrar(Realm, Username) ->
     FullUser = <<Username/binary, "@", Realm/binary>>,
-    Req = [{<<"To">>, FullUser}
-          ,{<<"From">>, FullUser}
-          ,{<<"Auth-User">>, Username}
-          ,{<<"Auth-Realm">>, Realm}
-          ,{<<"Method">>, <<"REGISTER">>}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    kz_amqp_worker:call(props:filter_undefined(Req)
-                       ,fun kapi_authn:publish_req/1
-                       ,fun kapi_authn:resp_v/1
-                       ,?AUTHN_TIMEOUT
-                       ).
+    Req = [
+        {<<"To">>, FullUser},
+        {<<"From">>, FullUser},
+        {<<"Auth-User">>, Username},
+        {<<"Auth-Realm">>, Realm},
+        {<<"Method">>, <<"REGISTER">>}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    kz_amqp_worker:call(
+        props:filter_undefined(Req),
+        fun kapi_authn:publish_req/1,
+        fun kapi_authn:resp_v/1,
+        ?AUTHN_TIMEOUT
+    ).
 
 -spec template_file(atom()) -> string().
 template_file(Module) ->
     filename:join([code:priv_dir(?APP), "freeswitch", template_file_name(Module)]).
 
--spec template_file_name(?FS_CHATPLAN | ?FS_DIALPLAN | ?FS_DIRECTORY | ?FS_DIRECTORY_REALM) -> string().
+-spec template_file_name(?FS_CHATPLAN | ?FS_DIALPLAN | ?FS_DIRECTORY | ?FS_DIRECTORY_REALM) ->
+    string().
 template_file_name(?FS_DIALPLAN) -> "dialplan_template.xml";
 template_file_name(?FS_CHATPLAN) -> "chatplan_template.xml";
 template_file_name(?FS_DIRECTORY) -> "directory_template.xml";
@@ -491,7 +565,7 @@ template_file_name(?FS_DIRECTORY_REALM) -> "directory_realm_template.xml".
 
 -spec compile_templates() -> ok.
 compile_templates() ->
-    F = fun (T) -> compile_template(kz_term:to_atom(T, 'true')) end,
+    F = fun(T) -> compile_template(kz_term:to_atom(T, 'true')) end,
     lists:foreach(F, ?FS_ALL_TEMPLATES).
 
 -spec compile_template(atom()) -> 'ok'.
@@ -518,16 +592,19 @@ xml_file_name(?FS_DIRECTORY) -> "directory.xml".
 
 -spec xml_file_from_config(?FS_CHATPLAN | ?FS_DIALPLAN | ?FS_DIRECTORY) -> kz_term:ne_binary().
 xml_file_from_config(Module) ->
-    KeyName = <<(kz_term:to_binary(Module))/binary,"_top_dir_file_content">>,
+    KeyName = <<(kz_term:to_binary(Module))/binary, "_top_dir_file_content">>,
     xml_file_from_config(Module, KeyName).
 
--spec xml_file_from_config(?FS_CHATPLAN | ?FS_DIALPLAN | ?FS_DIRECTORY, kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec xml_file_from_config(?FS_CHATPLAN | ?FS_DIALPLAN | ?FS_DIRECTORY, kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 xml_file_from_config(Module, KeyName) ->
     xml_file_from_config(Module, kapps_config:get_binary(?MOD_CONFIG_CAT, KeyName), KeyName).
 
--spec xml_file_from_config(atom(), kz_term:api_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec xml_file_from_config(atom(), kz_term:api_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 xml_file_from_config(Module, 'undefined', KeyName) ->
     {'ok', Contents} = file:read_file(xml_file(Module)),
     kapps_config:set(?MOD_CONFIG_CAT, KeyName, Contents),
     Contents;
-xml_file_from_config(_, Contents, _) -> Contents.
+xml_file_from_config(_, Contents, _) ->
+    Contents.

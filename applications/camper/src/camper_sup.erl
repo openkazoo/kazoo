@@ -18,11 +18,12 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER('camper_init')
-                  ,?WORKER('camper_onnet_handler')
-                  ,?SUPER('camper_offnet_sup')
-                  ,?WORKER('camper_request_listener')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('camper_init'),
+    ?WORKER('camper_onnet_handler'),
+    ?SUPER('camper_offnet_sup'),
+    ?WORKER('camper_request_listener')
+]).
 
 %%%=============================================================================
 %%% API functions

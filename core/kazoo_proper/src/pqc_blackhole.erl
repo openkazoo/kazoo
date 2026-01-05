@@ -5,12 +5,13 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_blackhole).
 
--export([seq/0
-        ,seq_api/0
-        ,seq_amqp_disconnect/0
-        ,seq_count_bindings/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    seq_api/0,
+    seq_amqp_disconnect/0,
+    seq_count_bindings/0,
+    cleanup/0
+]).
 
 -include("kazoo_proper.hrl").
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
@@ -22,14 +23,15 @@
 
 -spec seq() -> 'ok'.
 seq() ->
-    _ = [seq_ping()
-        ,seq_max_conn()
-        ,seq_api()
-        ,seq_count_bindings()
-         %% not running this during CI as it causes error.log CRASH REPORT
-         %% when the AMQP connection is torn down
-         %%,seq_amqp_disconnect()
-        ],
+    _ = [
+        seq_ping(),
+        seq_max_conn(),
+        seq_api(),
+        seq_count_bindings()
+        %% not running this during CI as it causes error.log CRASH REPORT
+        %% when the AMQP connection is torn down
+        %%,seq_amqp_disconnect()
+    ],
     'ok'.
 
 seq_ping() ->
@@ -45,10 +47,11 @@ seq_ping() ->
     lager:info("connected to websocket: ~p", [WSConn]),
 
     PingReqId = kz_binary:rand_hex(4),
-    Ping = kz_json:from_list([{<<"request_id">>, PingReqId}
-                             ,{<<"action">>, <<"ping">>}
-                             ,{<<"auth_token">>, AuthToken}
-                             ]),
+    Ping = kz_json:from_list([
+        {<<"request_id">>, PingReqId},
+        {<<"action">>, <<"ping">>},
+        {<<"auth_token">>, AuthToken}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(Ping)),
     {'json', ReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("pong: ~p", [ReplyJObj]),
@@ -82,10 +85,11 @@ seq_max_conn() ->
     lager:info("connected to websocket: ~p", [WSConn]),
 
     PingReqId = kz_binary:rand_hex(4),
-    Ping = kz_json:from_list([{<<"request_id">>, PingReqId}
-                             ,{<<"action">>, <<"ping">>}
-                             ,{<<"auth_token">>, AuthToken}
-                             ]),
+    Ping = kz_json:from_list([
+        {<<"request_id">>, PingReqId},
+        {<<"action">>, <<"ping">>},
+        {<<"auth_token">>, AuthToken}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(Ping)),
     {'json', ReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("pong: ~p", [ReplyJObj]),
@@ -114,7 +118,8 @@ seq_api() ->
 
     AvailableBindings = pqc_cb_websockets:available(API),
     lager:info("available: ~s", [AvailableBindings]),
-    'true' = ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
+    'true' =
+        ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
 
     test_empty_active_connections(API, AccountId),
 
@@ -157,7 +162,8 @@ seq_amqp_disconnect() ->
 
     AvailableBindings = pqc_cb_websockets:available(API),
     lager:info("available: ~s", [AvailableBindings]),
-    'true' = ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
+    'true' =
+        ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
 
     test_empty_active_connections(API, AccountId),
 
@@ -235,7 +241,8 @@ seq_count_bindings() ->
 
     AvailableBindings = pqc_cb_websockets:available(API),
     lager:info("available: ~s", [AvailableBindings]),
-    'true' = ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
+    'true' =
+        ([] =/= kz_json:is_json_object([<<"data">>, <<"call">>], kz_json:decode(AvailableBindings))),
 
     test_empty_active_connections(API, AccountId),
 
@@ -278,12 +285,14 @@ init_system() ->
     kz_util:put_callid(TestId),
 
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar', 'blackhole']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_websockets']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar', 'blackhole']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_websockets']
+    ],
 
     blackhole_listener:flush(),
 
@@ -304,17 +313,18 @@ cleanup_system() -> 'ok'.
 
 test_ws_ping(#{auth_token := AuthToken}, WSConn) ->
     PingReqId = kz_binary:rand_hex(4),
-    Ping = kz_json:from_list([{<<"request_id">>, PingReqId}
-                             ,{<<"action">>, <<"ping">>}
-                             ,{<<"auth_token">>, AuthToken}
-                             ]),
+    Ping = kz_json:from_list([
+        {<<"request_id">>, PingReqId},
+        {<<"action">>, <<"ping">>},
+        {<<"auth_token">>, AuthToken}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(Ping)),
     {'json', ReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("pong: ~p", [ReplyJObj]),
     PingReqId = kz_json:get_ne_binary_value(<<"request_id">>, ReplyJObj),
     <<"success">> = kz_json:get_ne_binary_value(<<"status">>, ReplyJObj).
 
-test_ws_api_listing(#{auth_token := AuthToken}=API, WSConn, AccountId, Binding) ->
+test_ws_api_listing(#{auth_token := AuthToken} = API, WSConn, AccountId, Binding) ->
     WithSocket = pqc_cb_websockets:summary(API, AccountId),
     lager:info("with socket: ~s", [WithSocket]),
     [SocketDetails] = kz_json:get_list_value(<<"data">>, kz_json:decode(WithSocket)),
@@ -322,15 +332,16 @@ test_ws_api_listing(#{auth_token := AuthToken}=API, WSConn, AccountId, Binding) 
     SocketId = kz_json:get_ne_binary_value(<<"websocket_session_id">>, SocketDetails),
 
     BindReqId = kz_binary:rand_hex(4),
-    BindReq = kz_json:from_list([{<<"action">>, <<"subscribe">>}
-                                ,{<<"auth_token">>, AuthToken}
-                                ,{<<"request_id">>, BindReqId}
-                                ,{<<"data">>
-                                 ,kz_json:from_list([{<<"account_id">>, AccountId}
-                                                    ,{<<"binding">>, Binding}
-                                                    ])
-                                 }
-                                ]),
+    BindReq = kz_json:from_list([
+        {<<"action">>, <<"subscribe">>},
+        {<<"auth_token">>, AuthToken},
+        {<<"request_id">>, BindReqId},
+        {<<"data">>,
+            kz_json:from_list([
+                {<<"account_id">>, AccountId},
+                {<<"binding">>, Binding}
+            ])}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(BindReq)),
     {'json', BindReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("bind reply: ~p", [BindReplyJObj]),
@@ -384,11 +395,13 @@ test_crud_user_events(WSConn, API, AccountId) ->
 
 test_ws_unbind(API, WSConn, AccountId, SocketId, BindReq, Binding) ->
     UnbindReqId = kz_binary:rand_hex(4),
-    UnbindReq = kz_json:set_values([{<<"action">>, <<"unsubscribe">>}
-                                   ,{<<"request_id">>, UnbindReqId}
-                                   ]
-                                  ,BindReq
-                                  ),
+    UnbindReq = kz_json:set_values(
+        [
+            {<<"action">>, <<"unsubscribe">>},
+            {<<"request_id">>, UnbindReqId}
+        ],
+        BindReq
+    ),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(UnbindReq)),
     {'json', UnbindReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("unbind reply: ~p", [UnbindReplyJObj]),
@@ -423,22 +436,25 @@ recv_channel_event(WSConn, CallId, AccountId) ->
     {'json', CallEvent} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("call event: ~p", [CallEvent]),
     CallId = kz_json:get_ne_binary_value([<<"data">>, <<"call_id">>], CallEvent),
-    AccountId = kz_json:get_ne_binary_value([<<"data">>, <<"custom_channel_vars">>, <<"account_id">>], CallEvent),
+    AccountId = kz_json:get_ne_binary_value(
+        [<<"data">>, <<"custom_channel_vars">>, <<"account_id">>], CallEvent
+    ),
     <<"CHANNEL_CREATE">> = kz_json:get_ne_binary_value([<<"name">>], CallEvent),
     <<"event">> = kz_json:get_ne_binary_value([<<"action">>], CallEvent),
     'ok'.
 
 unbind_for_channel_events(WSConn, #{auth_token := AuthToken}, AccountId) ->
     UnbindReqId = kz_binary:rand_hex(4),
-    UnbindReq = kz_json:from_list([{<<"action">>, <<"unsubscribe">>}
-                                  ,{<<"auth_token">>, AuthToken}
-                                  ,{<<"request_id">>, UnbindReqId}
-                                  ,{<<"data">>
-                                   ,kz_json:from_list([{<<"account_id">>, AccountId}
-                                                      ,{<<"binding">>, (Binding = <<"call.CHANNEL_CREATE.*">>)}
-                                                      ])
-                                   }
-                                  ]),
+    UnbindReq = kz_json:from_list([
+        {<<"action">>, <<"unsubscribe">>},
+        {<<"auth_token">>, AuthToken},
+        {<<"request_id">>, UnbindReqId},
+        {<<"data">>,
+            kz_json:from_list([
+                {<<"account_id">>, AccountId},
+                {<<"binding">>, (Binding = <<"call.CHANNEL_CREATE.*">>)}
+            ])}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(UnbindReq)),
 
     {'json', UnbindReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
@@ -451,15 +467,16 @@ unbind_for_channel_events(WSConn, #{auth_token := AuthToken}, AccountId) ->
 
 bind_for_channel_events(WSConn, #{auth_token := AuthToken}, AccountId) ->
     BindReqId = kz_binary:rand_hex(4),
-    BindReq = kz_json:from_list([{<<"action">>, <<"subscribe">>}
-                                ,{<<"auth_token">>, AuthToken}
-                                ,{<<"request_id">>, BindReqId}
-                                ,{<<"data">>
-                                 ,kz_json:from_list([{<<"account_id">>, AccountId}
-                                                    ,{<<"binding">>, (Binding = <<"call.CHANNEL_CREATE.*">>)}
-                                                    ])
-                                 }
-                                ]),
+    BindReq = kz_json:from_list([
+        {<<"action">>, <<"subscribe">>},
+        {<<"auth_token">>, AuthToken},
+        {<<"request_id">>, BindReqId},
+        {<<"data">>,
+            kz_json:from_list([
+                {<<"account_id">>, AccountId},
+                {<<"binding">>, (Binding = <<"call.CHANNEL_CREATE.*">>)}
+            ])}
+    ]),
     _Send = pqc_ws_client:send(WSConn, kz_json:encode(BindReq)),
     {'json', BindReplyJObj} = pqc_ws_client:recv(WSConn, 2 * ?MILLISECONDS_IN_SECOND),
     lager:info("bind reply: ~p", [BindReplyJObj]),
@@ -471,15 +488,16 @@ bind_for_channel_events(WSConn, #{auth_token := AuthToken}, AccountId) ->
 
 emit_channel_event(AccountId) ->
     CallId = kz_binary:rand_hex(4),
-    CallProps = [{<<"Event-Name">>, <<"CHANNEL_CREATE">>}
-                ,{<<"Call-ID">>, CallId}
-                ,{<<"variable_sip_req_uri">>, <<"request@domain.com">>}
-                ,{<<"variable_sip_to_uri">>, <<"to@domain.com">>}
-                ,{<<"variable_sip_from_uri">>, <<"from@domain.com">>}
-                ,{<<"Call-Direction">>, <<"inbound">>}
-                ,{<<"Custom-Channel-Vars">>, kz_json:from_list([{<<"Account-ID">>, AccountId}])}
-                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                ],
+    CallProps = [
+        {<<"Event-Name">>, <<"CHANNEL_CREATE">>},
+        {<<"Call-ID">>, CallId},
+        {<<"variable_sip_req_uri">>, <<"request@domain.com">>},
+        {<<"variable_sip_to_uri">>, <<"to@domain.com">>},
+        {<<"variable_sip_from_uri">>, <<"from@domain.com">>},
+        {<<"Call-Direction">>, <<"inbound">>},
+        {<<"Custom-Channel-Vars">>, kz_json:from_list([{<<"Account-ID">>, AccountId}])}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     lager:info("publishing call event ~s", [CallId]),
     ecallmgr_call_events:publish_event(CallProps),
     CallId.
@@ -495,7 +513,7 @@ disconnect_reconnect_amqp() ->
     _ = kz_hooks_shared_listener:wait_until_consuming(5 * ?MILLISECONDS_IN_SECOND),
     lager:info("channel and bindings should be available").
 
-disconnect(#kz_amqp_connections{connection=KZConn}) ->
-    #kz_amqp_connection{connection=AMQPConn} = kz_amqp_connection:get_connection(KZConn),
+disconnect(#kz_amqp_connections{connection = KZConn}) ->
+    #kz_amqp_connection{connection = AMQPConn} = kz_amqp_connection:get_connection(KZConn),
     lager:info("exiting amqp conn ~p", [AMQPConn]),
     exit(AMQPConn, 'heartbeat_timeout').

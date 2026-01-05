@@ -12,7 +12,8 @@
 -spec tmp_file_name(kz_term:ne_binary()) -> string().
 tmp_file_name(Ext) ->
     Prefix = kz_binary:rand_hex(10),
-    Name = filename:join([?TMP_PATH
-                         ,<<Prefix/binary, "_voicemail.", Ext/binary>>
-                         ]),
+    Name = filename:join([
+        ?TMP_PATH,
+        <<Prefix/binary, "_voicemail.", Ext/binary>>
+    ]),
     kz_term:to_list(Name).

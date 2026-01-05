@@ -11,19 +11,20 @@
 -module(cb_users_v1).
 
 -export([create_user/1]).
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,content_types_provided/1, content_types_provided/2, content_types_provided/3
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,validate_resource/1, validate_resource/2, validate_resource/3
-        ,authenticate/1
-        ,authorize/1
-        ,validate/1, validate/2, validate/3
-        ,put/1
-        ,post/2, post/3
-        ,delete/2
-        ,patch/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    content_types_provided/1, content_types_provided/2, content_types_provided/3,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    validate_resource/1, validate_resource/2, validate_resource/3,
+    authenticate/1,
+    authorize/1,
+    validate/1, validate/2, validate/3,
+    put/1,
+    post/2, post/3,
+    delete/2,
+    patch/2
+]).
 
 -include("crossbar.hrl").
 
@@ -49,9 +50,13 @@ create_user(Context) ->
 -spec init() -> 'ok'.
 init() ->
     _ = crossbar_bindings:bind(<<"v1_resource.allowed_methods.users">>, ?MODULE, 'allowed_methods'),
-    _ = crossbar_bindings:bind(<<"v1_resource.content_types_provided.users">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"v1_resource.content_types_provided.users">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"v1_resource.resource_exists.users">>, ?MODULE, 'resource_exists'),
-    _ = crossbar_bindings:bind(<<"v1_resource.validate_resource.users">>, ?MODULE, 'validate_resource'),
+    _ = crossbar_bindings:bind(
+        <<"v1_resource.validate_resource.users">>, ?MODULE, 'validate_resource'
+    ),
     _ = crossbar_bindings:bind(<<"v1_resource.authenticate">>, ?MODULE, 'authenticate'),
     _ = crossbar_bindings:bind(<<"v1_resource.authorize">>, ?MODULE, 'authorize'),
     _ = crossbar_bindings:bind(<<"v1_resource.validate.users">>, ?MODULE, 'validate'),
@@ -86,23 +91,24 @@ allowed_methods(_, ?VCARD) ->
     [?HTTP_GET].
 
 -spec content_types_provided(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 content_types_provided(Context) ->
     Context.
 
 -spec content_types_provided(cb_context:context(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 content_types_provided(Context, _) ->
     Context.
 
 -spec content_types_provided(cb_context:context(), path_token(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 content_types_provided(Context, _, ?VCARD) ->
-    cb_context:set_content_types_provided(Context, [{'to_binary', [{<<"text">>, <<"x-vcard">>}
-                                                                  ,{<<"text">>, <<"directory">>}
-                                                                  ]
-                                                    }
-                                                   ]);
+    cb_context:set_content_types_provided(Context, [
+        {'to_binary', [
+            {<<"text">>, <<"x-vcard">>},
+            {<<"text">>, <<"directory">>}
+        ]}
+    ]);
 content_types_provided(Context, _, _) ->
     Context.
 
@@ -142,28 +148,36 @@ validate_resource(Context, UserId, _) -> validate_user_id(UserId, Context).
 -spec validate_user_id(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
 validate_user_id(UserId, Context) ->
     case kz_datamgr:open_cache_doc(cb_context:account_db(Context), UserId) of
-        {'ok', Doc} -> validate_user_id(UserId, Context, Doc);
+        {'ok', Doc} ->
+            validate_user_id(UserId, Context, Doc);
         {'error', 'not_found'} ->
-            cb_context:add_system_error('bad_identifier'
-                                       ,kz_json:from_list([{<<"cause">>, UserId}])
-                                       ,Context
-                                       );
-        {'error', _R} -> crossbar_util:response_db_fatal(Context)
+            cb_context:add_system_error(
+                'bad_identifier',
+                kz_json:from_list([{<<"cause">>, UserId}]),
+                Context
+            );
+        {'error', _R} ->
+            crossbar_util:response_db_fatal(Context)
     end.
 
--spec validate_user_id(kz_term:api_binary(), cb_context:context(), kz_json:object()) -> cb_context:context().
+-spec validate_user_id(kz_term:api_binary(), cb_context:context(), kz_json:object()) ->
+    cb_context:context().
 validate_user_id(UserId, Context, Doc) ->
     case kz_doc:is_soft_deleted(Doc) of
         'true' ->
-            cb_context:add_system_error('bad_identifier'
-                                       ,kz_json:from_list([{<<"cause">>, UserId}])
-                                       ,Context
-                                       );
-        'false'->
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_user_id/2, UserId}
-                               ,{fun cb_context:set_resp_status/2, 'success'}
-                               ])
+            cb_context:add_system_error(
+                'bad_identifier',
+                kz_json:from_list([{<<"cause">>, UserId}]),
+                Context
+            );
+        'false' ->
+            cb_context:setters(
+                Context,
+                [
+                    {fun cb_context:set_user_id/2, UserId},
+                    {fun cb_context:set_resp_status/2, 'success'}
+                ]
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -177,7 +191,8 @@ authenticate(Context) ->
 authenticate_users(?USERS_QCALL_NOUNS(_UserId, _Number), ?HTTP_GET) ->
     lager:debug("authenticating request"),
     'true';
-authenticate_users(_Nouns, _Verb) -> 'false'.
+authenticate_users(_Nouns, _Verb) ->
+    'false'.
 
 -spec authorize(cb_context:context()) -> 'true'.
 authorize(Context) ->
@@ -186,7 +201,8 @@ authorize(Context) ->
 authorize_users(?USERS_QCALL_NOUNS(_UserId, _Number), ?HTTP_GET) ->
     lager:debug("authorizing request"),
     'true';
-authorize_users(_Nouns, _Verb) -> 'false'.
+authorize_users(_Nouns, _Verb) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc This function determines if the parameters and content are correct
@@ -206,9 +222,10 @@ validate(Context, UserId) ->
 
 -spec validate(cb_context:context(), path_token(), path_token()) -> cb_context:context().
 validate(Context, UserId, ?CHANNELS) ->
-    Options = [{'key', [UserId, <<"device">>]}
-              ,'include_docs'
-              ],
+    Options = [
+        {'key', [UserId, <<"device">>]},
+        'include_docs'
+    ],
     Context1 = crossbar_doc:load_view(<<"attributes/owned">>, Options, Context),
     case cb_context:has_errors(Context1) of
         'true' -> Context1;
@@ -227,7 +244,8 @@ validate_users(Context, ?HTTP_GET) ->
 validate_users(Context, ?HTTP_PUT) ->
     validate_request('undefined', Context).
 
--spec validate_user(cb_context:context(), kz_term:ne_binary(), http_method()) -> cb_context:context().
+-spec validate_user(cb_context:context(), kz_term:ne_binary(), http_method()) ->
+    cb_context:context().
 validate_user(Context, UserId, ?HTTP_GET) ->
     load_user(UserId, Context);
 validate_user(Context, UserId, ?HTTP_POST) ->
@@ -272,19 +290,23 @@ patch(Context, Id) ->
 -spec get_channels(cb_context:context()) -> cb_context:context().
 get_channels(Context) ->
     Realm = kzd_accounts:fetch_realm(cb_context:account_id(Context)),
-    Usernames = [Username
-                 || JObj <- cb_context:doc(Context),
-                    Username <- [kzd_devices:sip_username(kz_json:get_value(<<"doc">>, JObj))],
-                    Username =/= undefined
-                ],
-    Req = [{<<"Realm">>, Realm}
-          ,{<<"Usernames">>, Usernames}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_call:publish_query_user_channels_req/1
-                                    ,{'ecallmgr', 'true'}
-                                    )
+    Usernames = [
+        Username
+     || JObj <- cb_context:doc(Context),
+        Username <- [kzd_devices:sip_username(kz_json:get_value(<<"doc">>, JObj))],
+        Username =/= undefined
+    ],
+    Req = [
+        {<<"Realm">>, Realm},
+        {<<"Usernames">>, Usernames}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_call:publish_query_user_channels_req/1,
+            {'ecallmgr', 'true'}
+        )
     of
         {'error', _R} ->
             lager:error("could not reach ecallmgr channels: ~p", [_R]),
@@ -306,35 +328,43 @@ convert_to_vcard(Context) ->
     JObj3 = set_org(JObj2, Context),
     %% TODO add SOUND, AGENT (X-ASSISTANT), X-MANAGER
     Fields = [
-              <<"BEGIN">>
-             ,<<"VERSION">>
-             ,<<"FN">>
-             ,<<"N">>
-             ,<<"ORG">>
-             ,<<"PHOTO">>
-             ,<<"EMAIL">>
-             ,<<"BDAY">>
-             ,<<"NOTE">>
-             ,<<"TITLE">>
-             ,<<"ROLE">>
-             ,<<"TZ">>
-             ,<<"NICKNAME">>
-             ,<<"TEL">>
-             ,<<"ADR">>
-             ,<<"END">>
-             ],
-    NotEmptyFields = lists:foldl(fun vcard_fields_acc/2, [], [card_field(Key, JObj3) || Key <- Fields]),
+        <<"BEGIN">>,
+        <<"VERSION">>,
+        <<"FN">>,
+        <<"N">>,
+        <<"ORG">>,
+        <<"PHOTO">>,
+        <<"EMAIL">>,
+        <<"BDAY">>,
+        <<"NOTE">>,
+        <<"TITLE">>,
+        <<"ROLE">>,
+        <<"TZ">>,
+        <<"NICKNAME">>,
+        <<"TEL">>,
+        <<"ADR">>,
+        <<"END">>
+    ],
+    NotEmptyFields = lists:foldl(fun vcard_fields_acc/2, [], [
+        card_field(Key, JObj3)
+     || Key <- Fields
+    ]),
     PackedFields = lists:reverse([iolist_join(<<":">>, [X, Y]) || {X, Y} <- NotEmptyFields]),
-    DividedFields = lists:reverse(lists:foldl(fun vcard_field_divide_by_length/2, [], PackedFields)),
+    DividedFields = lists:reverse(
+        lists:foldl(fun vcard_field_divide_by_length/2, [], PackedFields)
+    ),
     RespData = iolist_join(<<"\n">>, DividedFields),
     cb_context:set_resp_data(Context, [RespData, <<"\n">>]).
 
 -spec set_photo(kz_json:object(), cb_context:context()) -> kz_json:object().
 set_photo(JObj, Context) ->
     UserId = kz_doc:id(cb_context:doc(Context)),
-    Attach = crossbar_doc:load_attachment(UserId, ?PHOTO, ?TYPE_CHECK_OPTION(kzd_user:type()), Context),
+    Attach = crossbar_doc:load_attachment(
+        UserId, ?PHOTO, ?TYPE_CHECK_OPTION(kzd_user:type()), Context
+    ),
     case cb_context:resp_status(Attach) of
-        'error' -> JObj;
+        'error' ->
+            JObj;
         'success' ->
             Data = cb_context:resp_data(Attach),
             CT = kz_doc:attachment_content_type(cb_context:doc(Context), ?PHOTO),
@@ -343,13 +373,15 @@ set_photo(JObj, Context) ->
 
 -spec set_org(kz_json:object(), cb_context:context()) -> kz_json:object().
 set_org(JObj, Context) ->
-    LoadedContent = crossbar_doc:load(cb_context:account_id(Context)
-                                     ,Context
-                                     ,?TYPE_CHECK_OPTION(kzd_user:type())
-                                     ),
+    LoadedContent = crossbar_doc:load(
+        cb_context:account_id(Context),
+        Context,
+        ?TYPE_CHECK_OPTION(kzd_user:type())
+    ),
 
-    case 'success' =:= cb_context:resp_status(LoadedContent)
-        andalso kz_json:get_value(<<"org">>, cb_context:doc(LoadedContent))
+    case
+        'success' =:= cb_context:resp_status(LoadedContent) andalso
+            kz_json:get_value(<<"org">>, cb_context:doc(LoadedContent))
     of
         'false' -> JObj;
         'undefined' -> JObj;
@@ -365,7 +397,8 @@ vcard_fields_acc({_, Val}, Acc) when Val =:= 'undefined'; Val =:= []; Val =:= <<
     Acc;
 vcard_fields_acc({Type, Val}, Acc) ->
     case vcard_normalize_val(Val) of
-        <<>> -> Acc;
+        <<>> ->
+            Acc;
         ValN ->
             TypeN = vcard_normalize_type(Type),
             [{TypeN, ValN} | Acc]
@@ -377,31 +410,47 @@ vcard_fields_acc([], Acc) ->
 
 -spec vcard_normalize_val(binary() | {char(), kz_term:binaries()}) -> binary().
 vcard_normalize_val({Divider, Vals}) when is_list(Vals) ->
-    iolist_join(Divider, [vcard_escape_chars(X) || X <- Vals, X =/= 'undefined', X =/= [], X =/= <<>>]);
+    iolist_join(Divider, [
+        vcard_escape_chars(X)
+     || X <- Vals, X =/= 'undefined', X =/= [], X =/= <<>>
+    ]);
 vcard_normalize_val(Val) when is_binary(Val) ->
     vcard_escape_chars(Val).
 
--spec vcard_normalize_type(list() | {kz_term:ne_binary(), kz_term:ne_binary()} | kz_term:ne_binary()) -> kz_term:ne_binary().
-vcard_normalize_type(T) when is_list(T) -> iolist_join(<<";">>, [vcard_normalize_type(X) || X <- T]);
-vcard_normalize_type({T, V}) -> iolist_join(<<"=">>, [T, V]);
-vcard_normalize_type(T) -> T.
+-spec vcard_normalize_type(
+    list() | {kz_term:ne_binary(), kz_term:ne_binary()} | kz_term:ne_binary()
+) -> kz_term:ne_binary().
+vcard_normalize_type(T) when is_list(T) ->
+    iolist_join(<<";">>, [vcard_normalize_type(X) || X <- T]);
+vcard_normalize_type({T, V}) ->
+    iolist_join(<<"=">>, [T, V]);
+vcard_normalize_type(T) ->
+    T.
 
 %%-spec card_field(kz_term:ne_binary(), kz_json:object()) -> {vcard_type_spec(), vcard_val()}.
-card_field(Key, _)
-  when Key =:= <<"BEGIN">> ->
+card_field(Key, _) when
+    Key =:= <<"BEGIN">>
+->
     {Key, <<"VCARD">>};
-card_field(Key, _)
-  when Key =:= <<"VERSION">> ->
+card_field(Key, _) when
+    Key =:= <<"VERSION">>
+->
     {Key, <<"3.0">>};
-card_field(Key, _)
-  when Key =:= <<"END">> ->
+card_field(Key, _) when
+    Key =:= <<"END">>
+->
     {Key, <<"VCARD">>};
-card_field(Key, JObj)
-  when Key =:= <<"FN">> ->
+card_field(Key, JObj) when
+    Key =:= <<"FN">>
+->
     FirstName = kz_json:get_value(<<"first_name">>, JObj),
     LastName = kz_json:get_value(<<"last_name">>, JObj),
     MiddleName = kz_json:get_value(<<"middle_name">>, JObj),
-    {Key, iolist_join(<<" ">>, [X || X <- [FirstName, MiddleName, LastName], X =/= undefined, X =/= [], X =/= <<>>])};
+    {Key,
+        iolist_join(<<" ">>, [
+            X
+         || X <- [FirstName, MiddleName, LastName], X =/= undefined, X =/= [], X =/= <<>>
+        ])};
 card_field(Key, JObj) when Key =:= <<"N">> ->
     FirstName = kz_json:get_value(<<"first_name">>, JObj),
     LastName = kz_json:get_value(<<"last_name">>, JObj),
@@ -411,7 +460,8 @@ card_field(Key, JObj) when Key =:= <<"ORG">> ->
     {Key, element(2, card_field(<<"org">>, JObj))};
 card_field(Key, JObj) when Key =:= <<"PHOTO">> ->
     case card_field(?PHOTO, JObj) of
-        {?PHOTO, 'undefined'} -> {Key, 'undefined'};
+        {?PHOTO, 'undefined'} ->
+            {Key, 'undefined'};
         {?PHOTO, PhotoJObj} ->
             [{CT, PhotoBin}] = kz_json:to_proplist(PhotoJObj),
             <<"image/jpeg">> = CT,
@@ -427,8 +477,8 @@ card_field(Key, JObj) when Key =:= <<"TEL">> ->
     Internal = kz_json:get_value(<<"internal">>, CallerId),
     External = kz_json:get_value(<<"external">>, CallerId),
     [
-     {Key, Internal}
-    ,{Key, External}
+        {Key, Internal},
+        {Key, External}
     ];
 card_field(Key = <<"EMAIL">>, JObj) ->
     {Key, element(2, card_field(<<"email">>, JObj))};
@@ -443,10 +493,11 @@ card_field(Key = <<"ROLE">>, JObj) ->
 card_field(Key = <<"TZ">>, JObj) ->
     {Key, element(2, card_field(<<"timezone">>, JObj))};
 card_field(Key = <<"NICKNAME">>, JObj) ->
-    Val = case element(2, card_field(<<"nicknames">>, JObj)) of
-              'undefined' -> [];
-              V -> V
-          end,
+    Val =
+        case element(2, card_field(<<"nicknames">>, JObj)) of
+            'undefined' -> [];
+            V -> V
+        end,
     {Key, {$,, Val}};
 card_field(Key, JObj) ->
     {Key, kz_json:get_value(Key, JObj)}.
@@ -458,7 +509,8 @@ iolist_join(Divider, List) ->
         {_, []} -> <<>>
     end.
 
--spec iolist_join_acc(binary(), {char() | binary(), kz_term:binaries()}) -> {char() | binary(), kz_term:binaries()}.
+-spec iolist_join_acc(binary(), {char() | binary(), kz_term:binaries()}) ->
+    {char() | binary(), kz_term:binaries()}.
 iolist_join_acc(E, {Divider, Acc}) ->
     {Divider, [Divider, E | Acc]}.
 
@@ -475,7 +527,7 @@ merge_user_channels_jobjs(JObjs) ->
 -spec merge_user_channels_jobjs(kz_json:objects(), dict:dict()) -> kz_json:objects().
 merge_user_channels_jobjs([], Dict) ->
     [Channel || {_, Channel} <- dict:to_list(Dict)];
-merge_user_channels_jobjs([JObj|JObjs], Dict) ->
+merge_user_channels_jobjs([JObj | JObjs], Dict) ->
     merge_user_channels_jobjs(JObjs, merge_user_channels_jobj(JObj, Dict)).
 
 -spec merge_user_channels_jobj(kz_json:object(), dict:dict()) -> dict:dict().
@@ -501,7 +553,8 @@ load_user_summary(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec load_user(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
-load_user(UserId, Context) -> crossbar_doc:load(UserId, Context, ?TYPE_CHECK_OPTION(kzd_user:type())).
+load_user(UserId, Context) ->
+    crossbar_doc:load(UserId, Context, ?TYPE_CHECK_OPTION(kzd_user:type())).
 
 %%------------------------------------------------------------------------------
 %% @doc Validate an update request.
@@ -545,5 +598,5 @@ validate_request(UserId, Context) ->
 %% @doc Normalizes the results of a view.
 %% @end
 %%------------------------------------------------------------------------------
--spec(normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects()).
-normalize_view_results(JObj, Acc) -> [kz_json:get_value(<<"value">>, JObj)|Acc].
+-spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
+normalize_view_results(JObj, Acc) -> [kz_json:get_value(<<"value">>, JObj) | Acc].

@@ -18,9 +18,10 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER('hotornot_listener')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER('hotornot_listener')
+]).
 
 %%==============================================================================
 %% API functions
@@ -44,10 +45,13 @@ upgrade() ->
     New = sets:from_list([Name || {Name, _, _, _, _, _} <- Specs]),
     Kill = sets:subtract(Old, New),
 
-    lists:foreach(fun (Id) ->
-                          _ = supervisor:terminate_child(?SERVER, Id),
-                          supervisor:delete_child(?SERVER, Id)
-                  end, sets:to_list(Kill)),
+    lists:foreach(
+        fun(Id) ->
+            _ = supervisor:terminate_child(?SERVER, Id),
+            supervisor:delete_child(?SERVER, Id)
+        end,
+        sets:to_list(Kill)
+    ),
     lists:foreach(fun(Spec) -> supervisor:start_child(?SERVER, Spec) end, Specs).
 
 %%==============================================================================

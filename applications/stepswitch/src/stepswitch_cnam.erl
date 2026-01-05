@@ -8,17 +8,19 @@
 
 -export([start_link/1]).
 -export([render/2]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
--export([lookup/1
-        ,flush/0
-        ]).
+-export([
+    lookup/1,
+    flush/0
+]).
 
 -include("stepswitch.hrl").
 
@@ -29,16 +31,22 @@
 -define(DEFAULT_EXPIRES, 900).
 -define(DEFAULT_PROVIDER, <<"opencnam">>).
 
--define(DISABLE_NORMALIZE
-       ,kapps_config:get_is_true(?CNAM_CONFIG_CAT, <<"disable_normalize">>, 'false')
-       ).
+-define(DISABLE_NORMALIZE,
+    kapps_config:get_is_true(?CNAM_CONFIG_CAT, <<"disable_normalize">>, 'false')
+).
 
 -define(CACHE_KEY(Number), {'cnam', Number}).
 
 -define(CNAM_EXPIRES,
-        kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"cnam_expires">>, ?DEFAULT_EXPIRES)).
+    kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"cnam_expires">>, ?DEFAULT_EXPIRES)
+).
 -define(CNAM_PROVIDER_MODULE,
-        kz_term:to_atom(<<"stepswitch_cnam_", (kapps_config:get_binary(?CNAM_CONFIG_CAT, <<"provider">>, ?DEFAULT_PROVIDER))/binary>>, 'true')).
+    kz_term:to_atom(
+        <<"stepswitch_cnam_",
+            (kapps_config:get_binary(?CNAM_CONFIG_CAT, <<"provider">>, ?DEFAULT_PROVIDER))/binary>>,
+        'true'
+    )
+).
 
 %%%=============================================================================
 %%% API
@@ -53,8 +61,9 @@ start_link(_) ->
     _ = ssl:start(),
     gen_server:start_link(?SERVER, [], []).
 
--spec render(kz_json:object(), kz_term:ne_binary()) -> {'ok', iolist()} |
-          {'error', 'timeout'}.
+-spec render(kz_json:object(), kz_term:ne_binary()) ->
+    {'ok', iolist()}
+    | {'error', 'timeout'}.
 render(JObj, Template) ->
     case catch poolboy:checkout(?STEPSWITCH_CNAM_POOL, 'false', 1000) of
         W when is_pid(W) ->
@@ -62,27 +71,35 @@ render(JObj, Template) ->
             Reply = gen_server:call(W, {'render', Props, Template}),
             poolboy:checkin(?STEPSWITCH_CNAM_POOL, W),
             Reply;
-        _Else -> {'error', 'timeout'}
+        _Else ->
+            {'error', 'timeout'}
     end.
 
 -spec lookup(kz_json:object() | kz_term:ne_binary()) -> kz_json:object().
 lookup(<<_/binary>> = Number) ->
-    Num = case ?DISABLE_NORMALIZE of
-              'false' -> knm_converters:normalize(Number);
-              'true'  -> Number
-          end,
-    lookup(kz_json:set_values([{<<"phone_number">>, kz_util:uri_encode(Num)}
-                              ,{<<"Caller-ID-Number">>, Num}
-                              ]
-                             ,kz_json:new()
-                             )
-          );
+    Num =
+        case ?DISABLE_NORMALIZE of
+            'false' -> knm_converters:normalize(Number);
+            'true' -> Number
+        end,
+    lookup(
+        kz_json:set_values(
+            [
+                {<<"phone_number">>, kz_util:uri_encode(Num)},
+                {<<"Caller-ID-Number">>, Num}
+            ],
+            kz_json:new()
+        )
+    );
 lookup(JObj) ->
-    Number = kz_json:get_value(<<"Caller-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number()),
-    Num = case ?DISABLE_NORMALIZE of
-              'false' -> knm_converters:normalize(Number);
-              'true'  -> Number
-          end,
+    Number = kz_json:get_value(
+        <<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number()
+    ),
+    Num =
+        case ?DISABLE_NORMALIZE of
+            'false' -> knm_converters:normalize(Number);
+            'true' -> Number
+        end,
     case kz_cache:fetch_local(?CACHE_NAME, cache_key(Num)) of
         {'ok', CNAM} ->
             update_request(JObj, CNAM, 'true');
@@ -96,12 +113,14 @@ set_phone_number(Num, JObj) ->
     kz_json:set_value(<<"phone_number">>, kz_util:uri_encode(Num), JObj).
 
 -spec update_request(kz_json:object(), kz_term:api_binary(), boolean()) -> kz_json:object().
-update_request(JObj, 'undefined', _) -> JObj;
+update_request(JObj, 'undefined', _) ->
+    JObj;
 update_request(JObj, CNAM, FromCache) ->
-    Props = [{<<"Caller-ID-Name">>, CNAM}
-            ,{[<<"Custom-Channel-Vars">>, <<"Caller-ID-Name">>], CNAM}
-            ,{[<<"Custom-Channel-Vars">>, <<"CNAM-From-Cache">>], FromCache}
-            ],
+    Props = [
+        {<<"Caller-ID-Name">>, CNAM},
+        {[<<"Custom-Channel-Vars">>, <<"Caller-ID-Name">>], CNAM},
+        {[<<"Custom-Channel-Vars">>, <<"CNAM-From-Cache">>], FromCache}
+    ],
     kz_json:set_values(Props, JObj).
 
 -spec flush() -> non_neg_integer().
@@ -187,7 +206,8 @@ cache_key(Number) -> ?CACHE_KEY(Number).
 -spec fetch_cnam(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().
 fetch_cnam(Number, JObj) ->
     case make_request(Number, JObj) of
-        'undefined' -> 'undefined';
+        'undefined' ->
+            'undefined';
         CNAM ->
             CacheProps = [{'expires', ?CNAM_EXPIRES}],
             kz_cache:store_local(?CACHE_NAME, cache_key(Number), CNAM, CacheProps),

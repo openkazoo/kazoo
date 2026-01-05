@@ -14,26 +14,27 @@
 
 -define(CCV(Key), [<<"Custom-Channel-Vars">>, Key]).
 
--record(amqp_listener_connection, {name :: binary()
-                                  ,broker :: binary()
-                                  ,exchange :: binary()
-                                  ,type :: binary()
-                                  ,queue :: binary()
-                                  ,options :: kz_term:proplist()
-                                  }).
+-record(amqp_listener_connection, {
+    name :: binary(),
+    broker :: binary(),
+    exchange :: binary(),
+    type :: binary(),
+    queue :: binary(),
+    options :: kz_term:proplist()
+}).
 
 -type amqp_listener_connection() :: #amqp_listener_connection{}.
--type amqp_listener_connections() :: [amqp_listener_connection(),...].
+-type amqp_listener_connections() :: [amqp_listener_connection(), ...].
 
 -define(ATOM(X), kz_term:to_atom(X, 'true')).
 -define(APP, ?ATOM(?APP_NAME)).
 
--define(RESOURCE_TYPES_HANDLED,[<<"sms">>]).
+-define(RESOURCE_TYPES_HANDLED, [<<"sms">>]).
 
 -define(DEFAULT_EXCHANGE, <<"sms">>).
 -define(DEFAULT_EXCHANGE_TYPE, <<"topic">>).
--define(DEFAULT_EXCHANGE_OPTIONS, [{<<"passive">>, 'true'}] ).
--define(DEFAULT_EXCHANGE_OPTIONS_JOBJ, kz_json:from_list(?DEFAULT_EXCHANGE_OPTIONS) ).
+-define(DEFAULT_EXCHANGE_OPTIONS, [{<<"passive">>, 'true'}]).
+-define(DEFAULT_EXCHANGE_OPTIONS_JOBJ, kz_json:from_list(?DEFAULT_EXCHANGE_OPTIONS)).
 -define(DEFAULT_BROKER, kz_amqp_connections:primary_broker()).
 -define(DEFAULT_QUEUE_NAME, <<"smsc_inbound_queue_sms">>).
 
@@ -46,7 +47,6 @@
 -define(CATCH(Type, Reason, Stacktrace), Type:Reason).
 -define(LOGSTACK(Stacktrace), kz_log:log_stacktrace()).
 -endif.
-
 
 -define(KAZOO_IM_HRL, 'true').
 -endif.

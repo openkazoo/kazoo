@@ -8,14 +8,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("camper.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
@@ -28,14 +29,13 @@
 %% gen_listener callbacks
 -export([handle_camper_req/3]).
 
--define(RESPONDERS, [{{?MODULE, 'handle_camper_req'}
-                     ,[{<<"delegate">>, <<"job">>}]
-                     }
-                    ]).
--define(BINDINGS, [{'delegate', [{'app_name', ?APP_NAME}
-                                ,{'route_key', <<"*">>}
-                                ]}
-                  ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_camper_req'}, [{<<"delegate">>, <<"job">>}]}]).
+-define(BINDINGS, [
+    {'delegate', [
+        {'app_name', ?APP_NAME},
+        {'route_key', <<"*">>}
+    ]}
+]).
 -define(QUEUE_NAME, <<"camper_requests">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -50,12 +50,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_listener callbacks
@@ -65,7 +70,8 @@ start_link() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_camper_req(kz_json:object(), kz_term:proplist(), gen_listener:basic_deliver()) -> any().
+-spec handle_camper_req(kz_json:object(), kz_term:proplist(), gen_listener:basic_deliver()) ->
+    any().
 handle_camper_req(JObj, _Props, #'basic.deliver'{'routing_key' = Key}) ->
     case binary:split(Key, <<".">>, ['global']) of
         [_, ?APP_NAME, <<"offnet">>] ->
@@ -102,9 +108,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',_QueueName}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:info("unhandled cast: ~p", [_Msg]),

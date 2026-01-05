@@ -14,8 +14,9 @@
 perform_migration(Account, Context) ->
     lager:info("migrating account ~p from notify to teletype...", [Account]),
 
-    Updates = [{[<<"notifications">>, <<"voicemail_to_email">>], 'null'}
-              ,{[<<"notifications">>, <<"fax_to_email">>], 'null'}
-              ],
+    Updates = [
+        {[<<"notifications">>, <<"voicemail_to_email">>], 'null'},
+        {[<<"notifications">>, <<"fax_to_email">>], 'null'}
+    ],
     {'ok', _} = kzd_accounts:update(Account, Updates),
     cb_context:set_resp_status(Context, 'success').

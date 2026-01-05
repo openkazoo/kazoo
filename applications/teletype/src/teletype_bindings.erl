@@ -6,10 +6,11 @@
 -module(teletype_bindings).
 
 -export([start_link/0]).
--export([bind/3, bind/4
-        ,flush_mod/1
-        ,notification/1
-        ]).
+-export([
+    bind/3, bind/4,
+    flush_mod/1,
+    notification/1
+]).
 
 -include("teletype.hrl").
 
@@ -64,7 +65,8 @@ maybe_handle_notification(JObj, RoutingKey, 'true') ->
     lager:debug("dispatching notification ~s", [RoutingKey]),
     case kazoo_bindings:map(RoutingKey, JObj) of
         [] ->
-            FailureMsg = <<"no teletype template modules responded to notification ", RoutingKey/binary>>,
+            FailureMsg =
+                <<"no teletype template modules responded to notification ", RoutingKey/binary>>,
             lager:debug("~s", [FailureMsg]),
             teletype_util:send_update(JObj, <<"failed">>, FailureMsg);
         BindingResult ->
@@ -73,22 +75,22 @@ maybe_handle_notification(JObj, RoutingKey, 'true') ->
     end.
 
 -spec maybe_send_update(kz_json:object(), kz_term:ne_binary(), map()) -> 'ok'.
-maybe_send_update(JObj, RoutingKey, #{'completed' := _Completed}=Map) ->
+maybe_send_update(JObj, RoutingKey, #{'completed' := _Completed} = Map) ->
     %% for now we just only care about at least one success
     print_result(RoutingKey, Map),
     Metadata = kz_json:from_list_recursive(maps:to_list(Map)),
     teletype_util:send_update(JObj, <<"completed">>, 'undefined', Metadata);
-maybe_send_update(JObj, RoutingKey, #{'failed' := [{_, Reason}|_]}=Map) ->
+maybe_send_update(JObj, RoutingKey, #{'failed' := [{_, Reason} | _]} = Map) ->
     %% for now just send the first error as failure message
     print_result(RoutingKey, Map),
     Metadata = kz_json:from_list_recursive(maps:to_list(Map)),
     teletype_util:send_update(JObj, <<"failed">>, Reason, Metadata);
-maybe_send_update(JObj, RoutingKey, #{'disabled' := _Completed}=Map) ->
+maybe_send_update(JObj, RoutingKey, #{'disabled' := _Completed} = Map) ->
     %% for now just send the first disabled as failure message
     print_result(RoutingKey, Map),
     Metadata = kz_json:from_list_recursive(maps:to_list(Map)),
     teletype_util:send_update(JObj, <<"disabled">>, 'undefined', Metadata);
-maybe_send_update(JObj, RoutingKey, #{'ignored' := _Completed}=Map) ->
+maybe_send_update(JObj, RoutingKey, #{'ignored' := _Completed} = Map) ->
     %% for now just send the first ignored as failure message
     print_result(RoutingKey, Map),
     Metadata = kz_json:from_list_recursive(maps:to_list(Map)),
@@ -104,67 +106,70 @@ print_result(RoutingKey, Map) ->
     Disabled = erlang:length(maps:get('disabled', Map, [])),
     Ignored = erlang:length(maps:get('ignored', Map, [])),
     Failed = erlang:length(maps:get('failed', Map, [])),
-    ?LOG_DEBUG("notification ~s resulted in ~b success, ~b failed, ~b ignored, ~b disabled, full result: ~1000p"
-              ,[RoutingKey, Completed, Failed, Ignored, Disabled, maps:to_list(Map)]
-              ).
+    ?LOG_DEBUG(
+        "notification ~s resulted in ~b success, ~b failed, ~b ignored, ~b disabled, full result: ~1000p",
+        [RoutingKey, Completed, Failed, Ignored, Disabled, maps:to_list(Map)]
+    ).
 
 -spec check_result(any(), {kz_term:ne_binary(), map()}) -> {kz_term:ne_binary(), map()}.
 
 check_result('ok', {RoutingKey, Map}) ->
     {RoutingKey, maps:update_with('completed', update_with(RoutingKey), [RoutingKey], Map)};
-
 check_result({'completed', TemplateId}, {RoutingKey, Map}) ->
     {RoutingKey, maps:update_with('completed', update_with(TemplateId), [TemplateId], Map)};
-
 check_result({'ignored', TemplateId}, {RoutingKey, Map}) ->
     {RoutingKey, maps:update_with('ignored', update_with(TemplateId), [TemplateId], Map)};
-
 check_result({'disabled', TemplateId}, {RoutingKey, Map}) ->
     {RoutingKey, maps:update_with('disabled', update_with(TemplateId), [TemplateId], Map)};
-
 check_result({'failed', Reason, TemplateId}, {RoutingKey, Map}) ->
-    {RoutingKey, maps:update_with('failed', update_with({TemplateId, Reason}), [{TemplateId, Reason}], Map)};
-
-check_result({'EXIT', {'error', 'missing_data',  Missing}}, {RoutingKey, Map}) ->
+    {RoutingKey,
+        maps:update_with('failed', update_with({TemplateId, Reason}), [{TemplateId, Reason}], Map)};
+check_result({'EXIT', {'error', 'missing_data', Missing}}, {RoutingKey, Map}) ->
     Reason = <<"missing_data: ", (kz_term:to_binary(Missing))/binary>>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
-check_result({'EXIT', {'error', 'failed_template',  ModuleName}}, {RoutingKey, Map}) ->
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
+check_result({'EXIT', {'error', 'failed_template', ModuleName}}, {RoutingKey, Map}) ->
     %% teletype_templates:build_renderer, probably it's only for teletype startup
     Reason = <<"failed_template: ", (kz_term:to_binary(ModuleName))/binary>>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
-check_result({'EXIT',{'error', 'template_error',  Error}}, {RoutingKey, Map}) ->
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
+check_result({'EXIT', {'error', 'template_error', Error}}, {RoutingKey, Map}) ->
     Reason = <<"template_error: ", (kz_term:to_binary(Error))/binary>>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
 check_result({'EXIT', {'function_clause', _ST}}, {RoutingKey, Map}) ->
     Reason = <<"template_error: crashed with function_clause">>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
 check_result({'EXIT', {'undef', _ST}}, {RoutingKey, Map}) ->
     Reason = <<"template_error: crashed with undef">>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
-check_result({'EXIT', {'error', {'badmatch',  _}}}, {RoutingKey, Map}) ->
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
+check_result({'EXIT', {'error', {'badmatch', _}}}, {RoutingKey, Map}) ->
     %% Some templates (like voicemail_new) is matching against successful open_doc
     %% If it failed due to the document or attachment is not stored yet or db timeout
     %% let the publisher save the payload
     Reason = <<"badmatch">>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
 check_result({'EXIT', {'error', Reason}}, {RoutingKey, Map}) ->
-    ReasonBin = try kz_term:to_binary(Reason)
-                catch _:_ -> <<"unknown error throw-ed">>
-                end,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, ReasonBin}), [{RoutingKey, ReasonBin}], Map)};
-
+    ReasonBin =
+        try
+            kz_term:to_binary(Reason)
+        catch
+            _:_ -> <<"unknown error throw-ed">>
+        end,
+    {RoutingKey,
+        maps:update_with(
+            'failed', update_with({RoutingKey, ReasonBin}), [{RoutingKey, ReasonBin}], Map
+        )};
 check_result({'EXIT', {_Exp, _ST}}, {RoutingKey, Map}) ->
     Reason = <<"template_error: crashed with exception">>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
-
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)};
 check_result(_Other, {RoutingKey, Map}) ->
     Reason = <<"unknown_template_error">>,
-    {RoutingKey, maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)}.
+    {RoutingKey,
+        maps:update_with('failed', update_with({RoutingKey, Reason}), [{RoutingKey, Reason}], Map)}.
 
 update_with(Value) -> fun(ResultList) -> [Value | ResultList] end.

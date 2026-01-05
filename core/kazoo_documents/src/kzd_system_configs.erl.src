@@ -10,7 +10,6 @@
 -export([node/2, node/3, set_node/3]).
 -export([zone/2, zone/3, set_zone/3]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

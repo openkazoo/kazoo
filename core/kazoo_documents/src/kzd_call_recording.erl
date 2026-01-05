@@ -10,7 +10,6 @@
 -export([inbound/1, inbound/2, set_inbound/2]).
 -export([outbound/1, outbound/2, set_outbound/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

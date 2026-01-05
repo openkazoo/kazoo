@@ -18,44 +18,49 @@
 fetch(?NE_BINARY = AccountId) ->
     fetch(kz_services:fetch(AccountId));
 fetch(Services) ->
-    #{cache_origins := CacheOrigins
-     ,limits := LimitsMap
-     } = kz_services_plans:foldl(fun limits_foldl/3
-                                ,#{cache_origins => []
-                                  ,limits => #{}
-                                  }
-                                ,kz_services:plans(Services)
-                                ),
+    #{
+        cache_origins := CacheOrigins,
+        limits := LimitsMap
+    } = kz_services_plans:foldl(
+        fun limits_foldl/3,
+        #{
+            cache_origins => [],
+            limits => #{}
+        },
+        kz_services:plans(Services)
+    ),
     PlansLimits = kz_json:from_map(LimitsMap),
     {AccountOrigin, AccountLimits} = get_account_limits(Services),
     Limits = kz_json:merge(PlansLimits, AccountLimits),
 
-    Origins = [{'db', ?KZ_SERVICES_DB, kz_services:account_id(Services)}
-               | CacheOrigins ++ AccountOrigin
-              ],
-    kz_json:set_value(<<"pvt_cache_origins">>
-                     ,lists:usort(Origins)
-                     ,Limits
-                     ).
+    Origins = [
+        {'db', ?KZ_SERVICES_DB, kz_services:account_id(Services)}
+        | CacheOrigins ++ AccountOrigin
+    ],
+    kz_json:set_value(
+        <<"pvt_cache_origins">>,
+        lists:usort(Origins),
+        Limits
+    ).
 
 -spec limits_foldl(kz_term:ne_binary(), kz_services_plans:plans_list(), map()) -> map().
 limits_foldl(_BookkeeperHash, [], Acc) ->
     Acc;
-limits_foldl(_BookkeeperHash, PlansList, #{cache_origins := CacheOrigins}=Acc) ->
-    Origins = [{'db'
-               ,kz_util:format_account_db(kz_services_plan:vendor_id(Plan))
-               ,kz_services_plan:id(Plan)
-               }
-               || Plan <- PlansList
-              ],
+limits_foldl(_BookkeeperHash, PlansList, #{cache_origins := CacheOrigins} = Acc) ->
+    Origins = [
+        {'db', kz_util:format_account_db(kz_services_plan:vendor_id(Plan)),
+            kz_services_plan:id(Plan)}
+     || Plan <- PlansList
+    ],
     Plan = kz_services_plans:merge(PlansList),
 
-    kz_json:foldl(fun(K, V, #{limits := Limits}=Acc1) ->
-                          Acc1#{limits => Limits#{<<"pvt_", K/binary>> => V}}
-                  end
-                 ,Acc#{cache_origins => Origins ++ CacheOrigins}
-                 ,kz_services_plan:limits(Plan)
-                 ).
+    kz_json:foldl(
+        fun(K, V, #{limits := Limits} = Acc1) ->
+            Acc1#{limits => Limits#{<<"pvt_", K/binary>> => V}}
+        end,
+        Acc#{cache_origins => Origins ++ CacheOrigins},
+        kz_services_plan:limits(Plan)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -71,8 +76,10 @@ get_account_limits(Services) ->
             lager:debug("limits doc in account db ~s not found, creating it...", [AccountDb]),
             create_account_limits_jobj(AccountDb);
         {'error', _R} ->
-            lager:debug("failed to open limits doc in account db '~s': ~p"
-                       ,[AccountDb, _R]),
+            lager:debug(
+                "failed to open limits doc in account db '~s': ~p",
+                [AccountDb, _R]
+            ),
             {[], kz_json:new()}
     end.
 

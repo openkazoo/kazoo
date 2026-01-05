@@ -9,14 +9,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("hangups.hrl").
 
@@ -25,13 +26,8 @@
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{'hangups_channel_destroy'
-                     ,[{<<"call_event">>, <<"CHANNEL_DESTROY">>}]
-                     }
-                    ]).
--define(BINDINGS, [{'call'
-                   ,[{'restrict_to', ['CHANNEL_DESTROY']}]}
-                  ]).
+-define(RESPONDERS, [{'hangups_channel_destroy', [{<<"call_event">>, <<"CHANNEL_DESTROY">>}]}]).
+-define(BINDINGS, [{'call', [{'restrict_to', ['CHANNEL_DESTROY']}]}]).
 -define(QUEUE_NAME, <<"hangups_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -46,12 +42,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -79,9 +80,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',_QueueName}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

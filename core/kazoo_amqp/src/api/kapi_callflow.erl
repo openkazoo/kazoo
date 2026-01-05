@@ -9,9 +9,10 @@
 
 -export([resume/1, resume_v/1]).
 
--export([bind_q/2
-        ,unbind_q/2
-        ]).
+-export([
+    bind_q/2,
+    unbind_q/2
+]).
 -export([declare_exchanges/0]).
 -export([publish_resume/1]).
 
@@ -19,9 +20,10 @@
 
 -define(RESUME_HEADERS, [<<"Call">>, <<"Flow">>]).
 -define(OPTIONAL_RESUME_HEADERS, []).
--define(RESUME_VALUES, [{<<"Event-Category">>, <<"callflow">>}
-                       ,{<<"Event-Name">>, <<"resume">>}
-                       ]).
+-define(RESUME_VALUES, [
+    {<<"Event-Category">>, <<"callflow">>},
+    {<<"Event-Name">>, <<"resume">>}
+]).
 -define(RESUME_TYPES, []).
 
 %%------------------------------------------------------------------------------
@@ -35,12 +37,14 @@ resume(Prop) when is_list(Prop) ->
         'true' -> kz_api:build_message(Prop, ?RESUME_HEADERS, ?OPTIONAL_RESUME_HEADERS);
         'false' -> {'error', "Proplist failed validation for authn_error"}
     end;
-resume(JObj) -> resume(kz_json:to_proplist(JObj)).
+resume(JObj) ->
+    resume(kz_json:to_proplist(JObj)).
 
 -spec resume_v(kz_term:api_terms()) -> boolean().
 resume_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?RESUME_HEADERS, ?RESUME_VALUES, ?RESUME_TYPES);
-resume_v(JObj) -> resume_v(kz_json:to_proplist(JObj)).
+resume_v(JObj) ->
+    resume_v(kz_json:to_proplist(JObj)).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, _Props) ->
@@ -64,10 +68,12 @@ declare_exchanges() ->
 %%------------------------------------------------------------------------------
 -spec publish_resume(kz_term:api_terms()) -> 'ok'.
 publish_resume(JObj) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(JObj
-                                                ,?RESUME_VALUES
-                                                ,[{'formatter', fun resume/1}
-                                                 ,{'remove_recursive', 'false'}
-                                                 ]
-                                                ),
+    {'ok', Payload} = kz_api:prepare_api_payload(
+        JObj,
+        ?RESUME_VALUES,
+        [
+            {'formatter', fun resume/1},
+            {'remove_recursive', 'false'}
+        ]
+    ),
     kz_amqp_util:kapps_publish(?RESUME_ROUTING_KEY, Payload).

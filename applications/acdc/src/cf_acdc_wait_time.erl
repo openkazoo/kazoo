@@ -33,23 +33,31 @@ handle(Data, Call) ->
     end,
 
     Req = props:filter_undefined(
-            [{<<"Account-ID">>, AccountId}
-            ,{<<"Queue-ID">>, QueueId}
-            ,{<<"Window">>, Window}
-             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-            ]),
-    case kz_amqp_worker:call(Req
-                            ,fun kapi_acdc_stats:publish_average_wait_time_req/1
-                            ,fun kapi_acdc_stats:average_wait_time_resp_v/1
-                            )
+        [
+            {<<"Account-ID">>, AccountId},
+            {<<"Queue-ID">>, QueueId},
+            {<<"Window">>, Window}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
+    case
+        kz_amqp_worker:call(
+            Req,
+            fun kapi_acdc_stats:publish_average_wait_time_req/1,
+            fun kapi_acdc_stats:average_wait_time_resp_v/1
+        )
     of
         {'ok', Resp} ->
             AverageWaitTime = kz_json:get_integer_value(<<"Average-Wait-Time">>, Resp, 0),
-            lager:info("average wait time for account ~s queue ~s is ~B seconds", [AccountId, QueueId, AverageWaitTime]),
+            lager:info("average wait time for account ~s queue ~s is ~B seconds", [
+                AccountId, QueueId, AverageWaitTime
+            ]),
             {'branch_keys', BranchKeys} = cf_exe:get_branch_keys(Call),
             evaluate_average_wait_time(AverageWaitTime, BranchKeys, Call);
         {'error', E} ->
-            lager:error("could not fetch average wait time for account ~s queue ~s: ~p", [AccountId, QueueId, E]),
+            lager:error("could not fetch average wait time for account ~s queue ~s: ~p", [
+                AccountId, QueueId, E
+            ]),
             cf_exe:continue(Call)
     end.
 
@@ -60,15 +68,18 @@ handle(Data, Call) ->
 %%------------------------------------------------------------------------------
 -spec evaluate_average_wait_time(non_neg_integer(), kz_json:path(), kapps_call:call()) -> 'ok'.
 evaluate_average_wait_time(AverageWaitTime, Keys, Call) ->
-    Keys1 = lists:sort(fun(Key1, Key2) ->
-                               kz_term:to_integer(Key1) >= kz_term:to_integer(Key2)
-                       end, Keys),
+    Keys1 = lists:sort(
+        fun(Key1, Key2) ->
+            kz_term:to_integer(Key1) >= kz_term:to_integer(Key2)
+        end,
+        Keys
+    ),
     evaluate_average_wait_time2(AverageWaitTime, Keys1, Call).
 
 -spec evaluate_average_wait_time2(non_neg_integer(), kz_json:path(), kapps_call:call()) -> 'ok'.
 evaluate_average_wait_time2(_, [], Call) ->
     cf_exe:continue(Call);
-evaluate_average_wait_time2(AverageWaitTime, [Key|Keys], Call) ->
+evaluate_average_wait_time2(AverageWaitTime, [Key | Keys], Call) ->
     Threshold = kz_term:to_integer(Key),
     case AverageWaitTime >= Threshold of
         'true' ->

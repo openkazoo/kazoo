@@ -71,9 +71,10 @@ handle(Data, Call) ->
         {'ok', Params} ->
             maybe_intercept(Data, Call, Params);
         {'error', _E} ->
-            lager:info("Error <<~s>> processing intercept '~s' for number ~s"
-                      ,[_E, InterceptType, Number]
-                      ),
+            lager:info(
+                "Error <<~s>> processing intercept '~s' for number ~s",
+                [_E, InterceptType, Number]
+            ),
             _ = kapps_call_command:b_play(<<"park-no_caller">>, Call),
             cf_exe:stop(Call)
     end.
@@ -82,8 +83,7 @@ handle(Data, Call) ->
 maybe_intercept(Data, Call, Params) ->
     case intercept_restrictions(Data) of
         [] -> maybe_intercept(Call, Params);
-        SParams ->
-            cf_intercept:handle(kz_json:from_list(SParams ++ Params), Call)
+        SParams -> cf_intercept:handle(kz_json:from_list(SParams ++ Params), Call)
     end.
 
 -spec maybe_intercept(kapps_call:call(), kz_term:proplist()) -> 'ok'.
@@ -99,10 +99,12 @@ maybe_intercept(Call, Params) ->
 -spec intercept_restrictions(kz_json:object()) -> kz_term:proplist().
 intercept_restrictions(Data) ->
     props:filter_undefined(
-      [{<<"approved_device_id">>, kz_json:get_ne_binary_value(<<"approved_device_id">>, Data)}
-      ,{<<"approved_user_id">>, kz_json:get_ne_binary_value(<<"approved_user_id">>, Data)}
-      ,{<<"approved_group_id">>, kz_json:get_ne_binary_value(<<"approved_group_id">>, Data)}
-      ]).
+        [
+            {<<"approved_device_id">>, kz_json:get_ne_binary_value(<<"approved_device_id">>, Data)},
+            {<<"approved_user_id">>, kz_json:get_ne_binary_value(<<"approved_user_id">>, Data)},
+            {<<"approved_group_id">>, kz_json:get_ne_binary_value(<<"approved_group_id">>, Data)}
+        ]
+    ).
 
 -spec maybe_allowed_to_intercept(kapps_call:call(), kz_term:proplist()) -> boolean().
 maybe_allowed_to_intercept(Call, Props) ->
@@ -114,12 +116,14 @@ maybe_allowed_to_intercept(Call, Props) ->
             'false'
     end.
 
--spec maybe_allowed_to_intercept(kapps_call:call(), kz_term:proplist(), kz_json:object()) -> boolean().
+-spec maybe_allowed_to_intercept(kapps_call:call(), kz_term:proplist(), kz_json:object()) ->
+    boolean().
 maybe_allowed_to_intercept(Call, Props, DeviceDoc) ->
     case props:get_value(<<"user_id">>, Props) of
         'undefined' ->
             can_device_intercept(Call, Props, DeviceDoc);
-        UserId -> UserId =:= kz_json:get_value(<<"owner_id">>, DeviceDoc)
+        UserId ->
+            UserId =:= kz_json:get_value(<<"owner_id">>, DeviceDoc)
     end.
 
 -spec can_device_intercept(kapps_call:call(), kz_term:proplist(), kz_json:object()) -> boolean().
@@ -127,43 +131,45 @@ can_device_intercept(Call, Props, DeviceDoc) ->
     device_has_same_owner(Call, DeviceDoc, props:get_value(<<"device_id">>, Props)).
 
 -spec device_has_same_owner(kapps_call:call(), kz_json:object(), kz_term:api_binary()) -> boolean().
-device_has_same_owner(_Call, _Device, 'undefined') -> 'false';
+device_has_same_owner(_Call, _Device, 'undefined') ->
+    'false';
 device_has_same_owner(Call, DeviceDoc, TargetDeviceId) ->
     case kz_datamgr:open_cache_doc(kapps_call:account_db(Call), TargetDeviceId) of
         {'ok', TargetDevice} ->
-            kz_json:get_value(<<"owner_id">>, DeviceDoc)
-                =:= kz_json:get_value(<<"owner_id">>, TargetDevice);
+            kz_json:get_value(<<"owner_id">>, DeviceDoc) =:=
+                kz_json:get_value(<<"owner_id">>, TargetDevice);
         {'error', _E} ->
             lager:info("error while opening device ~s: ~p", [TargetDeviceId, _E]),
             'false'
     end.
 
 -spec build_intercept_params(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', kz_term:ne_binary()}.
+    {'ok', kz_term:proplist()}
+    | {'error', kz_term:ne_binary()}.
 build_intercept_params(Number, <<"device">>, Call) ->
     AccountDb = kapps_call:account_db(Call),
     case cf_util:endpoint_id_by_sip_username(AccountDb, Number) of
         {'ok', EndpointId} -> {'ok', [{<<"device_id">>, EndpointId}]};
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 build_intercept_params(_Number, <<"user">>, _Call) ->
     {'error', <<"work in progress">>};
 build_intercept_params(Number, <<"extension">>, Call) ->
     case cf_eavesdrop_feature:get_target_for_extension(Number, Call) of
-        'error' -> {'error', <<"Can't find target for extension ", Number/binary>>};
+        'error' ->
+            {'error', <<"Can't find target for extension ", Number/binary>>};
         {'ok', TargetId, TargetType} ->
             Data = kz_json:from_list([{<<"id">>, TargetId}]),
             params_from_data(TargetType, Data, Call)
     end;
-build_intercept_params(_ ,'undefined', _) ->
+build_intercept_params(_, 'undefined', _) ->
     {'error', <<"parameter 'type' not defined">>};
 build_intercept_params(_, Other, _) ->
-    {'error', <<Other/binary," not implemented">>}.
+    {'error', <<Other/binary, " not implemented">>}.
 
 -spec params_from_data(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', kz_term:ne_binary()}.
+    {'ok', kz_term:proplist()}
+    | {'error', kz_term:ne_binary()}.
 params_from_data(<<"user">>, Data, _Call) ->
     EndpointId = kz_doc:id(Data),
     {'ok', [{<<"user_id">>, EndpointId}]};
@@ -171,7 +177,7 @@ params_from_data(<<"device">>, Data, _Call) ->
     EndpointId = kz_doc:id(Data),
     {'ok', [{<<"device_id">>, EndpointId}]};
 params_from_data(Other, _, _) ->
-    {'error',<<"module ",Other/binary," not implemented">>}.
+    {'error', <<"module ", Other/binary, " not implemented">>}.
 
 -spec no_permission_to_intercept(kapps_call:call()) -> any().
 no_permission_to_intercept(Call) ->

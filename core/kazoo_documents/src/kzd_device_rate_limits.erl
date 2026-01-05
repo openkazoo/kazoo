@@ -15,7 +15,6 @@
 -export([per_second_registrations/1, per_second_registrations/2, set_per_second_registrations/2]).
 -export([per_second_total_packets/1, per_second_total_packets/2, set_per_second_total_packets/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

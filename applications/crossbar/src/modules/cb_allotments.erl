@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_allotments).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,post/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    post/1
+]).
 
 -include("crossbar.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
@@ -106,8 +107,11 @@ post(Context) ->
 -spec load_allotments(cb_context:context()) -> cb_context:context().
 load_allotments(Context) ->
     C = crossbar_doc:load(?PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?PVT_TYPE)),
-    case cb_context:resp_status(C) =:= 'success'
-        andalso not kz_json:is_empty(kz_json:get_json_value(?PVT_ALLOTMENTS, cb_context:doc(C), kz_json:new()))
+    case
+        cb_context:resp_status(C) =:= 'success' andalso
+            not kz_json:is_empty(
+                kz_json:get_json_value(?PVT_ALLOTMENTS, cb_context:doc(C), kz_json:new())
+            )
     of
         'false' ->
             Msg = <<"allotments are not configured for this account yet">>,
@@ -116,79 +120,102 @@ load_allotments(Context) ->
             cb_context:set_resp_data(C, kz_json:get_json_value(?PVT_ALLOTMENTS, cb_context:doc(C)))
     end.
 
-
 -spec load_consumed(cb_context:context(), crossbar_status()) -> cb_context:context().
 load_consumed(Context, 'success') ->
     Allotments = kz_json:get_json_value(?PVT_ALLOTMENTS, cb_context:doc(Context)),
     Mode = get_consumed_mode(Context),
-    {ContextResult, _, Result} = kz_json:foldl(fun foldl_consumed/3, {Context, Mode, kz_json:new()}, Allotments),
+    {ContextResult, _, Result} = kz_json:foldl(
+        fun foldl_consumed/3, {Context, Mode, kz_json:new()}, Allotments
+    ),
     case cb_context:resp_status(ContextResult) of
         'success' ->
-            cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                        ,{fun cb_context:set_resp_data/2, Result}
-                                        ]);
-        _Error -> ContextResult
+            cb_context:setters(Context, [
+                {fun cb_context:set_resp_status/2, 'success'},
+                {fun cb_context:set_resp_data/2, Result}
+            ]);
+        _Error ->
+            ContextResult
     end;
-load_consumed(Context, _) -> Context.
+load_consumed(Context, _) ->
+    Context.
 
 -type mode() :: {kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()}.
 
--spec foldl_consumed(kz_term:ne_binary(), kz_json:object(), CMA) -> CMA when CMA :: {cb_context:context(), mode(), kz_json:objects()}.
-foldl_consumed(Classification, ValueJObj, {Context, {CycleMode, From0, To0}=Mode, Acc}) ->
-    {Cycle, From, To} = case CycleMode =:= <<"cycle">>
-                            andalso kz_json:get_ne_binary_value(<<"cycle">>, ValueJObj)
-                        of
-                            'false' -> {CycleMode, From0, To0};
-                            Value -> {Value, cycle_start(Value, From0), cycle_end(Value, To0)}
-                        end,
-    Options = [{'range_keymap', [Classification]}
-              ,{'created_from', From}
-              ,{'created_to', To}
-              ,{'group_level', 1}
-              ,{'unchunkable', 'true'}
-              ],
+-spec foldl_consumed(kz_term:ne_binary(), kz_json:object(), CMA) -> CMA when
+    CMA :: {cb_context:context(), mode(), kz_json:objects()}.
+foldl_consumed(Classification, ValueJObj, {Context, {CycleMode, From0, To0} = Mode, Acc}) ->
+    {Cycle, From, To} =
+        case
+            CycleMode =:= <<"cycle">> andalso
+                kz_json:get_ne_binary_value(<<"cycle">>, ValueJObj)
+        of
+            'false' -> {CycleMode, From0, To0};
+            Value -> {Value, cycle_start(Value, From0), cycle_end(Value, To0)}
+        end,
+    Options = [
+        {'range_keymap', [Classification]},
+        {'created_from', From},
+        {'created_to', To},
+        {'group_level', 1},
+        {'unchunkable', 'true'}
+    ],
     C1 = crossbar_view:load_modb(Context, ?LIST_CONSUMED, Options),
     case cb_context:resp_status(C1) of
         'success' ->
             {C1, Mode, normalize_result(Cycle, From, To, Acc, cb_context:doc(C1))};
-        CtxErr -> {CtxErr, Mode, Acc}
+        CtxErr ->
+            {CtxErr, Mode, Acc}
     end.
 
-
--spec normalize_result(kz_term:api_ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds(), kz_json:object(), kz_json:objects())
-                      -> kz_json:object().
-normalize_result(_Cycle, _From, _To, Acc, []) -> Acc;
-normalize_result(Cycle, From, To, Acc, [Head|Tail]) ->
+-spec normalize_result(
+    kz_term:api_ne_binary(),
+    kz_time:gregorian_seconds(),
+    kz_time:gregorian_seconds(),
+    kz_json:object(),
+    kz_json:objects()
+) ->
+    kz_json:object().
+normalize_result(_Cycle, _From, _To, Acc, []) ->
+    Acc;
+normalize_result(Cycle, From, To, Acc, [Head | Tail]) ->
     [Classification] = kz_json:get_value(<<"key">>, Head),
     Consumed = kz_json:get_value(<<"value">>, Head),
-    Acc1 = case kz_json:get_value(Classification, Acc) of
-               'undefined' ->
-                   Value = kz_json:set_values(
-                             [{<<"cycle">>, Cycle}
-                             ,{<<"consumed_from">>, From}
-                             ,{<<"consumed_to">>, To}
-                             ,{<<"consumed">>, Consumed}
-                             ], kz_json:new()),
-                   kz_json:set_value(Classification, Value, Acc);
-               AccValue ->
-                   AccConsumed = kz_json:get_integer_value(<<"consumed">>, AccValue),
-                   kz_json:set_value([Classification, <<"consumed">>], AccConsumed + Consumed, Acc)
-           end,
+    Acc1 =
+        case kz_json:get_value(Classification, Acc) of
+            'undefined' ->
+                Value = kz_json:set_values(
+                    [
+                        {<<"cycle">>, Cycle},
+                        {<<"consumed_from">>, From},
+                        {<<"consumed_to">>, To},
+                        {<<"consumed">>, Consumed}
+                    ],
+                    kz_json:new()
+                ),
+                kz_json:set_value(Classification, Value, Acc);
+            AccValue ->
+                AccConsumed = kz_json:get_integer_value(<<"consumed">>, AccValue),
+                kz_json:set_value([Classification, <<"consumed">>], AccConsumed + Consumed, Acc)
+        end,
     normalize_result(Cycle, From, To, Acc1, Tail).
 
 -spec get_consumed_mode(cb_context:context()) -> mode().
 get_consumed_mode(Context) ->
     case
-        {maybe_req_seconds(Context, <<"created_from">>)
-        ,maybe_req_seconds(Context, <<"created_to">>)
+        {
+            maybe_req_seconds(Context, <<"created_from">>),
+            maybe_req_seconds(Context, <<"created_to">>)
         }
     of
         {'undefined', 'undefined'} ->
             NowDateTime = kz_time:now_s(),
             {<<"cycle">>, NowDateTime, NowDateTime};
-        {From, 'undefined'} -> {<<"cycle">>, From, From};
-        {'undefined', To} -> {<<"cycle">>, To, To};
-        {From, To} -> {<<"manual">>, From, To}
+        {From, 'undefined'} ->
+            {<<"cycle">>, From, From};
+        {'undefined', To} ->
+            {<<"cycle">>, To, To};
+        {From, To} ->
+            {<<"manual">>, From, To}
     end.
 
 -spec maybe_req_seconds(cb_context:context(), kz_term:api_binary()) -> kz_time:api_seconds().
@@ -204,9 +231,12 @@ maybe_req_seconds(Context, Key) ->
 on_successful_validation(Context) ->
     case is_allowed(Context) of
         'true' ->
-            maybe_create_limits_doc(crossbar_doc:load(?PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?PVT_TYPE)));
+            maybe_create_limits_doc(
+                crossbar_doc:load(?PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?PVT_TYPE))
+            );
         'false' ->
-            Msg = <<"sub-accounts of non-master resellers must contact the reseller to change their allotments">>,
+            Msg =
+                <<"sub-accounts of non-master resellers must contact the reseller to change their allotments">>,
             crossbar_util:response_400(Msg, kz_json:new(), Context)
     end.
 
@@ -231,7 +261,9 @@ is_allowed(Context) ->
             lager:debug("allowing system admin to update allotments"),
             'true';
         _Else ->
-            lager:debug("sub-accounts of non-master resellers must contact the reseller to change their allotments"),
+            lager:debug(
+                "sub-accounts of non-master resellers must contact the reseller to change their allotments"
+            ),
             'false'
     end.
 
@@ -248,13 +280,19 @@ maybe_create_limits_doc(Context) ->
 maybe_create_limits_doc(Context, 404) ->
     Data = cb_context:req_data(Context),
     NewLimits = kz_json:from_list([{<<"pvt_type">>, ?PVT_TYPE}, {<<"_id">>, ?PVT_TYPE}]),
-    JObj = kz_json_schema:add_defaults(kz_json:merge_jobjs(NewLimits, kz_doc:public_fields(Data)), <<"limits">>),
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, 'success'}
-                       ,{fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)}
-                       ,{fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
-                       ]);
-maybe_create_limits_doc(Context, _RespCode) -> Context.
+    JObj = kz_json_schema:add_defaults(
+        kz_json:merge_jobjs(NewLimits, kz_doc:public_fields(Data)), <<"limits">>
+    ),
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, 'success'},
+            {fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)},
+            {fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
+        ]
+    );
+maybe_create_limits_doc(Context, _RespCode) ->
+    Context.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -268,7 +306,8 @@ update_allotments(Context) ->
     Context1 = crossbar_doc:save(cb_context:set_doc(Context, NewDoc)),
     cb_context:set_resp_data(Context1, Allotments).
 
--spec cycle_start(kz_term:api_ne_binary(), kz_time:datetime() | kz_time:gregorian_seconds()) -> kz_time:gregorian_seconds().
+-spec cycle_start(kz_term:api_ne_binary(), kz_time:datetime() | kz_time:gregorian_seconds()) ->
+    kz_time:gregorian_seconds().
 cycle_start(Cycle, Seconds) when is_integer(Seconds) ->
     cycle_start(Cycle, calendar:gregorian_seconds_to_datetime(Seconds));
 cycle_start(<<"monthly">>, {{Year, Month, _}, _}) ->
@@ -276,7 +315,7 @@ cycle_start(<<"monthly">>, {{Year, Month, _}, _}) ->
 cycle_start(<<"weekly">>, {Date, _}) ->
     calendar:datetime_to_gregorian_seconds({Date, {0, 0, 0}}) -
         (calendar:day_of_the_week(Date) - 1) * ?SECONDS_IN_DAY;
-cycle_start(<<"daily">>,  {{Year, Month, Day}, _}) ->
+cycle_start(<<"daily">>, {{Year, Month, Day}, _}) ->
     calendar:datetime_to_gregorian_seconds({{Year, Month, Day}, {0, 0, 0}});
 cycle_start(<<"hourly">>, {{Year, Month, Day}, {Hour, _, _}}) ->
     calendar:datetime_to_gregorian_seconds({{Year, Month, Day}, {Hour, 0, 0}});
@@ -285,14 +324,20 @@ cycle_start(<<"minutely">>, {{Year, Month, Day}, {Hour, Min, _}}) ->
 cycle_start(_, {{Year, Month, Day}, {Hour, _, _}}) ->
     calendar:datetime_to_gregorian_seconds({{Year, Month, Day}, {Hour, 0, 0}}).
 
--spec cycle_end(kz_term:api_ne_binary(), kz_time:datetime() | kz_time:gregorian_seconds()) -> kz_time:gregorian_seconds().
+-spec cycle_end(kz_term:api_ne_binary(), kz_time:datetime() | kz_time:gregorian_seconds()) ->
+    kz_time:gregorian_seconds().
 cycle_end(Cycle, Seconds) when is_integer(Seconds) ->
     cycle_end(Cycle, calendar:gregorian_seconds_to_datetime(Seconds));
 cycle_end(<<"monthly">>, {{Year, Month, _}, _}) ->
     LastDay = calendar:last_day_of_the_month(Year, Month),
     calendar:datetime_to_gregorian_seconds({{Year, Month, LastDay}, {23, 59, 59}}) + 1;
-cycle_end(<<"weekly">>, DateTime)   -> cycle_start(<<"weekly">>, DateTime)   + ?SECONDS_IN_WEEK;
-cycle_end(<<"daily">>, DateTime)    -> cycle_start(<<"daily">>, DateTime)    + ?SECONDS_IN_DAY;
-cycle_end(<<"hourly">>, DateTime)   -> cycle_start(<<"hourly">>, DateTime)   + ?SECONDS_IN_HOUR;
-cycle_end(<<"minutely">>, DateTime) -> cycle_start(<<"minutely">>, DateTime) + ?SECONDS_IN_MINUTE;
-cycle_end(_, DateTime)              -> cycle_start(<<"hourly">>, DateTime)   + ?SECONDS_IN_HOUR.
+cycle_end(<<"weekly">>, DateTime) ->
+    cycle_start(<<"weekly">>, DateTime) + ?SECONDS_IN_WEEK;
+cycle_end(<<"daily">>, DateTime) ->
+    cycle_start(<<"daily">>, DateTime) + ?SECONDS_IN_DAY;
+cycle_end(<<"hourly">>, DateTime) ->
+    cycle_start(<<"hourly">>, DateTime) + ?SECONDS_IN_HOUR;
+cycle_end(<<"minutely">>, DateTime) ->
+    cycle_start(<<"minutely">>, DateTime) + ?SECONDS_IN_MINUTE;
+cycle_end(_, DateTime) ->
+    cycle_start(<<"hourly">>, DateTime) + ?SECONDS_IN_HOUR.

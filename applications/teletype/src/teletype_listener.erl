@@ -6,18 +6,20 @@
 -module(teletype_listener).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_message/2
-        ]).
+-export([
+    start_link/0,
+    handle_message/2
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("teletype.hrl").
 
@@ -27,10 +29,7 @@
 -type state() :: #state{}.
 
 -define(BINDINGS, [{'self', []}]).
--define(RESPONDERS, [{{?MODULE, 'handle_message'}
-                     ,[{<<"*">>, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_message'}, [{<<"*">>, <<"*">>}]}]).
 
 %%%=============================================================================
 %%% API
@@ -42,12 +41,14 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS}
+        ],
+        []
+    ).
 
 -spec handle_message(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_message(JObj, _Props) ->

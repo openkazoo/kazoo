@@ -8,20 +8,22 @@
 -module(kapps_controller).
 
 %% API
--export([start_link/0
-        ,ready/0, ready/1
-        ,start_app/1
-        ,start_default_apps/0
-        ,stop_app/1
-        ,restart_app/1
-        ,running_apps/0, running_apps/1
-        ,list_apps/0
-        ,start_which_kapps/0
-        ]).
+-export([
+    start_link/0,
+    ready/0, ready/1,
+    start_app/1,
+    start_default_apps/0,
+    stop_app/1,
+    restart_app/1,
+    running_apps/0, running_apps/1,
+    list_apps/0,
+    start_which_kapps/0
+]).
 
--export([binding_fetch_app/2, binding_fetch_app/3
-        ,unbinding_fetch_app/2, unbinding_fetch_app/3
-        ]).
+-export([
+    binding_fetch_app/2, binding_fetch_app/3,
+    unbinding_fetch_app/2, unbinding_fetch_app/3
+]).
 
 -include("kazoo_apps.hrl").
 
@@ -80,41 +82,45 @@ ready(Verbose) ->
     Configured = [kz_term:to_binary(App) || App <- start_which_kapps(Verbose)],
     Running = [kz_term:to_binary(App) || App <- running_apps(), is_atom(App)],
 
-    0 =:= sets:size(
-            sets:subtract(sets:from_list(Configured)
-                         ,sets:from_list(Running)
-                         )
-           ).
+    0 =:=
+        sets:size(
+            sets:subtract(
+                sets:from_list(Configured),
+                sets:from_list(Running)
+            )
+        ).
 
 -spec start_default_apps() -> [{atom(), 'ok' | {'error', any()}}].
 start_default_apps() ->
     [{App, start_app(App)} || App <- ?DEFAULT_KAPPS].
 
 -spec start_app(atom() | nonempty_string() | kz_term:ne_binary()) ->
-          {'ok', kz_term:atoms()} |
-          {'error', any()}.
+    {'ok', kz_term:atoms()}
+    | {'error', any()}.
 start_app(App) when is_atom(App) ->
     NowMs = kz_time:now(),
     case application:ensure_all_started(App) of
-        {'ok', Started}=OK ->
+        {'ok', Started} = OK ->
             lager:info("started ~s in ~pms", [App, kz_time:elapsed_ms(NowMs)]),
             _ = [kz_nodes_bindings:bind(A) || A <- [App | Started], is_kapp(A)],
             OK;
         {'error', {App, {"no such file or directory", DotApp}}} ->
             lager:info("app ~s (~s) not found, asking around", [App, DotApp]),
             maybe_load_external_app(App);
-        {'error', _E}=E ->
+        {'error', _E} = E ->
             lager:error("~s could not start: ~p", [App, _E]),
             E
     end;
 start_app(App) ->
     start_app(kz_term:to_atom(App, 'true')).
 
--spec maybe_load_external_app(atom()) -> {'ok', kz_term:atoms()} |
-          {'error', any()}.
+-spec maybe_load_external_app(atom()) ->
+    {'ok', kz_term:atoms()}
+    | {'error', any()}.
 maybe_load_external_app(App) ->
     case lists:any(fun kz_term:is_true/1, kazoo_bindings:map(<<"app.fetch">>, App)) of
-        'true' -> start_app(App);
+        'true' ->
+            start_app(App);
         'false' ->
             lager:info("failed to find app ~s in external sources", [App]),
             {'error', 'not_found'}
@@ -128,7 +134,7 @@ stop_app(App) when is_atom(App) ->
             lager:info("stopped kazoo application ~s", [App]);
         {'error', {'not_started', App}} ->
             lager:error("~s is not currently running", [App]);
-        {'error', _E}=Err ->
+        {'error', _E} = Err ->
             lager:error("error stopping application ~s: ~p", [App, _E]),
             Err
     end;
@@ -157,27 +163,32 @@ running_apps(Verbose) ->
 -spec running_apps_verbose() -> kz_term:atoms() | string().
 running_apps_verbose() ->
     case get_running_apps() of
-        [] -> "kapps have not started yet, check that rabbitmq and BigCouch/haproxy are running at the configured addresses";
+        [] ->
+            "kapps have not started yet, check that rabbitmq and BigCouch/haproxy are running at the configured addresses";
         Resp ->
             lists:sort(
-              [kz_term:to_binary(io_lib:format("~s(~s): ~s~n", [App, Vsn, Desc]))
-               || {App, Desc, Vsn} <- Resp
-              ]
-             )
+                [
+                    kz_term:to_binary(io_lib:format("~s(~s): ~s~n", [App, Vsn, Desc]))
+                 || {App, Desc, Vsn} <- Resp
+                ]
+            )
     end.
 
 -spec get_running_apps() -> [{atom(), string(), _}].
 get_running_apps() ->
-    [AppData
-     || {App, _Desc, _Vsn}=AppData <- application:which_applications(),
+    [
+        AppData
+     || {App, _Desc, _Vsn} = AppData <- application:which_applications(),
         is_kapp(App)
     ].
 
 -spec running_apps_list() -> kz_term:atoms() | string().
 running_apps_list() ->
     case get_running_apps() of
-        [] -> "kapps have not started yet, check that rabbitmq and BigCouch/haproxy are running at the configured addresses";
-        Resp -> lists:sort([App || {App, _Desc, _Vsn} <- Resp])
+        [] ->
+            "kapps have not started yet, check that rabbitmq and BigCouch/haproxy are running at the configured addresses";
+        Resp ->
+            lists:sort([App || {App, _Desc, _Vsn} <- Resp])
     end.
 
 -spec initialize_kapps() -> 'ok'.
@@ -185,13 +196,18 @@ initialize_kapps() ->
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
     _ = kapps_maintenance:init_system(),
     kapps_config:migrate(),
-    ToStart = lists:sort(fun sysconf_first/2
-                        ,[kz_term:to_atom(KApp, 'true')
-                          || KApp <- start_which_kapps()
-                         ]),
-    Started = [KApp || KApp <- ToStart,
-                       {'ok',_} <- [start_app(KApp)]
-              ],
+    ToStart = lists:sort(
+        fun sysconf_first/2,
+        [
+            kz_term:to_atom(KApp, 'true')
+         || KApp <- start_which_kapps()
+        ]
+    ),
+    Started = [
+        KApp
+     || KApp <- ToStart,
+        {'ok', _} <- [start_app(KApp)]
+    ],
     lager:notice("auto-started kapps ~p", [lists:sort(Started)]).
 
 -spec start_which_kapps() -> [kz_term:ne_binary() | atom() | nonempty_string()].
@@ -199,43 +215,47 @@ start_which_kapps() ->
     start_which_kapps('true').
 
 start_which_kapps(Verbose) ->
-    Routines = [fun maybe_start_from_env/1
-               ,fun maybe_start_from_node_config/1
-               ,fun maybe_start_from_node_name/1
-               ,fun start_from_default_config/1
-               ],
-    lists:foldl(fun(F, 'false') -> F(Verbose);
-                   (_, Apps) -> Apps
-                end
-               ,'false'
-               ,Routines
-               ).
+    Routines = [
+        fun maybe_start_from_env/1,
+        fun maybe_start_from_node_config/1,
+        fun maybe_start_from_node_name/1,
+        fun start_from_default_config/1
+    ],
+    lists:foldl(
+        fun
+            (F, 'false') -> F(Verbose);
+            (_, Apps) -> Apps
+        end,
+        'false',
+        Routines
+    ).
 
 -spec maybe_start_from_env(boolean()) -> 'false' | [nonempty_string()].
 maybe_start_from_env(Verbose) ->
     case os:getenv("KAZOO_APPS", "noenv") of
-        "noenv" -> 'false';
+        "noenv" ->
+            'false';
         KazooApps ->
-            log_verbose(Verbose
-                       ,"starting applications specified in environment variable KAZOO_APPS: ~s"
-                       ,[KazooApps]
-                       ),
+            log_verbose(
+                Verbose,
+                "starting applications specified in environment variable KAZOO_APPS: ~s",
+                [KazooApps]
+            ),
             string:tokens(KazooApps, ", ")
     end.
 
 log_verbose('false', _Fmt) -> 'ok';
-log_verbose('true', Fmt) ->
-    lager:info(Fmt).
+log_verbose('true', Fmt) -> lager:info(Fmt).
 
 log_verbose('false', _Fmt, _Args) -> 'ok';
-log_verbose('true', Fmt, Args) ->
-    lager:info(Fmt, Args).
+log_verbose('true', Fmt, Args) -> lager:info(Fmt, Args).
 
 -spec maybe_start_from_node_name(boolean()) -> 'false' | kz_term:atoms().
 maybe_start_from_node_name(Verbose) ->
     KApp = kapp_from_node_name(),
     case application:load(KApp) of
-        'ok' -> maybe_start_from_node_name(Verbose, KApp);
+        'ok' ->
+            maybe_start_from_node_name(Verbose, KApp);
         {'error', {'already_loaded', KApp}} ->
             maybe_start_from_node_name(Verbose, KApp);
         _Else ->
@@ -258,12 +278,14 @@ maybe_start_from_node_name(Verbose, KApp) ->
 -spec maybe_start_from_node_config(boolean()) -> 'false' | [kz_term:ne_binary() | atom()].
 maybe_start_from_node_config(Verbose) ->
     case kapps_config:get_node_value(<<?MODULE_STRING>>, <<"kapps">>) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         KazooApps ->
-            log_verbose(Verbose
-                       ,"starting applications configured specifically for this node: ~s"
-                       ,[kz_binary:join(KazooApps, <<", ">>)]
-                       ),
+            log_verbose(
+                Verbose,
+                "starting applications configured specifically for this node: ~s",
+                [kz_binary:join(KazooApps, <<", ">>)]
+            ),
             KazooApps
     end.
 

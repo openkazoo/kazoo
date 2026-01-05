@@ -8,14 +8,15 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("call_inspector.hrl").
 
@@ -24,16 +25,14 @@
 -record(state, {}).
 -type state() :: #state{}.
 
--define(BINDINGS, [{'self', []}
-                  ,{'inspector', ['federate']}
-                  ]).
--define(RESPONDERS, [{'ci_lookup_req'
-                     ,[{<<"call_inspector">>, <<"lookup_req">>}]
-                     }
-                    ,{'ci_filter_req'
-                     ,[{<<"call_inspector">>, <<"filter_req">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'self', []},
+    {'inspector', ['federate']}
+]).
+-define(RESPONDERS, [
+    {'ci_lookup_req', [{<<"call_inspector">>, <<"lookup_req">>}]},
+    {'ci_filter_req', [{<<"call_inspector">>, <<"filter_req">>}]}
+]).
 
 %%%=============================================================================
 %%% API
@@ -45,12 +44,14 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks

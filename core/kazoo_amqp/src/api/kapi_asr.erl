@@ -22,30 +22,36 @@
 -define(KEY_ASR_REQ, <<"asr.req">>).
 
 %% ASR Request - when Speech to text is desired
--define(ASR_REQ_HEADERS, [<<"ASR-Endpoint">>, <<"ASR-Account-ID">>, <<"ASR-Account-Password">>, <<"Call-ID">>
-                         ,<<"Control-Queue">>
-                         ]).
+-define(ASR_REQ_HEADERS, [
+    <<"ASR-Endpoint">>,
+    <<"ASR-Account-ID">>,
+    <<"ASR-Account-Password">>,
+    <<"Call-ID">>,
+    <<"Control-Queue">>
+]).
 -define(OPTIONAL_ASR_REQ_HEADERS, [<<"Language">>, <<"Stream-Response">>]).
--define(ASR_REQ_VALUES, [{<<"Event-Category">>, <<"asr">>}
-                        ,{<<"Event-Name">>, <<"req">>}
-                        ]).
--define(ASR_REQ_TYPES, [{<<"Stream-Response">>, fun kz_term:is_boolean/1}
-                       ]).
+-define(ASR_REQ_VALUES, [
+    {<<"Event-Category">>, <<"asr">>},
+    {<<"Event-Name">>, <<"req">>}
+]).
+-define(ASR_REQ_TYPES, [{<<"Stream-Response">>, fun kz_term:is_boolean/1}]).
 
 %% Asr Response
 -define(ASR_RESP_HEADERS, [<<"Response-Text">>]).
 -define(OPTIONAL_ASR_RESP_HEADERS, []).
--define(ASR_RESP_VALUES, [{<<"Event-Category">>, <<"asr">>}
-                         ,{<<"Event-Name">>, <<"resp">>}
-                         ]).
+-define(ASR_RESP_VALUES, [
+    {<<"Event-Category">>, <<"asr">>},
+    {<<"Event-Name">>, <<"resp">>}
+]).
 -define(ASR_RESP_TYPES, []).
 
 %% Asr Error
 -define(ASR_ERROR_HEADERS, [<<"Error-Code">>, <<"Error-Msg">>]).
 -define(OPTIONAL_ASR_ERROR_HEADERS, []).
--define(ASR_ERROR_VALUES, [{<<"Event-Category">>, <<"asr">>}
-                          ,{<<"Event-Name">>, <<"error">>}
-                          ]).
+-define(ASR_ERROR_VALUES, [
+    {<<"Event-Category">>, <<"asr">>},
+    {<<"Event-Name">>, <<"error">>}
+]).
 -define(ASR_ERROR_TYPES, []).
 
 %%------------------------------------------------------------------------------

@@ -8,23 +8,24 @@
 
 -export([start_link/1, start_link/2]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {node = 'undefined' :: atom()
-               ,event :: kz_term:ne_binary()
-               ,options = [] :: kz_term:proplist()
-               }).
+-record(state, {
+    node = 'undefined' :: atom(),
+    event :: kz_term:ne_binary(),
+    options = [] :: kz_term:proplist()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -56,7 +57,7 @@ init([Node, Options]) ->
     kz_util:put_callid(Node),
     Event = application:get_env(?APP, 'presence_event', <<"PRESENCE_IN">>),
     gen_server:cast(self(), 'bind_to_record'),
-    {'ok', #state{node=Node, event = Event, options=Options}}.
+    {'ok', #state{node = Node, event = Event, options = Options}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -71,9 +72,10 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast('bind_to_record', #state{node=Node, event=Event}=State) ->
-    case gproc:reg({'p', 'l', ?FS_EVENT_REG_MSG(Node, Event)}) =:= 'true'
-        andalso gproc:reg({'p', 'l', ?FS_OPTION_MSG(Node)}) =:= 'true'
+handle_cast('bind_to_record', #state{node = Node, event = Event} = State) ->
+    case
+        gproc:reg({'p', 'l', ?FS_EVENT_REG_MSG(Node, Event)}) =:= 'true' andalso
+            gproc:reg({'p', 'l', ?FS_OPTION_MSG(Node)}) =:= 'true'
     of
         'true' -> {'noreply', State};
         'false' -> {'stop', 'gproc_badarg', State}
@@ -87,14 +89,18 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'event', [UUID | Props]}, #state{node=Node
-                                             ,options=Options
-                                             ,event=Event
-                                             }=State) ->
+handle_info(
+    {'event', [UUID | Props]},
+    #state{
+        node = Node,
+        options = Options,
+        event = Event
+    } = State
+) ->
     _ = kz_util:spawn(fun handle_presence_event/5, [Event, UUID, Props, Node, Options]),
     {'noreply', State};
-handle_info({'option', K, V}, #state{options=Options}=State) ->
-    {'noreply', State#state{options=props:set_value(K, V, Options)}};
+handle_info({'option', K, V}, #state{options = Options} = State) ->
+    {'noreply', State#state{options = props:set_value(K, V, Options)}};
 handle_info(_Other, State) ->
     lager:debug("unhandled msg: ~p", [_Other]),
     {'noreply', State}.
@@ -108,7 +114,7 @@ handle_info(_Other, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> ok.
-terminate(_Reason, #state{node=Node}) ->
+terminate(_Reason, #state{node = Node}) ->
     lager:info("presence listener for ~s terminating: ~p", [Node, _Reason]).
 
 %%------------------------------------------------------------------------------
@@ -135,29 +141,42 @@ init_props(FSProps, Options) ->
                 'true' -> props:set_value(<<"Publish-Channel-State">>, 'false', FSProps);
                 _ -> FSProps
             end;
-        _Value -> FSProps
+        _Value ->
+            FSProps
     end.
 
--spec handle_presence_event(kz_term:ne_binary(), kz_term:api_binary(), kzd_freeswitch:data(), atom(), kz_term:proplist()) -> any().
+-spec handle_presence_event(
+    kz_term:ne_binary(), kz_term:api_binary(), kzd_freeswitch:data(), atom(), kz_term:proplist()
+) -> any().
 handle_presence_event(BindingEvent, UUID, FSProps, Node, Options) ->
     kz_util:put_callid(UUID),
     InitProps = init_props(FSProps, Options),
-    EventName = props:get_value(<<"Event-Subclass">>, InitProps, kzd_freeswitch:event_name(InitProps)),
+    EventName = props:get_value(
+        <<"Event-Subclass">>, InitProps, kzd_freeswitch:event_name(InitProps)
+    ),
     process_specific_event(BindingEvent, EventName, UUID, InitProps, Node).
 
--spec process_specific_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary(), kzd_freeswitch:data(), atom()) -> any().
+-spec process_specific_event(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary(), kzd_freeswitch:data(), atom()
+) -> any().
 process_specific_event(Event, Event, UUID, FSProps, Node) ->
     maybe_build_presence_event(Node, UUID, FSProps).
 
 -spec maybe_build_presence_event(atom(), kz_term:api_binary(), kzd_freeswitch:data()) -> any().
 maybe_build_presence_event(Node, UUID, FSProps) ->
-    Routines = [fun check_proto/3
-               ,fun check_publish_state/3
-               ],
+    Routines = [
+        fun check_proto/3,
+        fun check_publish_state/3
+    ],
     case lists:all(fun(F) -> F(Node, UUID, FSProps) end, Routines) of
-        'false' -> 'ok';
+        'false' ->
+            'ok';
         'true' ->
-            case kapps_config:get_boolean(?APP_NAME, <<"restrict_presence_event_publisher">>, 'false') of
+            case
+                kapps_config:get_boolean(
+                    ?APP_NAME, <<"restrict_presence_event_publisher">>, 'false'
+                )
+            of
                 'false' -> build_presence_event(Node, UUID, FSProps);
                 'true' -> maybe_build_restricted(Node, UUID, FSProps)
             end
@@ -168,14 +187,21 @@ maybe_build_restricted(Node, UUID, FSProps) ->
     EcallmgrNode = kz_term:to_binary(node()),
     State = presence_status(FSProps),
     {FromUser, Realm} = get_user_realm(FSProps),
-    ToUser =  to_user(FSProps),
+    ToUser = to_user(FSProps),
 
     case props:get_value(?GET_CCV(<<"Ecallmgr-Node">>), FSProps) of
         'undefined' ->
-            lager:debug("presence ~s to ~s/~s in realm ~s not assigned an ecallmgr, not sending", [State, FromUser, ToUser, Realm]);
-        EcallmgrNode -> build_presence_event(Node, UUID, FSProps);
+            lager:debug("presence ~s to ~s/~s in realm ~s not assigned an ecallmgr, not sending", [
+                State, FromUser, ToUser, Realm
+            ]);
+        EcallmgrNode ->
+            build_presence_event(Node, UUID, FSProps);
         _EventEcallmgr ->
-            lager:debug("presence ~s to ~s/~s in realm ~s handled by another ecallmgr(~s), not sending", [State, FromUser, ToUser, Realm, _EventEcallmgr])
+            lager:debug(
+                "presence ~s to ~s/~s in realm ~s handled by another ecallmgr(~s), not sending", [
+                    State, FromUser, ToUser, Realm, _EventEcallmgr
+                ]
+            )
     end.
 
 -spec check_proto(atom(), kz_term:api_binary(), kzd_freeswitch:data()) -> boolean().
@@ -184,27 +210,30 @@ check_proto(_Node, _UUID, FSProps) ->
     check_proto(Proto).
 
 -spec check_proto(kz_term:api_binary()) -> boolean().
-check_proto(<<"any">>) -> 'true';
+check_proto(<<"any">>) ->
+    'true';
 check_proto(_Proto) ->
     lager:debug("presence proto ~p not handled", [_Proto]),
     'false'.
 
 -spec check_publish_state(atom(), kz_term:api_binary(), kzd_freeswitch:data()) -> boolean().
 check_publish_state(_Node, _UUID, FSProps) ->
-    props:is_true(<<"Force-Publish-Event-State">>, FSProps, 'false')
-        orelse props:is_true(<<"Publish-Channel-State">>, FSProps, 'true').
+    props:is_true(<<"Force-Publish-Event-State">>, FSProps, 'false') orelse
+        props:is_true(<<"Publish-Channel-State">>, FSProps, 'true').
 
 -spec realm(kzd_freeswitch:data()) -> kz_term:ne_binary().
 realm(FSProps) ->
-    props:get_first_defined([?GET_CCV(<<"Realm">>)
-                            ,<<"variable_sip_invite_domain">>
-                            ,<<"variable_sip_auth_realm">>
-                            ,<<"variable_sip_to_host">>
-                            ,<<"variable_domain_name">>
-                            ]
-                           ,FSProps
-                           ,?DEFAULT_REALM
-                           ).
+    props:get_first_defined(
+        [
+            ?GET_CCV(<<"Realm">>),
+            <<"variable_sip_invite_domain">>,
+            <<"variable_sip_auth_realm">>,
+            <<"variable_sip_to_host">>,
+            <<"variable_domain_name">>
+        ],
+        FSProps,
+        ?DEFAULT_REALM
+    ).
 
 -spec get_user_realm(kzd_freeswitch:data()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 get_user_realm(FSProps) ->
@@ -215,12 +244,14 @@ get_user_realm(FSProps) ->
 
 -spec from(kzd_freeswitch:data()) -> kz_term:ne_binary().
 from(FSProps) ->
-    props:get_first_defined([<<"from">>
-                            ,<<"variable_presence_id">>
-                            ,<<"Channel-Presence-ID">>
-                            ]
-                           ,FSProps
-                           ).
+    props:get_first_defined(
+        [
+            <<"from">>,
+            <<"variable_presence_id">>,
+            <<"Channel-Presence-ID">>
+        ],
+        FSProps
+    ).
 
 -spec presence_id(kzd_freeswitch:data(), kz_term:ne_binary()) -> kz_term:ne_binary().
 presence_id(FSProps, Realm) ->
@@ -232,19 +263,23 @@ to_user(FSProps) ->
     to_user(direction(FSProps), FSProps).
 
 to_user(<<"initiator">>, FSProps) ->
-    props:get_first_defined([<<"Caller-Destination-Number">>
-                            ,<<"variable_sip_to_user">>
-                            ]
-                           ,FSProps
-                           ,<<"unknown">>
-                           );
+    props:get_first_defined(
+        [
+            <<"Caller-Destination-Number">>,
+            <<"variable_sip_to_user">>
+        ],
+        FSProps,
+        <<"unknown">>
+    );
 to_user(<<"recipient">>, FSProps) ->
-    props:get_first_defined([<<"Caller-Caller-ID-Number">>
-                            ,<<"variable_sip_from_user">>
-                            ]
-                           ,FSProps
-                           ,<<"unknown">>
-                           ).
+    props:get_first_defined(
+        [
+            <<"Caller-Caller-ID-Number">>,
+            <<"variable_sip_from_user">>
+        ],
+        FSProps,
+        <<"unknown">>
+    ).
 
 -spec expires(kz_term:ne_binary()) -> integer().
 expires(<<"early">>) -> 0;
@@ -259,45 +294,48 @@ build_presence_event(_Node, UUID, FSProps) ->
     {FromUser, Realm} = get_user_realm(FSProps),
     PresenceId = presence_id(FSProps, Realm),
 
-    PresenceURI =  <<"sip:", PresenceId/binary>>,
+    PresenceURI = <<"sip:", PresenceId/binary>>,
 
-    ToUser =  to_user(FSProps),
-    To =  <<ToUser/binary, "@", Realm/binary>>,
-    ToURI =  <<"sip:", To/binary>>,
+    ToUser = to_user(FSProps),
+    To = <<ToUser/binary, "@", Realm/binary>>,
+    ToURI = <<"sip:", To/binary>>,
 
     State = presence_status(FSProps),
     Expires = expires(State),
     SwitchURI = kzd_freeswitch:switch_uri(FSProps),
 
     Payload = props:filter_undefined(
-                [{<<"Presence-ID">>, PresenceId}
+        [
+            {<<"Presence-ID">>, PresenceId},
 
-                ,{<<"From">>, PresenceURI}
-                ,{<<"From-User">>, FromUser}
-                ,{<<"From-Realm">>, Realm}
-                ,{<<"From-Tag">>, FromTag}
+            {<<"From">>, PresenceURI},
+            {<<"From-User">>, FromUser},
+            {<<"From-Realm">>, Realm},
+            {<<"From-Tag">>, FromTag},
 
-                ,{<<"To">>, ToURI}
-                ,{<<"To-User">>, ToUser}
-                ,{<<"To-Realm">>, Realm}
-                ,{<<"To-Tag">>, ToTag}
-                ,{<<"To-URI">>, PresenceURI}
+            {<<"To">>, ToURI},
+            {<<"To-User">>, ToUser},
+            {<<"To-Realm">>, Realm},
+            {<<"To-Tag">>, ToTag},
+            {<<"To-URI">>, PresenceURI},
 
-                ,{<<"Direction">>, direction(FSProps)}
-                ,{<<"State">>, State}
-                ,{<<"Call-ID">>, UUID}
-                ,{<<"Switch-URI">>, SwitchURI}
-                ,{<<"Expires">>, Expires}
-                ,{<<"Event-Package">>, <<"dialog">>}
-                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                ]),
+            {<<"Direction">>, direction(FSProps)},
+            {<<"State">>, State},
+            {<<"Call-ID">>, UUID},
+            {<<"Switch-URI">>, SwitchURI},
+            {<<"Expires">>, Expires},
+            {<<"Event-Package">>, <<"dialog">>}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     lager:debug("sending presence ~s to ~s/~s in realm ~s", [State, FromUser, ToUser, Realm]),
     _ = maybe_delay(State),
     kz_amqp_worker:cast(Payload, fun kapi_presence:publish_dialog/1).
 
 maybe_delay(<<"terminated">>) ->
     timer:sleep(?MILLISECONDS_IN_SECOND);
-maybe_delay(_) -> 'ok'.
+maybe_delay(_) ->
+    'ok'.
 
 -spec direction(kzd_freeswitch:data()) -> kz_term:ne_binary().
 direction(FSProps) ->
@@ -321,11 +359,19 @@ presence_status(FSProps) ->
     Direction = direction(FSProps),
     presence_status(Direction, Status, AnswerState).
 
--spec presence_status(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
-presence_status(_, _, <<"answered">>) -> <<"confirmed">>;
-presence_status(_, _, <<"hangup">>) -> <<"terminated">>;
-presence_status(_, <<"hangup">>, _) -> <<"terminated">>;
-presence_status(Direction, <<"cs_", Status/binary>>, AnswerState) -> presence_status(Direction, Status, AnswerState);
-presence_status(<<"initiator">>, _, <<"ringing">>) -> <<"confirmed">>;
-presence_status(<<"recipient">>, _, <<"ringing">>) -> <<"early">>;
-presence_status(_ , _, AnswerState) -> AnswerState.
+-spec presence_status(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
+presence_status(_, _, <<"answered">>) ->
+    <<"confirmed">>;
+presence_status(_, _, <<"hangup">>) ->
+    <<"terminated">>;
+presence_status(_, <<"hangup">>, _) ->
+    <<"terminated">>;
+presence_status(Direction, <<"cs_", Status/binary>>, AnswerState) ->
+    presence_status(Direction, Status, AnswerState);
+presence_status(<<"initiator">>, _, <<"ringing">>) ->
+    <<"confirmed">>;
+presence_status(<<"recipient">>, _, <<"ringing">>) ->
+    <<"early">>;
+presence_status(_, _, AnswerState) ->
+    AnswerState.

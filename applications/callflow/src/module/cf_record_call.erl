@@ -20,12 +20,14 @@
 
 -spec handle(kz_json:object(), kapps_call:call()) -> 'ok'.
 handle(Data0, Call) ->
-    Label = kz_json:get_ne_binary_value(<<"label">>, Data0, kapps_call:kvs_fetch('cf_flow_name', Call)),
+    Label = kz_json:get_ne_binary_value(
+        <<"label">>, Data0, kapps_call:kvs_fetch('cf_flow_name', Call)
+    ),
     Origin = <<"callflow : ", Label/binary>>,
     Data = kz_json:set_value(<<"origin">>, Origin, Data0),
     cf_exe:continue(
-      handle(Data, Call, get_action(Data))
-     ).
+        handle(Data, Call, get_action(Data))
+    ).
 
 -spec handle(kz_json:object(), kapps_call:call(), kz_term:ne_binary()) -> kapps_call:call().
 handle(Data, Call, <<"start">>) ->
@@ -33,7 +35,6 @@ handle(Data, Call, <<"start">>) ->
     Call1 = kapps_call:kvs_store('recording_follow_transfer', ShouldFollowTransfer, Call),
     lager:info("starting call recording via action (follow transfer: ~s)", [ShouldFollowTransfer]),
     cf_exe:update_call(kapps_call:start_recording(Data, Call1));
-
 handle(_Data, Call, <<"stop">>) ->
     cf_exe:update_call(kapps_call:stop_recording(Call)).
 

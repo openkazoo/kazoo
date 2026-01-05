@@ -18,7 +18,9 @@
 -export([from_number/1, from_number/2, set_from_number/2]).
 -export([notifications/1, notifications/2, set_notifications/2]).
 -export([notifications_email/1, notifications_email/2, set_notifications_email/2]).
--export([notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2]).
+-export([
+    notifications_email_send_to/1, notifications_email_send_to/2, set_notifications_email_send_to/2
+]).
 -export([notifications_sms/1, notifications_sms/2, set_notifications_sms/2]).
 -export([notifications_sms_send_to/1, notifications_sms_send_to/2, set_notifications_sms_send_to/2]).
 -export([retries/1, retries/2, set_retries/2]).
@@ -27,13 +29,15 @@
 -export([tx_result/1, tx_result/2, set_tx_result/2]).
 -export([tx_result_error_message/1, tx_result_error_message/2, set_tx_result_error_message/2]).
 -export([tx_result_fax_bad_rows/1, tx_result_fax_bad_rows/2, set_tx_result_fax_bad_rows/2]).
--export([tx_result_fax_error_correction/1, tx_result_fax_error_correction/2, set_tx_result_fax_error_correction/2]).
+-export([
+    tx_result_fax_error_correction/1, tx_result_fax_error_correction/2,
+    set_tx_result_fax_error_correction/2
+]).
 -export([tx_result_fax_receiver_id/1, tx_result_fax_receiver_id/2, set_tx_result_fax_receiver_id/2]).
 -export([tx_result_fax_speed/1, tx_result_fax_speed/2, set_tx_result_fax_speed/2]).
 -export([tx_result_pages_sent/1, tx_result_pages_sent/2, set_tx_result_pages_sent/2]).
 -export([tx_result_success/1, tx_result_success/2, set_tx_result_success/2]).
 -export([tx_result_time_elapsed/1, tx_result_time_elapsed/2, set_tx_result_time_elapsed/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -200,7 +204,9 @@ notifications_email_send_to(Doc, Default) ->
 
 -spec set_notifications_email_send_to(doc(), any()) -> doc().
 set_notifications_email_send_to(Doc, NotificationsEmailSendTo) ->
-    kz_json:set_value([<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc).
+    kz_json:set_value(
+        [<<"notifications">>, <<"email">>, <<"send_to">>], NotificationsEmailSendTo, Doc
+    ).
 
 -spec notifications_sms(doc()) -> kz_term:api_object().
 notifications_sms(Doc) ->
@@ -308,7 +314,9 @@ tx_result_fax_error_correction(Doc, Default) ->
 
 -spec set_tx_result_fax_error_correction(doc(), boolean()) -> doc().
 set_tx_result_fax_error_correction(Doc, TxResultFaxErrorCorrection) ->
-    kz_json:set_value([<<"tx_result">>, <<"fax_error_correction">>], TxResultFaxErrorCorrection, Doc).
+    kz_json:set_value(
+        [<<"tx_result">>, <<"fax_error_correction">>], TxResultFaxErrorCorrection, Doc
+    ).
 
 -spec tx_result_fax_receiver_id(doc()) -> binary().
 tx_result_fax_receiver_id(Doc) ->

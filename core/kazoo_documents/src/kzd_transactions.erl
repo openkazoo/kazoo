@@ -5,95 +5,116 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_transactions).
 
--export([transaction_types/0
-        ,type_refund/0
-        ,type_sale/0
-        ]).
+-export([
+    transaction_types/0,
+    type_refund/0,
+    type_sale/0
+]).
 -export([new/0]).
--export([type/0
-        ,type/1
-        ,set_type/1
-        ]).
--export([account/1
-        ,account/2
-        ,set_account/2
-        ]).
--export([account_id/1
-        ,account_id/2
-        ,set_account_id/2
-        ]).
--export([account_name/1
-        ,account_name/2
-        ,set_account_name/2
-        ]).
--export([unit_amount/1
-        ,unit_amount/2
-        ,set_unit_amount/2
-        ]).
--export([dollar_amount/1
-        ,dollar_amount/2
-        ,set_dollar_amount/2
-        ]).
--export([description/1
-        ,description/2
-        ,set_description/2
-        ]).
--export([executor/1
-        ,executor/2
-        ,set_executor/2
-        ]).
--export([executor_trigger/1
-        ,executor_trigger/2
-        ,set_executor_trigger/2
-        ]).
--export([executor_module/1
-        ,executor_module/2
-        ,set_executor_module/2
-        ]).
--export([bookkeeper/1
-        ,bookkeeper/2
-        ,set_bookkeeper/2
-        ]).
--export([bookkeeper_type/1
-        ,bookkeeper_type/2
-        ,set_bookkeeper_type/2
-        ]).
--export([bookkeeper_vendor_id/1
-        ,bookkeeper_vendor_id/2
-        ,set_bookkeeper_vendor_id/2
-        ]).
--export([bookkeeper_results/1
-        ,bookkeeper_results/2
-        ,set_bookkeeper_results/2
-        ]).
--export([metadata/1
-        ,metadata/2
-        ,set_metadata/2
-        ]).
--export([audit/1
-        ,audit/2
-        ,set_audit/2
-        ]).
--export([order_id/1
-        ,order_id/2
-        ,set_order_id/2
-        ]).
--export([status/1
-        ,status/2
-        ,set_status/2
-        ]).
--export([transaction_type/1
-        ,transaction_type/2
-        ,set_transaction_type/2
-        ]).
+-export([
+    type/0,
+    type/1,
+    set_type/1
+]).
+-export([
+    account/1,
+    account/2,
+    set_account/2
+]).
+-export([
+    account_id/1,
+    account_id/2,
+    set_account_id/2
+]).
+-export([
+    account_name/1,
+    account_name/2,
+    set_account_name/2
+]).
+-export([
+    unit_amount/1,
+    unit_amount/2,
+    set_unit_amount/2
+]).
+-export([
+    dollar_amount/1,
+    dollar_amount/2,
+    set_dollar_amount/2
+]).
+-export([
+    description/1,
+    description/2,
+    set_description/2
+]).
+-export([
+    executor/1,
+    executor/2,
+    set_executor/2
+]).
+-export([
+    executor_trigger/1,
+    executor_trigger/2,
+    set_executor_trigger/2
+]).
+-export([
+    executor_module/1,
+    executor_module/2,
+    set_executor_module/2
+]).
+-export([
+    bookkeeper/1,
+    bookkeeper/2,
+    set_bookkeeper/2
+]).
+-export([
+    bookkeeper_type/1,
+    bookkeeper_type/2,
+    set_bookkeeper_type/2
+]).
+-export([
+    bookkeeper_vendor_id/1,
+    bookkeeper_vendor_id/2,
+    set_bookkeeper_vendor_id/2
+]).
+-export([
+    bookkeeper_results/1,
+    bookkeeper_results/2,
+    set_bookkeeper_results/2
+]).
+-export([
+    metadata/1,
+    metadata/2,
+    set_metadata/2
+]).
+-export([
+    audit/1,
+    audit/2,
+    set_audit/2
+]).
+-export([
+    order_id/1,
+    order_id/2,
+    set_order_id/2
+]).
+-export([
+    status/1,
+    status/2,
+    set_status/2
+]).
+-export([
+    transaction_type/1,
+    transaction_type/2,
+    set_transaction_type/2
+]).
 
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -type transaction_type() :: kz_term:ne_binary().
--export_type([doc/0
-             ,transaction_type/0
-             ]).
+-export_type([
+    doc/0,
+    transaction_type/0
+]).
 
 -define(REFUND, <<"refund">>).
 -define(SALE, <<"sale">>).

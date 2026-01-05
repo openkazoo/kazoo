@@ -1,8 +1,9 @@
 -module(kazoo_call_test_util).
 
--export([setup_db/0
-        ,terminate_db/1
-        ]).
+-export([
+    setup_db/0,
+    terminate_db/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
@@ -19,8 +20,10 @@ terminate_db(Pid) ->
     receive
         {'DOWN', Ref, 'process', Pid, _Reason} ->
             _KConfig = application:stop('kazoo_config'),
-            ?LOG_DEBUG(":: Stopped Kazoo FixtureDB, data_link: ~p kazoo_config: ~p", [_DataLink, _KConfig])
+            ?LOG_DEBUG(":: Stopped Kazoo FixtureDB, data_link: ~p kazoo_config: ~p", [
+                _DataLink, _KConfig
+            ])
     after 1000 ->
-            _KConfig = application:stop('kazoo_config'),
-            ?LOG_DEBUG(":: Stopped Kazoo FixtureDB, data_link: timeout kazoo_config: ~p", [_KConfig])
+        _KConfig = application:stop('kazoo_config'),
+        ?LOG_DEBUG(":: Stopped Kazoo FixtureDB, data_link: timeout kazoo_config: ~p", [_KConfig])
     end.

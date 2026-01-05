@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([comments/1, comments/2, set_comments/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

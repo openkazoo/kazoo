@@ -33,30 +33,35 @@ handle(Data, Call) ->
     kapps_call_command:answer(Call),
 
     Command = kz_json:from_list(
-                [{<<"Application-Name">>, <<"tts">>}
-                ,{<<"Text">>, to_say(Data)}
-                ,{<<"Terminators">>, kapps_call_command:tts_terminators(terminators(Data))}
-                ,{<<"Voice">>, kapps_call_command:tts_voice(voice(Data))}
-                ,{<<"Language">>, kapps_call_command:tts_language(language(Data), Call)}
-                ,{<<"Engine">>, kapps_call_command:tts_engine(engine(Data), Call)}
-                ,{<<"Call-ID">>, kapps_call:call_id(Call)}
-                ,{<<"Endless-Playback">>, endless_playback(Data)}
-                ]),
+        [
+            {<<"Application-Name">>, <<"tts">>},
+            {<<"Text">>, to_say(Data)},
+            {<<"Terminators">>, kapps_call_command:tts_terminators(terminators(Data))},
+            {<<"Voice">>, kapps_call_command:tts_voice(voice(Data))},
+            {<<"Language">>, kapps_call_command:tts_language(language(Data), Call)},
+            {<<"Engine">>, kapps_call_command:tts_engine(engine(Data), Call)},
+            {<<"Call-ID">>, kapps_call:call_id(Call)},
+            {<<"Endless-Playback">>, endless_playback(Data)}
+        ]
+    ),
 
     send_command(Command, Call).
 
 send_command(TTSCommand, Call) ->
     NoopId = kz_datamgr:get_uuid(),
 
-    Commands = [kz_json:from_list([{<<"Application-Name">>, <<"noop">>}
-                                  ,{<<"Call-ID">>, kapps_call:call_id(Call)}
-                                  ,{<<"Msg-ID">>, NoopId}
-                                  ])
-               ,TTSCommand
-               ],
-    Command = [{<<"Application-Name">>, <<"queue">>}
-              ,{<<"Commands">>, Commands}
-              ],
+    Commands = [
+        kz_json:from_list([
+            {<<"Application-Name">>, <<"noop">>},
+            {<<"Call-ID">>, kapps_call:call_id(Call)},
+            {<<"Msg-ID">>, NoopId}
+        ]),
+        TTSCommand
+    ],
+    Command = [
+        {<<"Application-Name">>, <<"queue">>},
+        {<<"Commands">>, Commands}
+    ],
     kapps_call_command:send_command(Command, Call),
 
     lager:debug("tts is waiting for noop ~s", [NoopId]),

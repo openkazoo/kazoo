@@ -9,13 +9,14 @@
 %%%-----------------------------------------------------------------------------
 -module(acdc_init).
 
--export([start_link/0
-        ,init_db/0
-        ,init_acdc/0
-        ,init_acct/1
-        ,init_acct_queues/1
-        ,init_acct_agents/1
-        ]).
+-export([
+    start_link/0,
+    init_db/0,
+    init_acdc/0,
+    init_acct/1,
+    init_acct_queues/1,
+    init_acct_agents/1
+]).
 
 -include("acdc.hrl").
 
@@ -37,7 +38,9 @@ init_acdc() ->
         {'error', 'not_found'} ->
             lager:debug("acdc db not found, initializing"),
             _ = init_db(),
-            lager:debug("consider running acdc_maintenance:migrate() to enable acdc for already-configured accounts");
+            lager:debug(
+                "consider running acdc_maintenance:migrate() to enable acdc for already-configured accounts"
+            );
         {'error', _E} ->
             lager:debug("failed to query acdc db: ~p", [_E])
     end.
@@ -78,26 +81,36 @@ init_acct_agents(Account) ->
 
 -spec init_acct_queues(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 init_acct_queues(AccountDb, AccountId) ->
-    init_queues(AccountId
-               ,kz_datamgr:get_results(AccountDb, <<"queues/crossbar_listing">>, [])
-               ).
+    init_queues(
+        AccountId,
+        kz_datamgr:get_results(AccountDb, <<"queues/crossbar_listing">>, [])
+    ).
 
 -spec init_acct_agents(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 init_acct_agents(AccountDb, AccountId) ->
-    init_agents(AccountId
-               ,kz_datamgr:get_results(AccountDb, <<"queues/agents_listing">>
-                                      ,[{'reduce', 'false'}])
-               ).
+    init_agents(
+        AccountId,
+        kz_datamgr:get_results(
+            AccountDb,
+            <<"queues/agents_listing">>,
+            [{'reduce', 'false'}]
+        )
+    ).
 
 -spec init_queues(kz_term:ne_binary(), kazoo_data:get_results_return()) -> 'ok'.
-init_queues(_, {'ok', []}) -> 'ok';
+init_queues(_, {'ok', []}) ->
+    'ok';
 init_queues(AccountId, {'error', 'gateway_timeout'}) ->
-    lager:debug("gateway timed out loading queues in account ~s, trying again in a moment", [AccountId]),
+    lager:debug("gateway timed out loading queues in account ~s, trying again in a moment", [
+        AccountId
+    ]),
     try_queues_again(AccountId),
     wait_a_bit(),
     'ok';
 init_queues(AccountId, {'error', 'not_found'}) ->
-    lager:error("the queues view for ~s appears to be missing; you should probably fix that", [AccountId]),
+    lager:error("the queues view for ~s appears to be missing; you should probably fix that", [
+        AccountId
+    ]),
     'ok';
 init_queues(AccountId, {'error', _E}) ->
     lager:debug("error fetching queues: ~p", [_E]),
@@ -110,14 +123,19 @@ init_queues(AccountId, {'ok', Qs}) ->
     'ok'.
 
 -spec init_agents(kz_term:ne_binary(), kazoo_data:get_results_return()) -> 'ok'.
-init_agents(_, {'ok', []}) -> 'ok';
+init_agents(_, {'ok', []}) ->
+    'ok';
 init_agents(AccountId, {'error', 'gateway_timeout'}) ->
-    lager:debug("gateway timed out loading agents in account ~s, trying again in a moment", [AccountId]),
+    lager:debug("gateway timed out loading agents in account ~s, trying again in a moment", [
+        AccountId
+    ]),
     try_agents_again(AccountId),
     wait_a_bit(),
     'ok';
 init_agents(AccountId, {'error', 'not_found'}) ->
-    lager:error("the agents view for ~s appears to be missing; you should probably fix that", [AccountId]);
+    lager:error("the agents view for ~s appears to be missing; you should probably fix that", [
+        AccountId
+    ]);
 init_agents(AccountId, {'error', _E}) ->
     lager:debug("error fetching agents: ~p", [_E]),
     try_agents_again(AccountId),
@@ -136,22 +154,26 @@ try_agents_again(AccountId) ->
 
 try_again(AccountId, F) ->
     kz_util:spawn(
-      fun() ->
-              wait_a_bit(),
-              AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
-              F(AccountDb, AccountId)
-      end).
+        fun() ->
+            wait_a_bit(),
+            AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
+            F(AccountDb, AccountId)
+        end
+    ).
 
 -spec spawn_previously_logged_in_agent(kz_term:ne_binary(), kz_term:ne_binary()) -> any().
 spawn_previously_logged_in_agent(AccountId, AgentId) ->
     kz_util:spawn(
-      fun() ->
-              {'ok', Status} = acdc_agent_util:most_recent_status(AccountId, AgentId),
-              case acdc_agent_util:status_should_auto_start(Status) of
-                  'false' -> lager:debug("agent ~s in ~s is ~s, not starting", [AgentId, AccountId, Status]);
-                  'true' -> acdc_agents_sup:new(AccountId, AgentId)
-              end
-      end).
+        fun() ->
+            {'ok', Status} = acdc_agent_util:most_recent_status(AccountId, AgentId),
+            case acdc_agent_util:status_should_auto_start(Status) of
+                'false' ->
+                    lager:debug("agent ~s in ~s is ~s, not starting", [AgentId, AccountId, Status]);
+                'true' ->
+                    acdc_agents_sup:new(AccountId, AgentId)
+            end
+        end
+    ).
 
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->

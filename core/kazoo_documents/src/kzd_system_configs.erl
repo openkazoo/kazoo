@@ -10,14 +10,14 @@
 -export([node/2, node/3, set_node/3]).
 -export([zone/2, zone/3, set_zone/3]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -type node_config() :: kz_json:object().
--export_type([doc/0
-             ,node_config/0
-             ]).
+-export_type([
+    doc/0,
+    node_config/0
+]).
 
 -define(SCHEMA, <<"system_configs">>).
 

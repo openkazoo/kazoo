@@ -8,18 +8,19 @@
 %%%-----------------------------------------------------------------------------
 -module(webseq).
 
--export([start/1
-        ,stop/0, stop/1
-        ,running/0
+-export([
+    start/1,
+    stop/0, stop/1,
+    running/0,
 
-        ,evt/4
-        ,title/2
-        ,note/4
-        ,trunc/1
-        ,rotate/1
-        ,process_pid/1
-        ,reg_who/3
-        ]).
+    evt/4,
+    title/2,
+    note/4,
+    trunc/1,
+    rotate/1,
+    process_pid/1,
+    reg_who/3
+]).
 
 -include("webseq.hrl").
 
@@ -36,14 +37,14 @@ type_key({'file', Filename}) -> type_key(Filename);
 type_key({'file', Name, _Filename}) -> type_key(Name);
 type_key({'db', Database}) -> type_key(Database);
 type_key({'db', Name, _Database}) -> type_key(Name);
-type_key(<<_/binary>>=Name) -> {?MODULE, Name};
+type_key(<<_/binary>> = Name) -> {?MODULE, Name};
 type_key(A) when is_atom(A) -> {?MODULE, A}.
 
 -type webseq_srv() :: kz_types:server_ref() | diagram_type() | kz_term:ne_binary().
 
 -spec start(diagram_type()) ->
-          {'ok', kz_types:server_ref()} |
-          {'error', 'already_started', kz_types:server_ref()}.
+    {'ok', kz_types:server_ref()}
+    | {'error', 'already_started', kz_types:server_ref()}.
 start(Type) ->
     case get_server_ref(Type) of
         'undefined' -> start_srv(Type);
@@ -101,7 +102,7 @@ get_server_ref(Type) ->
 -spec start_srv(diagram_type()) -> kz_types:startlink_ret().
 start_srv(Type) ->
     case webseq_diagram_srv:start(Type) of
-        {'error', _E}=E ->
+        {'error', _E} = E ->
             lager:debug("failed to start server: ~p", [_E]),
             E;
         {'ok', Pid} ->

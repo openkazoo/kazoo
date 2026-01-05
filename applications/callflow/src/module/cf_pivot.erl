@@ -31,16 +31,19 @@
 -spec handle(kz_json:object(), kapps_call:call()) -> any().
 handle(Data, Call) ->
     Prop = props:filter_empty(
-             [{<<"Call">>, kapps_call:to_json(Call)}
-             ,{<<"CDR-URI">>, kz_json:get_ne_binary_value(<<"cdr_url">>, Data)}
-             ,{<<"Debug">>, kz_json:is_true(<<"debug">>, Data, 'false')}
-             ,{<<"HTTP-Method">>, kzt_util:http_method(kz_json:get_value(<<"method">>, Data, 'get'))}
-             ,{<<"Request-Body-Format">>, kz_json:get_ne_binary_value(<<"req_body_format">>, Data, <<"form">>)}
-             ,{<<"Request-Format">>, kz_json:get_ne_binary_value(<<"req_format">>, Data)}
-             ,{<<"Request-Timeout">>, kz_json:get_integer_value(<<"req_timeout_ms">>, Data)}
-             ,{<<"Voice-URI">>, kz_json:get_ne_binary_value(<<"voice_url">>, Data)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]),
+        [
+            {<<"Call">>, kapps_call:to_json(Call)},
+            {<<"CDR-URI">>, kz_json:get_ne_binary_value(<<"cdr_url">>, Data)},
+            {<<"Debug">>, kz_json:is_true(<<"debug">>, Data, 'false')},
+            {<<"HTTP-Method">>, kzt_util:http_method(kz_json:get_value(<<"method">>, Data, 'get'))},
+            {<<"Request-Body-Format">>,
+                kz_json:get_ne_binary_value(<<"req_body_format">>, Data, <<"form">>)},
+            {<<"Request-Format">>, kz_json:get_ne_binary_value(<<"req_format">>, Data)},
+            {<<"Request-Timeout">>, kz_json:get_integer_value(<<"req_timeout_ms">>, Data)},
+            {<<"Voice-URI">>, kz_json:get_ne_binary_value(<<"voice_url">>, Data)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_pivot:publish_req(Prop),
     lager:info("published pivot request"),
     wait_for_pivot(Data, Call).
@@ -50,13 +53,13 @@ wait_for_pivot(Data, Call) ->
     case kapps_call_command:receive_event(?DEFAULT_EVENT_WAIT, 'true') of
         {'ok', JObj} ->
             case kz_util:get_event_type(JObj) of
-                {<<"call_event">>,<<"CHANNEL_DESTROY">>} ->
+                {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
                     lager:debug("CHANNEL_DESTROY received stooping call"),
                     cf_exe:stop(Call);
-                {<<"pivot">>,<<"failed">>} ->
+                {<<"pivot">>, <<"failed">>} ->
                     lager:warning("pivot failed failing back to next callflow action"),
                     cf_exe:continue(Call);
-                {<<"pivot">>,<<"processing">>} ->
+                {<<"pivot">>, <<"processing">>} ->
                     lager:info("pivot is processing the response"),
                     cf_exe:stop_on_destroy(Call);
                 _Other ->

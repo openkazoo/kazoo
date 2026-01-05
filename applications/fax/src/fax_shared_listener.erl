@@ -11,14 +11,15 @@
 -export([start_link/0]).
 
 %% gen_listener callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("fax.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -28,50 +29,36 @@
 
 -define(SERVER, ?MODULE).
 
--define(NOTIFY_RESTRICT, ['outbound_fax'
-                         ,'outbound_fax_error'
-                         ]).
+-define(NOTIFY_RESTRICT, [
+    'outbound_fax',
+    'outbound_fax_error'
+]).
 
--define(FAXBOX_RESTRICT, [{'db', <<"faxes">>}
-                         ,{'doc_type', <<"faxbox">>}
-                         ]).
+-define(FAXBOX_RESTRICT, [
+    {'db', <<"faxes">>},
+    {'doc_type', <<"faxbox">>}
+]).
 
--define(RESPONDERS, [{{'fax_cloud', 'handle_job_notify'}
-                     ,[{<<"notification">>, <<"outbound_fax">>}]
-                     }
-                    ,{{'fax_cloud', 'handle_job_notify'}
-                     ,[{<<"notification">>, <<"outbound_fax_error">>}]
-                     }
-                    ,{{'fax_cloud', 'handle_push'}
-                     ,[{<<"xmpp_event">>, <<"push">>}]
-                     }
-                    ,{{'fax_cloud', 'handle_faxbox_created'}
-                     ,[{<<"configuration">>, ?DOC_CREATED}]
-                     }
-                    ,{{'fax_cloud', 'handle_faxbox_edited'}
-                     ,[{<<"configuration">>, ?DOC_EDITED}]
-                     }
-                    ,{{'fax_cloud', 'handle_faxbox_deleted'}
-                     ,[{<<"configuration">>, ?DOC_DELETED}]
-                     }
-                    ,{{'fax_request', 'new_request'}
-                     ,[{<<"dialplan">>, <<"fax_req">>}]
-                     }
-                    ,{{'fax_xmpp', 'handle_printer_start'}
-                     ,[{<<"xmpp_event">>, <<"start">>}]
-                     }
-                    ,{{'fax_xmpp', 'handle_printer_stop'}
-                     ,[{<<"xmpp_event">>, <<"stop">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [
+    {{'fax_cloud', 'handle_job_notify'}, [{<<"notification">>, <<"outbound_fax">>}]},
+    {{'fax_cloud', 'handle_job_notify'}, [{<<"notification">>, <<"outbound_fax_error">>}]},
+    {{'fax_cloud', 'handle_push'}, [{<<"xmpp_event">>, <<"push">>}]},
+    {{'fax_cloud', 'handle_faxbox_created'}, [{<<"configuration">>, ?DOC_CREATED}]},
+    {{'fax_cloud', 'handle_faxbox_edited'}, [{<<"configuration">>, ?DOC_EDITED}]},
+    {{'fax_cloud', 'handle_faxbox_deleted'}, [{<<"configuration">>, ?DOC_DELETED}]},
+    {{'fax_request', 'new_request'}, [{<<"dialplan">>, <<"fax_req">>}]},
+    {{'fax_xmpp', 'handle_printer_start'}, [{<<"xmpp_event">>, <<"start">>}]},
+    {{'fax_xmpp', 'handle_printer_stop'}, [{<<"xmpp_event">>, <<"stop">>}]}
+]).
 
--define(BINDINGS, [{'notifications', [{'restrict_to', ?NOTIFY_RESTRICT}]}
-                  ,{'xmpp',[{'restrict_to',['push']}]}
-                  ,{'xmpp', [{'restrict_to', ['start']}, 'federate']}
-                  ,{'conf',?FAXBOX_RESTRICT}
-                  ,{'fax', [{'restrict_to', ['req']}]}
-                  ,{'self', []}
-                  ]).
+-define(BINDINGS, [
+    {'notifications', [{'restrict_to', ?NOTIFY_RESTRICT}]},
+    {'xmpp', [{'restrict_to', ['push']}]},
+    {'xmpp', [{'restrict_to', ['start']}, 'federate']},
+    {'conf', ?FAXBOX_RESTRICT},
+    {'fax', [{'restrict_to', ['req']}]},
+    {'self', []}
+]).
 -define(QUEUE_NAME, <<"fax_shared_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -86,12 +73,20 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -118,11 +113,11 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',_Queue}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _Queue}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'federators_consuming', _AreFederatorsConsuming}}, State) ->
+handle_cast({'gen_listener', {'federators_consuming', _AreFederatorsConsuming}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

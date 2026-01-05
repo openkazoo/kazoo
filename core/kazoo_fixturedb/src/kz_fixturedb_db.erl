@@ -6,14 +6,15 @@
 -module(kz_fixturedb_db).
 
 %% DB operations
--export([db_create/3
-        ,db_delete/2
-        ,db_view_cleanup/2
-        ,db_info/1, db_info/2
-        ,db_exists/2
-        ,db_archive/3
-        ,db_list/2
-        ]).
+-export([
+    db_create/3,
+    db_delete/2,
+    db_view_cleanup/2,
+    db_info/1, db_info/2,
+    db_exists/2,
+    db_archive/3,
+    db_list/2
+]).
 
 -include("kz_fixturedb.hrl").
 
@@ -38,10 +39,9 @@ db_view_cleanup(_Server, _DbName) ->
     'true'.
 
 -spec db_info(server_map()) -> {'ok', kz_term:ne_binaries()}.
-db_info(#{url := ServerUrl}=Server) ->
+db_info(#{url := ServerUrl} = Server) ->
     #{url := AppUrl} = kz_fixturedb_server:get_app_connection(Server),
     {ok, get_dbs_list(ServerUrl, AppUrl)}.
-
 
 -spec db_info(server_map(), kz_term:ne_binary()) -> docs_resp().
 db_info(Server, DbName) ->
@@ -75,9 +75,10 @@ db_list(Server, _Options) ->
 get_dbs_list(ServerUrl, ServerUrl) ->
     [kz_term:to_binary(filename:basename(Db)) || Db <- get_dbs_list(ServerUrl)];
 get_dbs_list(ServerUrl, AppUrl) ->
-    lists:usort([kz_term:to_binary(Db)
-                 || Db <- get_dbs_list(ServerUrl) ++ get_dbs_list(AppUrl)
-                ]).
+    lists:usort([
+        kz_term:to_binary(Db)
+     || Db <- get_dbs_list(ServerUrl) ++ get_dbs_list(AppUrl)
+    ]).
 
 -spec get_dbs_list(kz_term:ne_binary()) -> [string()].
 get_dbs_list(Url) ->

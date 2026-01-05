@@ -7,9 +7,10 @@
 
 -behaviour(supervisor).
 
--export([start_link/1, start_link/2, start_link/3
-        ,stop/1
-        ]).
+-export([
+    start_link/1, start_link/2, start_link/3,
+    stop/1
+]).
 -export([init/1]).
 
 -include("kz_caches.hrl").
@@ -65,29 +66,30 @@ init([Name, ExpirePeriod, Props]) ->
 
     SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
 
-    Children = lists:foldl(fun(Child, Acc) -> maybe_add_child_spec(Child, Name, Props, Acc) end
-                          ,[?WORKER_ARGS('kz_cache_lru', [Name, ExpirePeriod])
-                           ,?WORKER_ARGS('kz_cache_ets', [Name])
-                           ,?WORKER_ARGS('kz_cache_processes', [Name])
-                           ]
-                          ,['kz_cache_listener', 'kz_cache_nodes']
-                          ),
+    Children = lists:foldl(
+        fun(Child, Acc) -> maybe_add_child_spec(Child, Name, Props, Acc) end,
+        [
+            ?WORKER_ARGS('kz_cache_lru', [Name, ExpirePeriod]),
+            ?WORKER_ARGS('kz_cache_ets', [Name]),
+            ?WORKER_ARGS('kz_cache_processes', [Name])
+        ],
+        ['kz_cache_listener', 'kz_cache_nodes']
+    ),
 
     {'ok', {SupFlags, lists:reverse(Children)}}.
 
 -spec maybe_add_child_spec(atom(), atom(), kz_cache:start_options(), kz_types:sup_child_specs()) ->
-          kz_types:sup_child_specs().
+    kz_types:sup_child_specs().
 maybe_add_child_spec('kz_cache_listener', Name, Props, Children) ->
     case props:get_value('origin_bindings', Props) of
         'undefined' -> Children;
-        _BindingProps ->
-            [?WORKER_ARGS('kz_cache_listener', [Name, Props]) | Children]
+        _BindingProps -> [?WORKER_ARGS('kz_cache_listener', [Name, Props]) | Children]
     end;
 maybe_add_child_spec('kz_cache_nodes', Name, Props, Children) ->
-    case props:is_true('new_node_flush', Props, 'false')
-        orelse props:is_true('expire_node_flush', Props, 'false')
+    case
+        props:is_true('new_node_flush', Props, 'false') orelse
+            props:is_true('expire_node_flush', Props, 'false')
     of
         'false' -> Children;
-        'true' ->
-            [?WORKER_ARGS('kz_cache_nodes', [Name, Props]) | Children]
+        'true' -> [?WORKER_ARGS('kz_cache_nodes', [Name, Props]) | Children]
     end.

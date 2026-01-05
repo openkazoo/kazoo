@@ -7,14 +7,19 @@
 -module(teletype_new_account).
 -behaviour(teletype_gen_email_template).
 
--export([id/0
-        ,init/0
-        ,macros/0, macros/1
-        ,subject/0
-        ,category/0
-        ,friendly_name/0
-        ,to/0, from/0, cc/0, bcc/0, reply_to/0
-        ]).
+-export([
+    id/0,
+    init/0,
+    macros/0, macros/1,
+    subject/0,
+    category/0,
+    friendly_name/0,
+    to/0,
+    from/0,
+    cc/0,
+    bcc/0,
+    reply_to/0
+]).
 -export([handle_req/1]).
 
 -include("teletype.hrl").
@@ -25,12 +30,23 @@ id() -> <<"new_account">>.
 -spec macros() -> kz_json:object().
 macros() ->
     kz_json:from_list(
-      [?MACRO_VALUE(<<"admin.first_name">>, <<"first_name">>, <<"First Name">>, <<"Admin user first name">>)
-      ,?MACRO_VALUE(<<"admin.last_name">>, <<"last_name">>, <<"Last Name">>, <<"Admin user last name">>)
-      ,?MACRO_VALUE(<<"admin.email">>, <<"email">>, <<"email">>, <<"Admin user email">>)
-      ,?MACRO_VALUE(<<"admin.timezone">>, <<"timezone">>, <<"timezone">>, <<"Admin user timezone">>)
-       | ?COMMON_TEMPLATE_MACROS
-      ]).
+        [
+            ?MACRO_VALUE(
+                <<"admin.first_name">>,
+                <<"first_name">>,
+                <<"First Name">>,
+                <<"Admin user first name">>
+            ),
+            ?MACRO_VALUE(
+                <<"admin.last_name">>, <<"last_name">>, <<"Last Name">>, <<"Admin user last name">>
+            ),
+            ?MACRO_VALUE(<<"admin.email">>, <<"email">>, <<"email">>, <<"Admin user email">>),
+            ?MACRO_VALUE(
+                <<"admin.timezone">>, <<"timezone">>, <<"timezone">>, <<"Admin user timezone">>
+            )
+            | ?COMMON_TEMPLATE_MACROS
+        ]
+    ).
 
 -spec subject() -> kz_term:ne_binary().
 subject() -> <<"Your new VoIP services account '{{account.name}}' has been created">>.
@@ -103,9 +119,10 @@ process_req(DataJObj) ->
 -spec fix_to_addresses(kz_json:object(), kz_json:object()) -> email_map().
 fix_to_addresses(DataJObj, TemplateMetaJObj) ->
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, id()),
-    EmailType = kz_json:find([<<"to">>, <<"type">>]
-                            ,[DataJObj, TemplateMetaJObj]
-                            ),
+    EmailType = kz_json:find(
+        [<<"to">>, <<"type">>],
+        [DataJObj, TemplateMetaJObj]
+    ),
     IsPreview = teletype_util:is_preview(DataJObj),
     fix_to_addresses(DataJObj, Emails, EmailType, IsPreview).
 
@@ -120,9 +137,10 @@ fix_to_addresses(_, Emails, _, 'false') ->
 
 -spec macros(kz_json:object()) -> kz_term:proplist().
 macros(DataJObj) ->
-    [{<<"system">>, teletype_util:system_params()}
-    ,{<<"account">>, teletype_util:account_params(DataJObj)}
-    ,{<<"admin">>, admin_user_properties(DataJObj)}
+    [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"admin">>, admin_user_properties(DataJObj)}
     ].
 
 -spec admin_user_properties(kz_json:object()) -> kz_term:proplist().
@@ -148,7 +166,7 @@ account_admin_user_properties(AccountJObj) ->
 find_admin([]) ->
     ?LOG_DEBUG("account has no admin users"),
     [];
-find_admin([User|Users]) ->
+find_admin([User | Users]) ->
     UserDoc = kz_json:get_value(<<"doc">>, User),
     case kzd_user:is_account_admin(UserDoc) of
         'true' -> teletype_util:user_params(UserDoc);

@@ -19,15 +19,11 @@ escape(Source) ->
 -spec escape(binary(), binary()) -> binary().
 escape(<<>>, Acc) ->
     Acc;
-
 escape(<<$<, R/binary>>, Acc) ->
     escape(R, <<Acc/binary, "&lt;">>);
-
 escape(<<$>, R/binary>>, Acc) ->
     escape(R, <<Acc/binary, "&gt;">>);
-
 escape(<<$&, R/binary>>, Acc) ->
     escape(R, <<Acc/binary, "&amp;">>);
-
 escape(<<H, R/binary>>, Acc) ->
     escape(R, <<Acc/binary, H>>).

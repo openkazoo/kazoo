@@ -11,9 +11,10 @@
 
 -export([save/2]).
 -export([delete/2]).
--export([available/2
-        ,available/4
-        ]).
+-export([
+    available/2,
+    available/4
+]).
 -export([settings/2]).
 
 -export([enabled/2]).
@@ -75,7 +76,7 @@ enabled(PN, Type) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec update_im(im_type(),knm_number()) -> knm_number().
+-spec update_im(im_type(), knm_number()) -> knm_number().
 update_im(Type, Number) ->
     CurrentFeature = feature(Type, Number),
     PN = knm_number:phone_number(Number),
@@ -83,18 +84,21 @@ update_im(Type, Number) ->
     NotChanged = kz_json:are_equal(CurrentFeature, Feature),
 
     case kz_term:is_empty(Feature) of
-        'true'
-          when CurrentFeature =/= 'undefined' ->
+        'true' when
+            CurrentFeature =/= 'undefined'
+        ->
             deactivate(Type, Number);
         'true' ->
             Number;
-        'false'
-          when NotChanged  ->
+        'false' when
+            NotChanged
+        ->
             Number;
         'false' ->
             case kz_json:is_true(?FEATURE_ENABLED, Feature) of
-                'false'
-                  when CurrentFeature =/= 'undefined' ->
+                'false' when
+                    CurrentFeature =/= 'undefined'
+                ->
                     deactivate(Type, Number);
                 'false' ->
                     Number;
@@ -115,11 +119,13 @@ feature(Type, Number) ->
     end.
 
 -spec feature_available(kz_term:api_ne_binary(), im_type(), kz_json:object()) -> boolean().
-feature_available('undefined', _Type, _Config) -> 'false';
+feature_available('undefined', _Type, _Config) ->
+    'false';
 feature_available(AccountId, Type, Config) ->
-    Funs = [fun() -> carrier_has_feature_enabled(Type, Config) end
-           ,fun() -> kz_services_im:is_enabled(AccountId, Type) end
-           ],
+    Funs = [
+        fun() -> carrier_has_feature_enabled(Type, Config) end,
+        fun() -> kz_services_im:is_enabled(AccountId, Type) end
+    ],
     lists:all(fun(Fun) -> Fun() end, Funs).
 
 -spec number_available(knm_phone_number:record()) -> boolean().
@@ -128,25 +134,28 @@ number_available(PN) ->
 
 -spec number_available(kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
 number_available(State, AccountId) ->
-    Funs = [fun() -> State =:= ?NUMBER_STATE_IN_SERVICE end
-           ,fun() -> not kz_term:is_empty(AccountId) end
-           ],
+    Funs = [
+        fun() -> State =:= ?NUMBER_STATE_IN_SERVICE end,
+        fun() -> not kz_term:is_empty(AccountId) end
+    ],
     lists:all(fun(Fun) -> Fun() end, Funs).
 
 -spec available(im_type(), knm_phone_number()) -> boolean().
 available(Type, PN) ->
     Config = knm_gen_carrier:configuration(PN),
     AccountId = knm_phone_number:assigned_to(PN),
-    number_available(PN)
-        andalso feature_available(AccountId, Type, Config).
+    number_available(PN) andalso
+        feature_available(AccountId, Type, Config).
 
 -spec available(im_type(), module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
-available(_Type, _Module, _State, 'undefined') -> 'false';
-available(_Type, 'undefined', _State, _AccountId) -> 'false';
+available(_Type, _Module, _State, 'undefined') ->
+    'false';
+available(_Type, 'undefined', _State, _AccountId) ->
+    'false';
 available(Type, Module, State, AccountId) ->
     Config = knm_gen_carrier:configuration(Module),
-    number_available(State, AccountId)
-        andalso feature_available(AccountId, Type, Config).
+    number_available(State, AccountId) andalso
+        feature_available(AccountId, Type, Config).
 
 -spec settings(im_type(), knm_phone_number()) -> kz_json:object().
 settings(Type, PN) ->
@@ -164,9 +173,10 @@ carrier_feature(Type, Key, Config, Default) ->
     kz_json:get_value(K, Config, Default).
 
 carrier_settings(Type, Config) ->
-    Props = [{?FEATURE_ENABLED, carrier_has_feature_enabled(Type, Config)}
-            ,{?FEATURE_ACTIVATION, carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>)}
-            ],
+    Props = [
+        {?FEATURE_ENABLED, carrier_has_feature_enabled(Type, Config)},
+        {?FEATURE_ACTIVATION, carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>)}
+    ],
     kz_json:from_list(Props).
 
 -spec activate(im_type(), knm_number(), kz_json:object()) -> knm_number().
@@ -188,8 +198,10 @@ deactivate(Type, Number0) ->
 -spec requires_manual_action(im_type(), knm_phone_number()) -> boolean().
 requires_manual_action(Type, PN) ->
     Config = knm_gen_carrier:configuration(PN),
-    carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>) =:= <<"manual">>
-        andalso kz_term:is_ne_binary_or_binaries(carrier_feature(Type, ?FEATURE_ACTIVATION_NOTIFY_TO, Config)).
+    carrier_feature(Type, ?FEATURE_ACTIVATION, Config, <<"auto">>) =:= <<"manual">> andalso
+        kz_term:is_ne_binary_or_binaries(
+            carrier_feature(Type, ?FEATURE_ACTIVATION_NOTIFY_TO, Config)
+        ).
 
 -spec maybe_set_callback(im_type(), atom(), knm_number()) -> knm_number().
 maybe_set_callback(Type, Action, Number) ->
@@ -206,16 +218,22 @@ maybe_set_callback(Type, Action, Number) ->
 send_notify(PN, Type, Action) ->
     Config = knm_gen_carrier:configuration(PN),
     To = carrier_feature(Type, ?FEATURE_ACTIVATION_NOTIFY_TO, Config),
-    Feature = kz_json:from_list([{<<"Name">>, ?KEY}
-                                ,{<<"Provider">>, knm_phone_number:module_name(PN)}
-                                ,{<<"Action">>, kz_term:to_binary(Action)}
-                                ]),
-    Notification = [{<<"Account-ID">>, knm_phone_number:assigned_to(PN)}
-                   ,{<<"Number">>, knm_phone_number:number(PN)}
-                   ,{<<"Feature">>, Feature}
-                   ,{<<"To">>, kz_json:from_list([{<<"type">>,<<"original">>}
-                                                 ,{<<"email_addresses">>, To}
-                                                 ])}
-                    | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                   ],
-    kz_amqp_worker:cast(Notification, fun kapi_notifications:publish_number_feature_manual_action/1).
+    Feature = kz_json:from_list([
+        {<<"Name">>, ?KEY},
+        {<<"Provider">>, knm_phone_number:module_name(PN)},
+        {<<"Action">>, kz_term:to_binary(Action)}
+    ]),
+    Notification = [
+        {<<"Account-ID">>, knm_phone_number:assigned_to(PN)},
+        {<<"Number">>, knm_phone_number:number(PN)},
+        {<<"Feature">>, Feature},
+        {<<"To">>,
+            kz_json:from_list([
+                {<<"type">>, <<"original">>},
+                {<<"email_addresses">>, To}
+            ])}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    kz_amqp_worker:cast(
+        Notification, fun kapi_notifications:publish_number_feature_manual_action/1
+    ).

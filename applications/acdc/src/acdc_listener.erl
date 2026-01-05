@@ -9,14 +9,15 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("acdc.hrl").
 
@@ -26,21 +27,19 @@
 -type state() :: #state{}.
 
 %% By convention, we put the options here in macros, but not required.
--define(BINDINGS, [{'route', [{'types', ?RESOURCE_TYPES_HANDLED}]}
-                  ,{'self', []}
-                  ,{'conf', [{'doc_type', <<"queue">>}
-                            ,{'action', <<"created">>}
-                            ]}
-                  ]).
+-define(BINDINGS, [
+    {'route', [{'types', ?RESOURCE_TYPES_HANDLED}]},
+    {'self', []},
+    {'conf', [
+        {'doc_type', <<"queue">>},
+        {'action', <<"created">>}
+    ]}
+]).
 -define(RESPONDERS, [
-                     %% Received because of our route binding
-                     {{'acdc_handlers', 'handle_route_req'}
-                     ,[{<<"dialplan">>, <<"route_req">>}]
-                     }
-                    ,{{'acdc_queue_handler', 'handle_config_change'}
-                     ,[{<<"configuration">>, <<"*">>}]
-                     }
-                    ]).
+    %% Received because of our route binding
+    {{'acdc_handlers', 'handle_route_req'}, [{<<"dialplan">>, <<"route_req">>}]},
+    {{'acdc_queue_handler', 'handle_config_change'}, [{<<"configuration">>, <<"*">>}]}
+]).
 
 %%%=============================================================================
 %%% API
@@ -52,10 +51,14 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -81,9 +84,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'created_queue',_QueueName}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

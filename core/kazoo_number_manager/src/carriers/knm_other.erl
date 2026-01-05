@@ -21,7 +21,9 @@
 
 -define(KNM_OTHER_CONFIG_CAT, <<?KNM_CONFIG_CAT/binary, ".other">>).
 
--define(COUNTRY, kapps_config:get_ne_binary(?KNM_OTHER_CONFIG_CAT, <<"default_country">>, ?KNM_DEFAULT_COUNTRY)).
+-define(COUNTRY,
+    kapps_config:get_ne_binary(?KNM_OTHER_CONFIG_CAT, <<"default_country">>, ?KNM_DEFAULT_COUNTRY)
+).
 
 -define(PHONEBOOK_URL, kapps_config:get_ne_binary(?KNM_OTHER_CONFIG_CAT, <<"phonebook_url">>)).
 
@@ -32,30 +34,38 @@
 -endif.
 
 -ifdef(TEST).
--define(BLOCKS_RESP, kz_json:from_list(
-                       [{<<"status">>, <<"success">>}
-                       ,{<<"data">>
-                        ,[kz_json:from_list(
-                            [{<<"start_number">>, ?START_BLOCK}
-                            ,{<<"end_number">>, ?END_BLOCK}
-                            ])
-                         ]
-                        }
-                       ])
-       ).
+-define(BLOCKS_RESP,
+    kz_json:from_list(
+        [
+            {<<"status">>, <<"success">>},
+            {<<"data">>, [
+                kz_json:from_list(
+                    [
+                        {<<"start_number">>, ?START_BLOCK},
+                        {<<"end_number">>, ?END_BLOCK}
+                    ]
+                )
+            ]}
+        ]
+    )
+).
 
--define(NUMBERS_DATA, kz_json:from_list(
-                        [{<<"+1415886790", (D + $0)>>, Ext}
-                         || D <- lists:seq(0, 9),
-                            Ext <- [kz_json:from_list([{<<"extension">>, D}])]
-                        ])
-       ).
+-define(NUMBERS_DATA,
+    kz_json:from_list(
+        [
+            {<<"+1415886790", (D + $0)>>, Ext}
+         || D <- lists:seq(0, 9),
+            Ext <- [kz_json:from_list([{<<"extension">>, D}])]
+        ]
+    )
+).
 
--define(NUMBERS_RESPONSE
-       ,kz_json:from_list([{<<"status">>, <<"success">>}
-                          ,{<<"data">>, ?NUMBERS_DATA}
-                          ])
-       ).
+-define(NUMBERS_RESPONSE,
+    kz_json:from_list([
+        {<<"status">>, <<"success">>},
+        {<<"data">>, ?NUMBERS_DATA}
+    ])
+).
 -endif.
 
 %%------------------------------------------------------------------------------
@@ -64,8 +74,7 @@
 %%------------------------------------------------------------------------------
 -spec info() -> map().
 info() ->
-    #{?CARRIER_INFO_MAX_PREFIX => 10
-     }.
+    #{?CARRIER_INFO_MAX_PREFIX => 10}.
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?
@@ -82,12 +91,13 @@ is_local() -> 'false'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_numbers(kz_term:ne_binary(), pos_integer(), knm_search:options()) ->
-          {'ok', list()} |
-          {'bulk', list()} |
-          {'error', any()}.
+    {'ok', list()}
+    | {'bulk', list()}
+    | {'error', any()}.
 find_numbers(Prefix, Quantity, Options) ->
     case ?PHONEBOOK_URL(Options) of
-        'undefined' -> {'error', 'not_available'};
+        'undefined' ->
+            {'error', 'not_available'};
         Url ->
             case props:is_defined('blocks', Options) of
                 'false' -> get_numbers(Url, Prefix, Quantity, Options);
@@ -99,15 +109,17 @@ find_numbers(Prefix, Quantity, Options) ->
 %% @doc Check with carrier if these numbers are registered with it.
 %% @end
 %%------------------------------------------------------------------------------
--spec check_numbers(kz_term:ne_binaries()) -> {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec check_numbers(kz_term:ne_binaries()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 check_numbers(Numbers) ->
     FormatedNumbers = [knm_converters:to_npan(Number) || Number <- Numbers],
     case ?PHONEBOOK_URL of
-        'undefined' -> {'error', 'not_available'};
+        'undefined' ->
+            {'error', 'not_available'};
         Url ->
             ReqBody = kz_json:set_value(<<"data">>, FormatedNumbers, kz_json:new()),
-            Uri = <<Url/binary,  "/numbers/", (?COUNTRY)/binary, "/status">>,
+            Uri = <<Url/binary, "/numbers/", (?COUNTRY)/binary, "/status">>,
             lager:debug("making request to ~s with body ~p", [Uri, ReqBody]),
             case kz_http:post(binary:bin_to_list(Uri), [], kz_json:encode(ReqBody)) of
                 {'ok', 200, _Headers, Body} ->
@@ -140,28 +152,34 @@ acquire_number(Number) ->
         'undefined' ->
             knm_errors:unspecified('missing_provider_url', Num);
         Url ->
-            Hosts = case kapps_config:get(?KNM_OTHER_CONFIG_CAT, <<"endpoints">>) of
-                        'undefined' -> [];
-                        Endpoint when is_binary(Endpoint) ->
-                            [Endpoint];
-                        Endpoints -> Endpoints
-                    end,
+            Hosts =
+                case kapps_config:get(?KNM_OTHER_CONFIG_CAT, <<"endpoints">>) of
+                    'undefined' ->
+                        [];
+                    Endpoint when is_binary(Endpoint) ->
+                        [Endpoint];
+                    Endpoints ->
+                        Endpoints
+                end,
 
             ReqBody = kz_json:from_list_recursive(
-                        [{<<"data">>
-                         ,[{<<"numbers">>, [Num]}
-                          ,{<<"gateways">>, Hosts}
-                          ]
-                         }
-                        ]),
+                [
+                    {<<"data">>, [
+                        {<<"numbers">>, [Num]},
+                        {<<"gateways">>, Hosts}
+                    ]}
+                ]
+            ),
 
-            Uri = <<Url/binary,  "/numbers/", (?COUNTRY)/binary, "/order">>,
+            Uri = <<Url/binary, "/numbers/", (?COUNTRY)/binary, "/order">>,
             case kz_http:put(binary:bin_to_list(Uri), [], kz_json:encode(ReqBody)) of
                 {'ok', 200, _Headers, Body} ->
                     format_acquire_resp(Number, kz_json:decode(Body));
                 {'ok', _Status, _Headers, Body} ->
-                    lager:error("number lookup failed to ~s with ~p: ~s"
-                               ,[Uri, _Status, Body]),
+                    lager:error(
+                        "number lookup failed to ~s with ~p: ~s",
+                        [Uri, _Status, Body]
+                    ),
                     knm_errors:by_carrier(?MODULE, 'lookup_failed', Num);
                 {'error', Reason} ->
                     knm_errors:by_carrier(?MODULE, Reason, Num)
@@ -191,8 +209,8 @@ should_lookup_cnam() -> 'true'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec format_check_numbers(kz_json:object()) ->
-          {'ok', kz_json:object()} |
-          {'error', 'resp_error'}.
+    {'ok', kz_json:object()}
+    | {'error', 'resp_error'}.
 format_check_numbers(Body) ->
     case kz_json:get_value(<<"status">>, Body) of
         <<"success">> ->
@@ -203,36 +221,41 @@ format_check_numbers(Body) ->
     end.
 
 -spec format_check_numbers_success(kz_json:object()) ->
-          {'ok', kz_json:object()}.
+    {'ok', kz_json:object()}.
 format_check_numbers_success(Body) ->
     F = fun(NumberJObj, Acc) ->
-                Number = kz_json:get_value(<<"number">>, NumberJObj),
-                Status = kz_json:get_value(<<"status">>, NumberJObj),
-                kz_json:set_value(Number, Status, Acc)
-        end,
-    JObj = lists:foldl(F
-                      ,kz_json:new()
-                      ,kz_json:get_value(<<"data">>, Body, [])
-                      ),
+        Number = kz_json:get_value(<<"number">>, NumberJObj),
+        Status = kz_json:get_value(<<"status">>, NumberJObj),
+        kz_json:set_value(Number, Status, Acc)
+    end,
+    JObj = lists:foldl(
+        F,
+        kz_json:new(),
+        kz_json:get_value(<<"data">>, Body, [])
+    ),
     {'ok', JObj}.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_numbers(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), knm_search:options()) ->
-          {'ok', list()} |
-          {'error', 'not_available'}.
+-spec get_numbers(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), knm_search:options()
+) ->
+    {'ok', list()}
+    | {'error', 'not_available'}.
 get_numbers(Url, Prefix, Quantity, Options) ->
     Offset = props:get_binary_value('offset', Options, <<"0">>),
-    ReqBody = <<"?prefix=", Prefix/binary, "&limit=", (kz_term:to_binary(Quantity))/binary, "&offset=", Offset/binary>>,
+    ReqBody =
+        <<"?prefix=", Prefix/binary, "&limit=", (kz_term:to_binary(Quantity))/binary, "&offset=",
+            Offset/binary>>,
     Uri = <<Url/binary, "/numbers/", (?COUNTRY)/binary, "/search", ReqBody/binary>>,
     Results = query_for_numbers(Uri),
     handle_number_query_results(Results, Options).
 
 -spec query_for_numbers(kz_term:ne_binary()) -> kz_http:http_ret().
 -ifdef(TEST).
-query_for_numbers(<<?NUMBER_PHONEBOOK_URL_L, _/binary>>=URI) ->
+query_for_numbers(<<?NUMBER_PHONEBOOK_URL_L, _/binary>> = URI) ->
     ?LOG_DEBUG("number pb url ~s resp: ~s", [URI, kz_json:encode(?NUMBERS_RESPONSE)]),
     {'ok', 200, [], kz_json:encode(?NUMBERS_RESPONSE)}.
 -else.
@@ -242,8 +265,8 @@ query_for_numbers(Uri) ->
 -endif.
 
 -spec handle_number_query_results(kz_http:http_ret(), knm_search:options()) ->
-          {'ok', list()} |
-          {'error', 'not_available'}.
+    {'ok', list()}
+    | {'error', 'not_available'}.
 handle_number_query_results({'error', _Reason}, _Options) ->
     lager:error("number query failed: ~p", [_Reason]),
     {'error', 'not_available'};
@@ -254,16 +277,17 @@ handle_number_query_results({'ok', _Status, _Headers, _Body}, _Options) ->
     {'error', 'not_available'}.
 
 -spec format_numbers_resp(kz_json:object(), knm_search:options()) ->
-          {'ok', list()} |
-          {'error', 'not_available'}.
+    {'ok', list()}
+    | {'error', 'not_available'}.
 format_numbers_resp(JObj, Options) ->
     case kz_json:get_value(<<"status">>, JObj) of
         <<"success">> ->
             DataJObj = kz_json:get_value(<<"data">>, JObj),
             QID = knm_search:query_id(Options),
-            Numbers = [format_found(QID, DID, CarrierData)
-                       || {DID, CarrierData} <- kz_json:to_proplist(DataJObj)
-                      ],
+            Numbers = [
+                format_found(QID, DID, CarrierData)
+             || {DID, CarrierData} <- kz_json:to_proplist(DataJObj)
+            ],
             {'ok', Numbers};
         _Error ->
             lager:error("block lookup resp error: ~p", [_Error]),
@@ -277,9 +301,11 @@ format_found(QID, DID, CarrierData) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_blocks(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), knm_search:options()) ->
-          {'ok', list()} |
-          {'error', 'not_available'}.
+-spec get_blocks(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), knm_search:options()
+) ->
+    {'ok', list()}
+    | {'error', 'not_available'}.
 -ifdef(TEST).
 get_blocks(?BLOCK_PHONEBOOK_URL, _Prefix, _Quantity, Options) ->
     format_blocks_resp(?BLOCKS_RESP, Options).
@@ -287,15 +313,23 @@ get_blocks(?BLOCK_PHONEBOOK_URL, _Prefix, _Quantity, Options) ->
 get_blocks(Url, Prefix, Quantity, Options) ->
     Offset = props:get_binary_value('offset', Options, <<"0">>),
     Limit = props:get_binary_value('blocks', Options, <<"0">>),
-    ReqBody = list_to_binary(["?prefix=", kz_util:uri_encode(Prefix)
-                             ,"&size=", kz_term:to_binary(Quantity)
-                             ,"&offset=", Offset
-                             ,"&limit=", Limit
-                             ]),
-    Uri = list_to_binary([Url
-                         ,"/blocks/", (?COUNTRY)
-                         ,"/search", ReqBody
-                         ]),
+    ReqBody = list_to_binary([
+        "?prefix=",
+        kz_util:uri_encode(Prefix),
+        "&size=",
+        kz_term:to_binary(Quantity),
+        "&offset=",
+        Offset,
+        "&limit=",
+        Limit
+    ]),
+    Uri = list_to_binary([
+        Url,
+        "/blocks/",
+        (?COUNTRY),
+        "/search",
+        ReqBody
+    ]),
     lager:debug("making request to ~s", [Uri]),
     case kz_http:get(binary:bin_to_list(Uri)) of
         {'ok', 200, _Headers, Body} ->
@@ -310,16 +344,17 @@ get_blocks(Url, Prefix, Quantity, Options) ->
 -endif.
 
 -spec format_blocks_resp(kz_json:object(), knm_search:options()) ->
-          {'bulk', list()} |
-          {'error', 'not_available'}.
+    {'bulk', list()}
+    | {'error', 'not_available'}.
 format_blocks_resp(JObj, Options) ->
     case kz_json:get_value(<<"status">>, JObj) of
         <<"success">> ->
             QID = knm_search:query_id(Options),
             Numbers =
-                lists:flatmap(fun(I) -> format_block_resp_fold(I, QID) end
-                             ,kz_json:get_value(<<"data">>, JObj, [])
-                             ),
+                lists:flatmap(
+                    fun(I) -> format_block_resp_fold(I, QID) end,
+                    kz_json:get_value(<<"data">>, JObj, [])
+                ),
             {'bulk', Numbers};
         _Error ->
             lager:error("block lookup resp error: ~p", [JObj]),
@@ -329,8 +364,9 @@ format_blocks_resp(JObj, Options) ->
 format_block_resp_fold(Block, QID) ->
     StartNumber = kz_json:get_value(<<"start_number">>, Block),
     EndNumber = kz_json:get_value(<<"end_number">>, Block),
-    [format_found(QID, StartNumber, Block)
-    ,format_found(QID, EndNumber, Block)
+    [
+        format_found(QID, StartNumber, Block),
+        format_found(QID, EndNumber, Block)
     ].
 
 %%------------------------------------------------------------------------------
@@ -338,19 +374,21 @@ format_block_resp_fold(Block, QID) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec format_acquire_resp(knm_number:knm_number(), kz_json:object()) ->
-          knm_number:knm_number().
+    knm_number:knm_number().
 format_acquire_resp(Number, Body) ->
     Num = knm_phone_number:number(knm_number:phone_number(Number)),
     JObj = kz_json:get_value([<<"data">>, Num], Body, kz_json:new()),
     case kz_json:get_value(<<"status">>, JObj) of
         <<"success">> ->
-            Routines = [fun maybe_merge_opaque/2
-                       ,fun maybe_merge_locality/2
-                       ],
-            lists:foldl(fun(F, N) -> F(JObj, N) end
-                       ,Number
-                       ,Routines
-                       );
+            Routines = [
+                fun maybe_merge_opaque/2,
+                fun maybe_merge_locality/2
+            ],
+            lists:foldl(
+                fun(F, N) -> F(JObj, N) end,
+                Number,
+                Routines
+            );
         Error ->
             lager:error("number lookup resp error: ~p", [Error]),
             knm_errors:by_carrier(?MODULE, 'lookup_resp_error', Num)
@@ -361,10 +399,11 @@ format_acquire_resp(Number, Body) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_merge_opaque(kz_json:object(), knm_number:knm_number()) ->
-          knm_number:knm_number().
+    knm_number:knm_number().
 maybe_merge_opaque(JObj, Number) ->
     case kz_json:get_ne_value(<<"opaque">>, JObj) of
-        'undefined' -> Number;
+        'undefined' ->
+            Number;
         Opaque ->
             PN = knm_phone_number:set_carrier_data(knm_number:phone_number(Number), Opaque),
             knm_number:set_phone_number(Number, PN)
@@ -375,14 +414,16 @@ maybe_merge_opaque(JObj, Number) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_merge_locality(kz_json:object(), knm_number:knm_number()) ->
-          knm_number:knm_number().
+    knm_number:knm_number().
 maybe_merge_locality(JObj, Number) ->
-    case kz_json:get_ne_value(<<"locality">>,  JObj) of
-        'undefined' -> Number;
+    case kz_json:get_ne_value(<<"locality">>, JObj) of
+        'undefined' ->
+            Number;
         Locality ->
-            PN = knm_phone_number:set_feature(knm_number:phone_number(Number)
-                                             ,<<"locality">>
-                                             ,Locality
-                                             ),
+            PN = knm_phone_number:set_feature(
+                knm_number:phone_number(Number),
+                <<"locality">>,
+                Locality
+            ),
             knm_number:set_phone_number(Number, PN)
     end.

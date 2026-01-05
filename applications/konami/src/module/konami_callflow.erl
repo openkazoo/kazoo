@@ -17,14 +17,15 @@
 -define(LIST_BY_NUMBER, <<"callflows/listing_by_number">>).
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'stop', kapps_call:call()}.
+    {'stop', kapps_call:call()}.
 handle(Data, Call) ->
     {'ok', CallflowJObj} = callflow(Data, Call),
     Flow = kz_json:get_value(<<"flow">>, CallflowJObj),
-    API = [{<<"Call">>, kapps_call:to_json(Call)}
-          ,{<<"Flow">>, Flow}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    API = [
+        {<<"Call">>, kapps_call:to_json(Call)},
+        {<<"Flow">>, Flow}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kapi_callflow:publish_resume(API),
     {'stop', Call}.
 
@@ -32,15 +33,24 @@ callflow(Data, Call) ->
     callflow(Data, Call, kz_doc:id(Data)).
 
 callflow(Data, Call, 'undefined') ->
-    captured_callflow(Call, kz_json:get_first_defined([<<"captures">>
-                                                      ,<<"collected">>
-                                                      ], Data));
+    captured_callflow(
+        Call,
+        kz_json:get_first_defined(
+            [
+                <<"captures">>,
+                <<"collected">>
+            ],
+            Data
+        )
+    );
 callflow(_Data, Call, CallflowId) ->
-    kz_datamgr:open_cache_doc(kapps_call:account_db(Call)
-                             ,CallflowId
-                             ).
+    kz_datamgr:open_cache_doc(
+        kapps_call:account_db(Call),
+        CallflowId
+    ).
 
-captured_callflow(_Call, 'undefined') -> 'undefined';
+captured_callflow(_Call, 'undefined') ->
+    'undefined';
 captured_callflow(Call, [Number]) ->
     captured_callflow(Call, Number);
 captured_callflow(Call, Number) ->

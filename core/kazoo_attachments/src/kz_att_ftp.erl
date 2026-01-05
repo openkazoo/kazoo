@@ -21,13 +21,14 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec put_attachment(gen_attachment:settings()
-                    ,gen_attachment:db_name()
-                    ,gen_attachment:doc_id()
-                    ,gen_attachment:att_name()
-                    ,gen_attachment:contents()
-                    ,gen_attachment:options()
-                    ) -> gen_attachment:put_response().
+-spec put_attachment(
+    gen_attachment:settings(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name(),
+    gen_attachment:contents(),
+    gen_attachment:options()
+) -> gen_attachment:put_response().
 put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
     #{url := BaseUrlParam} = Params,
     DocUrlField = maps:get('document_url_field', Params, 'undefined'),
@@ -36,23 +37,32 @@ put_attachment(Params, DbName, DocId, AName, Contents, Options) ->
 
     case send_request(Url, Contents) of
         'ok' ->
-            lager:debug("attachment ~s of document ~s/~s uploaded to ~s"
-                       ,[AName, DocId, DbName, Url]
-                       ),
+            lager:debug(
+                "attachment ~s of document ~s/~s uploaded to ~s",
+                [AName, DocId, DbName, Url]
+            ),
             {'ok', url_fields(DocUrlField, Url)};
         Resp ->
-            Routines = [{fun kz_att_error:set_req_url/2, Url}
-                        | kz_att_error:put_routines(Params, DbName, DocId, AName,
-                                                    Contents, Options)
-                       ],
+            Routines = [
+                {fun kz_att_error:set_req_url/2, Url}
+                | kz_att_error:put_routines(
+                    Params,
+                    DbName,
+                    DocId,
+                    AName,
+                    Contents,
+                    Options
+                )
+            ],
             handle_ftp_error_response(Resp, Routines)
     end.
 
--spec fetch_attachment(gen_attachment:handler_props()
-                      ,gen_attachment:db_name()
-                      ,gen_attachment:doc_id()
-                      ,gen_attachment:att_name()
-                      ) -> gen_attachment:fetch_response().
+-spec fetch_attachment(
+    gen_attachment:handler_props(),
+    gen_attachment:db_name(),
+    gen_attachment:doc_id(),
+    gen_attachment:att_name()
+) -> gen_attachment:fetch_response().
 fetch_attachment(HandlerProps, DbName, DocId, AName) ->
     case kz_json:get_value(<<"url">>, HandlerProps) of
         'undefined' ->
@@ -63,9 +73,10 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
                 {'ok', _Bin} = Resp ->
                     Resp;
                 Resp ->
-                    Routines = [{fun kz_att_error:set_req_url/2, Url}
-                                | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
-                               ],
+                    Routines = [
+                        {fun kz_att_error:set_req_url/2, Url}
+                        | kz_att_error:fetch_routines(HandlerProps, DbName, DocId, AName)
+                    ],
                     handle_ftp_error_response(Resp, Routines)
             end
     end.
@@ -79,38 +90,42 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_request(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', binary(), binary() | atom() | term()}.
+    'ok' | {'error', binary(), binary() | atom() | term()}.
 send_request(Url, Contents) ->
     case http_uri:parse(kz_term:to_list(Url)) of
-        {'ok',{Scheme, UserPass, Host, Port, FullPath,_Query}} ->
+        {'ok', {Scheme, UserPass, Host, Port, FullPath, _Query}} ->
             send_request(Scheme, Host, Port, UserPass, FullPath, Contents);
-        _ -> {'error', <<"error parsing url: ", Url/binary>>}
+        _ ->
+            {'error', <<"error parsing url: ", Url/binary>>}
     end.
 
 -spec send_request(string(), string(), integer(), string(), string(), binary()) ->
-          'ok' | {'error', binary() | atom() | term()}.
+    'ok' | {'error', binary() | atom() | term()}.
 send_request(Scheme, Host, Port, UserPass, FullPath, Contents) ->
-    {User, Pass} = case string:tokens(UserPass, ":") of
-                       [U, P] -> {U, P};
-                       _ -> ftp_anonymous_user_pass()
-                   end,
+    {User, Pass} =
+        case string:tokens(UserPass, ":") of
+            [U, P] -> {U, P};
+            _ -> ftp_anonymous_user_pass()
+        end,
     Dir = filename:dirname(FullPath),
     File = filename:basename(FullPath),
     try
         case ftp:open(Host, get_options(Scheme, Port)) of
             {'ok', Pid} ->
-                Routines = [fun() -> ftp:user(Pid, User, Pass) end
-                           ,fun() -> ftp:type(Pid, 'binary') end
-                           ,fun() -> ftp:cd(Pid, Dir) end
-                           ,fun() -> ftp:send_bin(Pid, Contents, File) end
-                           ],
+                Routines = [
+                    fun() -> ftp:user(Pid, User, Pass) end,
+                    fun() -> ftp:type(Pid, 'binary') end,
+                    fun() -> ftp:cd(Pid, Dir) end,
+                    fun() -> ftp:send_bin(Pid, Contents, File) end
+                ],
                 Res = ftp_cmds(Routines),
-                catch(ftp:close(Pid)),
+                catch (ftp:close(Pid)),
                 case Res of
                     'ok' -> 'ok';
                     Resp -> Resp
                 end;
-            Resp -> Resp
+            Resp ->
+                Resp
         end
     catch
         _Exc:Err ->
@@ -121,13 +136,15 @@ send_request(Scheme, Host, Port, UserPass, FullPath, Contents) ->
 get_options('ftp', Port) ->
     [{'port', Port}];
 get_options('ftps', Port) ->
-    [{'port', Port}
-    ,{'tls', []}
+    [
+        {'port', Port},
+        {'tls', []}
     ].
 
 -spec ftp_cmds(list()) -> 'ok' | {'error', any()}.
-ftp_cmds([]) -> 'ok';
-ftp_cmds([Fun|Funs]) ->
+ftp_cmds([]) ->
+    'ok';
+ftp_cmds([Fun | Funs]) ->
     case Fun() of
         'ok' -> ftp_cmds(Funs);
         Other -> Other
@@ -141,40 +158,50 @@ ftp_anonymous_user_pass() ->
 url_fields('undefined', Url) ->
     [{'attachment', [{<<"url">>, Url}]}];
 url_fields(DocUrlField, Url) ->
-    [{'attachment', [{<<"url">>, Url}]}
-    ,{'document', [{DocUrlField, Url}]}
+    [
+        {'attachment', [{<<"url">>, Url}]},
+        {'document', [{DocUrlField, Url}]}
     ].
 
--spec fetch_attachment(kz_term:ne_binary()) -> {'ok', binary()} |
-          {'error', binary() | atom() | term()}.
+-spec fetch_attachment(kz_term:ne_binary()) ->
+    {'ok', binary()}
+    | {'error', binary() | atom() | term()}.
 fetch_attachment(Url) ->
     {_, Host, File, _, _} = kz_http_util:urlsplit(Url),
     try ftp:open(kz_term:to_list(Host)) of
-        {'ok', Pid} -> handle_fetch(Pid, ftp:recv_bin(Pid, kz_term:to_list(File)));
-        {'error', _Reason}=Err ->
-            lager:debug("error '~p' opening ftp connection to ~s for saving ~s",
-                        [_Reason, Host, File]),
+        {'ok', Pid} ->
+            handle_fetch(Pid, ftp:recv_bin(Pid, kz_term:to_list(File)));
+        {'error', _Reason} = Err ->
+            lager:debug(
+                "error '~p' opening ftp connection to ~s for saving ~s",
+                [_Reason, Host, File]
+            ),
             Err
     catch
         _E:Reason ->
-            lager:debug("exception '~p/~p' opening ftp connection to ~s for saving ~s",
-                        [_E, Reason, Host, File]),
+            lager:debug(
+                "exception '~p/~p' opening ftp connection to ~s for saving ~s",
+                [_E, Reason, Host, File]
+            ),
             {'error', Reason}
     end.
 
 -spec handle_fetch(pid(), tuple()) -> {'ok', binary()} | {'error', any()}.
-handle_fetch(Pid, {'ok', _Bin}=OK) ->
+handle_fetch(Pid, {'ok', _Bin} = OK) ->
     ftp:close(Pid),
     OK;
-handle_fetch(Pid, {'error', _Reason}=Err) ->
+handle_fetch(Pid, {'error', _Reason} = Err) ->
     lager:debug("error transferring file from ftp server : ~p", [_Reason]),
     ftp:close(Pid),
     Err.
 
--spec handle_ftp_error_response({'error', binary() | atom() | term()},
-                                kz_att_error:update_routines()) -> kz_att_error:error().
-handle_ftp_error_response({'error', Reason}, Routines)
-  when is_atom(Reason); is_binary(Reason) ->
+-spec handle_ftp_error_response(
+    {'error', binary() | atom() | term()},
+    kz_att_error:update_routines()
+) -> kz_att_error:error().
+handle_ftp_error_response({'error', Reason}, Routines) when
+    is_atom(Reason); is_binary(Reason)
+->
     lager:error("ftp error ~p", [Reason]),
     kz_att_error:new(Reason, Routines);
 handle_ftp_error_response(_E, Routines) ->

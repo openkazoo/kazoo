@@ -6,23 +6,27 @@
 -module(blackhole_listener).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_amqp_event/3
-        ,add_binding/1, remove_binding/1
-        ,add_bindings/1, remove_bindings/1
-        ,flush/0
+-export([
+    start_link/0,
+    handle_amqp_event/3,
+    add_binding/1,
+    remove_binding/1,
+    add_bindings/1,
+    remove_bindings/1,
+    flush/0,
 
-        ,wait_until_consuming/1
-        ]).
+    wait_until_consuming/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("blackhole.hrl").
 -include_lib("kazoo_amqp/src/api/kapi_websockets.hrl").
@@ -32,16 +36,16 @@
 -record(state, {bindings :: ets:tid()}).
 -type state() :: #state{}.
 
--type mod_inited() :: 'ok' | {'error', atom()} |
-                      'stopped'. %% stopped instead of inited
+-type mod_inited() ::
+    'ok'
+    | {'error', atom()}
+    %% stopped instead of inited
+    | 'stopped'.
 
 %% By convention, we put the options here in macros, but not required.
 -define(BINDINGS, [{'websockets', [{'restrict_to', ['get', 'module_req']}]}]).
 
--define(RESPONDERS, [{{?MODULE, 'handle_amqp_event'}
-                     ,[{<<"*">>, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_amqp_event'}, [{<<"*">>, <<"*">>}]}]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -56,22 +60,29 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
-                           ,?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                            ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                            ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 -spec wait_until_consuming(timeout()) -> 'ok' | {'error', 'timeout'}.
 wait_until_consuming(Timeout) ->
     gen_listener:wait_until_consuming(?SERVER, Timeout).
 
--spec handle_amqp_event(kz_json:object(), kz_term:proplist(), gen_listener:basic_deliver() | kz_term:ne_binary()) -> 'ok'.
+-spec handle_amqp_event(
+    kz_json:object(), kz_term:proplist(), gen_listener:basic_deliver() | kz_term:ne_binary()
+) -> 'ok'.
 handle_amqp_event(EventJObj, _Props, ?MODULE_REQ_ROUTING_KEY) ->
     handle_module_req(EventJObj);
 handle_amqp_event(EventJObj, _Props, <<RoutingKey/binary>>) ->
@@ -81,9 +92,10 @@ handle_amqp_event(EventJObj, _Props, <<RoutingKey/binary>>) ->
 
     StartTime = kz_time:start_time(),
     Res = blackhole_bindings:pmap(RK, [RoutingKey, EventJObj]),
-    lager:debug("delivered the event ~p (~s) to ~b subscriptions in ~b ms"
-               ,[Evt, RoutingKey, length(Res), kz_time:elapsed_ms(StartTime)]
-               );
+    lager:debug(
+        "delivered the event ~p (~s) to ~b subscriptions in ~b ms",
+        [Evt, RoutingKey, length(Res), kz_time:elapsed_ms(StartTime)]
+    );
 handle_amqp_event(EventJObj, Props, BasicDeliver) ->
     handle_amqp_event(EventJObj, Props, gen_listener:routing_key_used(BasicDeliver)).
 
@@ -91,16 +103,18 @@ handle_amqp_event(EventJObj, Props, BasicDeliver) ->
 handle_module_req(EventJObj) ->
     'true' = kapi_websockets:module_req_v(EventJObj),
     lager:debug("recv module_req: ~p", [EventJObj]),
-    handle_module_req(EventJObj
-                     ,kz_json:get_atom_value(<<"Module">>, EventJObj)
-                     ,kz_json:get_binary_value(<<"Action">>, EventJObj)
-                     ,kz_json:is_true(<<"Persist">>, EventJObj, 'true')
-                     ).
+    handle_module_req(
+        EventJObj,
+        kz_json:get_atom_value(<<"Module">>, EventJObj),
+        kz_json:get_binary_value(<<"Action">>, EventJObj),
+        kz_json:is_true(<<"Persist">>, EventJObj, 'true')
+    ).
 
 -spec handle_module_req(kz_json:object(), atom(), kz_term:ne_binary(), boolean()) -> 'ok'.
 handle_module_req(EventJObj, BHModule, <<"start">>, Persist) ->
     case code:which(BHModule) of
-        'non_existing' -> send_error_module_resp(EventJObj, <<"module doesn't exist">>);
+        'non_existing' ->
+            send_error_module_resp(EventJObj, <<"module doesn't exist">>);
         _Path ->
             Started = start_module(BHModule),
             Persisted = maybe_persist(BHModule, Persist, Started),
@@ -109,12 +123,13 @@ handle_module_req(EventJObj, BHModule, <<"start">>, Persist) ->
 handle_module_req(EventJObj, BHModule, <<"stop">>, Persist) ->
     'ok' = blackhole_bindings:flush_mod(BHModule),
 
-    Persist
-        andalso blackhole_config:set_default_autoload_modules(
-                  lists:delete(kz_term:to_binary(BHModule)
-                              ,blackhole_config:autoload_modules()
-                              )
-                 ),
+    Persist andalso
+        blackhole_config:set_default_autoload_modules(
+            lists:delete(
+                kz_term:to_binary(BHModule),
+                blackhole_config:autoload_modules()
+            )
+        ),
 
     send_module_resp(EventJObj, 'stopped', 'true').
 
@@ -123,8 +138,10 @@ start_module(BHModule) ->
     blackhole_bindings:init_mod(BHModule).
 
 -spec maybe_persist(atom(), boolean(), mod_inited()) -> boolean().
-maybe_persist(_BHModule, 'false', _Started) -> 'false';
-maybe_persist(_BHModule, 'true', {'error', _}) -> 'false';
+maybe_persist(_BHModule, 'false', _Started) ->
+    'false';
+maybe_persist(_BHModule, 'true', {'error', _}) ->
+    'false';
 maybe_persist(BHModule, 'true', 'ok') ->
     Mods = blackhole_config:autoload_modules(),
     case lists:member(kz_term:to_binary(BHModule), Mods) of
@@ -137,11 +154,13 @@ maybe_persist(BHModule, 'true', 'ok') ->
 
 -spec persist_module(atom(), kz_term:ne_binaries()) -> boolean().
 persist_module(Module, Mods) ->
-    case blackhole_config:set_default_autoload_modules(
-           [kz_term:to_binary(Module)
-            | lists:delete(kz_term:to_binary(Module), Mods)
-           ]
-          )
+    case
+        blackhole_config:set_default_autoload_modules(
+            [
+                kz_term:to_binary(Module)
+                | lists:delete(kz_term:to_binary(Module), Mods)
+            ]
+        )
     of
         {'ok', _} -> 'true';
         'ok' -> 'false';
@@ -150,12 +169,13 @@ persist_module(Module, Mods) ->
 
 -spec send_module_resp(kz_json:object(), mod_inited(), boolean()) -> 'ok'.
 send_module_resp(EventJObj, Started, Persisted) ->
-    Resp = [{<<"Persisted">>, Persisted}
-           ,{<<"Started">>, Started =:= 'ok'}
-           ,{<<"Error">>, maybe_start_error(Started)}
-           ,{<<"Msg-ID">>, kz_api:msg_id(EventJObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Persisted">>, Persisted},
+        {<<"Started">>, Started =:= 'ok'},
+        {<<"Error">>, maybe_start_error(Started)},
+        {<<"Msg-ID">>, kz_api:msg_id(EventJObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     ServerId = kz_api:server_id(EventJObj),
     kapi_websockets:publish_module_resp(ServerId, Resp).
 
@@ -166,18 +186,20 @@ maybe_start_error({'error', E}) -> kz_term:to_binary(E).
 
 -spec send_error_module_resp(kz_json:object(), kz_term:ne_binary()) -> 'ok'.
 send_error_module_resp(EventJObj, Error) ->
-    Resp = [{<<"Persisted">>, 'false'}
-           ,{<<"Started">>, 'false'}
-           ,{<<"Error">>, Error}
-           ,{<<"Msg-ID">>, kz_api:msg_id(EventJObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Persisted">>, 'false'},
+        {<<"Started">>, 'false'},
+        {<<"Error">>, Error},
+        {<<"Msg-ID">>, kz_api:msg_id(EventJObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     ServerId = kz_api:server_id(EventJObj),
     kapi_websockets:publish_module_resp(ServerId, Resp).
 
 -type bh_amqp_binding() :: {'amqp', atom(), kz_term:proplist()}.
--type bh_hook_binding() :: {'hook', kz_term:ne_binary()} |
-                           {'hook', kz_term:ne_binary(), kz_term:ne_binary()}.
+-type bh_hook_binding() ::
+    {'hook', kz_term:ne_binary()}
+    | {'hook', kz_term:ne_binary(), kz_term:ne_binary()}.
 -type bh_event_binding() :: bh_amqp_binding() | bh_hook_binding().
 -type bh_event_bindings() :: [bh_event_binding()].
 
@@ -208,17 +230,17 @@ remove_bindings(Bindings) ->
 -spec init(list()) -> {'ok', state()}.
 init([]) ->
     kz_util:put_callid(?MODULE),
-    {'ok', #state{bindings=ets:new(?MODULE, [])}}.
+    {'ok', #state{bindings = ets:new(?MODULE, [])}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call({'add_bh_bindings', Bindings}, _From, #state{bindings=ETS}=State) ->
+handle_call({'add_bh_bindings', Bindings}, _From, #state{bindings = ETS} = State) ->
     _ = add_bh_bindings(ETS, Bindings),
     {'reply', 'ok', State};
-handle_call({'add_bh_binding', Binding}, _From, #state{bindings=ETS}=State) ->
+handle_call({'add_bh_binding', Binding}, _From, #state{bindings = ETS} = State) ->
     _ = add_bh_binding(ETS, Binding),
     {'noreply', 'ok', State};
 handle_call(_Request, _From, State) ->
@@ -229,23 +251,23 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'add_bh_bindings', Bindings}, #state{bindings=ETS}=State) ->
+handle_cast({'add_bh_bindings', Bindings}, #state{bindings = ETS} = State) ->
     _ = add_bh_bindings(ETS, Bindings),
     {'noreply', State};
-handle_cast({'add_bh_binding', Binding}, #state{bindings=ETS}=State) ->
+handle_cast({'add_bh_binding', Binding}, #state{bindings = ETS} = State) ->
     _ = add_bh_binding(ETS, Binding),
     {'noreply', State};
-handle_cast({'remove_bh_bindings', Bindings}, #state{bindings=ETS}=State) ->
+handle_cast({'remove_bh_bindings', Bindings}, #state{bindings = ETS} = State) ->
     _ = remove_bh_bindings(ETS, Bindings),
     {'noreply', State};
-handle_cast({'remove_bh_binding', Binding}, #state{bindings=ETS}=State) ->
+handle_cast({'remove_bh_binding', Binding}, #state{bindings = ETS} = State) ->
     _ = remove_bh_binding(ETS, Binding),
     {'noreply', State};
 handle_cast({'gen_listener', {'created_queue', _QueueNAme}}, State) ->
     {'noreply', State};
 handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast('flush_bh_bindings', #state{bindings=ETS}=State) ->
+handle_cast('flush_bh_bindings', #state{bindings = ETS} = State) ->
     flush_bh_bindings(ETS),
     {'noreply', State};
 handle_cast(_Msg, State) ->
@@ -256,7 +278,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(?HOOK_EVT(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()), state()) ->
-          {'noreply', state()}.
+    {'noreply', state()}.
 handle_info(?HOOK_EVT(AccountId, EventType, JObj), State) ->
     _ = kz_util:spawn(fun handle_hook_event/3, [AccountId, EventType, JObj]),
     {'noreply', State};
@@ -305,13 +327,15 @@ encode_call_id(JObj) ->
 
 -spec handle_hook_event(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> any().
 handle_hook_event(AccountId, EventType, JObj) ->
-    RK = kz_binary:join([<<"call">>
-                        ,AccountId
-                        ,EventType
-                        ,encode_call_id(JObj)
-                        ]
-                       ,<<".">>
-                       ),
+    RK = kz_binary:join(
+        [
+            <<"call">>,
+            AccountId,
+            EventType,
+            encode_call_id(JObj)
+        ],
+        <<".">>
+    ),
     handle_amqp_event(JObj, [], RK).
 
 -spec binding_key(bh_event_binding()) -> binary().
@@ -325,13 +349,15 @@ add_bh_binding(ETS, Binding) ->
             lager:debug("blackhole is creating new binding to ~p", [Binding]),
             add_bh_binding(Binding);
         0 ->
-            lager:debug("listener has 0 refs after updating ? not creating new binding for ~p"
-                       ,[Binding]
-                       );
+            lager:debug(
+                "listener has 0 refs after updating ? not creating new binding for ~p",
+                [Binding]
+            );
         _Else ->
-            lager:debug("listener has ~b refs, not creating new binding for ~p"
-                       ,[_Else, Binding]
-                       )
+            lager:debug(
+                "listener has ~b refs, not creating new binding for ~p",
+                [_Else, Binding]
+            )
     end.
 
 -spec remove_bh_binding(ets:tid(), bh_event_binding()) -> 'ok' | 'true'.
@@ -345,15 +371,17 @@ remove_bh_binding(ETS, Binding, Key, 0) ->
     remove_bh_binding(Binding),
     ets:delete(ETS, Key);
 remove_bh_binding(ETS, Binding, Key, Neg) when Neg < 0 ->
-    lager:debug("listener have ~b negative references, removing binding for ~p"
-               ,[Neg, Binding]
-               ),
+    lager:debug(
+        "listener have ~b negative references, removing binding for ~p",
+        [Neg, Binding]
+    ),
     remove_bh_binding(Binding),
     ets:delete(ETS, Key);
 remove_bh_binding(_ETS, _Binding, _Key, _Else) ->
-    lager:debug("listener still have ~b references, not removing binding for ~p"
-               ,[_Else, _Binding]
-               ).
+    lager:debug(
+        "listener still have ~b references, not removing binding for ~p",
+        [_Else, _Binding]
+    ).
 
 flush_bh_bindings(ETS) ->
     ets:foldl(fun flush_bh_binding/2, ETS, ETS).

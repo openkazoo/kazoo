@@ -6,18 +6,21 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_maintenance).
 
--export([receipts/0
-        ,restore_system_templates/0
-        ,restore_system_template/1
-        ]).
--export([remove_customization/1, remove_customization/2
-        ,force_system_default/1, force_system_default/2
-        ]).
+-export([
+    receipts/0,
+    restore_system_templates/0,
+    restore_system_template/1
+]).
+-export([
+    remove_customization/1, remove_customization/2,
+    force_system_default/1, force_system_default/2
+]).
 -export([renderer_status/0]).
--export([start_module/1
-        ,stop_module/1
-        ,list_templates_from_db/1
-        ]).
+-export([
+    start_module/1,
+    stop_module/1,
+    list_templates_from_db/1
+]).
 -export([register_views/0]).
 
 -include("teletype.hrl").
@@ -26,7 +29,9 @@
 
 -spec receipts() -> 'ok'.
 receipts() ->
-    io:format(?RECEIPT_FORMAT, [<<>>, <<"Call or Msg ID">>, <<"Receipt">>, <<"To">>, <<"From">>, <<"Time">>]),
+    io:format(?RECEIPT_FORMAT, [
+        <<>>, <<"Call or Msg ID">>, <<"Receipt">>, <<"To">>, <<"From">>, <<"Time">>
+    ]),
     Receipts = kz_cache:filter_local(?CACHE_NAME, fun filter_receipts/2),
     Sorted = lists:usort(fun sort_receipts/2, Receipts),
     lists:foldl(fun print_receipt/2, 1, Sorted),
@@ -37,41 +42,47 @@ filter_receipts({'receipt', _R}, #email_receipt{}) -> 'true';
 filter_receipts(_, _) -> 'false'.
 
 -spec sort_receipts({_, email_receipt()}, {_, email_receipt()}) -> boolean().
-sort_receipts({_, #email_receipt{timestamp=S1}}, {_, #email_receipt{timestamp=S2}}) ->
+sort_receipts({_, #email_receipt{timestamp = S1}}, {_, #email_receipt{timestamp = S2}}) ->
     S1 < S2.
 
--spec print_receipt({{'receipt', kz_term:ne_binary()}, email_receipt()}, pos_integer()) -> pos_integer().
-print_receipt({{'receipt', Receipt}
-              ,#email_receipt{to=To
-                             ,from=From
-                             ,timestamp=GregSecs
-                             ,call_id=CallId
-                             }}
-             ,Count
-             ) ->
-    io:format(?RECEIPT_FORMAT, [kz_term:to_binary(Count)
-                               ,CallId
-                               ,receipt_for_printing(Receipt)
-                               ,convert_for_printing(To)
-                               ,convert_for_printing(From)
-                               ,kz_time:pretty_print_datetime(GregSecs)
-                               ]),
-    Count+1.
+-spec print_receipt({{'receipt', kz_term:ne_binary()}, email_receipt()}, pos_integer()) ->
+    pos_integer().
+print_receipt(
+    {{'receipt', Receipt}, #email_receipt{
+        to = To,
+        from = From,
+        timestamp = GregSecs,
+        call_id = CallId
+    }},
+    Count
+) ->
+    io:format(?RECEIPT_FORMAT, [
+        kz_term:to_binary(Count),
+        CallId,
+        receipt_for_printing(Receipt),
+        convert_for_printing(To),
+        convert_for_printing(From),
+        kz_time:pretty_print_datetime(GregSecs)
+    ]),
+    Count + 1.
 
 -spec convert_for_printing(kz_term:ne_binary() | kz_term:ne_binaries()) -> kz_term:ne_binary().
-convert_for_printing(<<_/binary>>=V) -> V;
-convert_for_printing([_|_]=Vs) -> kz_binary:join(Vs, <<",">>).
+convert_for_printing(<<_/binary>> = V) -> V;
+convert_for_printing([_ | _] = Vs) -> kz_binary:join(Vs, <<",">>).
 
 -spec receipt_for_printing(kz_term:ne_binary()) -> kz_term:ne_binary().
 receipt_for_printing(Receipt) ->
-    case re:run(Receipt
-               ,<<"^2.0.0 Ok: queued as ([[:alnum:]]+).*\$">>
-               ,[{'capture', 'all_but_first', 'binary'}]
-               )
+    case
+        re:run(
+            Receipt,
+            <<"^2.0.0 Ok: queued as ([[:alnum:]]+).*\$">>,
+            [{'capture', 'all_but_first', 'binary'}]
+        )
     of
         {'match', [QueuedReceipt]} ->
             <<"Queued as ", QueuedReceipt/binary>>;
-        _ -> default_receipt_printing(Receipt)
+        _ ->
+            default_receipt_printing(Receipt)
     end.
 
 default_receipt_printing(Receipt) ->
@@ -82,7 +93,8 @@ restore_system_templates() ->
     lists:foreach(fun restore_system_template/1, list_templates_from_db(?KZ_CONFIG_DB)).
 
 -spec restore_system_template(kz_term:ne_binary()) -> ok.
-restore_system_template(<<"skel">>) -> 'ok';
+restore_system_template(<<"skel">>) ->
+    'ok';
 restore_system_template(TemplateId) ->
     DbId = kz_notification:db_id(TemplateId),
     ModId = kz_notification:resp_id(TemplateId),
@@ -103,22 +115,25 @@ restore_system_template(TemplateId) ->
             ST = erlang:get_stacktrace(),
             kz_util:log_stacktrace(ST),
             io:format("St: ~p~n~n", [ST])
-
     end.
 
 -spec list_templates_from_db(kz_term:ne_binary()) -> kz_term:ne_binaries().
 list_templates_from_db(Db) ->
-    case kz_datamgr:all_docs(Db
-                            ,[{'startkey', <<"notification.">>}
-                             ,{'endkey', <<"notification.zzz">>}
-                             ]
-                            )
+    case
+        kz_datamgr:all_docs(
+            Db,
+            [
+                {'startkey', <<"notification.">>},
+                {'endkey', <<"notification.zzz">>}
+            ]
+        )
     of
         {'ok', Results} ->
-            [Id
+            [
+                Id
              || Result <- Results,
                 Id <- [kz_doc:id(Result)],
-                'notification.skel' =/=  Id
+                'notification.skel' =/= Id
             ];
         {'error', _E} ->
             io:format("failed to query existing notifications: ~p~n", [_E]),
@@ -133,7 +148,8 @@ list_templates_from_db(Db) ->
 remove_customization(Account) ->
     remove_customization(Account, list_templates_from_db(kz_util:format_account_db(Account))).
 
--spec remove_customization(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) -> 'no_return'.
+-spec remove_customization(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) ->
+    'no_return'.
 remove_customization(Account, Id) when is_binary(Id) ->
     remove_customization(Account, [kz_notification:db_id(Id)]);
 remove_customization(_Account, []) ->
@@ -143,9 +159,13 @@ remove_customization(Account, Ids) ->
     io:format(":: removing ~b template customization(s) from ~s~n", [length(Ids), Account]),
     case kz_datamgr:del_docs(kz_util:format_account_db(Account), Ids) of
         {'ok', JObjs} ->
-            _ = [io:format("  ~s: ~s~n", [kz_notification:resp_id(kz_doc:id(J)), kz_json:get_value(<<"error">>, J, <<"deleted">>)])
-                 || J <- JObjs
-                ],
+            _ = [
+                io:format("  ~s: ~s~n", [
+                    kz_notification:resp_id(kz_doc:id(J)),
+                    kz_json:get_value(<<"error">>, J, <<"deleted">>)
+                ])
+             || J <- JObjs
+            ],
             'no_return';
         {'error', _Reason} ->
             io:format("failed to remove customization: ~p", [_Reason]),
@@ -162,10 +182,12 @@ remove_customization(Account, Ids) ->
 force_system_default(Account) ->
     force_system_default(Account, list_templates_from_db(?KZ_CONFIG_DB)).
 
--spec force_system_default(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) -> 'no_return'.
+-spec force_system_default(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) ->
+    'no_return'.
 force_system_default(Account, Id) when is_binary(Id) ->
     force_system_default(Account, [kz_notification:db_id(Id)]);
-force_system_default(_Account, []) -> 'no_return';
+force_system_default(_Account, []) ->
+    'no_return';
 force_system_default(Account, Ids) ->
     _ = remove_customization(Account),
     io:format("~n:: forcing ~b system default template(s) for account ~s~n", [length(Ids), Account]),
@@ -182,19 +204,23 @@ copy_from_system_to_account(AccountDb, Id) ->
 
 -spec renderer_status() -> 'no_return'.
 renderer_status() ->
-    Workers = [{Pid, process_info(Pid, 'message_queue_len')}
-               || {_, Pid, _, _} <- gen_server:call(teletype_farms_sup:render_farm_name(), 'get_all_workers')
-              ],
-    {StateName, TotalWorkers, TotalOverflow, TotalInUse} = poolboy:status(teletype_farms_sup:render_farm_name()),
+    Workers = [
+        {Pid, process_info(Pid, 'message_queue_len')}
+     || {_, Pid, _, _} <- gen_server:call(teletype_farms_sup:render_farm_name(), 'get_all_workers')
+    ],
+    {StateName, TotalWorkers, TotalOverflow, TotalInUse} = poolboy:status(
+        teletype_farms_sup:render_farm_name()
+    ),
     io:format("Renderer Pool~n", []),
     io:format("  State           : ~s~n", [StateName]),
     io:format("  Total Workers   : ~p~n", [TotalWorkers]),
     io:format("  Overflow Workers: ~p~n", [TotalOverflow]),
     io:format("  Busy Workers    : ~p~n", [TotalInUse]),
     io:format("Renderer Workers~n", []),
-    _ = [io:format("  ~p has ~p pending jobs~n", [Pid, QueueLength])
-         || {Pid, {_, QueueLength}} <- Workers
-        ],
+    _ = [
+        io:format("  ~p has ~p pending jobs~n", [Pid, QueueLength])
+     || {Pid, {_, QueueLength}} <- Workers
+    ],
     'no_return'.
 
 -spec start_module(module() | kz_term:ne_binary()) -> 'ok' | {'error', any()}.
@@ -205,9 +231,10 @@ start_module(Module) when is_atom(Module) ->
     catch
         _Type:Reason ->
             ST = erlang:get_stacktrace(),
-            lager:error("failed to start teletype module ~s with reason: ~s ~p"
-                       ,[Module, _Type, Reason]
-                       ),
+            lager:error(
+                "failed to start teletype module ~s with reason: ~s ~p",
+                [Module, _Type, Reason]
+            ),
             kz_util:log_stacktrace(ST),
             {'error', Reason}
     end;
@@ -228,14 +255,14 @@ stop_module(Module) ->
     end.
 
 -spec module_from_binary(kz_term:ne_binary()) ->
-          {'ok', module()} |
-          {'error', 'invalid_mod'}.
+    {'ok', module()}
+    | {'error', 'invalid_mod'}.
 module_from_binary(<<"teletype_", _/binary>> = Template) ->
     case kz_module:ensure_loaded(Template) of
         'false' -> invalid_module(Template);
         Module -> {'ok', Module}
     end;
-module_from_binary(?NE_BINARY=Module) ->
+module_from_binary(?NE_BINARY = Module) ->
     module_from_binary(<<"teletype_", Module/binary>>).
 
 -spec invalid_module(kz_term:ne_binary()) -> {'error', 'invalid_mod'}.
@@ -247,9 +274,12 @@ invalid_module(Module) ->
 maybe_add_module_to_autoload(Module) when is_binary(Module) ->
     Autoload = ?AUTOLOAD_MODULES,
     case lists:member(Module, Autoload) of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
-            _ = kapps_config:set_default(?NOTIFY_CONFIG_CAT, ?AUTOLOAD_MODULES_KEY, [Module | Autoload]),
+            _ = kapps_config:set_default(?NOTIFY_CONFIG_CAT, ?AUTOLOAD_MODULES_KEY, [
+                Module | Autoload
+            ]),
             io:format("added module ~s to autoloaded teletype modules~n", [Module])
     end;
 maybe_add_module_to_autoload(Module) ->
@@ -259,9 +289,12 @@ maybe_add_module_to_autoload(Module) ->
 maybe_remove_module_from_autoload(Module) when is_binary(Module) ->
     Autoload = ?AUTOLOAD_MODULES,
     case lists:member(Module, Autoload) of
-        'false' -> 'ok';
+        'false' ->
+            'ok';
         'true' ->
-            _ = kapps_config:set_default(?NOTIFY_CONFIG_CAT, ?AUTOLOAD_MODULES_KEY, lists:delete(Module, Autoload)),
+            _ = kapps_config:set_default(
+                ?NOTIFY_CONFIG_CAT, ?AUTOLOAD_MODULES_KEY, lists:delete(Module, Autoload)
+            ),
             io:format("removed module ~s to autoloaded teletype modules~n", [Module])
     end;
 maybe_remove_module_from_autoload(Module) ->

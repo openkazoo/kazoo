@@ -14,18 +14,19 @@
 -export([start_link/0]).
 -export([init/1]).
 
--define(ORIGIN_BINDINGS, [[{'type', <<"limits">>}]
-                         ,[{'type', <<"user">>}]
-                         ,[{'type', <<"device">>}]
-                         ]).
+-define(ORIGIN_BINDINGS, [
+    [{'type', <<"limits">>}],
+    [{'type', <<"user">>}],
+    [{'type', <<"device">>}]
+]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ]).
+-define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?WORKER('jonny5_listener')
-                  ,?WORKER('j5_channels')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?WORKER('jonny5_listener'),
+    ?WORKER('j5_channels')
+]).
 
 %%==============================================================================
 %% API functions

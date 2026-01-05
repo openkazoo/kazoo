@@ -19,19 +19,21 @@
 -include("konami.hrl").
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'continue', kapps_call:call()}.
+    {'continue', kapps_call:call()}.
 handle(Data, Call) ->
     TTS = kz_json:get_value(<<"text">>, Data),
     lager:debug("tts: '~s'", [TTS]),
 
-    TTSCommand = kapps_call_command:tts_command(TTS
-                                               ,kz_json:get_value(<<"voice">>, Data)
-                                               ,kz_json:get_value(<<"language">>, Data)
-                                               ,kz_json:get_value(<<"terminators">>, Data)
-                                               ,kz_json:get_value(<<"engine">>, Data)
-                                               ,Call
-                                               ),
-    kapps_call_command:send_command(kz_json:set_value(<<"Insert-At">>, <<"now">>, TTSCommand)
-                                   ,Call
-                                   ),
+    TTSCommand = kapps_call_command:tts_command(
+        TTS,
+        kz_json:get_value(<<"voice">>, Data),
+        kz_json:get_value(<<"language">>, Data),
+        kz_json:get_value(<<"terminators">>, Data),
+        kz_json:get_value(<<"engine">>, Data),
+        Call
+    ),
+    kapps_call_command:send_command(
+        kz_json:set_value(<<"Insert-At">>, <<"now">>, TTSCommand),
+        Call
+    ),
     {'continue', Call}.

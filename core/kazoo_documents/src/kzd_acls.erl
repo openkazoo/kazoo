@@ -11,7 +11,6 @@
 -export([network_list_name/1, network_list_name/2, set_network_list_name/2]).
 -export([type/1, type/2, set_type/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

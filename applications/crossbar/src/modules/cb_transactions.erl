@@ -6,14 +6,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_transactions).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,authorize/2
-        ,validate/1, validate/2
-        ,to_csv/1
-        ,put/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    authorize/2,
+    validate/1, validate/2,
+    to_csv/1,
+    put/2
+]).
 
 -include("crossbar.hrl").
 
@@ -47,17 +48,19 @@ to_csv({Req, Context}) ->
     {Req, cb_context:set_resp_data(Context, JObjs)}.
 
 -spec flatten(kz_json:objects(), kz_json:objects()) -> kz_json:objects().
-flatten([], Results) -> Results;
-flatten([JObj|JObjs], Results) ->
+flatten([], Results) ->
+    Results;
+flatten([JObj | JObjs], Results) ->
     Metadata = kz_json:get_ne_value(<<"metadata">>, JObj),
     case kz_json:is_json_object(Metadata) of
         'true' ->
             Props = kz_json:to_proplist(Metadata),
-            flatten(JObjs, [kz_json:set_values(Props, JObj)|Results]);
+            flatten(JObjs, [kz_json:set_values(Props, JObj) | Results]);
         'false' ->
-            flatten(JObjs, [JObj|Results])
+            flatten(JObjs, [JObj | Results])
     end;
-flatten(Else, _) -> Else.
+flatten(Else, _) ->
+    Else.
 
 %%------------------------------------------------------------------------------
 %% @doc Given the path tokens related to this module, what HTTP methods are
@@ -99,15 +102,16 @@ resource_exists(_) -> 'true'.
 %%------------------------------------------------------------------------------
 -spec authorize(cb_context:context(), path_token()) -> boolean() | {'stop', cb_context:context()}.
 authorize(Context, Path) ->
-    try authorize_request(Context, Path, cb_context:req_verb(Context))
+    try
+        authorize_request(Context, Path, cb_context:req_verb(Context))
     catch
         _E:_R ->
             {'stop', cb_context:add_system_error('forbidden', Context)}
     end.
 
 -spec authorize_request(cb_context:context(), path_token(), http_method()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize_request(Context, ?REFUND, ?HTTP_PUT) ->
     authorize_create(Context);
 authorize_request(Context, ?SALE, ?HTTP_PUT) ->
@@ -117,22 +121,24 @@ authorize_request(Context, _, ?HTTP_PUT) ->
 authorize_request(_Context, _Path, _Verb) ->
     'false'.
 
--spec authorize_create(cb_context:context()) -> boolean() |
-          {'stop', cb_context:context()}.
+-spec authorize_create(cb_context:context()) ->
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize_create(Context) ->
     IsAuthenticated = cb_context:is_authenticated(Context),
     IsSuperDuperAdmin = cb_context:is_superduper_admin(Context),
     AccountId = cb_context:account_id(Context),
     BookkeeperVendor = kz_services:bookkeeper_vendor_id(
-                         kz_services:fetch(AccountId)
-                        ),
+        kz_services:fetch(AccountId)
+    ),
     AuthAccountId = cb_context:auth_account_id(Context),
-    IsReseller = kz_term:is_not_empty(BookkeeperVendor)
-        andalso BookkeeperVendor =:= AuthAccountId,
-    case IsAuthenticated
-        andalso (IsSuperDuperAdmin
-                 orelse IsReseller
-                )
+    IsReseller =
+        kz_term:is_not_empty(BookkeeperVendor) andalso
+            BookkeeperVendor =:= AuthAccountId,
+    case
+        IsAuthenticated andalso
+            (IsSuperDuperAdmin orelse
+                IsReseller)
     of
         'true' -> 'true';
         'false' -> {'stop', cb_context:add_system_error('forbidden', Context)}
@@ -158,7 +164,8 @@ validate_transactions(Context, ?HTTP_GET) ->
 validate(Context, PathToken) ->
     validate_transaction(Context, PathToken, cb_context:req_verb(Context)).
 
--spec validate_transaction(cb_context:context(), path_token(), http_method()) -> cb_context:context().
+-spec validate_transaction(cb_context:context(), path_token(), http_method()) ->
+    cb_context:context().
 validate_transaction(Context, ?REFUND, ?HTTP_PUT) ->
     Amount = kz_json:get_float_value(<<"amount">>, cb_context:req_data(Context)),
     validate_refund(Context, Amount);
@@ -204,30 +211,29 @@ put(Context, Action) ->
     AccountId = cb_context:account_id(Context),
     Setters =
         props:filter_empty(
-          [{fun kz_transaction:set_account/2, AccountId}
-          ,{fun kz_transaction:set_description/2
-           ,kz_json:get_ne_binary_value(<<"description">>, ReqData)
-           }
-          ,{fun kz_transaction:set_metadata/2
-           ,kz_json:get_ne_json_value(<<"metadata">>, ReqData, kz_json:new())
-           }
-          ,{fun kz_transaction:set_order_id/2
-           ,kz_json:get_ne_binary_value(<<"order_id">>, ReqData)
-           }
-          ,{fun kz_transaction:set_dollar_amount/2
-           ,abs(kz_json:get_integer_value(<<"amount">>, ReqData, 0))
-           }
-          ,{fun kz_transaction:set_audit/2
-           ,crossbar_services:audit_log(Context)
-           }
-          ,{fun kz_transaction:set_executor_trigger/2
-           ,<<"crossbar">>
-           }
-          ,{fun kz_transaction:set_executor_module/2
-           ,kz_term:to_binary(?MODULE)
-           }
-          ]
-         ),
+            [
+                {fun kz_transaction:set_account/2, AccountId},
+                {
+                    fun kz_transaction:set_description/2,
+                    kz_json:get_ne_binary_value(<<"description">>, ReqData)
+                },
+                {
+                    fun kz_transaction:set_metadata/2,
+                    kz_json:get_ne_json_value(<<"metadata">>, ReqData, kz_json:new())
+                },
+                {
+                    fun kz_transaction:set_order_id/2,
+                    kz_json:get_ne_binary_value(<<"order_id">>, ReqData)
+                },
+                {
+                    fun kz_transaction:set_dollar_amount/2,
+                    abs(kz_json:get_integer_value(<<"amount">>, ReqData, 0))
+                },
+                {fun kz_transaction:set_audit/2, crossbar_services:audit_log(Context)},
+                {fun kz_transaction:set_executor_trigger/2, <<"crossbar">>},
+                {fun kz_transaction:set_executor_module/2, kz_term:to_binary(?MODULE)}
+            ]
+        ),
     process_action(Context, Action, kz_transaction:setters(Setters)).
 
 %%------------------------------------------------------------------------------
@@ -235,7 +241,7 @@ put(Context, Action) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec process_action(cb_context:context(), kz_term:ne_binary(), kz_transaction:transaction()) ->
-          cb_context:context().
+    cb_context:context().
 process_action(Context, ?REFUND, Transaction) ->
     case kz_transaction:refund(Transaction) of
         {'error', Reason} ->
@@ -251,7 +257,8 @@ process_action(Context, ?SALE, Transaction) ->
             handle_bookkeeper_result(Context, SavedTransaction)
     end.
 
--spec handle_bookkeeper_result(cb_context:context(), kz_transaction:transaction()) -> cb_context:context().
+-spec handle_bookkeeper_result(cb_context:context(), kz_transaction:transaction()) ->
+    cb_context:context().
 handle_bookkeeper_result(Context, Transaction) ->
     crossbar_services:transaction_to_error(Context, Transaction).
 
@@ -260,7 +267,7 @@ handle_bookkeeper_result(Context, Transaction) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(cb_context:context(), kzd_transactions:doc(), kz_json:objects()) ->
-          kz_json:objects().
+    kz_json:objects().
 normalize_view_results(_Context, JObj, Acc) ->
     [normalize_view_result(JObj) | Acc].
 
@@ -268,6 +275,6 @@ normalize_view_results(_Context, JObj, Acc) ->
 normalize_view_result(JObj) ->
     Value = kz_json:get_ne_json_value(<<"value">>, JObj),
     Amount = kz_currency:units_to_dollars(
-               kz_json:get_integer_value(<<"amount">>, Value, 0)
-              ),
+        kz_json:get_integer_value(<<"amount">>, Value, 0)
+    ),
     kz_json:set_value(<<"amount">>, Amount, Value).

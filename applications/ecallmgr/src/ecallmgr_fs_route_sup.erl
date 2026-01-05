@@ -14,10 +14,11 @@
 -export([start_link/1, start_link/2]).
 -export([init/1]).
 
--define(CHILDREN(Args), [?WORKER_ARGS_TYPE('ecallmgr_fs_route', Args, 'transient')
-                        ,?WORKER_ARGS_TYPE('ecallmgr_fs_router_call', Args, 'transient')
-                        ,?WORKER_ARGS_TYPE('ecallmgr_fs_router_text', Args, 'transient')
-                        ]).
+-define(CHILDREN(Args), [
+    ?WORKER_ARGS_TYPE('ecallmgr_fs_route', Args, 'transient'),
+    ?WORKER_ARGS_TYPE('ecallmgr_fs_router_call', Args, 'transient'),
+    ?WORKER_ARGS_TYPE('ecallmgr_fs_router_text', Args, 'transient')
+]).
 
 %%==============================================================================
 %% API functions

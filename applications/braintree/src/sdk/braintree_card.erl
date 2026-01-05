@@ -15,10 +15,11 @@
 -export([create/1, create/2]).
 -export([update/1]).
 -export([delete/1]).
--export([expired/0
-        ,expired/1
-        ,expiring/2
-        ]).
+-export([
+    expired/0,
+    expired/1,
+    expiring/2
+]).
 -export([make_default/1, make_default/2]).
 -export([xml_to_record/1, xml_to_record/2]).
 -export([record_to_xml/1, record_to_xml/2]).
@@ -78,15 +79,18 @@ payment_tokens(Cards) ->
 %%------------------------------------------------------------------------------
 
 -spec find(kz_term:ne_binary() | bt_card()) -> bt_card().
-find(#bt_card{token = CardId}) -> find(CardId);
+find(#bt_card{token = CardId}) ->
+    find(CardId);
 find(Token) ->
     %% github.com/braintree/braintree_php/blob/master/lib/Braintree/CreditCardGateway.php#L149
     Url = url(Token, ''),
-    Xml = try braintree_request:get(Url)
-          catch
-              'throw':{'not_found', _JObj} ->
-                  #bt_card{}
-          end,
+    Xml =
+        try
+            braintree_request:get(Url)
+        catch
+            'throw':{'not_found', _JObj} ->
+                #bt_card{}
+        end,
     xml_to_record(Xml).
 
 %%------------------------------------------------------------------------------
@@ -95,7 +99,7 @@ find(Token) ->
 %%------------------------------------------------------------------------------
 
 -spec create(bt_card()) -> bt_card().
-create(#bt_card{}=Card) ->
+create(#bt_card{} = Card) ->
     Url = url(),
     Request = record_to_xml(Card, 'true'),
     Xml = braintree_request:post(Url, Request),
@@ -103,7 +107,7 @@ create(#bt_card{}=Card) ->
 
 -spec create(string() | kz_term:ne_binary(), bt_card()) -> bt_card().
 create(CustomerId, Card) ->
-    create(Card#bt_card{customer_id=CustomerId}).
+    create(Card#bt_card{customer_id = CustomerId}).
 
 %%------------------------------------------------------------------------------
 %% @doc Updates a credit card with the given record.
@@ -111,7 +115,7 @@ create(CustomerId, Card) ->
 %%------------------------------------------------------------------------------
 
 -spec update(bt_card()) -> bt_card().
-update(#bt_card{token=Token}=Card) ->
+update(#bt_card{token = Token} = Card) ->
     Url = url(Token),
     Request = record_to_xml(Card, 'true'),
     Xml = braintree_request:put(Url, Request),
@@ -123,9 +127,9 @@ update(#bt_card{token=Token}=Card) ->
 %%------------------------------------------------------------------------------
 
 -spec delete(bt_card() | binary() | string()) -> bt_card().
-delete(#bt_card{token='undefined'}) ->
+delete(#bt_card{token = 'undefined'}) ->
     braintree_util:error_not_found(<<>>);
-delete(#bt_card{token=Token}=Card) ->
+delete(#bt_card{token = Token} = Card) ->
     _ = delete(Token),
     Card;
 delete(Token) ->
@@ -140,12 +144,13 @@ delete(Token) ->
 -spec expired() -> [bt_xml()].
 expired() ->
     Xml = braintree_request:post("/payment_methods/all/expired_ids", <<>>),
-    [kz_xml:get_value("/item/text()", Item)
+    [
+        kz_xml:get_value("/item/text()", Item)
      || Item <- xmerl_xpath:string("/search-results/ids/item", Xml)
     ].
 
 -spec expired(bt_card()) -> boolean().
-expired(#bt_card{expired=Expired}) -> Expired.
+expired(#bt_card{expired = Expired}) -> Expired.
 
 %%------------------------------------------------------------------------------
 %% @doc Finds the tokens of credit cards expiring between the given
@@ -155,13 +160,15 @@ expired(#bt_card{expired=Expired}) -> Expired.
 
 -spec expiring(kz_term:text(), kz_term:text()) -> [bt_xml()].
 expiring(Start, End) ->
-    Url = lists:append(["/payment_methods/all/expiring?start="
-                       ,kz_term:to_list(Start)
-                       ,"&end="
-                       ,kz_term:to_list(End)
-                       ]),
+    Url = lists:append([
+        "/payment_methods/all/expiring?start=",
+        kz_term:to_list(Start),
+        "&end=",
+        kz_term:to_list(End)
+    ]),
     Xml = braintree_request:post(Url, <<>>),
-    [xml_to_record(Item)
+    [
+        xml_to_record(Item)
      || Item <- xmerl_xpath:string("/payment-methods/credit-card", Xml)
     ].
 
@@ -174,7 +181,7 @@ expiring(Start, End) ->
 make_default(#bt_card{make_default = Value}) -> Value.
 
 -spec make_default(bt_card(), boolean()) -> bt_card().
-make_default(#bt_card{}=Card, Value) ->
+make_default(#bt_card{} = Card, Value) ->
     Card#bt_card{make_default = Value}.
 
 %%------------------------------------------------------------------------------
@@ -188,23 +195,24 @@ xml_to_record(Xml) ->
 
 -spec xml_to_record(bt_xml(), kz_term:deeplist()) -> bt_card().
 xml_to_record(Xml, Base) ->
-    #bt_card{token = kz_xml:get_value([Base, "/token/text()"], Xml)
-            ,bin = kz_xml:get_value([Base, "/bin/text()"], Xml)
-            ,cardholder_name = kz_xml:get_value([Base, "/cardholder-name/text()"], Xml)
-            ,card_type = kz_xml:get_value([Base, "/card-type/text()"], Xml)
-            ,created_at = kz_xml:get_value([Base, "/created-at/text()"], Xml)
-            ,updated_at = kz_xml:get_value([Base, "/updated-at/text()"], Xml)
-            ,default = kz_term:is_true(kz_xml:get_value([Base, "/default/text()"], Xml))
-            ,expiration_date = kz_xml:get_value([Base, "/expiration-date/text()"], Xml)
-            ,expiration_month = kz_xml:get_value([Base, "/expiration-month/text()"], Xml)
-            ,expiration_year = kz_xml:get_value([Base, "/expiration-year/text()"], Xml)
-            ,expired = kz_term:is_true(kz_xml:get_value([Base, "/expired/text()"], Xml))
-            ,customer_location = kz_xml:get_value([Base, "/customer-location/text()"], Xml)
-            ,last_four = kz_xml:get_value([Base, "/last-4/text()"], Xml)
-            ,customer_id = kz_xml:get_value([Base, "/customer-id/text()"], Xml)
-            ,billing_address = braintree_address:xml_to_record(Xml, [Base, "/billing-address"])
-            ,billing_address_id = kz_xml:get_value([Base, "/billing-address/id/text()"], Xml)
-            }.
+    #bt_card{
+        token = kz_xml:get_value([Base, "/token/text()"], Xml),
+        bin = kz_xml:get_value([Base, "/bin/text()"], Xml),
+        cardholder_name = kz_xml:get_value([Base, "/cardholder-name/text()"], Xml),
+        card_type = kz_xml:get_value([Base, "/card-type/text()"], Xml),
+        created_at = kz_xml:get_value([Base, "/created-at/text()"], Xml),
+        updated_at = kz_xml:get_value([Base, "/updated-at/text()"], Xml),
+        default = kz_term:is_true(kz_xml:get_value([Base, "/default/text()"], Xml)),
+        expiration_date = kz_xml:get_value([Base, "/expiration-date/text()"], Xml),
+        expiration_month = kz_xml:get_value([Base, "/expiration-month/text()"], Xml),
+        expiration_year = kz_xml:get_value([Base, "/expiration-year/text()"], Xml),
+        expired = kz_term:is_true(kz_xml:get_value([Base, "/expired/text()"], Xml)),
+        customer_location = kz_xml:get_value([Base, "/customer-location/text()"], Xml),
+        last_four = kz_xml:get_value([Base, "/last-4/text()"], Xml),
+        customer_id = kz_xml:get_value([Base, "/customer-id/text()"], Xml),
+        billing_address = braintree_address:xml_to_record(Xml, [Base, "/billing-address"]),
+        billing_address_id = kz_xml:get_value([Base, "/billing-address/id/text()"], Xml)
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Convert the given record to XML.
@@ -216,73 +224,89 @@ record_to_xml(Card) ->
     record_to_xml(Card, 'false').
 
 -spec record_to_xml(bt_card(), boolean()) -> kz_term:proplist() | bt_xml().
-record_to_xml(#bt_card{}=Card, ToString) ->
-    Props = [{'token', Card#bt_card.token}
-            ,{'cardholder-name', Card#bt_card.cardholder_name}
-            ,{'expiration-date', Card#bt_card.expiration_date}
-            ,{'expiration-month', Card#bt_card.expiration_month}
-            ,{'expiration-year', Card#bt_card.expiration_year}
-            ,{'customer-id', Card#bt_card.customer_id}
-            ,{'number', Card#bt_card.number}
-            ,{'cvv', Card#bt_card.cvv}
-            ,{'payment-method-nonce', Card#bt_card.payment_method_nonce}
-            ],
+record_to_xml(#bt_card{} = Card, ToString) ->
+    Props = [
+        {'token', Card#bt_card.token},
+        {'cardholder-name', Card#bt_card.cardholder_name},
+        {'expiration-date', Card#bt_card.expiration_date},
+        {'expiration-month', Card#bt_card.expiration_month},
+        {'expiration-year', Card#bt_card.expiration_year},
+        {'customer-id', Card#bt_card.customer_id},
+        {'number', Card#bt_card.number},
+        {'cvv', Card#bt_card.cvv},
+        {'payment-method-nonce', Card#bt_card.payment_method_nonce}
+    ],
     Conditionals =
-        [fun(#bt_card{billing_address=BA, billing_address_id=BAID}, P) ->
-                 case BA == 'undefined'
-                     orelse BA =:= (find(Card))#bt_card.billing_address
-                 of
-                     'true'  -> [{'billing-address-id', BAID} | P];
-                     'false' -> [{'billing-address', braintree_address:record_to_xml(BA)} | P]
-                 end
-         end
-        ,fun(#bt_card{update_existing='false'}, P) -> P;
-            (#bt_card{update_existing=Token}, P) when is_binary(Token) ->
-                 case props:get_value('options', P) of
-                     'undefined' ->
-                         [{'options', [{'update-existing-token', Token}]}
-                          | props:delete('token', P)
-                         ];
-                     Options ->
-                         [{'options', [{'update-existing-token', Token}|Options]}
-                          | props:delete('token', props:delete('options', P))
-                         ]
-                 end;
-            (#bt_card{update_existing='true'}, P) ->
-                 case props:get_value('options', P) of
-                     'undefined' ->
-                         [{'options', [{'update-existing-token', Card#bt_card.token}]}
-                          | props:delete('token', P)
-                         ];
-                     Options ->
-                         [{'options', [{'update-existing-token', Card#bt_card.token}|Options]}
-                          | props:delete('token', props:delete('options', P))
-                         ]
-                 end;
-            (_, P) -> P
-         end
-        ,fun(#bt_card{verify='true', number=Number}, P) when Number =/= 'undefined' ->
-                 case props:get_value('options', P) of
-                     'undefined' ->
-                         [{'options', [{'verify-card', 'true'}]} | P];
-                     Options ->
-                         Options1 = [{'verify-card', 'true'} | Options],
-                         [{'options', Options1} | props:delete('options', P)]
-                 end;
-            (#bt_card{verify='false'}, P) ->
-                 case props:get_value('options', P) of
-                     'undefined' ->
-                         [{'options', [{'verify-card', 'false'}]} | P];
-                     Options ->
-                         Options1 = [{'verify-card', 'false'} | Options],
-                         [{'options', Options1} | props:delete('options', P)]
-                 end;
-            (_, P) -> P
-         end
-        ,fun(#bt_card{make_default='true'}, P) ->
-                 [{'options', [{'make-default', 'true'}]} | P];
-            (_, P) -> P
-         end
+        [
+            fun(#bt_card{billing_address = BA, billing_address_id = BAID}, P) ->
+                case
+                    BA == 'undefined' orelse
+                        BA =:= (find(Card))#bt_card.billing_address
+                of
+                    'true' -> [{'billing-address-id', BAID} | P];
+                    'false' -> [{'billing-address', braintree_address:record_to_xml(BA)} | P]
+                end
+            end,
+            fun
+                (#bt_card{update_existing = 'false'}, P) ->
+                    P;
+                (#bt_card{update_existing = Token}, P) when is_binary(Token) ->
+                    case props:get_value('options', P) of
+                        'undefined' ->
+                            [
+                                {'options', [{'update-existing-token', Token}]}
+                                | props:delete('token', P)
+                            ];
+                        Options ->
+                            [
+                                {'options', [{'update-existing-token', Token} | Options]}
+                                | props:delete('token', props:delete('options', P))
+                            ]
+                    end;
+                (#bt_card{update_existing = 'true'}, P) ->
+                    case props:get_value('options', P) of
+                        'undefined' ->
+                            [
+                                {'options', [{'update-existing-token', Card#bt_card.token}]}
+                                | props:delete('token', P)
+                            ];
+                        Options ->
+                            [
+                                {'options', [
+                                    {'update-existing-token', Card#bt_card.token} | Options
+                                ]}
+                                | props:delete('token', props:delete('options', P))
+                            ]
+                    end;
+                (_, P) ->
+                    P
+            end,
+            fun
+                (#bt_card{verify = 'true', number = Number}, P) when Number =/= 'undefined' ->
+                    case props:get_value('options', P) of
+                        'undefined' ->
+                            [{'options', [{'verify-card', 'true'}]} | P];
+                        Options ->
+                            Options1 = [{'verify-card', 'true'} | Options],
+                            [{'options', Options1} | props:delete('options', P)]
+                    end;
+                (#bt_card{verify = 'false'}, P) ->
+                    case props:get_value('options', P) of
+                        'undefined' ->
+                            [{'options', [{'verify-card', 'false'}]} | P];
+                        Options ->
+                            Options1 = [{'verify-card', 'false'} | Options],
+                            [{'options', Options1} | props:delete('options', P)]
+                    end;
+                (_, P) ->
+                    P
+            end,
+            fun
+                (#bt_card{make_default = 'true'}, P) ->
+                    [{'options', [{'make-default', 'true'}]} | P];
+                (_, P) ->
+                    P
+            end
         ],
     Props1 = lists:foldr(fun(F, P) -> F(Card, P) end, Props, Conditionals),
     case ToString of
@@ -296,23 +320,27 @@ record_to_xml(#bt_card{}=Card, ToString) ->
 %%------------------------------------------------------------------------------
 
 -spec json_to_record(kz_term:api_object()) -> bt_card().
-json_to_record('undefined') -> 'undefined';
+json_to_record('undefined') ->
+    'undefined';
 json_to_record(JObj) ->
-    #bt_card{token = create_or_get_json_id(JObj)
-            ,cardholder_name = kz_json:get_binary_value(<<"cardholder_name">>, JObj)
-            ,expiration_date = kz_json:get_binary_value(<<"expiration_date">>, JObj)
-            ,expiration_month = kz_json:get_binary_value(<<"expiration_month">>, JObj)
-            ,expiration_year = kz_json:get_binary_value(<<"expiration_year">>, JObj)
-            ,customer_id = kz_json:get_binary_value(<<"customer_id">>, JObj)
-            ,number = kz_json:get_binary_value(<<"number">>, JObj)
-            ,cvv = kz_json:get_binary_value(<<"cvv">>, JObj)
-            ,billing_address_id = kz_json:get_binary_value(<<"billing_address_id">>, JObj)
-            ,billing_address = braintree_address:json_to_record(kz_json:get_value(<<"billing_address">>, JObj))
-            ,update_existing = kz_json:get_binary_value(<<"update_existing">>, JObj)
-            ,verify = kz_json:is_true(<<"verify">>, JObj, 'false')
-            ,make_default = kz_json:is_true(<<"make_default">>, JObj, 'true')
-            ,payment_method_nonce = kz_json:get_binary_value(<<"payment_method_nonce">>, JObj)
-            }.
+    #bt_card{
+        token = create_or_get_json_id(JObj),
+        cardholder_name = kz_json:get_binary_value(<<"cardholder_name">>, JObj),
+        expiration_date = kz_json:get_binary_value(<<"expiration_date">>, JObj),
+        expiration_month = kz_json:get_binary_value(<<"expiration_month">>, JObj),
+        expiration_year = kz_json:get_binary_value(<<"expiration_year">>, JObj),
+        customer_id = kz_json:get_binary_value(<<"customer_id">>, JObj),
+        number = kz_json:get_binary_value(<<"number">>, JObj),
+        cvv = kz_json:get_binary_value(<<"cvv">>, JObj),
+        billing_address_id = kz_json:get_binary_value(<<"billing_address_id">>, JObj),
+        billing_address = braintree_address:json_to_record(
+            kz_json:get_value(<<"billing_address">>, JObj)
+        ),
+        update_existing = kz_json:get_binary_value(<<"update_existing">>, JObj),
+        verify = kz_json:is_true(<<"verify">>, JObj, 'false'),
+        make_default = kz_json:is_true(<<"make_default">>, JObj, 'true'),
+        payment_method_nonce = kz_json:get_binary_value(<<"payment_method_nonce">>, JObj)
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Convert a given record into a JSON object.
@@ -320,52 +348,59 @@ json_to_record(JObj) ->
 %%------------------------------------------------------------------------------
 
 -spec record_to_json(bt_card()) -> kz_json:object().
-record_to_json(#bt_card{}=Card) ->
+record_to_json(#bt_card{} = Card) ->
     kz_json:from_list(
-      [{<<"id">>, Card#bt_card.token}
-      ,{<<"bin">>, Card#bt_card.bin}
-      ,{<<"cardholder_name">>, Card#bt_card.cardholder_name}
-      ,{<<"card_type">>, Card#bt_card.card_type}
-      ,{<<"created_at">>, Card#bt_card.created_at}
-      ,{<<"updated_at">>, Card#bt_card.updated_at}
-      ,{<<"default">>, Card#bt_card.default}
-      ,{<<"expiration_date">>, Card#bt_card.expiration_date}
-      ,{<<"expiration_month">>, Card#bt_card.expiration_month}
-      ,{<<"expiration_year">>, Card#bt_card.expiration_year}
-      ,{<<"expired">>, Card#bt_card.expired}
-      ,{<<"customer_location">>, Card#bt_card.customer_location}
-      ,{<<"last_four">>, Card#bt_card.last_four}
-      ,{<<"customer_id">>, Card#bt_card.customer_id}
-      ,{<<"billing_address">>, braintree_address:record_to_json(Card#bt_card.billing_address)}
-      ,{<<"billing_address_id">>, Card#bt_card.billing_address_id}
-      ,{<<"verify">>, Card#bt_card.verify}
-      ]).
+        [
+            {<<"id">>, Card#bt_card.token},
+            {<<"bin">>, Card#bt_card.bin},
+            {<<"cardholder_name">>, Card#bt_card.cardholder_name},
+            {<<"card_type">>, Card#bt_card.card_type},
+            {<<"created_at">>, Card#bt_card.created_at},
+            {<<"updated_at">>, Card#bt_card.updated_at},
+            {<<"default">>, Card#bt_card.default},
+            {<<"expiration_date">>, Card#bt_card.expiration_date},
+            {<<"expiration_month">>, Card#bt_card.expiration_month},
+            {<<"expiration_year">>, Card#bt_card.expiration_year},
+            {<<"expired">>, Card#bt_card.expired},
+            {<<"customer_location">>, Card#bt_card.customer_location},
+            {<<"last_four">>, Card#bt_card.last_four},
+            {<<"customer_id">>, Card#bt_card.customer_id},
+            {<<"billing_address">>, braintree_address:record_to_json(Card#bt_card.billing_address)},
+            {<<"billing_address_id">>, Card#bt_card.billing_address_id},
+            {<<"verify">>, Card#bt_card.verify}
+        ]
+    ).
 
 -spec record_to_payment_token(bt_card()) -> kz_json:object().
-record_to_payment_token(#bt_card{}=Card) ->
+record_to_payment_token(#bt_card{} = Card) ->
     ExpYear = kz_term:to_integer(Card#bt_card.expiration_year),
     ExpMonth = kz_term:to_integer(Card#bt_card.expiration_month),
     ExpGregorian = calendar:datetime_to_gregorian_seconds({{ExpYear, ExpMonth, 1}, {0, 0, 0}}),
 
     kz_json:from_list(
-      [{<<"id">>, Card#bt_card.token}
-      ,{<<"bookkeeper">>, <<"braintree">>}
-      ,{<<"created">>
-       ,calendar:datetime_to_gregorian_seconds(kz_time:from_iso8601(Card#bt_card.created_at))
-       }
-      ,{<<"default">>, Card#bt_card.default}
-      ,{<<"expiration">>, ExpGregorian}
-      ,{<<"metadata">>
-       ,kz_json:from_list(
-          [{<<"card_type">>, Card#bt_card.card_type}
-          ,{<<"customer_id">>, Card#bt_card.customer_id}
-          ,{<<"last_four">>, Card#bt_card.last_four}
-          ])
-       }
-      ,{<<"modified">>
-       ,calendar:datetime_to_gregorian_seconds(kz_time:from_iso8601(Card#bt_card.updated_at))
-       }
-      ]).
+        [
+            {<<"id">>, Card#bt_card.token},
+            {<<"bookkeeper">>, <<"braintree">>},
+            {<<"created">>,
+                calendar:datetime_to_gregorian_seconds(
+                    kz_time:from_iso8601(Card#bt_card.created_at)
+                )},
+            {<<"default">>, Card#bt_card.default},
+            {<<"expiration">>, ExpGregorian},
+            {<<"metadata">>,
+                kz_json:from_list(
+                    [
+                        {<<"card_type">>, Card#bt_card.card_type},
+                        {<<"customer_id">>, Card#bt_card.customer_id},
+                        {<<"last_four">>, Card#bt_card.last_four}
+                    ]
+                )},
+            {<<"modified">>,
+                calendar:datetime_to_gregorian_seconds(
+                    kz_time:from_iso8601(Card#bt_card.updated_at)
+                )}
+        ]
+    ).
 
 -spec customer_id(bt_card()) -> kz_term:api_binary().
 customer_id(#bt_card{customer_id = CustomerId}) -> CustomerId.
@@ -380,5 +415,5 @@ customer_id(#bt_card{customer_id = CustomerId}) -> CustomerId.
 create_or_get_json_id(JObj) ->
     case kz_json:get_value(<<"number">>, JObj) of
         'undefined' -> kz_doc:id(JObj);
-        _ ->          kz_doc:id(JObj, kz_binary:rand_hex(16))
+        _ -> kz_doc:id(JObj, kz_binary:rand_hex(16))
     end.

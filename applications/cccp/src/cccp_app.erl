@@ -32,7 +32,6 @@ stop(_State) ->
     _ = kapps_maintenance:unbind('register_views', 'cccp_util', 'register_views'),
     'ok'.
 
-
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     kapi_self:declare_exchanges(),

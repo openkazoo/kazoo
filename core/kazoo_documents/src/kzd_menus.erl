@@ -23,7 +23,6 @@
 -export([retries/1, retries/2, set_retries/2]).
 -export([timeout/1, timeout/2, set_timeout/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

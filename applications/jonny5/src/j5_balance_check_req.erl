@@ -23,11 +23,13 @@ handle_req(ReqJObj, _Props) ->
 -spec account_balance(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
 account_balance(AccountId, Acc) ->
     Limits = j5_limits:get(AccountId),
-    [ {AccountId, j5_per_minute:maybe_credit_available(0, Limits)} | Acc ].
+    [{AccountId, j5_per_minute:maybe_credit_available(0, Limits)} | Acc].
 
 build_resp(RespAccounts, ReqJObj) ->
     props:filter_undefined(
-      [{<<"Balances">>, RespAccounts}
-      ,{<<"Msg-ID">>, kz_api:msg_id(ReqJObj)}
-       | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-      ]).
+        [
+            {<<"Balances">>, RespAccounts},
+            {<<"Msg-ID">>, kz_api:msg_id(ReqJObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ).

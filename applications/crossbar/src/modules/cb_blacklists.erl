@@ -6,15 +6,16 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_blacklists).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -191,14 +192,16 @@ normalize_view_results(JObj, Acc) ->
 format_numbers(Context) ->
     Doc = cb_context:doc(Context),
     Numbers =
-        kz_json:map(fun format_number_map/2
-                   ,kz_json:get_value(<<"numbers">>, Doc, kz_json:new())
-                   ),
-    cb_context:set_doc(Context
-                      ,kz_json:set_value(<<"numbers">>, Numbers, Doc)
-                      ).
+        kz_json:map(
+            fun format_number_map/2,
+            kz_json:get_value(<<"numbers">>, Doc, kz_json:new())
+        ),
+    cb_context:set_doc(
+        Context,
+        kz_json:set_value(<<"numbers">>, Numbers, Doc)
+    ).
 
 -spec format_number_map(kz_term:ne_binary(), kz_json:object()) ->
-          {kz_term:ne_binary(), kz_json:object()}.
+    {kz_term:ne_binary(), kz_json:object()}.
 format_number_map(Number, Data) ->
     {knm_converters:normalize(Number), Data}.

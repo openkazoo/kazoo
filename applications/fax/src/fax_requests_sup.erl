@@ -40,7 +40,7 @@ new(Call, JObj, Storage) ->
 
 -spec workers() -> kz_term:pids().
 workers() ->
-    [ Pid || {_, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER)].
+    [Pid || {_, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER)].
 
 %%==============================================================================
 %% Supervisor callbacks

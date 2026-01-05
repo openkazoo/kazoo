@@ -22,10 +22,11 @@
 -module(kapi).
 
 %% API
--export([delivery_message/2
-        ,encode_pid/1, encode_pid/2
-        ,decode_pid/1
-        ]).
+-export([
+    delivery_message/2,
+    encode_pid/1, encode_pid/2,
+    decode_pid/1
+]).
 
 -include_lib("kz_amqp_util.hrl").
 
@@ -38,18 +39,18 @@ event_name(JObj) ->
     kz_term:to_atom(kz_api:event_name(JObj), 'true').
 
 -spec delivery_message(JObj, kz_term:proplist()) ->
-          {{kz_term:ne_binary(), kz_term:ne_binary(), {#'P_basic'{}, #'basic.deliver'{}}}
-          ,{atom(), atom()}
-          ,JObj
-          }
-              when JObj :: kz_json:object().
+    {
+        {kz_term:ne_binary(), kz_term:ne_binary(), {#'P_basic'{}, #'basic.deliver'{}}},
+        {atom(), atom()},
+        JObj
+    }
+when
+    JObj :: kz_json:object().
 delivery_message(JObj, Props) ->
     Basic = props:get_value('basic', Props),
-    Deliver = #'basic.deliver'{exchange=Exchange, routing_key=RK} = props:get_value('deliver', Props),
-    {{Exchange, RK, {Basic, Deliver}}
-    ,{event_category(JObj), event_name(JObj)}
-    ,JObj
-    }.
+    Deliver =
+        #'basic.deliver'{exchange = Exchange, routing_key = RK} = props:get_value('deliver', Props),
+    {{Exchange, RK, {Basic, Deliver}}, {event_category(JObj), event_name(JObj)}, JObj}.
 
 -spec encode_pid(kz_term:ne_binary()) -> kz_term:ne_binary().
 encode_pid(Queue) ->
@@ -65,4 +66,5 @@ decode_pid(<<"pid://", QPid/binary>>) ->
         [Pid, _RK] -> kz_term:to_pid(Pid);
         _ -> 'undefined'
     end;
-decode_pid(_Queue) -> 'undefined'.
+decode_pid(_Queue) ->
+    'undefined'.

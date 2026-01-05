@@ -19,8 +19,7 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER('cdr_listener')
-                  ]).
+-define(CHILDREN, [?WORKER('cdr_listener')]).
 
 %%==============================================================================
 %% API functions

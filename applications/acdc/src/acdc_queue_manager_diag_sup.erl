@@ -12,10 +12,11 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/0
-        ,start_diagnostics/2
-        ,send_diagnostics/2
-        ]).
+-export([
+    start_link/0,
+    start_diagnostics/2,
+    send_diagnostics/2
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -49,11 +50,12 @@ start_diagnostics(AccountId, QueueId) ->
 %%------------------------------------------------------------------------------
 -spec send_diagnostics([pid()], iolist()) -> 'ok'.
 send_diagnostics(DiagSrvs, Message) ->
-    lists:foreach(fun(DiagSrv) ->
-                          acdc_queue_manager_diag:send_diagnostics(DiagSrv, Message)
-                  end
-                 ,DiagSrvs
-                 ).
+    lists:foreach(
+        fun(DiagSrv) ->
+            acdc_queue_manager_diag:send_diagnostics(DiagSrv, Message)
+        end,
+        DiagSrvs
+    ).
 
 %%%=============================================================================
 %%% Supervisor callbacks

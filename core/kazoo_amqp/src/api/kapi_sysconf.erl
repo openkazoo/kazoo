@@ -10,25 +10,32 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_sysconf).
 
--export([get_req/1, get_req_v/1
-        ,get_resp/1, get_resp_v/1
-        ,set_req/1, set_req_v/1
-        ,set_resp/1, set_resp_v/1
-        ,flush_req/1, flush_req_v/1
+-export([
+    get_req/1,
+    get_req_v/1,
+    get_resp/1,
+    get_resp_v/1,
+    set_req/1,
+    set_req_v/1,
+    set_resp/1,
+    set_resp_v/1,
+    flush_req/1,
+    flush_req_v/1,
 
-        ,bind_q/2, unbind_q/2
-        ,declare_exchanges/0
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
 
-        ,publish_get_req/1, publish_get_req/2
-        ,publish_get_resp/2, publish_get_resp/3
-        ,publish_set_req/1, publish_set_req/2
-        ,publish_set_resp/2, publish_set_resp/3
-        ,publish_flush_req/1, publish_flush_req/2
+    publish_get_req/1, publish_get_req/2,
+    publish_get_resp/2, publish_get_resp/3,
+    publish_set_req/1, publish_set_req/2,
+    publish_set_resp/2, publish_set_resp/3,
+    publish_flush_req/1, publish_flush_req/2,
 
-        ,get_category/1, get_category/2
-        ,get_key/1, get_key/2
-        ,get_value/1, get_value/2
-        ]).
+    get_category/1, get_category/2,
+    get_key/1, get_key/2,
+    get_value/1, get_value/2
+]).
 
 -include_lib("kz_amqp_util.hrl").
 
@@ -68,21 +75,24 @@
 -define(OPTIONAL_SYSCONF_SET_RESP_HEADERS, [<<"Status">>]).
 -define(SYSCONF_SET_RESP_VALUES, [{<<"Event-Name">>, <<"set_resp">>} | ?SYSCONF_VALUES]).
 
--define(SYSCONF_TYPES, [{?CAT_KEY, fun is_binary/1}
-                       ,{<<"Node">>, fun is_binary/1}
-                       ]).
+-define(SYSCONF_TYPES, [
+    {?CAT_KEY, fun is_binary/1},
+    {<<"Node">>, fun is_binary/1}
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc READ.
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 get_req(Prop) when is_list(Prop) ->
     case get_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SYSCONF_GET_REQ_HEADERS, ?OPTIONAL_SYSCONF_GET_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for sysconf get_req"}
+        'true' ->
+            kz_api:build_message(Prop, ?SYSCONF_GET_REQ_HEADERS, ?OPTIONAL_SYSCONF_GET_REQ_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for sysconf get_req"}
     end;
 get_req(JObj) ->
     get_req(kz_json:to_proplist(JObj)).
@@ -94,12 +104,16 @@ get_req_v(JObj) ->
     get_req_v(kz_json:to_proplist(JObj)).
 
 -spec get_resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 get_resp(Prop) when is_list(Prop) ->
     case get_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SYSCONF_GET_RESP_HEADERS, ?OPTIONAL_SYSCONF_GET_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for sysconf get_resp"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?SYSCONF_GET_RESP_HEADERS, ?OPTIONAL_SYSCONF_GET_RESP_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for sysconf get_resp"}
     end;
 get_resp(JObj) ->
     get_resp(kz_json:to_proplist(JObj)).
@@ -115,12 +129,14 @@ get_resp_v(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 set_req(Prop) when is_list(Prop) ->
     case set_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SYSCONF_SET_REQ_HEADERS, ?OPTIONAL_SYSCONF_SET_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for sysconf write"}
+        'true' ->
+            kz_api:build_message(Prop, ?SYSCONF_SET_REQ_HEADERS, ?OPTIONAL_SYSCONF_SET_REQ_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for sysconf write"}
     end;
 set_req(JObj) ->
     set_req(kz_json:to_proplist(JObj)).
@@ -132,12 +148,16 @@ set_req_v(JObj) ->
     set_req_v(kz_json:to_proplist(JObj)).
 
 -spec set_resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 set_resp(Prop) when is_list(Prop) ->
     case set_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SYSCONF_SET_RESP_HEADERS, ?OPTIONAL_SYSCONF_SET_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for sysconf write"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?SYSCONF_SET_RESP_HEADERS, ?OPTIONAL_SYSCONF_SET_RESP_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for sysconf write"}
     end;
 set_resp(JObj) ->
     set_resp(kz_json:to_proplist(JObj)).
@@ -153,12 +173,16 @@ set_resp_v(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec flush_req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 flush_req(Prop) when is_list(Prop) ->
     case flush_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?SYSCONF_FLUSH_REQ_HEADERS, ?OPTIONAL_SYSCONF_FLUSH_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for sysconf read"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?SYSCONF_FLUSH_REQ_HEADERS, ?OPTIONAL_SYSCONF_FLUSH_REQ_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for sysconf read"}
     end;
 flush_req(JObj) ->
     flush_req(kz_json:to_proplist(JObj)).
@@ -175,16 +199,16 @@ bind_q(Q, Prop) ->
 
 add_bindings(Q, 'undefined') ->
     add_bindings(Q, ['get', 'set', 'flush']);
-add_bindings(Q, ['get'|T]) ->
+add_bindings(Q, ['get' | T]) ->
     _ = kz_amqp_util:bind_q_to_sysconf(Q, routing_key_get()),
     add_bindings(Q, T);
-add_bindings(Q, ['set'|T]) ->
+add_bindings(Q, ['set' | T]) ->
     _ = kz_amqp_util:bind_q_to_sysconf(Q, routing_key_set()),
     add_bindings(Q, T);
-add_bindings(Q, ['flush'|T]) ->
+add_bindings(Q, ['flush' | T]) ->
     _ = kz_amqp_util:bind_q_to_sysconf(Q, routing_key_flush()),
     add_bindings(Q, T);
-add_bindings(Q, [_|T]) ->
+add_bindings(Q, [_ | T]) ->
     add_bindings(Q, T);
 add_bindings(_, []) ->
     'ok'.
@@ -197,16 +221,16 @@ rm_bindings(Q, 'undefined') ->
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_get()),
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_set()),
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_flush());
-rm_bindings(Q, ['get'|T]) ->
+rm_bindings(Q, ['get' | T]) ->
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_get()),
     rm_bindings(Q, T);
-rm_bindings(Q, ['set'|T]) ->
+rm_bindings(Q, ['set' | T]) ->
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_set()),
     rm_bindings(Q, T);
-rm_bindings(Q, ['flush'|T]) ->
+rm_bindings(Q, ['flush' | T]) ->
     _ = kz_amqp_util:unbind_q_from_sysconf(Q, routing_key_flush()),
     rm_bindings(Q, T);
-rm_bindings(Q, [_|T]) ->
+rm_bindings(Q, [_ | T]) ->
     rm_bindings(Q, T);
 rm_bindings(_, []) ->
     'ok'.
@@ -234,9 +258,10 @@ publish_get_resp(RespQ, JObj) ->
 
 -spec publish_get_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_get_resp(RespQ, Api, ContentType) ->
-    PrepareOptions = [{'formatter', fun get_resp/1}
-                     ,{'remove_recursive', 'false'}
-                     ],
+    PrepareOptions = [
+        {'formatter', fun get_resp/1},
+        {'remove_recursive', 'false'}
+    ],
     {'ok', Payload} = kz_api:prepare_api_payload(Api, ?SYSCONF_GET_RESP_VALUES, PrepareOptions),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
@@ -275,7 +300,6 @@ routing_key_set() ->
 
 routing_key_flush() ->
     ?KEY_SYSCONF_FLUSH_REQ.
-
 
 -spec get_category(kz_json:object()) -> kz_term:api_binary().
 get_category(JObj) ->

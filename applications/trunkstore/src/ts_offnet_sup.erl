@@ -33,11 +33,15 @@ start_link() ->
 
 -spec start_handler(kz_term:ne_binary(), kz_json:object()) -> kz_types:sup_startchild_ret().
 start_handler(CallID, RouteReqJObj) ->
-    supervisor:start_child(?SERVER, ?WORKER_NAME_ARGS_TYPE(<<"offnet-", CallID/binary>>
-                                                          ,'ts_from_offnet'
-                                                          ,[RouteReqJObj]
-                                                          ,'temporary'
-                                                          )).
+    supervisor:start_child(
+        ?SERVER,
+        ?WORKER_NAME_ARGS_TYPE(
+            <<"offnet-", CallID/binary>>,
+            'ts_from_offnet',
+            [RouteReqJObj],
+            'temporary'
+        )
+    ).
 
 -spec stop_handler(kz_term:ne_binary()) -> 'ok'.
 stop_handler(CallID) ->

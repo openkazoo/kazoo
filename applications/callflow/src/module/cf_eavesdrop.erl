@@ -29,9 +29,10 @@
 
 -include("callflow.hrl").
 
--export([handle/2
-        ,no_permission_to_eavesdrop/1
-        ]).
+-export([
+    handle/2,
+    no_permission_to_eavesdrop/1
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc Entry point for this module sends an arbitrary response back to the
@@ -40,25 +41,28 @@
 %%------------------------------------------------------------------------------
 -spec handle(kz_json:object(), kapps_call:call()) -> any().
 handle(Data, Call) ->
-    _ = case maybe_allowed_to_eavesdrop(Data, Call) of
+    _ =
+        case maybe_allowed_to_eavesdrop(Data, Call) of
             'true' ->
                 case find_sip_endpoints(Data, Call) of
                     [] -> no_users(Call);
                     Usernames -> eavesdrop_channel(Usernames, Call)
                 end;
-            'false' -> no_permission_to_eavesdrop(Call)
+            'false' ->
+                no_permission_to_eavesdrop(Call)
         end,
     cf_exe:stop(Call).
 
 -spec fields_to_check() -> kz_term:proplist().
 fields_to_check() ->
-    [{<<"approved_device_id">>, fun(Id, Call) -> Id == kapps_call:authorizing_id(Call) end}
-    ,{<<"approved_user_id">>, fun cf_util:caller_belongs_to_user/2}
-    ,{<<"approved_group_id">>, fun cf_util:caller_belongs_to_group/2}
+    [
+        {<<"approved_device_id">>, fun(Id, Call) -> Id == kapps_call:authorizing_id(Call) end},
+        {<<"approved_user_id">>, fun cf_util:caller_belongs_to_user/2},
+        {<<"approved_group_id">>, fun cf_util:caller_belongs_to_group/2}
     ].
 
 -spec maybe_allowed_to_eavesdrop(kz_json:object(), kapps_call:call()) ->
-          boolean().
+    boolean().
 maybe_allowed_to_eavesdrop(Data, Call) ->
     cf_util:check_value_of_fields(fields_to_check(), 'false', Data, Call).
 
@@ -76,18 +80,26 @@ eavesdrop_a_channel(Channels, Call) ->
 
     lager:debug("looking for channels on my node ~s that aren't me", [MyMediaServer]),
 
-    {_, _, SortedChannels} = lists:foldl(fun channels_sort/2, {MyUUID, MyMediaServer, {[], []}}, Channels),
+    {_, _, SortedChannels} = lists:foldl(
+        fun channels_sort/2, {MyUUID, MyMediaServer, {[], []}}, Channels
+    ),
 
     case SortedChannels of
         {[], []} ->
             lager:debug("no channels available to eavesdrop"),
             no_channels(Call);
         {[], [RemoteChannel | _Remote]} ->
-            lager:info("no calls on my media server, trying redirect to ~s", [kz_json:get_ne_binary_value(<<"node">>, RemoteChannel)]),
+            lager:info("no calls on my media server, trying redirect to ~s", [
+                kz_json:get_ne_binary_value(<<"node">>, RemoteChannel)
+            ]),
             Contact = erlang:iolist_to_binary(["sip:", kapps_call:request(Call)]),
-            kapps_call_command:redirect_to_node(Contact, kz_json:get_ne_binary_value(<<"node">>, RemoteChannel), Call);
+            kapps_call_command:redirect_to_node(
+                Contact, kz_json:get_ne_binary_value(<<"node">>, RemoteChannel), Call
+            );
         {[LocalChannel | _Cs], _} ->
-            lager:info("found a call (~s) on my media server", [kz_json:get_ne_binary_value(<<"uuid">>, LocalChannel)]),
+            lager:info("found a call (~s) on my media server", [
+                kz_json:get_ne_binary_value(<<"uuid">>, LocalChannel)
+            ]),
             eavesdrop_call(LocalChannel, Call)
     end.
 
@@ -96,17 +108,17 @@ eavesdrop_a_channel(Channels, Call) ->
 
 -spec channels_sort(kz_json:object(), channel_sort_acc()) -> channel_sort_acc().
 channels_sort(Channel, {MyUUID, MyMediaServer, {Local, Remote}} = Acc) ->
-    lager:debug("channel: c: ~s a: ~s n: ~s oleg: ~s", [kz_json:get_ne_binary_value(<<"uuid">>, Channel)
-                                                       ,kz_json:is_true(<<"answered">>, Channel)
-                                                       ,kz_json:get_ne_binary_value(<<"node">>, Channel)
-                                                       ,kz_json:get_ne_binary_value(<<"other_leg">>, Channel)
-                                                       ]),
+    lager:debug("channel: c: ~s a: ~s n: ~s oleg: ~s", [
+        kz_json:get_ne_binary_value(<<"uuid">>, Channel),
+        kz_json:is_true(<<"answered">>, Channel),
+        kz_json:get_ne_binary_value(<<"node">>, Channel),
+        kz_json:get_ne_binary_value(<<"other_leg">>, Channel)
+    ]),
     case kz_json:get_ne_binary_value(<<"node">>, Channel) of
         MyMediaServer ->
             case kz_json:get_ne_binary_value(<<"uuid">>, Channel) of
                 MyUUID -> Acc;
-                _LocalUUID ->
-                    {MyUUID, MyMediaServer, {[Channel | Local], Remote}}
+                _LocalUUID -> {MyUUID, MyMediaServer, {[Channel | Local], Remote}}
             end;
         _OtherMediaServer ->
             {MyUUID, MyMediaServer, {Local, [Channel | Remote]}}
@@ -125,8 +137,7 @@ eavesdrop_call(Channel, Call) ->
 wait_for_eavesdrop_complete(Call) ->
     case kapps_call_command:wait_for_hangup(?MILLISECONDS_IN_HOUR) of
         {'ok', 'channel_hungup'} -> 'ok';
-        {'error', 'timeout'} ->
-            verify_call_is_active(Call)
+        {'error', 'timeout'} -> verify_call_is_active(Call)
     end.
 
 -spec verify_call_is_active(kapps_call:call()) -> 'ok'.
@@ -136,8 +147,7 @@ verify_call_is_active(Call) ->
         {'ok', ChannelStatus} ->
             case kz_json:get_ne_binary_value(<<"Status">>, ChannelStatus) of
                 <<"active">> -> wait_for_eavesdrop_complete(Call);
-                _Status ->
-                    lager:debug("channel has status ~s", [_Status])
+                _Status -> lager:debug("channel has status ~s", [_Status])
             end;
         {'error', _E} ->
             lager:debug("failed to get status: ~p", [_E])
@@ -145,39 +155,44 @@ verify_call_is_active(Call) ->
 
 -spec eavesdrop_cmd(kz_term:ne_binary()) -> kz_term:proplist().
 eavesdrop_cmd(TargetCallId) ->
-    [{<<"Application-Name">>, <<"eavesdrop">>}
-    ,{<<"Target-Call-ID">>, TargetCallId}
-    ,{<<"Enable-DTMF">>, 'true'}
+    [
+        {<<"Application-Name">>, <<"eavesdrop">>},
+        {<<"Target-Call-ID">>, TargetCallId},
+        {<<"Enable-DTMF">>, 'true'}
     ].
 
 -spec find_sip_endpoints(kz_json:object(), kapps_call:call()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 find_sip_endpoints(Data, Call) ->
     case kz_json:get_ne_binary_value(<<"device_id">>, Data) of
         'undefined' ->
             UserId = kz_json:get_ne_binary_value(<<"user_id">>, Data),
             sip_users_from_endpoints(
-              cf_util:find_user_endpoints([UserId], [], Call), Call);
+                cf_util:find_user_endpoints([UserId], [], Call), Call
+            );
         DeviceId ->
             sip_users_from_endpoints([DeviceId], Call)
     end.
 
 -spec sip_users_from_endpoints(kz_term:ne_binaries(), kapps_call:call()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 sip_users_from_endpoints(EndpointIds, Call) ->
-    lists:foldl(fun(EndpointId, Acc) ->
-                        case sip_user_of_endpoint(EndpointId, Call) of
-                            'undefined' -> Acc;
-                            Username -> [Username|Acc]
-                        end
-                end, [], EndpointIds).
+    lists:foldl(
+        fun(EndpointId, Acc) ->
+            case sip_user_of_endpoint(EndpointId, Call) of
+                'undefined' -> Acc;
+                Username -> [Username | Acc]
+            end
+        end,
+        [],
+        EndpointIds
+    ).
 
 -spec sip_user_of_endpoint(kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binary().
 sip_user_of_endpoint(EndpointId, Call) ->
     case kz_endpoint:get(EndpointId, Call) of
         {'error', _} -> 'undefined';
-        {'ok', Endpoint} ->
-            kzd_devices:sip_username(Endpoint)
+        {'ok', Endpoint} -> kzd_devices:sip_username(Endpoint)
     end.
 
 -spec no_users(kapps_call:call()) -> any().

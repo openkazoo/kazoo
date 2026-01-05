@@ -9,22 +9,24 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_recordings).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,content_types_provided/2
-        ,validate/1, validate/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    content_types_provided/2,
+    validate/1, validate/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
 -define(CB_LIST, <<"recordings/crossbar_listing">>).
 -define(CB_LIST_BY_OWNERID, <<"recordings/listing_by_user">>).
 
--define(MEDIA_MIME_TYPES, [{<<"audio">>, <<"mpeg">>}
-                          ,{<<"audio">>, <<"mp3">>}
-                          ]).
+-define(MEDIA_MIME_TYPES, [
+    {<<"audio">>, <<"mpeg">>},
+    {<<"audio">>, <<"mp3">>}
+]).
 
 %%%=============================================================================
 %%% API
@@ -36,12 +38,13 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    Bindings = [{<<"*.allowed_methods.recordings">>, 'allowed_methods'}
-               ,{<<"*.resource_exists.recordings">>, 'resource_exists'}
-               ,{<<"*.content_types_provided.recordings">>, 'content_types_provided'}
-               ,{<<"*.validate.recordings">>, 'validate'}
-               ,{<<"*.execute.delete.recordings">>, 'delete'}
-               ],
+    Bindings = [
+        {<<"*.allowed_methods.recordings">>, 'allowed_methods'},
+        {<<"*.resource_exists.recordings">>, 'resource_exists'},
+        {<<"*.content_types_provided.recordings">>, 'content_types_provided'},
+        {<<"*.validate.recordings">>, 'validate'},
+        {<<"*.execute.delete.recordings">>, 'delete'}
+    ],
     cb_modules_util:bind(?MODULE, Bindings).
 
 %%------------------------------------------------------------------------------
@@ -77,11 +80,13 @@ resource_exists(_RecordingId) -> 'true'.
 content_types_provided(Context, _RecordingId) ->
     content_types_provided_for_download(Context, cb_context:req_verb(Context)).
 
--spec content_types_provided_for_download(cb_context:context(), http_method()) -> cb_context:context().
+-spec content_types_provided_for_download(cb_context:context(), http_method()) ->
+    cb_context:context().
 content_types_provided_for_download(Context, ?HTTP_GET) ->
-    CTP = [{'to_json', ?JSON_CONTENT_TYPES}
-          ,{'to_binary', ?MEDIA_MIME_TYPES}
-          ],
+    CTP = [
+        {'to_json', ?JSON_CONTENT_TYPES},
+        {'to_binary', ?MEDIA_MIME_TYPES}
+    ],
     cb_context:set_content_types_provided(Context, CTP);
 content_types_provided_for_download(Context, _Verb) ->
     Context.
@@ -122,11 +127,12 @@ delete(Context, _RecordingId) ->
 recording_summary(Context) ->
     UserId = cb_context:user_id(Context),
     ViewName = get_view_name(UserId),
-    Options = [{'mapper', fun summary_doc_fun/2}
-              ,{'range_start_keymap', [UserId]}
-              ,{'range_end_keymap', fun(Ts) -> build_end_key(Ts, UserId) end}
-              ,'include_docs'
-              ],
+    Options = [
+        {'mapper', fun summary_doc_fun/2},
+        {'range_start_keymap', [UserId]},
+        {'range_end_keymap', fun(Ts) -> build_end_key(Ts, UserId) end},
+        'include_docs'
+    ],
     crossbar_view:load_modb(Context, ViewName, Options).
 
 -spec summary_doc_fun(kz_json:object(), kz_json:objects()) -> kz_json:objects().
@@ -135,15 +141,17 @@ summary_doc_fun(View, Acc) ->
     Attachments = kz_doc:attachments(Recording, kz_json:new()),
     ContentTypes = kz_json:foldl(fun attachment_content_type/3, [], Attachments),
 
-    [kz_json:set_value([<<"_read_only">>, <<"content_types">>]
-                      ,lists:usort(ContentTypes)
-                      ,Recording
-                      )
-     | Acc
+    [
+        kz_json:set_value(
+            [<<"_read_only">>, <<"content_types">>],
+            lists:usort(ContentTypes),
+            Recording
+        )
+        | Acc
     ].
 
 -spec attachment_content_type(kz_json:key(), kz_json:object(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 attachment_content_type(_Name, Meta, CTs) ->
     [kz_json:get_ne_binary_value(<<"content_type">>, Meta) | CTs].
 
@@ -158,43 +166,54 @@ get_view_name(_) -> ?CB_LIST_BY_OWNERID.
 -spec load_recording_doc(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 load_recording_doc(Context, ?MATCH_MODB_PREFIX(Year, Month, _) = RecordingId) ->
     Ctx = cb_context:set_account_modb(Context, kz_term:to_integer(Year), kz_term:to_integer(Month)),
-    crossbar_doc:load({<<"call_recording">>, RecordingId}, Ctx, ?TYPE_CHECK_OPTION(<<"call_recording">>));
+    crossbar_doc:load(
+        {<<"call_recording">>, RecordingId}, Ctx, ?TYPE_CHECK_OPTION(<<"call_recording">>)
+    );
 load_recording_doc(Context, Id) ->
     crossbar_util:response_bad_identifier(Id, Context).
 
 -spec load_recording_binary(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 load_recording_binary(Context, ?MATCH_MODB_PREFIX(Year, Month, _) = DocId) ->
-    do_load_recording_binary(cb_context:set_account_modb(Context, kz_term:to_integer(Year), kz_term:to_integer(Month)), DocId).
+    do_load_recording_binary(
+        cb_context:set_account_modb(Context, kz_term:to_integer(Year), kz_term:to_integer(Month)),
+        DocId
+    ).
 
 -spec do_load_recording_binary(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 do_load_recording_binary(Context, DocId) ->
-    Context1 = crossbar_doc:load({<<"call_recording">>, DocId}, Context, ?TYPE_CHECK_OPTION(<<"call_recording">>)),
+    Context1 = crossbar_doc:load(
+        {<<"call_recording">>, DocId}, Context, ?TYPE_CHECK_OPTION(<<"call_recording">>)
+    ),
     case cb_context:resp_status(Context1) of
         'success' ->
             do_load_recording_binary_attachment(Context1, DocId);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec do_load_recording_binary_attachment(cb_context:context(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 do_load_recording_binary_attachment(Context, DocId) ->
     case kz_doc:attachment_names(cb_context:doc(Context)) of
         [] ->
-            cb_context:add_system_error('bad_identifier'
-                                       ,kz_json:from_list([{<<"details">>, DocId}])
-                                       ,Context
-                                       );
+            cb_context:add_system_error(
+                'bad_identifier',
+                kz_json:from_list([{<<"details">>, DocId}]),
+                Context
+            );
         [AName | _] ->
-            LoadedContext = crossbar_doc:load_attachment({<<"call_recording">>, DocId}
-                                                        ,AName
-                                                        ,?TYPE_CHECK_OPTION(<<"call_recording">>)
-                                                        ,Context
-                                                        ),
+            LoadedContext = crossbar_doc:load_attachment(
+                {<<"call_recording">>, DocId},
+                AName,
+                ?TYPE_CHECK_OPTION(<<"call_recording">>),
+                Context
+            ),
 
-            set_resp_headers(LoadedContext
-                            ,AName
-                            ,kz_doc:attachment(cb_context:doc(Context), AName)
-                            )
+            set_resp_headers(
+                LoadedContext,
+                AName,
+                kz_doc:attachment(cb_context:doc(Context), AName)
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -202,11 +221,12 @@ do_load_recording_binary_attachment(Context, DocId) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_resp_headers(cb_context:context(), kz_term:ne_binary(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 set_resp_headers(Context, AName, Attachment) ->
-    Headers = #{<<"content-disposition">> => get_disposition(AName, Context)
-               ,<<"content-type">> => kz_json:get_ne_binary_value(<<"content_type">>, Attachment)
-               },
+    Headers = #{
+        <<"content-disposition">> => get_disposition(AName, Context),
+        <<"content-type">> => kz_json:get_ne_binary_value(<<"content_type">>, Attachment)
+    },
     cb_context:add_resp_headers(Context, Headers).
 
 -spec get_disposition(kz_term:ne_binary(), cb_context:context()) -> kz_term:ne_binary().
@@ -222,14 +242,14 @@ action_lookup(Context) ->
     action_lookup(Acceptable, accept_values(Context)).
 
 -spec action_lookup(kz_term:proplist(), media_values()) -> atom().
-action_lookup(_, [?MEDIA_VALUE(<<"application">>, <<"json">>, _, _, _)|_]) ->
+action_lookup(_, [?MEDIA_VALUE(<<"application">>, <<"json">>, _, _, _) | _]) ->
     'read';
-action_lookup(_, [?MEDIA_VALUE(<<"application">>, <<"x-json">>, _, _, _)|_]) ->
+action_lookup(_, [?MEDIA_VALUE(<<"application">>, <<"x-json">>, _, _, _) | _]) ->
     'read';
-action_lookup(_, [?MEDIA_VALUE(<<"*">>, <<"*">>, _, _, _)|_]) ->
+action_lookup(_, [?MEDIA_VALUE(<<"*">>, <<"*">>, _, _, _) | _]) ->
     lager:debug("catch-all accept header, using json"),
     'read';
-action_lookup(Acceptable, [?MEDIA_VALUE(Type, SubType, _, _, _)|Accepts]) ->
+action_lookup(Acceptable, [?MEDIA_VALUE(Type, SubType, _, _, _) | Accepts]) ->
     case is_acceptable_accept(Acceptable, Type, SubType) of
         'false' ->
             lager:debug("unknown accept header: ~s/~s", [Type, SubType]),
@@ -259,7 +279,8 @@ media_values(AcceptValue, 'undefined') ->
     end;
 media_values(AcceptValue, Tunneled) ->
     case cb_modules_util:parse_media_type(Tunneled) of
-        {'error', 'badarg'} -> media_values(AcceptValue, 'undefined');
+        {'error', 'badarg'} ->
+            media_values(AcceptValue, 'undefined');
         TunneledValues ->
             lager:debug("using tunneled accept value ~s", [Tunneled]),
             lists:reverse(lists:keysort(2, TunneledValues))
@@ -269,6 +290,7 @@ media_values(AcceptValue, Tunneled) ->
 acceptable_content_types(Context) ->
     props:get_value('to_binary', cb_context:content_types_provided(Context), []).
 
--spec is_acceptable_accept(kz_term:proplist(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_acceptable_accept(kz_term:proplist(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    boolean().
 is_acceptable_accept(Acceptable, Type, SubType) ->
-    lists:member({Type,SubType}, Acceptable).
+    lists:member({Type, SubType}, Acceptable).

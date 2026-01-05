@@ -15,18 +15,21 @@
     knm_number:knm_number().
 
 -callback available(knm_phone_number:knm_phone_number()) -> boolean().
--callback available(kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
+-callback available(kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+    boolean().
 
 -callback settings(knm_phone_number:knm_phone_number()) -> kz_json:object().
 
--optional_callbacks([available/1
-                    ,available/3
-                    ,settings/1
-                    ]).
+-optional_callbacks([
+    available/1,
+    available/3,
+    settings/1
+]).
 
--export([available/2, available/4
-        ,settings/2
-        ]).
+-export([
+    available/2, available/4,
+    settings/2
+]).
 
 -spec available(kz_term:ne_binary() | module(), knm_phone_number:knm_phone_number()) -> boolean().
 available(Feature, Number) ->
@@ -38,7 +41,12 @@ available(Feature, Number) ->
         _ -> true
     end.
 
--spec available(kz_term:ne_binary() | module(), kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
+-spec available(
+    kz_term:ne_binary() | module(),
+    kz_term:ne_binary() | module(),
+    kz_term:ne_binary(),
+    kz_term:api_ne_binary()
+) -> boolean().
 available(Feature, Carrier, State, AccountId) ->
     try feature_callback(Feature, available, [Carrier, State, AccountId]) of
         no_module -> false;
@@ -48,11 +56,14 @@ available(Feature, Carrier, State, AccountId) ->
         _ -> true
     end.
 
--spec settings(kz_term:ne_binary() | module(), knm_phone_number:knm_phone_number()) -> kz_json:object().
+-spec settings(kz_term:ne_binary() | module(), knm_phone_number:knm_phone_number()) ->
+    kz_json:object().
 settings(Feature, PN) ->
     try feature_callback(Feature, settings, [PN]) of
-        no_callback -> kz_json:new();
-        no_module -> kz_json:new();
+        no_callback ->
+            kz_json:new();
+        no_module ->
+            kz_json:new();
         Value ->
             case kz_json:is_json_object(Value) of
                 true -> Value;
@@ -65,8 +76,9 @@ settings(Feature, PN) ->
 -spec feature_module(kz_term:ne_binary() | module()) -> module().
 feature_module(<<"knm_", _/binary>> = Feature) ->
     kz_term:to_atom(Feature, 'true');
-feature_module(Feature)
-  when is_binary(Feature) ->
+feature_module(Feature) when
+    is_binary(Feature)
+->
     kz_term:to_atom(<<"knm_", Feature/binary>>, 'true');
 feature_module(Feature) ->
     Feature.
@@ -75,7 +87,8 @@ feature_module(Feature) ->
 feature_callback(Feature, Function, Args) ->
     Module = feature_module(Feature),
     case kz_module:ensure_loaded(Module) of
-        'false' -> 'no_module';
+        'false' ->
+            'no_module';
         Mod ->
             case kz_module:is_exported(Mod, Function, length(Args)) of
                 'true' -> erlang:apply(Mod, Function, Args);

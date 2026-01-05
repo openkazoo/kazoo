@@ -38,25 +38,26 @@ delete_account(Context) ->
 handle_resp({'ok', 200, _, Resp}) ->
     lager:debug("mobile_manager success ~s", [Resp]);
 handle_resp({'ok', Code, _, Resp}) ->
-    lager:warning("mobile_manager error ~p. ~s", [Code,Resp]);
+    lager:warning("mobile_manager error ~p. ~s", [Code, Resp]);
 handle_resp(_Error) ->
     lager:error("mobile_manager fatal error ~p", [_Error]).
-
 
 -spec req_uri(kz_term:ne_binaries()) -> kz_term:api_list().
 req_uri(ExplodedPath) ->
     case kapps_config:get_binary(?MOD_CONFIG_CAT, <<"url">>) of
-        'undefined' -> 'undefined';
+        'undefined' ->
+            'undefined';
         Url ->
             Uri = kz_util:uri(Url, ExplodedPath),
             kz_term:to_list(Uri)
     end.
 
-
 -spec req_headers(kz_term:ne_binary()) -> kz_term:proplist().
 req_headers(AuthToken) ->
     props:filter_undefined(
-      [{"content-type", "application/json"}
-      ,{"x-auth-token", kz_term:to_list(AuthToken)}
-      ,{"user-agent", kz_term:to_list(erlang:node())}
-      ]).
+        [
+            {"content-type", "application/json"},
+            {"x-auth-token", kz_term:to_list(AuthToken)},
+            {"user-agent", kz_term:to_list(erlang:node())}
+        ]
+    ).

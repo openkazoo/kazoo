@@ -24,7 +24,8 @@ handle(Data, Call) ->
         [] ->
             lager:notice("page group has no endpoints, moving to next callflow element"),
             cf_exe:continue(Call);
-        Endpoints -> attempt_page(Endpoints, Data, Call)
+        Endpoints ->
+            attempt_page(Endpoints, Data, Call)
     end.
 
 -spec attempt_page(kz_json:objects(), kz_json:object(), kapps_call:call()) -> 'ok'.
@@ -56,63 +57,78 @@ audio_option(Data) ->
         _ -> kz_json:from_list([{<<"Two-Way-Audio">>, 'false'}])
     end.
 
--spec send_page(kz_json:objects(), integer(), kz_json:object(), kz_json:object(), kapps_call:call()) ->
-          {'error', 'timeout' | kz_json:object()} | {'ok', kz_json:object()}.
+-spec send_page(
+    kz_json:objects(), integer(), kz_json:object(), kz_json:object(), kapps_call:call()
+) ->
+    {'error', 'timeout' | kz_json:object()} | {'ok', kz_json:object()}.
 send_page(Endpoints, Timeout, CCVs, Options, Call) ->
     {CIDNumber, CIDName} = kz_attributes:caller_id(Call),
-    lager:info("attempting page group of ~b members with caller-id (~s/~s)", [length(Endpoints), CIDNumber, CIDName]),
-    kapps_call_command:b_page(Endpoints
-                             ,Timeout
-                             ,CIDName
-                             ,CIDNumber
-                             ,'undefined'
-                             ,CCVs
-                             ,Options
-                             ,Call
-                             ).
+    lager:info("attempting page group of ~b members with caller-id (~s/~s)", [
+        length(Endpoints), CIDNumber, CIDName
+    ]),
+    kapps_call_command:b_page(
+        Endpoints,
+        Timeout,
+        CIDName,
+        CIDNumber,
+        'undefined',
+        CCVs,
+        Options,
+        Call
+    ).
 
 -spec get_endpoints(kz_term:api_objects(), kapps_call:call()) -> kz_json:objects().
-get_endpoints(undefined, Call) -> get_endpoints([], Call);
+get_endpoints(undefined, Call) ->
+    get_endpoints([], Call);
 get_endpoints(Members, Call) ->
     S = self(),
-    Builders = [kz_util:spawn(
-                  fun() ->
-                          kz_util:put_callid(kapps_call:call_id(Call)),
-                          S ! {self(), catch kz_endpoint:build(EndpointId, Member, Call)}
-                  end)
-                || {EndpointId, Member} <- resolve_endpoint_ids(Members, Call)
-               ],
-    lists:foldl(fun(Pid, Acc) ->
-                        receive
-                            {Pid, {'ok', EP}} when is_list(EP) ->
-                                EP ++ Acc;
-                            {Pid, {'ok', EP}} ->
-                                [EP | Acc];
-                            {Pid, _} -> Acc
-                        end
-                end, [], Builders).
+    Builders = [
+        kz_util:spawn(
+            fun() ->
+                kz_util:put_callid(kapps_call:call_id(Call)),
+                S ! {self(), catch kz_endpoint:build(EndpointId, Member, Call)}
+            end
+        )
+     || {EndpointId, Member} <- resolve_endpoint_ids(Members, Call)
+    ],
+    lists:foldl(
+        fun(Pid, Acc) ->
+            receive
+                {Pid, {'ok', EP}} when is_list(EP) ->
+                    EP ++ Acc;
+                {Pid, {'ok', EP}} ->
+                    [EP | Acc];
+                {Pid, _} ->
+                    Acc
+            end
+        end,
+        [],
+        Builders
+    ).
 
 -spec resolve_endpoint_ids(kz_json:objects(), kapps_call:call()) ->
-          [{kz_term:ne_binary(), kz_json:object()}].
+    [{kz_term:ne_binary(), kz_json:object()}].
 resolve_endpoint_ids(Members, Call) ->
-    [{Id, kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Member)}
-     || {Type, Id, Member} <- resolve_endpoint_ids(Members, [], Call)
-            ,Type =:= <<"device">>
-            ,Id =/= kapps_call:authorizing_id(Call)
+    [
+        {Id, kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Member)}
+     || {Type, Id, Member} <- resolve_endpoint_ids(Members, [], Call),
+        Type =:= <<"device">>,
+        Id =/= kapps_call:authorizing_id(Call)
     ].
 
 -type endpoint_intermediate() :: {kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_object()}.
 -type endpoint_intermediates() :: [endpoint_intermediate()].
 -spec resolve_endpoint_ids(kz_json:objects(), endpoint_intermediates(), kapps_call:call()) ->
-          endpoint_intermediates().
+    endpoint_intermediates().
 resolve_endpoint_ids([], EndpointIds, _) ->
     EndpointIds;
-resolve_endpoint_ids([Member|Members], EndpointIds, Call) ->
+resolve_endpoint_ids([Member | Members], EndpointIds, Call) ->
     Id = kz_doc:id(Member),
     Type = kz_json:get_value(<<"endpoint_type">>, Member, <<"device">>),
-    case kz_term:is_empty(Id)
-        orelse lists:keymember(Id, 2, EndpointIds)
-        orelse Type
+    case
+        kz_term:is_empty(Id) orelse
+            lists:keymember(Id, 2, EndpointIds) orelse
+            Type
     of
         'true' ->
             resolve_endpoint_ids(Members, EndpointIds, Call);
@@ -120,25 +136,26 @@ resolve_endpoint_ids([Member|Members], EndpointIds, Call) ->
             lager:info("member ~s is a group, merge the group's members", [Id]),
             GroupMembers = get_group_members(Member, Id, Call),
             Ids = resolve_endpoint_ids(GroupMembers, EndpointIds, Call),
-            resolve_endpoint_ids(Members, [{Type, Id, 'undefined'}|Ids], Call);
+            resolve_endpoint_ids(Members, [{Type, Id, 'undefined'} | Ids], Call);
         <<"user">> ->
             lager:info("member ~s is a user, get all the user's endpoints", [Id]),
-            Ids = lists:foldr(fun(EndpointId, Acc) ->
-                                      case lists:keymember(EndpointId, 2, Acc) of
-                                          'true' -> Acc;
-                                          'false' ->
-                                              [{<<"device">>, EndpointId, Member}|Acc]
-                                      end
-                              end
-                             ,[{Type, Id, 'undefined'}|EndpointIds]
-                             ,kz_attributes:owned_by(Id, <<"device">>, Call)),
+            Ids = lists:foldr(
+                fun(EndpointId, Acc) ->
+                    case lists:keymember(EndpointId, 2, Acc) of
+                        'true' -> Acc;
+                        'false' -> [{<<"device">>, EndpointId, Member} | Acc]
+                    end
+                end,
+                [{Type, Id, 'undefined'} | EndpointIds],
+                kz_attributes:owned_by(Id, <<"device">>, Call)
+            ),
             resolve_endpoint_ids(Members, Ids, Call);
         <<"device">> ->
-            resolve_endpoint_ids(Members, [{Type, Id, Member}|EndpointIds], Call)
+            resolve_endpoint_ids(Members, [{Type, Id, Member} | EndpointIds], Call)
     end.
 
 -spec get_group_members(kz_json:object(), kz_term:ne_binary(), kapps_call:call()) ->
-          kz_json:objects().
+    kz_json:objects().
 get_group_members(Member, Id, Call) ->
     AccountDb = kapps_call:account_db(Call),
     case kz_datamgr:open_cache_doc(AccountDb, Id) of
@@ -146,11 +163,18 @@ get_group_members(Member, Id, Call) ->
             Endpoints = kz_json:get_ne_value(<<"endpoints">>, JObj, kz_json:new()),
             DefaultDelay = kz_json:get_value(<<"delay">>, Member),
             DefaultTimeout = kz_json:get_value(<<"timeout">>, Member),
-            [kz_json:set_values([{<<"endpoint_type">>, kz_json:get_value([Key, <<"type">>], Endpoints)}
-                                ,{<<"id">>, Key}
-                                ,{<<"delay">>, kz_json:get_value([Key, <<"delay">>], Endpoints, DefaultDelay)}
-                                ,{<<"timeout">>, kz_json:get_value([Key, <<"timeout">>], Endpoints, DefaultTimeout)}
-                                ], Member)
+            [
+                kz_json:set_values(
+                    [
+                        {<<"endpoint_type">>, kz_json:get_value([Key, <<"type">>], Endpoints)},
+                        {<<"id">>, Key},
+                        {<<"delay">>,
+                            kz_json:get_value([Key, <<"delay">>], Endpoints, DefaultDelay)},
+                        {<<"timeout">>,
+                            kz_json:get_value([Key, <<"timeout">>], Endpoints, DefaultTimeout)}
+                    ],
+                    Member
+                )
              || Key <- kz_json:get_keys(Endpoints)
             ];
         {'error', _R} ->

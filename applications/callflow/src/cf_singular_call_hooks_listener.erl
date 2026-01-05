@@ -11,17 +11,19 @@
 
 -behaviour(gen_listener).
 
--export([start_link/1
-        ,handle_call_event/2
-        ]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    start_link/1,
+    handle_call_event/2
+]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("callflow.hrl").
 
@@ -31,18 +33,17 @@
 -type state() :: #state{}.
 
 %% By convention, we put the options here in macros, but not required.
--define(BINDINGS(CallID), [{'call', [{'callid', CallID}
-                                    ,{'restrict_to',
-                                      [ <<"CHANNEL_DESTROY">>
-                                      , <<"CHANNEL_TRANSFEROR">>
-                                      ]}
-                                    ]}
-                          ,{'self', []}
-                          ]).
--define(RESPONDERS, [{{?MODULE, 'handle_call_event'}
-                     ,[{<<"*">>, <<"*">>}]
-                     }
-                    ]).
+-define(BINDINGS(CallID), [
+    {'call', [
+        {'callid', CallID},
+        {'restrict_to', [
+            <<"CHANNEL_DESTROY">>,
+            <<"CHANNEL_TRANSFEROR">>
+        ]}
+    ]},
+    {'self', []}
+]).
+-define(RESPONDERS, [{{?MODULE, 'handle_call_event'}, [{<<"*">>, <<"*">>}]}]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -53,12 +54,20 @@
 %%------------------------------------------------------------------------------
 -spec start_link(kapps_call:call()) -> kz_types:startlink_ret().
 start_link(Call) ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS(kapps_call:call_id(Call))}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], [Call]).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS(kapps_call:call_id(Call))},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        [Call]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Handles call events (typically triggered by a FreeSWITCH event).
@@ -72,9 +81,10 @@ handle_call_event(JObj, Props) ->
         {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             gen_listener:cast(props:get_value('server', Props), {'end_hook', JObj});
         {<<"call_event">>, <<"CHANNEL_TRANSFEROR">>} ->
-                                                % stop the listener so we don't send the destroy event
+            % stop the listener so we don't send the destroy event
             gen_listener:cast(props:get_value('server', Props), {'stop', JObj});
-        {_, _Evt} -> lager:debug("ignore event ~p", [_Evt])
+        {_, _Evt} ->
+            lager:debug("ignore event ~p", [_Evt])
     end.
 
 %%%=============================================================================
@@ -97,14 +107,14 @@ init([Call]) ->
     end,
 
     lager:debug("started event listener for cf_singular_hook"),
-    {'ok', #state{call=Call}}.
+    {'ok', #state{call = Call}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handle call messages.
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), any(), state()) ->
-          {'reply', {'error', 'not_implemented'}, state()}.
+    {'reply', {'error', 'not_implemented'}, state()}.
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
@@ -112,15 +122,16 @@ handle_call(_Request, _From, State) ->
 %% @doc Handle cast messages.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_cast(any(), state()) -> {'noreply', state()} |
-          {'stop', 'normal', state()}.
-handle_cast({'init_hook'}, #state{call=Call}=State) ->
+-spec handle_cast(any(), state()) ->
+    {'noreply', state()}
+    | {'stop', 'normal', state()}.
+handle_cast({'init_hook'}, #state{call = Call} = State) ->
     cf_singular_call_hooks:send_init_hook(Call),
     {'noreply', State};
-handle_cast({'end_hook', JObj}, #state{call=Call}=State) ->
+handle_cast({'end_hook', JObj}, #state{call = Call} = State) ->
     cf_singular_call_hooks:send_end_hook(Call, JObj),
     {'stop', 'normal', State};
-handle_cast({'stop', _JObj}, #state{call=_Call}=State) ->
+handle_cast({'stop', _JObj}, #state{call = _Call} = State) ->
     {'stop', 'normal', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

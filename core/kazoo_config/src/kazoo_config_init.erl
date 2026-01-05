@@ -7,9 +7,10 @@
 
 -include("kazoo_config.hrl").
 
--export([start_link/0
-        ,reload/0
-        ]).
+-export([
+    start_link/0,
+    reload/0
+]).
 
 -export([read_cookie/1]).
 
@@ -26,7 +27,7 @@ start_link() ->
 ini_files() ->
     case os:getenv(?CONFIG_FILE_ENV) of
         'false' -> [?CONFIG_FILE, ?V4_CONFIG_FILE];
-        File    -> [File]
+        File -> [File]
     end.
 
 -spec load_file() -> kz_term:proplist().
@@ -37,18 +38,15 @@ load_file() ->
 maybe_load_file([]) ->
     lager:warning("out of config files to attempt, loading defaults..."),
     ?SECTION_DEFAULTS;
-
-maybe_load_file([File|T]) ->
+maybe_load_file([File | T]) ->
     case zucchini:parse_file(File) of
         {'ok', Props} ->
             lager:info("loaded configs from file ~s", [File]),
             cleanup_configs(Props);
-
         {'error', 'enoent'} ->
             lager:warning("file ~s does not exist or is not accessible", [File]),
             maybe_load_file(T);
-
-        {'error', _}=Error ->
+        {'error', _} = Error ->
             lager:warning("error loading file ~s: ~p", [File, Error]),
             maybe_load_file(T)
     end.
@@ -86,9 +84,9 @@ cleanup_configs(Props) ->
     [cleanup_config(Prop) || Prop <- Props].
 cleanup_config({'zone', Zone}) ->
     {'zone', cleanup_zone(Zone)};
-cleanup_config({'bigcouch', _}=Config) ->
+cleanup_config({'bigcouch', _} = Config) ->
     Config;
-cleanup_config({'log', _}=Config) ->
+cleanup_config({'log', _} = Config) ->
     Config;
 cleanup_config({Section, Props}) ->
     {Section, cleanup_section(Props)}.
@@ -96,20 +94,19 @@ cleanup_config({Section, Props}) ->
 cleanup_section(Props) ->
     [cleanup_section_prop(Prop) || Prop <- Props].
 
-cleanup_section_prop({'zone', Zone}=Prop) when is_atom(Zone) ->
+cleanup_section_prop({'zone', Zone} = Prop) when is_atom(Zone) ->
     Prop;
 cleanup_section_prop({'zone', Zone}) ->
     {'zone', kz_term:to_atom(Zone, 'true')};
-cleanup_section_prop(Prop) -> Prop.
+cleanup_section_prop(Prop) ->
+    Prop.
 
 cleanup_zone(Zone) ->
     [cleanup_zone_prop(Prop) || Prop <- Zone].
-cleanup_zone_prop({'name', Name}=Prop) when is_atom(Name) -> Prop;
-cleanup_zone_prop({'name', Name}) ->
-    {'name', kz_term:to_atom(Name, 'true')};
-cleanup_zone_prop({'amqp_uri', URI}=Prop) when is_list(URI) -> Prop;
-cleanup_zone_prop({'amqp_uri', URI}) ->
-    {'amqp_uri', kz_term:to_list(URI)};
+cleanup_zone_prop({'name', Name} = Prop) when is_atom(Name) -> Prop;
+cleanup_zone_prop({'name', Name}) -> {'name', kz_term:to_atom(Name, 'true')};
+cleanup_zone_prop({'amqp_uri', URI} = Prop) when is_list(URI) -> Prop;
+cleanup_zone_prop({'amqp_uri', URI}) -> {'amqp_uri', kz_term:to_list(URI)};
 cleanup_zone_prop(Prop) -> Prop.
 
 %%------------------------------------------------------------------------------

@@ -17,12 +17,13 @@
 -export([find_node/1]).
 -export([init/1]).
 
--define(CHILDREN, [?SUPER('ecallmgr_fs_pinger_sup')
-                  ,?WORKER('ecallmgr_fs_nodes')
-                  ,?WORKER('ecallmgr_fs_channels')
-                  ,?WORKER('ecallmgr_fs_conferences_shared')
-                  ,?WORKER('ecallmgr_fs_conferences')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('ecallmgr_fs_pinger_sup'),
+    ?WORKER('ecallmgr_fs_nodes'),
+    ?WORKER('ecallmgr_fs_channels'),
+    ?WORKER('ecallmgr_fs_conferences_shared'),
+    ?WORKER('ecallmgr_fs_conferences')
+]).
 
 %%==============================================================================
 %% API functions
@@ -47,8 +48,8 @@ find_node(Node) ->
     find_node(supervisor:which_children(?SERVER), Node).
 
 find_node([], _) -> 'undefined';
-find_node([{Node, Pid, 'supervisor', _}|_], Node) -> Pid;
-find_node([_|Workers], Node) -> find_node(Workers, Node).
+find_node([{Node, Pid, 'supervisor', _} | _], Node) -> Pid;
+find_node([_ | Workers], Node) -> find_node(Workers, Node).
 
 -spec remove_node(atom()) -> 'ok' | {'error', any()}.
 remove_node(Node) ->

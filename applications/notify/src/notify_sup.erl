@@ -21,8 +21,7 @@
 -export([init/1]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('notify_listener')
-                  ]).
+-define(CHILDREN, [?WORKER('notify_listener')]).
 
 %%==============================================================================
 %% API functions
@@ -38,9 +37,11 @@ start_link() ->
 
 -spec listener_proc() -> {'ok', pid()}.
 listener_proc() ->
-    [P] = [P || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-                Mod =:= 'notify_listener'
-          ],
+    [P] = [
+        P
+     || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
+        Mod =:= 'notify_listener'
+    ],
     {'ok', P}.
 
 %%==============================================================================

@@ -7,10 +7,11 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ,start_child/3
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    start_child/3,
+    init/1
+]).
 
 -include("kz_amqp_util.hrl").
 

@@ -7,13 +7,14 @@
 -module(pqc_cb_response).
 
 %% Accessors
--export([account_id/1
-        ,number_state/1
-        ,error_code/1
-        ,message/1
-        ,status/1
-        ,data/1
-        ]).
+-export([
+    account_id/1,
+    number_state/1,
+    error_code/1,
+    message/1,
+    status/1,
+    data/1
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -44,7 +45,7 @@ status(APIResp) ->
     kz_json:get_ne_binary_value(<<"status">>, APIResp).
 
 -spec data(pqc_cb_api:response() | kz_json:object()) ->
-          kz_json:object() | kz_json:objects() | kz_term:ne_binaries().
+    kz_json:object() | kz_json:objects() | kz_term:ne_binaries().
 data(JSON) when is_binary(JSON) ->
     data(kz_json:decode(JSON));
 data({'error', RespBody}) when is_binary(RespBody) ->

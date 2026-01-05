@@ -21,9 +21,15 @@
 -define(IBM_CONFIG_CAT, <<(?MOD_CONFIG_CAT)/binary, ".ibm">>).
 -define(IBM_ASR_URL, kapps_config:get_binary(?IBM_CONFIG_CAT, <<"asr_url">>)).
 -define(IBM_ASR_KEY, kapps_config:get_binary(?IBM_CONFIG_CAT, <<"asr_api_key">>)).
--define(IBM_ASR_PROFANITY_FILTER, kapps_config:get_is_true(?IBM_CONFIG_CAT, <<"asr_profanity_filter">>, 'true')).
--define(IBM_ASR_MODEL, kapps_config:get_binary(?IBM_CONFIG_CAT, <<"asr_model">>, <<"en-US_NarrowbandModel">>)).
--define(IBM_ASR_SMART_FORMATTING, kapps_config:get_is_true(?IBM_CONFIG_CAT, <<"asr_smart_formatting">>, 'true')).
+-define(IBM_ASR_PROFANITY_FILTER,
+    kapps_config:get_is_true(?IBM_CONFIG_CAT, <<"asr_profanity_filter">>, 'true')
+).
+-define(IBM_ASR_MODEL,
+    kapps_config:get_binary(?IBM_CONFIG_CAT, <<"asr_model">>, <<"en-US_NarrowbandModel">>)
+).
+-define(IBM_ASR_SMART_FORMATTING,
+    kapps_config:get_is_true(?IBM_CONFIG_CAT, <<"asr_smart_formatting">>, 'true')
+).
 -define(IBM_ASR_PREFERRED_CONTENT_TYPE, <<"audio/mpeg">>).
 -define(IBM_ASR_ACCEPTED_CONTENT_TYPES, [<<"audio/mpeg">>, <<"audio/wav">>]).
 
@@ -55,7 +61,13 @@ accepted_content_types() ->
 %%% @doc
 %%% @end
 %%%-----------------------------------------------------------------------------
--spec commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> provider_return().
+-spec commands(
+    kz_term:ne_binary(),
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) -> provider_return().
 commands(_Bin, _Commands, _ContentType, _Locale, _Opts) ->
     {'error', 'asr_provider_failure', <<"not implemented">>}.
 
@@ -63,15 +75,20 @@ commands(_Bin, _Commands, _ContentType, _Locale, _Opts) ->
 %%% @doc Callback for API request to ASR Provider and handle transcription response.
 %%% @end
 %%%-----------------------------------------------------------------------------
--spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> asr_resp().
+-spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    asr_resp().
 freeform(Content, ContentType, Locale, Options) ->
-    case kazoo_asr_util:maybe_convert_content(Content, ContentType, accepted_content_types(), preferred_content_type()) of
-        {'error', _}=E -> E;
+    case
+        kazoo_asr_util:maybe_convert_content(
+            Content, ContentType, accepted_content_types(), preferred_content_type()
+        )
+    of
+        {'error', _} = E -> E;
         {Content1, ContentType1} -> exec_freeform(Content1, ContentType1, Locale, Options)
     end.
 
 -spec exec_freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          asr_resp().
+    asr_resp().
 exec_freeform(Content, ContentType, _Locale, Options) ->
     URL = build_url(),
     Headers = req_headers(ContentType),
@@ -82,23 +99,26 @@ exec_freeform(Content, ContentType, _Locale, Options) ->
 -spec build_url() -> kz_term:binary().
 build_url() ->
     URL = <<(?IBM_ASR_URL)/binary, "/v1/recognize">>,
-    case kz_http_util:props_to_querystring(
-           props:filter_undefined(
-             [{<<"profanity_filter">>, ?IBM_ASR_PROFANITY_FILTER}
-             ,{<<"model">>, ?IBM_ASR_MODEL}
-             ,{<<"smart_formatting">>, ?IBM_ASR_SMART_FORMATTING}
-             ])
-          )
+    case
+        kz_http_util:props_to_querystring(
+            props:filter_undefined(
+                [
+                    {<<"profanity_filter">>, ?IBM_ASR_PROFANITY_FILTER},
+                    {<<"model">>, ?IBM_ASR_MODEL},
+                    {<<"smart_formatting">>, ?IBM_ASR_SMART_FORMATTING}
+                ]
+            )
+        )
     of
         [] -> URL;
-        QueryString ->
-            <<URL/binary, "?", (kz_term:to_binary(QueryString))/binary>>
+        QueryString -> <<URL/binary, "?", (kz_term:to_binary(QueryString))/binary>>
     end.
 
 -spec req_headers(kz_term:ne_binary()) -> kz_http:headers().
 req_headers(ContentType) ->
-    [{"Content-Type", ContentType}
-    ,{"User-Agent", kz_term:to_list(node())}
+    [
+        {"Content-Type", ContentType},
+        {"User-Agent", kz_term:to_list(node())}
     ].
 
 %%%-----------------------------------------------------------------------------
@@ -106,7 +126,7 @@ req_headers(ContentType) ->
 %%% @end
 %%%-----------------------------------------------------------------------------
 -spec make_request(kz_term:ne_binary(), kz_term:proplist(), iodata(), kz_term:proplist()) ->
-          kz_http:ret().
+    kz_http:ret().
 make_request(BaseUrl, Headers, Body, Opts) ->
     case props:get_value('receiver', Opts) of
         Pid when is_pid(Pid) ->
@@ -119,7 +139,7 @@ make_request(BaseUrl, Headers, Body, Opts) ->
     end.
 
 -spec handle_response(kz_http:ret()) -> asr_resp().
-handle_response({'error', _R}=E) ->
+handle_response({'error', _R} = E) ->
     lager:debug("asr failed with error ~p", [_R]),
     E;
 handle_response({'http_req_id', ReqID}) ->
@@ -130,9 +150,10 @@ handle_response({'ok', 200, _Headers, Content2}) ->
     Results = kz_json:get_list_value(<<"results">>, kz_json:decode(Content2), []),
     Sentences = [get_sentence(Alternative) || Alternative <- Results],
 
-    Props = [{<<"result">>, <<"success">>}
-            ,{<<"text">>, list_to_binary(Sentences)}
-            ],
+    Props = [
+        {<<"result">>, <<"success">>},
+        {<<"text">>, list_to_binary(Sentences)}
+    ],
     {'ok', kz_json:from_list(Props)};
 handle_response({'ok', _Code, _Hdrs, Content2}) ->
     lager:debug("asr of media failed with code ~p", [_Code]),
@@ -141,7 +162,7 @@ handle_response({'ok', _Code, _Hdrs, Content2}) ->
 
 -spec get_sentence(kz_json:object()) -> kz_term:ne_binary().
 get_sentence(Alternative) ->
-    [Sentence|_] = kz_json:get_list_value(<<"alternatives">>, Alternative),
+    [Sentence | _] = kz_json:get_list_value(<<"alternatives">>, Alternative),
     kz_json:get_value(<<"transcript">>, Sentence).
 
 %%%-----------------------------------------------------------------------------

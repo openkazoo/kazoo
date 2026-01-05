@@ -11,14 +11,15 @@
 -export([start_link/0]).
 
 %% gen_listener callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("fax.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -28,20 +29,17 @@
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{{'fax_jobs', 'handle_start_account'}
-                     ,[{<<"start">>, <<"account">>}]
-                     }
-                    ,{{'fax_worker', 'handle_start_job'}
-                     ,[{<<"start">>, <<"job">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [
+    {{'fax_jobs', 'handle_start_account'}, [{<<"start">>, <<"account">>}]},
+    {{'fax_worker', 'handle_start_job'}, [{<<"start">>, <<"job">>}]}
+]).
 
--define(BINDINGS, [{'fax', [{'restrict_to', ['start']}, 'federate']}
-                  ]).
+-define(BINDINGS, [{'fax', [{'restrict_to', ['start']}, 'federate']}]).
 -define(QUEUE_NAME, <<"fax_global_shared_listener">>).
--define(QUEUE_OPTIONS, [{'exclusive', 'false'}
-                       ,{'federated_queue_name_is_global', 'true'}
-                       ]).
+-define(QUEUE_OPTIONS, [
+    {'exclusive', 'false'},
+    {'federated_queue_name_is_global', 'true'}
+]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
 
 %%%=============================================================================
@@ -54,12 +52,20 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -86,11 +92,11 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',_Queue}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _Queue}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'federators_consuming', _AreFederatorsConsuming}}, State) ->
+handle_cast({'gen_listener', {'federators_consuming', _AreFederatorsConsuming}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

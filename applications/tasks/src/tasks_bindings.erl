@@ -23,25 +23,28 @@
 -module(tasks_bindings).
 
 %% API
--export([bind/3, bind/4
-        ,bind_actions/3
-        ,unbind/3, unbind/4
-        ,apply/2, apply/3
-        ,map/2
-        ,pmap/2, pmap/3
-        ,fold/2
-        ,flush/0, flush/1
-        ,filter/1
-        ,modules_loaded/0
-        ,init/0, init_mod/1
-        ]).
+-export([
+    bind/3, bind/4,
+    bind_actions/3,
+    unbind/3, unbind/4,
+    apply/2, apply/3,
+    map/2,
+    pmap/2, pmap/3,
+    fold/2,
+    flush/0, flush/1,
+    filter/1,
+    modules_loaded/0,
+    init/0,
+    init_mod/1
+]).
 
 %% Helper Functions for Results of a map/2
--export([any/1
-        ,all/1
-        ,succeeded/1
-        ,failed/1
-        ]).
+-export([
+    any/1,
+    all/1,
+    succeeded/1,
+    failed/1
+]).
 
 -include("tasks.hrl").
 
@@ -153,38 +156,41 @@ filter_out_succeeded('false') -> 'true';
 filter_out_succeeded({'EXIT', _}) -> 'true';
 filter_out_succeeded(Term) -> kz_term:is_empty(Term).
 
--type bind_result() :: 'ok' |
-                       {'error', 'exists'}.
+-type bind_result() ::
+    'ok'
+    | {'error', 'exists'}.
 -type bind_results() :: [bind_result()].
 -spec bind(kz_term:ne_binary() | kz_term:ne_binaries(), atom(), atom()) ->
-          bind_result() | bind_results().
+    bind_result() | bind_results().
 bind(Bindings, Module, Fun) ->
     bind(Bindings, Module, Fun, 'undefined').
 
 -spec bind(kz_term:ne_binary() | kz_term:ne_binaries(), atom(), atom(), any()) ->
-          bind_result() | bind_results().
-bind([_|_]=Bindings, Module, Fun, Payload) ->
+    bind_result() | bind_results().
+bind([_ | _] = Bindings, Module, Fun, Payload) ->
     [bind(Binding, Module, Fun, Payload) || Binding <- Bindings];
 bind(Binding, Module, Fun, Payload) when is_binary(Binding) ->
     kazoo_bindings:bind(Binding, Module, Fun, Payload).
 
 -spec bind_actions(kz_term:ne_binary(), module(), kz_term:ne_binaries()) -> 'ok'.
 bind_actions(RoutePrefix, Module, Actions) ->
-    lists:foreach(fun (Action) ->
-                          bind(<<RoutePrefix/binary, ".", Action/binary>>
-                              ,Module
-                              ,kz_term:to_atom(Action)
-                              )
-                  end
-                 ,Actions
-                 ).
+    lists:foreach(
+        fun(Action) ->
+            bind(
+                <<RoutePrefix/binary, ".", Action/binary>>,
+                Module,
+                kz_term:to_atom(Action)
+            )
+        end,
+        Actions
+    ).
 
 -spec unbind(kz_term:ne_binary() | kz_term:ne_binaries(), atom(), atom()) -> 'ok'.
 unbind(Bindings, Module, Fun) ->
     unbind(Bindings, Module, Fun, 'undefined').
 
 -spec unbind(kz_term:ne_binary() | kz_term:ne_binaries(), atom(), atom(), any()) -> 'ok'.
-unbind([_|_]=Bindings, Module, Fun, Payload) ->
+unbind([_ | _] = Bindings, Module, Fun, Payload) ->
     _ = [unbind(Binding, Module, Fun, Payload) || Binding <- Bindings],
     'ok';
 unbind(Binding, Module, Fun, Payload) when is_binary(Binding) ->
@@ -205,17 +211,22 @@ filter(Predicate) ->
 -spec modules_loaded() -> kz_term:atoms().
 modules_loaded() ->
     lists:usort(
-      [Mod || Mod <- kazoo_bindings:modules_loaded(),
-              is_task_module(Mod)
-      ]).
+        [
+            Mod
+         || Mod <- kazoo_bindings:modules_loaded(),
+            is_task_module(Mod)
+        ]
+    ).
 
 -spec is_task_module(kz_term:ne_binary() | atom()) -> boolean().
-is_task_module(<<"kt_", _/binary>>) -> 'true';
-is_task_module(Mod)
-  when is_atom(Mod) ->
+is_task_module(<<"kt_", _/binary>>) ->
+    'true';
+is_task_module(Mod) when
+    is_atom(Mod)
+->
     is_task_module(kz_term:to_binary(Mod));
-is_task_module(_) -> 'false'.
-
+is_task_module(_) ->
+    'false'.
 
 -spec init() -> 'ok'.
 init() ->
@@ -231,7 +242,8 @@ init_mod(ModuleName) ->
 maybe_init_mod(ModuleName) ->
     maybe_init_mod(ModuleName, kz_module:is_exported(ModuleName, 'init', 0)).
 
-maybe_init_mod(_M, 'false') -> 'ok';
+maybe_init_mod(_M, 'false') ->
+    'ok';
 maybe_init_mod(ModuleName, 'true') ->
     lager:debug("trying to init module: ~p", [ModuleName]),
     (kz_term:to_atom(ModuleName, 'true')):init().

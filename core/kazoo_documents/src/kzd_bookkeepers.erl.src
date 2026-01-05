@@ -9,7 +9,6 @@
 -export([braintree/1, braintree/2, set_braintree/2]).
 -export([local/1, local/2, set_local/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

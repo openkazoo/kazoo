@@ -10,7 +10,6 @@
 -export([prefix/1, prefix/2, set_prefix/2]).
 -export([quantity/1, quantity/2, set_quantity/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

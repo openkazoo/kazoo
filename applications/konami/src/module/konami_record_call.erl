@@ -13,20 +13,21 @@
 %%%-----------------------------------------------------------------------------
 -module(konami_record_call).
 
--export([handle/2
-        ,number_builder/1
-        ]).
+-export([
+    handle/2,
+    number_builder/1
+]).
 
 -include("konami.hrl").
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'continue', kapps_call:call()}.
+    {'continue', kapps_call:call()}.
 handle(Data, Call) ->
     Call1 = handle(Data, Call, get_action(kz_json:get_ne_binary_value(<<"action">>, Data))),
     {'continue', Call1}.
 
 -spec handle(kz_json:object(), kapps_call:call(), kz_term:ne_binary()) ->
-          kapps_call:call().
+    kapps_call:call().
 handle(_Data, Call, <<"mask">>) ->
     lager:debug("masking recording, see you on the other side"),
     kapps_call:mask_recording(Call);
@@ -90,26 +91,38 @@ number_builder_time_limit(NumberJObj, Action) ->
     {'ok', [TimeLimit]} = io:fread("How many seconds to limit the recording to: ", "~d"),
     number_builder_format(NumberJObj, Action, TimeLimit).
 
--spec number_builder_format(kz_json:object(), kz_term:ne_binary(), pos_integer()) -> kz_json:object().
+-spec number_builder_format(kz_json:object(), kz_term:ne_binary(), pos_integer()) ->
+    kz_json:object().
 number_builder_format(NumberJObj, Action, TimeLimit) ->
-    {'ok', [Format]} = io:fread("What format would you like the recording? ('wav' or 'mp3'): ", "~3s"),
+    {'ok', [Format]} = io:fread(
+        "What format would you like the recording? ('wav' or 'mp3'): ", "~3s"
+    ),
     number_builder_url(NumberJObj, Action, TimeLimit, kz_term:to_binary(Format)).
 
--spec number_builder_url(kz_json:object(), kz_term:ne_binary(), pos_integer(), kz_term:ne_binary()) -> kz_json:object().
+-spec number_builder_url(kz_json:object(), kz_term:ne_binary(), pos_integer(), kz_term:ne_binary()) ->
+    kz_json:object().
 number_builder_url(NumberJObj, Action, TimeLimit, Format) ->
     {'ok', [URL]} = io:fread("What URL to send the recording to at the end: ", "~s"),
     metaflow_jobj(NumberJObj, Action, TimeLimit, Format, kz_term:to_binary(URL)).
 
--spec metaflow_jobj(kz_json:object(), kz_term:ne_binary(), pos_integer(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
+-spec metaflow_jobj(
+    kz_json:object(), kz_term:ne_binary(), pos_integer(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> kz_json:object().
 metaflow_jobj(NumberJObj, Action, TimeLimit, Format, URL) ->
-    kz_json:set_values([{<<"module">>, <<"record_call">>}
-                       ,{<<"data">>, data(Action, TimeLimit, Format, URL)}
-                       ], NumberJObj).
+    kz_json:set_values(
+        [
+            {<<"module">>, <<"record_call">>},
+            {<<"data">>, data(Action, TimeLimit, Format, URL)}
+        ],
+        NumberJObj
+    ).
 
--spec data(kz_term:ne_binary(), pos_integer(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
+-spec data(kz_term:ne_binary(), pos_integer(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_json:object().
 data(Action, TimeLimit, Format, URL) ->
-    kz_json:from_list([{<<"action">>, Action}
-                      ,{<<"time_limit">>, TimeLimit}
-                      ,{<<"format">>, Format}
-                      ,{<<"url">>, URL}
-                      ]).
+    kz_json:from_list([
+        {<<"action">>, Action},
+        {<<"time_limit">>, TimeLimit},
+        {<<"format">>, Format},
+        {<<"url">>, URL}
+    ]).

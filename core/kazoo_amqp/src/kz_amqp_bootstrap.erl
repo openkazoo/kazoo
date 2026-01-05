@@ -12,13 +12,14 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_amqp_util.hrl").
 
@@ -113,14 +114,16 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_zones(kz_term:proplist()) -> 'ok'.
-add_zones([]) -> 'ok';
-add_zones([{ZoneName, Brokers}|Zones]) ->
+add_zones([]) ->
+    'ok';
+add_zones([{ZoneName, Brokers} | Zones]) ->
     _ = add_brokers(Brokers, ZoneName),
     add_zones(Zones).
 
 -spec add_brokers(kz_term:ne_binaries(), atom()) -> 'ok'.
-add_brokers([], _) -> 'ok';
-add_brokers([Broker|Brokers], ZoneName) ->
+add_brokers([], _) ->
+    'ok';
+add_brokers([Broker | Brokers], ZoneName) ->
     _ = kz_amqp_connections:add(Broker, ZoneName),
     add_brokers(Brokers, ZoneName).
 
@@ -146,37 +149,40 @@ get_from_zone(ZoneName) ->
     case props:get_value('local', Props, []) of
         [] ->
             lager:info("no local zone configured, adding default AMQP"),
-            [{'local', kz_config:get('amqp', 'uri', [?DEFAULT_AMQP_URI])}
-             | Props
+            [
+                {'local', kz_config:get('amqp', 'uri', [?DEFAULT_AMQP_URI])}
+                | Props
             ];
-        _Else -> Props
+        _Else ->
+            Props
     end.
 
 -spec get_from_zone(atom(), kz_term:proplist(), dict:dict()) -> dict:dict().
-get_from_zone(_, [], Dict) -> Dict;
-get_from_zone(ZoneName, [{_, Zone}|Zones], Dict) ->
+get_from_zone(_, [], Dict) ->
+    Dict;
+get_from_zone(ZoneName, [{_, Zone} | Zones], Dict) ->
     case props:get_first_defined(['name', 'zone'], Zone) of
         'undefined' -> get_from_zone(ZoneName, Zones, Dict);
-        ZoneName ->
-            get_from_zone(ZoneName, Zones, import_zone('local', Zone, Dict));
-        RemoteZoneName ->
-            get_from_zone(ZoneName, Zones, import_zone(RemoteZoneName, Zone, Dict))
+        ZoneName -> get_from_zone(ZoneName, Zones, import_zone('local', Zone, Dict));
+        RemoteZoneName -> get_from_zone(ZoneName, Zones, import_zone(RemoteZoneName, Zone, Dict))
     end.
 
 -spec import_zone(atom(), kz_term:proplist(), dict:dict()) -> dict:dict().
-import_zone(_, [], Dict) -> Dict;
-import_zone(ZoneName, [{'amqp_uri', URI}|Props], Dict) ->
+import_zone(_, [], Dict) ->
+    Dict;
+import_zone(ZoneName, [{'amqp_uri', URI} | Props], Dict) ->
     case dict:find(ZoneName, Dict) of
         'error' ->
             import_zone(ZoneName, Props, dict:store(ZoneName, [URI], Dict));
         _ ->
             import_zone(ZoneName, Props, dict:append(ZoneName, URI, Dict))
     end;
-import_zone(ZoneName, [{'uri', URI}|Props], Dict) ->
+import_zone(ZoneName, [{'uri', URI} | Props], Dict) ->
     case dict:find(ZoneName, Dict) of
         'error' ->
             import_zone(ZoneName, Props, dict:store(ZoneName, [URI], Dict));
         _ ->
             import_zone(ZoneName, Props, dict:append(ZoneName, URI, Dict))
     end;
-import_zone(ZoneName, [_|Props], Dict) -> import_zone(ZoneName, Props, Dict).
+import_zone(ZoneName, [_ | Props], Dict) ->
+    import_zone(ZoneName, Props, Dict).

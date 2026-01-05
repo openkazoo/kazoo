@@ -1,18 +1,23 @@
 -module(pqc_cb_cdrs).
 
 %% Manual testing
--export([seq/0, big_dataset_seq/0, straight_seq/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    big_dataset_seq/0,
+    straight_seq/0,
+    cleanup/0
+]).
 
 %% API Shims
--export([summary/2, summary/3
-        ,fetch/3
-        ]).
+-export([
+    summary/2, summary/3,
+    fetch/3
+]).
 
--export([interactions/2
-        ,legs/3
-        ]).
+-export([
+    interactions/2,
+    legs/3
+]).
 
 -include_lib("proper/include/proper.hrl").
 -include("kazoo_proper.hrl").
@@ -25,22 +30,26 @@
 summary(API, AccountId) ->
     summary(API, AccountId, <<"application/json">>).
 
--spec summary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec summary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 summary(API, AccountId, Accept) ->
     URL = cdrs_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API, [{<<"accept">>, Accept}]),
 
-    Expectations = [#{'response_codes' => [200]
-                     ,'response_headers' => [{"content-type", kz_term:to_list(Accept)}]
-                     }
-                   ,#{'response_codes' => [204]}
-                   ],
+    Expectations = [
+        #{
+            'response_codes' => [200],
+            'response_headers' => [{"content-type", kz_term:to_list(Accept)}]
+        },
+        #{'response_codes' => [204]}
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 unpaginated_summary(API, AccountId) ->
     unpaginated_summary(API, AccountId, 'true').
@@ -49,15 +58,17 @@ unpaginated_summary(API, AccountId, ShouldChunk) ->
     URL = cdrs_url(AccountId) ++ "?paginate=false" ++ should_chunk(ShouldChunk),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    Expectations = [#{'response_codes' => [200]}
-                   ,#{'response_codes' => [204]}
-                   ],
+    Expectations = [
+        #{'response_codes' => [200]},
+        #{'response_codes' => [204]}
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 should_chunk('true') -> "";
 should_chunk('false') -> "&is_chunked=false".
@@ -66,52 +77,62 @@ paginated_summary(API, AccountId) ->
     paginated_summary(API, AccountId, 'undefined').
 
 -spec paginated_summary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
-          {'error', binary()} |
-          kz_json:objects().
+    {'error', binary()}
+    | kz_json:objects().
 paginated_summary(API, AccountId, OwnerId) ->
     URL = paginated_cdrs_url(AccountId, OwnerId, ?CDRS_PER_MONTH div 2),
     RequestHeaders = pqc_cb_api:request_headers(API, []),
 
-    Expectations = [#{'response_codes' => [200]
-                     ,'response_headers' => [{"content-type", "application/json"}]
-                     }
-                   ,#{'response_codes' => [204]}
-                   ],
+    Expectations = [
+        #{
+            'response_codes' => [200],
+            'response_headers' => [{"content-type", "application/json"}]
+        },
+        #{'response_codes' => [204]}
+    ],
 
     collect_paginated_results(URL, URL, RequestHeaders, Expectations, []).
 
 collect_paginated_results(BaseURL, URL, RequestHeaders, Expectations, Collected) ->
-    case pqc_cb_api:make_request(Expectations
-                                ,fun kz_http:get/2
-                                ,URL
-                                ,RequestHeaders
-                                )
+    case
+        pqc_cb_api:make_request(
+            Expectations,
+            fun kz_http:get/2,
+            URL,
+            RequestHeaders
+        )
     of
-        {'error', _}=E -> E;
+        {'error', _} = E ->
+            E;
         <<JSON/binary>> ->
-            handle_paginated_results(BaseURL, RequestHeaders, Expectations, Collected, kz_json:decode(JSON))
+            handle_paginated_results(
+                BaseURL, RequestHeaders, Expectations, Collected, kz_json:decode(JSON)
+            )
     end.
 
 handle_paginated_results(BaseURL, RequestHeaders, Expectations, Collected, RespJObj) ->
     Data = kz_json:get_list_value(<<"data">>, RespJObj, []),
     lager:info("adding page: ~p~n", [Data]),
     case kz_json:get_ne_binary_value(<<"next_start_key">>, RespJObj) of
-        'undefined' -> Data ++ Collected;
+        'undefined' ->
+            Data ++ Collected;
         NextStartKey ->
             lager:info("collecting next page from ~s: ~s", [BaseURL, NextStartKey]),
-            collect_paginated_results(BaseURL
-                                     ,BaseURL ++ [$& | start_key(NextStartKey)]
-                                     ,update_request_id(RequestHeaders)
-                                     ,Expectations
-                                     ,Data ++ Collected
-                                     )
+            collect_paginated_results(
+                BaseURL,
+                BaseURL ++ [$& | start_key(NextStartKey)],
+                update_request_id(RequestHeaders),
+                Expectations,
+                Data ++ Collected
+            )
     end.
 
 update_request_id(RequestHeaders) ->
-    NewRequestId = case re:split(props:get_value(<<"x-request-id">>, RequestHeaders), "-") of
-                       [Id, Now] -> iolist_to_binary([Id, "-", Now, "-", "1"]);
-                       [Id, Now, Nth] -> iolist_to_binary([Id, "-", Now, "-", incr_nth(Nth)])
-                   end,
+    NewRequestId =
+        case re:split(props:get_value(<<"x-request-id">>, RequestHeaders), "-") of
+            [Id, Now] -> iolist_to_binary([Id, "-", Now, "-", "1"]);
+            [Id, Now, Nth] -> iolist_to_binary([Id, "-", Now, "-", incr_nth(Nth)])
+        end,
     props:set_value(<<"x-request-id">>, kz_term:to_list(NewRequestId), RequestHeaders).
 
 incr_nth(Nth) ->
@@ -121,23 +142,26 @@ incr_nth(Nth) ->
 fetch(API, AccountId, CDRId) ->
     URL = cdr_url(AccountId, CDRId),
     RequestHeaders = pqc_cb_api:request_headers(API),
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 -spec interactions(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
 interactions(API, AccountId) ->
     URL = interactions_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API),
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
--spec paginated_interactions(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec paginated_interactions(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 paginated_interactions(API, AccountId, OwnerId) ->
     URL = paginated_interactions_url(AccountId, OwnerId, 2),
     RequestHeaders = pqc_cb_api:request_headers(API),
@@ -147,26 +171,34 @@ paginated_interactions(API, AccountId, OwnerId) ->
 legs(API, AccountId, InteractionId) ->
     URL = legs_url(AccountId, InteractionId),
     RequestHeaders = pqc_cb_api:request_headers(API),
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 legs_url(AccountId, InteractionId) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "cdrs", "legs", kz_term:to_list(InteractionId)], "/").
+    string:join(
+        [pqc_cb_accounts:account_url(AccountId), "cdrs", "legs", kz_term:to_list(InteractionId)],
+        "/"
+    ).
 
 interactions_url(AccountId) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "cdrs", "interaction"], "/").
 
 paginated_interactions_url(AccountId, OwnerId, PageSize) ->
-    string:join([pqc_cb_accounts:account_url(AccountId)
-                ,"users", kz_term:to_list(OwnerId)
-                ,"cdrs", "interaction"
-                ]
-               ,"/"
-               )
-        ++ "?page_size=" ++ kz_term:to_list(PageSize).
+    string:join(
+        [
+            pqc_cb_accounts:account_url(AccountId),
+            "users",
+            kz_term:to_list(OwnerId),
+            "cdrs",
+            "interaction"
+        ],
+        "/"
+    ) ++
+        "?page_size=" ++ kz_term:to_list(PageSize).
 
 cdr_url(AccountId, CDRId) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "cdrs", kz_term:to_list(CDRId)], "/").
@@ -175,11 +207,13 @@ cdrs_url(AccountId) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "cdrs"], "/").
 
 paginated_cdrs_url(AccountId, 'undefined', PageSize) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "cdrs"], "/")
-        ++ "?" ++ page_size(PageSize);
+    string:join([pqc_cb_accounts:account_url(AccountId), "cdrs"], "/") ++
+        "?" ++ page_size(PageSize);
 paginated_cdrs_url(AccountId, OwnerId, PageSize) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "users", kz_term:to_list(OwnerId), "cdrs"], "/")
-        ++ "?" ++ page_size(PageSize).
+    string:join(
+        [pqc_cb_accounts:account_url(AccountId), "users", kz_term:to_list(OwnerId), "cdrs"], "/"
+    ) ++
+        "?" ++ page_size(PageSize).
 
 page_size(N) -> "page_size=" ++ kz_term:to_list(N).
 
@@ -251,7 +285,8 @@ paginated_seq() ->
     lager:info("expected CDR interaction IDs: ~p", [CDRInteractionIDs]),
     lager:info("received interaction IDs: ~p", [InteractionIds]),
     case CDRInteractionIDs =:= InteractionIds of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
             lager:info("failed to fetch expected interaction IDs from API"),
             lager:info("missing from response: ~p", [CDRInteractionIDs -- InteractionIds]),
@@ -271,13 +306,14 @@ big_dataset_seq() ->
 
     CDRCount = 2600,
 
-    CDRs = lists:foldl(fun(_, Acc) ->
-                               InteractionId = interaction_id(Year, Month, Day),
-                               [create_cdr(AccountId, 'undefined', Year, Month, InteractionId) | Acc]
-                       end
-                      ,[]
-                      ,lists:seq(1,CDRCount)
-                      ),
+    CDRs = lists:foldl(
+        fun(_, Acc) ->
+            InteractionId = interaction_id(Year, Month, Day),
+            [create_cdr(AccountId, 'undefined', Year, Month, InteractionId) | Acc]
+        end,
+        [],
+        lists:seq(1, CDRCount)
+    ),
 
     AccountMODb = kz_util:format_account_id(AccountId, Year, Month),
     {'ok', _} = kazoo_modb:save_docs(AccountMODb, CDRs, [{'publish_change_notice', 'false'}]),
@@ -295,15 +331,19 @@ big_dataset_seq() ->
     lager:info("unpaginated/unchunked and unbound memory resp returned ~p CDRs", [UnChunkedCount]),
     CDRCount = UnChunkedCount,
 
-    _ = kapps_config:set_default(<<"crossbar">>, <<"request_memory_limit">>, 1024 * 1024 * 10), % cap at 10Mb
+    % cap at 10Mb
+    _ = kapps_config:set_default(<<"crossbar">>, <<"request_memory_limit">>, 1024 * 1024 * 10),
 
     ChunkedUnpaginatedJSON = unpaginated_summary(API, AccountId),
     ChunkedUnpaginatedJObj = kz_json:decode(ChunkedUnpaginatedJSON),
     ChunkedUnpaginatedCount = length(kz_json:get_list_value(<<"data">>, ChunkedUnpaginatedJObj)),
-    lager:info("chunked/unpaginated and unbound memory resp returned ~p CDRs", [ChunkedUnpaginatedCount]),
+    lager:info("chunked/unpaginated and unbound memory resp returned ~p CDRs", [
+        ChunkedUnpaginatedCount
+    ]),
     CDRCount = ChunkedUnpaginatedCount,
 
-    _ = kapps_config:set_default(<<"crossbar">>, <<"request_memory_limit">>, 1024 * 1024 * 5), % cap at 5Mb
+    % cap at 5Mb
+    _ = kapps_config:set_default(<<"crossbar">>, <<"request_memory_limit">>, 1024 * 1024 * 5),
 
     {'error', UnChunkedErrorJSON} = unpaginated_summary(API, AccountId, 'false'),
     lager:info("unchunked/unpaginated and bound memory resp: ~s", [UnChunkedErrorJSON]),
@@ -343,7 +383,8 @@ cdr_exists(CDR, RespCDRs) ->
     lists:any(fun(RespCDR) -> kz_doc:id(RespCDR) =:= kz_doc:id(CDR) end, RespCDRs).
 
 -spec cdrs_exist(kz_json:objects(), kz_json:object()) -> boolean().
-cdrs_exist([], []) -> 'true';
+cdrs_exist([], []) ->
+    'true';
 cdrs_exist([], APIs) ->
     IDs = [kz_doc:id(CDR) || CDR <- APIs],
     lager:info("  failed to find API results in CDRs: ~s", [kz_binary:join(IDs, <<", ">>)]),
@@ -352,11 +393,12 @@ cdrs_exist(CDRs, []) ->
     IDs = [kz_doc:id(CDR) || CDR <- CDRs],
     lager:info("  failed to find CDR(s) in API response: ~s", [kz_binary:join(IDs, <<", ">>)]),
     'false';
-cdrs_exist([_|_]=CDRs, [API|APIs]) ->
+cdrs_exist([_ | _] = CDRs, [API | APIs]) ->
     lager:debug("filtering out ~s", [kz_doc:id(API)]),
-    cdrs_exist([CDR || CDR <- CDRs, kz_doc:id(CDR) =/= kz_doc:id(API)]
-              ,APIs
-              ).
+    cdrs_exist(
+        [CDR || CDR <- CDRs, kz_doc:id(CDR) =/= kz_doc:id(API)],
+        APIs
+    ).
 
 create_account(API) ->
     AccountResp = pqc_cb_accounts:create_account(API, hd(?ACCOUNT_NAMES)),
@@ -369,7 +411,7 @@ create_owner(AccountId) ->
 
     OwnerId = kz_binary:rand_hex(16),
     Owner = kz_json:set_value(<<"_id">>, OwnerId, kzd_users:new()),
-    {'ok', _Saved}= kz_datamgr:save_doc(AccountDb, Owner),
+    {'ok', _Saved} = kz_datamgr:save_doc(AccountDb, Owner),
     lager:info("saved owner to ~s: ~p", [AccountDb, _Saved]),
     OwnerId.
 
@@ -411,7 +453,10 @@ seed_interaction(AccountId, OwnerId, Year, Month) ->
 
     InteractionId = interaction_id(Y, M, D),
 
-    [element(2, seed_cdr(AccountId, OwnerId, Y, M, InteractionId)) || _ <- lists:seq(1, ?CDRS_PER_MONTH)].
+    [
+        element(2, seed_cdr(AccountId, OwnerId, Y, M, InteractionId))
+     || _ <- lists:seq(1, ?CDRS_PER_MONTH)
+    ].
 
 interaction_id(Year, Month, Day) ->
     InteractionTime = interaction_time(Year, Month, Day),
@@ -422,9 +467,15 @@ seed_cdr(AccountId, OwnerId, Year, Month, InteractionId) ->
     [ITime, InteractionKey] = binary:split(InteractionId, <<"-">>),
     InteractionTime = kz_term:to_integer(ITime),
 
-    CDR = create_cdr(AccountId, OwnerId, Year, Month
-                    ,InteractionId, InteractionTime, InteractionKey
-                    ),
+    CDR = create_cdr(
+        AccountId,
+        OwnerId,
+        Year,
+        Month,
+        InteractionId,
+        InteractionTime,
+        InteractionKey
+    ),
 
     AccountMODb = kz_util:format_account_id(AccountId, InteractionTime),
     kazoo_modb:save_doc(AccountMODb, CDR, ['allow_old_modb_creation']).
@@ -441,31 +492,33 @@ create_cdr(AccountId, OwnerId, Year, Month, InteractionId, InteractionTime, Inte
 
     AccountMODb = kz_util:format_account_id(AccountId, InteractionTime),
 
-    JObj = kz_json:from_list([{<<"_id">>, CDRId}
-                             ,{<<"call_id">>, CallId}
+    JObj = kz_json:from_list([
+        {<<"_id">>, CDRId},
+        {<<"call_id">>, CallId},
 
-                             ,{<<"interaction_id">>, InteractionId}
-                             ,{<<"interaction_key">>, InteractionKey}
-                             ,{<<"interaction_time">>, InteractionTime}
+        {<<"interaction_id">>, InteractionId},
+        {<<"interaction_key">>, InteractionKey},
+        {<<"interaction_time">>, InteractionTime},
 
-                             ,{<<"custom_channel_vars">>, kz_json:from_list([{<<"owner_id">>, OwnerId}])}
+        {<<"custom_channel_vars">>, kz_json:from_list([{<<"owner_id">>, OwnerId}])},
 
-                             ,{<<"call_direction">>, <<"inbound">>}
+        {<<"call_direction">>, <<"inbound">>},
 
-                             ,{<<"request">>, <<"2600@hertz.com">>}
-                             ,{<<"to">>, <<"capt@crunch.com">>}
-                             ,{<<"from">>, <<"cereal@killer.com">>}
+        {<<"request">>, <<"2600@hertz.com">>},
+        {<<"to">>, <<"capt@crunch.com">>},
+        {<<"from">>, <<"cereal@killer.com">>},
 
-                             ,{<<"ringing_seconds">>, 3}
-                             ,{<<"billing_seconds">>, 6}
-                             ,{<<"duration_seconds">>, 9}
-                             ,{<<"timestamp">>, InteractionTime}
-                             ]),
+        {<<"ringing_seconds">>, 3},
+        {<<"billing_seconds">>, 6},
+        {<<"duration_seconds">>, 9},
+        {<<"timestamp">>, InteractionTime}
+    ]),
 
-    Props = [{'type', <<"cdr">>}
-            ,{'account_id', AccountId}
-            ,{'now', InteractionTime}
-            ],
+    Props = [
+        {'type', <<"cdr">>},
+        {'account_id', AccountId},
+        {'now', InteractionTime}
+    ],
     kz_doc:update_pvt_parameters(JObj, AccountMODb, Props).
 
 interaction_time(Year, Month, Day) ->

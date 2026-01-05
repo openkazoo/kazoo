@@ -6,19 +6,22 @@
 -module(webhooks_disabler).
 -behaviour(gen_server).
 
--export([start_link/0
-        ,check_failed_attempts/0
-        ,find_failures/0
-        ,flush_failures/1, flush_failures/2, flush_hooks/1
-        ]).
+-export([
+    start_link/0,
+    check_failed_attempts/0,
+    find_failures/0,
+    flush_failures/1, flush_failures/2,
+    flush_hooks/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("webhooks.hrl").
 
@@ -64,7 +67,8 @@ code_change(_OldVsn, State, _Extra) ->
 -spec start_check_timer() -> 'disabled' | reference().
 start_check_timer() ->
     case kapps_config:get_is_true(?APP_NAME, <<"disable_disabler">>, 'false') of
-        'true' -> 'disabled';
+        'true' ->
+            'disabled';
         'false' ->
             Expiry = webhooks_util:system_expires_time() div 4,
             erlang:start_timer(Expiry, self(), ?EXPIRY_MSG)
@@ -86,12 +90,14 @@ find_failures() ->
 -spec flush_hooks(kz_json:objects()) -> non_neg_integer().
 flush_hooks(HookJObjs) ->
     lists:sum(
-      [flush_failures(kz_doc:account_id(HookJObj)
-                     ,kz_doc:id(HookJObj)
-                     )
-       || HookJObj <- HookJObjs
-      ]
-     ).
+        [
+            flush_failures(
+                kz_doc:account_id(HookJObj),
+                kz_doc:id(HookJObj)
+            )
+         || HookJObj <- HookJObjs
+        ]
+    ).
 
 -spec flush_failures(kz_term:ne_binary()) -> non_neg_integer().
 flush_failures(AccountId) ->
@@ -100,20 +106,22 @@ flush_failures(AccountId) ->
 -spec flush_failures(kz_term:ne_binary(), kz_term:api_binary()) -> non_neg_integer().
 flush_failures(AccountId, HookId) ->
     FilterFun = fun(K, _V) ->
-                        maybe_remove_failure(K, AccountId, HookId)
-                end,
+        maybe_remove_failure(K, AccountId, HookId)
+    end,
     kz_cache:filter_erase_local(?CACHE_NAME, FilterFun).
 
 -spec maybe_remove_failure(tuple(), kz_term:ne_binary(), kz_term:api_binary()) -> boolean().
-maybe_remove_failure(?FAILURE_CACHE_KEY(AccountId, HookId, _Timestamp)
-                    ,AccountId
-                    ,HookId
-                    ) ->
+maybe_remove_failure(
+    ?FAILURE_CACHE_KEY(AccountId, HookId, _Timestamp),
+    AccountId,
+    HookId
+) ->
     'true';
-maybe_remove_failure(?FAILURE_CACHE_KEY(AccountId, _HookId, _Timestamp)
-                    ,AccountId
-                    ,'undefined'
-                    ) ->
+maybe_remove_failure(
+    ?FAILURE_CACHE_KEY(AccountId, _HookId, _Timestamp),
+    AccountId,
+    'undefined'
+) ->
     'true';
 maybe_remove_failure(_K, _AccountId, _HookId) ->
     'false'.
@@ -124,10 +132,12 @@ find_failures(Keys) ->
     {NowMs, Dict} = lists:foldl(fun process_failed_key/2, {NowMs, dict:new()}, Keys),
     dict:to_list(Dict).
 
--spec process_failed_key(tuple(), {kz_time:gregorian_seconds(), dict:dict()}) -> {kz_time:gregorian_seconds(), dict:dict()}.
-process_failed_key(?FAILURE_CACHE_KEY(AccountId, HookId, ThenMs)
-                  ,{NowMs, Dict}
-                  ) ->
+-spec process_failed_key(tuple(), {kz_time:gregorian_seconds(), dict:dict()}) ->
+    {kz_time:gregorian_seconds(), dict:dict()}.
+process_failed_key(
+    ?FAILURE_CACHE_KEY(AccountId, HookId, ThenMs),
+    {NowMs, Dict}
+) ->
     ExpiryMs = webhooks_util:account_expires_time(AccountId),
     case ThenMs > (NowMs - ExpiryMs) of
         'true' ->
@@ -141,9 +151,10 @@ process_failed_key(_Key, Acc) ->
 
 -spec check_failures(failures()) -> 'ok'.
 check_failures(Failures) ->
-    _ = [check_failure(AccountId, HookId, Count)
-         || {{AccountId, HookId}, Count} <- Failures
-        ],
+    _ = [
+        check_failure(AccountId, HookId, Count)
+     || {{AccountId, HookId}, Count} <- Failures
+    ],
     'ok'.
 
 -spec check_failure(kz_term:ne_binary(), kz_term:ne_binary(), pos_integer()) -> 'ok'.
@@ -153,7 +164,9 @@ check_failure(AccountId, HookId, Count) ->
         _ -> 'ok'
     catch
         _:_ ->
-            lager:warning("account ~s has an non-integer for ~s/~s", [AccountId, ?APP_NAME, ?FAILURE_COUNT_KEY]),
+            lager:warning("account ~s has an non-integer for ~s/~s", [
+                AccountId, ?APP_NAME, ?FAILURE_COUNT_KEY
+            ]),
             SystemCount = webhooks_util:system_failure_count(),
             case Count > SystemCount of
                 'false' -> 'ok';
@@ -164,9 +177,10 @@ check_failure(AccountId, HookId, Count) ->
 -spec disable_hook(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 disable_hook(AccountId, HookId) ->
     Update = kzd_webhook:disable_updates(<<"too many failed attempts">>),
-    Updates = [{'update', Update}
-              ,{'ensure_saved', 'true'}
-              ],
+    Updates = [
+        {'update', Update},
+        {'ensure_saved', 'true'}
+    ],
     case kz_datamgr:update_doc(?KZ_WEBHOOKS_DB, HookId, Updates) of
         {'ok', _Updated} ->
             filter_cache(AccountId, HookId),
@@ -178,20 +192,25 @@ disable_hook(AccountId, HookId) ->
 
 -spec filter_cache(kz_term:ne_binary(), kz_term:ne_binary()) -> non_neg_integer().
 filter_cache(AccountId, HookId) ->
-    kz_cache:filter_erase_local(?CACHE_NAME
-                               ,fun(?FAILURE_CACHE_KEY(A, H, _T), _) when A =:= AccountId,
-                                                                          H =:= HookId
-                                                                          ->
-                                        lager:debug("filtering ~s / ~s (~p)", [H, A, _T]),
-                                        'true';
-                                   (_K, _V) -> 'false'
-                                end
-                               ).
+    kz_cache:filter_erase_local(
+        ?CACHE_NAME,
+        fun
+            (?FAILURE_CACHE_KEY(A, H, _T), _) when
+                A =:= AccountId,
+                H =:= HookId
+            ->
+                lager:debug("filtering ~s / ~s (~p)", [H, A, _T]),
+                'true';
+            (_K, _V) ->
+                'false'
+        end
+    ).
 
 -spec send_notification(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 send_notification(AccountId, HookId) ->
-    API = [{<<"Account-ID">>, AccountId}
-          ,{<<"Hook-ID">>, HookId}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
+    API = [
+        {<<"Account-ID">>, AccountId},
+        {<<"Hook-ID">>, HookId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kapps_notify_publisher:cast(API, fun kapi_notifications:publish_webhook_disabled/1).

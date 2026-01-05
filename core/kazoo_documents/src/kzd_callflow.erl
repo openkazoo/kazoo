@@ -6,17 +6,20 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_callflow).
 
--export([new/0
-        ,type/0
-        ,numbers/1, set_numbers/2
-        ,patterns/1, set_patterns/2
-        ,is_feature_code/1
-        ,flow/1, flow/2
-        ,prepend_preflow/2
-        ,set_flow/2
-        ,validate/1
-        ,validate_flow/1
-        ]).
+-export([
+    new/0,
+    type/0,
+    numbers/1,
+    set_numbers/2,
+    patterns/1,
+    set_patterns/2,
+    is_feature_code/1,
+    flow/1, flow/2,
+    prepend_preflow/2,
+    set_flow/2,
+    validate/1,
+    validate_flow/1
+]).
 
 -include("kz_documents.hrl").
 
@@ -95,29 +98,36 @@ flow(Doc, Default) ->
 set_flow(Doc, Flow) ->
     kz_json:set_value(?FLOW, Flow, Doc).
 
--spec validate(doc()) -> {'ok', doc()} |
-          {'error', kz_json_schema:validation_errors()}.
+-spec validate(doc()) ->
+    {'ok', doc()}
+    | {'error', kz_json_schema:validation_errors()}.
 validate(Doc) ->
     case kz_json_schema:validate(<<"callflows">>, Doc) of
-        {'ok', _}= OK -> OK;
+        {'ok', _} = OK -> OK;
         {'error', Errors} -> {'error', kz_json_schema:errors_to_jobj(Errors)}
     end.
 
 -ifdef(TEST).
 -spec validate_flow(doc()) -> {'ok', doc()} | {'error', list()}.
 validate_flow(Doc) ->
-    case kz_json_schema:validate(<<"callflows.action">>
-                                ,flow(Doc)
-                                ,[{'schema_loader_fun', fun schema_test_load/1}
-                                 ,{'allowed_errors', 'infinity'}
-                                 ]) of
+    case
+        kz_json_schema:validate(
+            <<"callflows.action">>,
+            flow(Doc),
+            [
+                {'schema_loader_fun', fun schema_test_load/1},
+                {'allowed_errors', 'infinity'}
+            ]
+        )
+    of
         {'ok', JObj} -> {ok, set_flow(Doc, JObj)};
         {'error', Errors} -> {'error', Errors}
     end.
 
 schema_test_load(Schema) when not is_binary(Schema) ->
     schema_test_load(kz_term:to_binary(Schema));
-schema_test_load(<<"file://", Schema/binary>>) -> schema_test_load(Schema);
+schema_test_load(<<"file://", Schema/binary>>) ->
+    schema_test_load(Schema);
 schema_test_load(<<"callflows.test">> = Schema) ->
     {ok, kz_json:insert_value(<<"id">>, Schema, ?SCHEMA_JOBJ)};
 schema_test_load(Schema) ->
@@ -134,8 +144,9 @@ validate_flow(Doc) ->
 -spec prepend_preflow(doc(), kz_term:ne_binary()) -> doc().
 prepend_preflow(Callflow, PreflowId) ->
     AmendedFlow =
-        kz_json:from_list([{<<"module">>, <<"callflow">>}
-                          ,{<<"data">>, kz_json:from_list([{<<"id">>, PreflowId}])}
-                          ,{<<"children">>, kz_json:from_list([{<<"_">>, flow(Callflow)}])}
-                          ]),
+        kz_json:from_list([
+            {<<"module">>, <<"callflow">>},
+            {<<"data">>, kz_json:from_list([{<<"id">>, PreflowId}])},
+            {<<"children">>, kz_json:from_list([{<<"_">>, flow(Callflow)}])}
+        ]),
     set_flow(Callflow, AmendedFlow).

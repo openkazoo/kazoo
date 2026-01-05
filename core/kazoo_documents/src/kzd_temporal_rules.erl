@@ -19,7 +19,6 @@
 -export([time_window_stop/1, time_window_stop/2, set_time_window_stop/2]).
 -export([wdays/1, wdays/2, set_wdays/2]).
 
-
 -export([delete_enabled/1]).
 
 -include("kz_documents.hrl").

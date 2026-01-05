@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([enabled/1, enabled/2, set_enabled/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

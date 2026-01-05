@@ -17,7 +17,6 @@
 -export([plan/1, plan/2, set_plan/2]).
 -export([plan_name/2, plan_name/3, set_plan_name/3]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

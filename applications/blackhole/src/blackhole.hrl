@@ -13,17 +13,19 @@
 
 -define(CACHE_NAME, 'blackhole_cache').
 
--define(DEFAULT_MODULES, ['bh_token_auth'
-                         ,'bh_call'
-                         ,'bh_object'
-                         ,'bh_fax'
-                         ,'bh_conference'
-                         ]).
+-define(DEFAULT_MODULES, [
+    'bh_token_auth',
+    'bh_call',
+    'bh_object',
+    'bh_fax',
+    'bh_conference'
+]).
 
--define(COMMAND_MODULES, ['bh_events'
-                         ,'bh_limits'
-                         ,'bh_authz_subscribe'
-                         ]).
+-define(COMMAND_MODULES, [
+    'bh_events',
+    'bh_limits',
+    'bh_authz_subscribe'
+]).
 
 -define(VERSION_SUPPORTED, [<<"v1">>]).
 

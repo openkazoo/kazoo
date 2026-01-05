@@ -5,34 +5,40 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_rate).
 
--export([req/1, req_v/1
-        ,resp/1, resp_v/1
-        ,bind_q/2, unbind_q/2
-        ,declare_exchanges/0
-        ,publish_req/1, publish_req/2
-        ,publish_resp/2, publish_resp/3
-        ,broadcast_resp/1, broadcast_resp/2
-        ]).
+-export([
+    req/1,
+    req_v/1,
+    resp/1,
+    resp_v/1,
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
+    publish_req/1, publish_req/2,
+    publish_resp/2, publish_resp/3,
+    broadcast_resp/1, broadcast_resp/2
+]).
 
 %% accessors
--export([account_id/1
-        ,authorizing_type/1
-        ,direction/1
-        ,from_did/1
-        ,options/1
-        ,outbound_flags/1
-        ,ratedeck_id/1
-        ,resource_id/1
-        ,send_empty/1
-        ,to_did/1
-        ]).
+-export([
+    account_id/1,
+    authorizing_type/1,
+    direction/1,
+    from_did/1,
+    options/1,
+    outbound_flags/1,
+    ratedeck_id/1,
+    resource_id/1,
+    send_empty/1,
+    to_did/1
+]).
 
--type req()  :: kz_json:object().
+-type req() :: kz_json:object().
 -type resp() :: kz_json:object().
 
--export_type([req/0
-             ,resp/0
-             ]).
+-export_type([
+    req/0,
+    resp/0
+]).
 
 -include_lib("kz_amqp_util.hrl").
 
@@ -42,52 +48,58 @@
 
 %% AMQP fields for Rating Request
 -define(RATE_REQ_HEADERS, [<<"To-DID">>]).
--define(OPTIONAL_RATE_REQ_HEADERS, [<<"Account-ID">>
-                                   ,<<"Call-ID">>
-                                   ,<<"Direction">>
-                                   ,<<"From-DID">>
-                                   ,<<"Options">>
-                                   ,<<"Outbound-Flags">>
-                                   ,<<"Ratedeck-ID">>
-                                   ,<<"Resource-ID">>
-                                   ,<<"Resource-Type">>
-                                   ,<<"Send-Empty">>
-                                   ,<<"Authorizing-Type">>
-                                   ]).
--define(RATE_REQ_VALUES, [{<<"Event-Category">>, ?EVENT_CATEGORY}
-                         ,{<<"Event-Name">>, <<"req">>}
-                         ,{<<"Direction">>, [<<"inbound">>, <<"outbound">>]}
-                         ,{<<"Resource-Type">>, [<<"audio">>, <<"video">>, <<"sms">>]}
-                         ]).
--define(RATE_REQ_TYPES, [{<<"Options">>, fun is_list/1}
-                        ,{<<"Send-Empty">>, fun kz_term:is_boolean/1}
-                        ]).
+-define(OPTIONAL_RATE_REQ_HEADERS, [
+    <<"Account-ID">>,
+    <<"Call-ID">>,
+    <<"Direction">>,
+    <<"From-DID">>,
+    <<"Options">>,
+    <<"Outbound-Flags">>,
+    <<"Ratedeck-ID">>,
+    <<"Resource-ID">>,
+    <<"Resource-Type">>,
+    <<"Send-Empty">>,
+    <<"Authorizing-Type">>
+]).
+-define(RATE_REQ_VALUES, [
+    {<<"Event-Category">>, ?EVENT_CATEGORY},
+    {<<"Event-Name">>, <<"req">>},
+    {<<"Direction">>, [<<"inbound">>, <<"outbound">>]},
+    {<<"Resource-Type">>, [<<"audio">>, <<"video">>, <<"sms">>]}
+]).
+-define(RATE_REQ_TYPES, [
+    {<<"Options">>, fun is_list/1},
+    {<<"Send-Empty">>, fun kz_term:is_boolean/1}
+]).
 
 %% AMQP fields for Rating Response
 -define(RATE_RESP_HEADERS, []).
--define(OPTIONAL_RATE_RESP_HEADERS, [<<"Base-Cost">>
-                                    ,<<"Call-ID">>
-                                    ,<<"Discount-Percentage">>
-                                    ,<<"Prefix">>
-                                    ,<<"Pvt-Cost">>
-                                    ,<<"Rate">>
-                                    ,<<"Rate-Description">>
-                                    ,<<"Rate-Increment">>
-                                    ,<<"Rate-Minimum">>
-                                    ,<<"Rate-Name">>
-                                    ,<<"Rate-NoCharge-Time">>
-                                    ,<<"Rate-Version">>
-                                    ,<<"Ratedeck-ID">>
-                                    ,<<"Surcharge">>
-                                    ,<<"Update-Callee-ID">>
-                                    ]).
--define(RATE_RESP_VALUES, [{<<"Event-Category">>, ?EVENT_CATEGORY}
-                          ,{<<"Event-Name">>, <<"resp">>}
-                          ]).
--define(RATE_RESP_TYPES, [{<<"Rate-Increment">>, fun is_integer/1}
-                         ,{<<"Rate-NoCharge-Time">>, fun is_integer/1}
-                         ,{<<"Update-Callee-ID">>, fun kz_term:is_boolean/1}
-                         ]).
+-define(OPTIONAL_RATE_RESP_HEADERS, [
+    <<"Base-Cost">>,
+    <<"Call-ID">>,
+    <<"Discount-Percentage">>,
+    <<"Prefix">>,
+    <<"Pvt-Cost">>,
+    <<"Rate">>,
+    <<"Rate-Description">>,
+    <<"Rate-Increment">>,
+    <<"Rate-Minimum">>,
+    <<"Rate-Name">>,
+    <<"Rate-NoCharge-Time">>,
+    <<"Rate-Version">>,
+    <<"Ratedeck-ID">>,
+    <<"Surcharge">>,
+    <<"Update-Callee-ID">>
+]).
+-define(RATE_RESP_VALUES, [
+    {<<"Event-Category">>, ?EVENT_CATEGORY},
+    {<<"Event-Name">>, <<"resp">>}
+]).
+-define(RATE_RESP_TYPES, [
+    {<<"Rate-Increment">>, fun is_integer/1},
+    {<<"Rate-NoCharge-Time">>, fun is_integer/1},
+    {<<"Update-Callee-ID">>, fun kz_term:is_boolean/1}
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc Authorization Request.
@@ -95,8 +107,8 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 req(Prop) when is_list(Prop) ->
     case req_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?RATE_REQ_HEADERS, ?OPTIONAL_RATE_REQ_HEADERS);
@@ -117,8 +129,8 @@ req_v(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 resp(Prop) when is_list(Prop) ->
     case resp_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?RATE_RESP_HEADERS, ?OPTIONAL_RATE_RESP_HEADERS);
@@ -143,13 +155,13 @@ bind_q(Queue, Props) ->
 
 bind_to_q(Q, 'undefined') ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Q, ?KEY_RATE_REQ);
-bind_to_q(Q, ['req'|T]) ->
+bind_to_q(Q, ['req' | T]) ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Q, ?KEY_RATE_REQ),
     bind_to_q(Q, T);
-bind_to_q(Q, ['broadcast'|T]) ->
+bind_to_q(Q, ['broadcast' | T]) ->
     'ok' = kz_amqp_util:bind_q_to_callmgr(Q, ?KEY_RATE_BROADCAST),
     bind_to_q(Q, T);
-bind_to_q(Q, [_|T]) ->
+bind_to_q(Q, [_ | T]) ->
     bind_to_q(Q, T);
 bind_to_q(_Q, []) ->
     'ok'.
@@ -160,13 +172,13 @@ unbind_q(Q, Props) ->
 
 unbind_q_from(Q, 'undefined') ->
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Q, ?KEY_RATE_REQ);
-unbind_q_from(Q, ['req'|T]) ->
+unbind_q_from(Q, ['req' | T]) ->
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Q, ?KEY_RATE_REQ),
     unbind_q_from(Q, T);
-unbind_q_from(Q, ['broadcast'|T]) ->
+unbind_q_from(Q, ['broadcast' | T]) ->
     'ok' = kz_amqp_util:unbind_q_from_callmgr(Q, ?KEY_RATE_BROADCAST),
     unbind_q_from(Q, T);
-unbind_q_from(Q, [_|T]) ->
+unbind_q_from(Q, [_ | T]) ->
     unbind_q_from(Q, T);
 unbind_q_from(_Q, []) ->
     'ok'.

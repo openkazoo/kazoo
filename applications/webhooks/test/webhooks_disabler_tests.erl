@@ -9,15 +9,12 @@
 -include("webhooks.hrl").
 
 disabler_test_() ->
-    {'setup'
-    ,fun start_disabler/0
-    ,fun stop_disabler/1
-    ,fun(_) ->
-             [{"should not disable the hook", ?_test(should_not_disable_hook())}
-             ,{"should disable the hook", ?_test(should_disable_hook())}
-             ]
-     end
-    }.
+    {'setup', fun start_disabler/0, fun stop_disabler/1, fun(_) ->
+        [
+            {"should not disable the hook", ?_test(should_not_disable_hook())},
+            {"should disable the hook", ?_test(should_disable_hook())}
+        ]
+    end}.
 
 -define(ACCOUNT_ID, <<"account0000000000000000000000001">>).
 

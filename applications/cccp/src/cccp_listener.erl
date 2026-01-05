@@ -8,27 +8,30 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("cccp.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(BINDINGS, [{'self', []}
-                  ,{'route', [{'types', ?RESOURCE_TYPES_HANDLED}]}
-                  ,{'conf', [{'doc_type', <<"sys_info">>}]}
-                  ]).
--define(RESPONDERS, [{{'cccp_handlers', 'handle_route_req'}, [{<<"dialplan">>, <<"route_req">>}]}
-                    ,{{'cccp_handlers', 'handle_route_win'}, [{<<"dialplan">>, <<"route_win">>}]}
-                    ,{{'cccp_handlers', 'handle_config_change'}, [{<<"configuration">>, <<"*">>}]}
-                    ]).
+-define(BINDINGS, [
+    {'self', []},
+    {'route', [{'types', ?RESOURCE_TYPES_HANDLED}]},
+    {'conf', [{'doc_type', <<"sys_info">>}]}
+]).
+-define(RESPONDERS, [
+    {{'cccp_handlers', 'handle_route_req'}, [{<<"dialplan">>, <<"route_req">>}]},
+    {{'cccp_handlers', 'handle_route_win'}, [{<<"dialplan">>, <<"route_win">>}]},
+    {{'cccp_handlers', 'handle_config_change'}, [{<<"configuration">>, <<"*">>}]}
+]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -43,13 +46,21 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                      %%,{basic_qos, 1}                % only needed if prefetch controls
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+            %%,{basic_qos, 1}                % only needed if prefetch controls
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -136,6 +147,12 @@ validate_sysconfig() ->
 -spec validate_sysconfig(kz_term:ne_binary()) -> 'ok'.
 validate_sysconfig(Key) ->
     case kapps_config:get_ne_binary(?CCCP_CONFIG_CAT, Key) of
-        'undefined' -> lager:warning("cccp hasn't been configured with ~s in system_config/~s; this is necessary", [Key, ?CCCP_CONFIG_CAT]);
-        Value -> lager:debug("cccp using ~s for ~s", [knm_converters:normalize(Value), Key])
+        'undefined' ->
+            lager:warning(
+                "cccp hasn't been configured with ~s in system_config/~s; this is necessary", [
+                    Key, ?CCCP_CONFIG_CAT
+                ]
+            );
+        Value ->
+            lager:debug("cccp using ~s for ~s", [knm_converters:normalize(Value), Key])
     end.

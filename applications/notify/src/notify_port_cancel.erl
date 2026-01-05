@@ -50,28 +50,37 @@ handle_req(JObj, _Props) ->
     {'ok', AccountDoc} = notify_util:get_account_doc(JObj),
     AccountJObj = kz_doc:public_fields(AccountDoc),
 
-    lager:debug("creating port cancel notice for ~s(~s)", [kzd_accounts:name(AccountJObj)
-                                                          ,kz_doc:account_id(AccountDoc)
-                                                          ]),
+    lager:debug("creating port cancel notice for ~s(~s)", [
+        kzd_accounts:name(AccountJObj),
+        kz_doc:account_id(AccountDoc)
+    ]),
 
     Props = create_template_props(JObj, AccountJObj),
 
-    CustomTxtTemplate = kz_json:get_value([<<"notifications">>, <<"port_cancel">>, <<"email_text_template">>], AccountJObj),
+    CustomTxtTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"port_cancel">>, <<"email_text_template">>], AccountJObj
+    ),
     {'ok', TxtBody} = notify_util:render_template(CustomTxtTemplate, ?DEFAULT_TEXT_TMPL, Props),
     lager:debug("txt body: ~s", [TxtBody]),
 
-    CustomHtmlTemplate = kz_json:get_value([<<"notifications">>, <<"port_cancel">>, <<"email_html_template">>], AccountJObj),
+    CustomHtmlTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"port_cancel">>, <<"email_html_template">>], AccountJObj
+    ),
     {'ok', HTMLBody} = notify_util:render_template(CustomHtmlTemplate, ?DEFAULT_HTML_TMPL, Props),
     lager:debug("html body: ~s", [HTMLBody]),
 
-    CustomSubjectTemplate = kz_json:get_value([<<"notifications">>, <<"port_cancel">>, <<"email_subject_template">>], AccountJObj),
+    CustomSubjectTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"port_cancel">>, <<"email_subject_template">>], AccountJObj
+    ),
     {'ok', Subject} = notify_util:render_template(CustomSubjectTemplate, ?DEFAULT_SUBJ_TMPL, Props),
     lager:debug("subject: ~s", [Subject]),
 
     Result =
         case notify_util:get_rep_email(AccountDoc) of
             'undefined' ->
-                SysAdminEmail = kapps_config:get_ne_binary_or_ne_binaries(?MOD_CONFIG_CAT, <<"default_to">>),
+                SysAdminEmail = kapps_config:get_ne_binary_or_ne_binaries(
+                    ?MOD_CONFIG_CAT, <<"default_to">>
+                ),
                 build_and_send_email(TxtBody, HTMLBody, Subject, SysAdminEmail, Props);
             RepEmail ->
                 build_and_send_email(TxtBody, HTMLBody, Subject, RepEmail, Props)
@@ -90,22 +99,28 @@ create_template_props(NotifyJObj, AccountJObj) ->
     PortData = notify_util:json_to_template_props(kz_doc:public_fields(PortDoc)),
     Request = props:delete_keys([<<"uploads">>, <<"numbers">>], PortData),
 
-    [Number|_]=Numbers = find_numbers(PortData, NotifyJObj),
+    [Number | _] = Numbers = find_numbers(PortData, NotifyJObj),
 
-    [{<<"numbers">>, Numbers}
-    ,{<<"number">>, Number}
-    ,{<<"request">>, Request}
-    ,{<<"account">>, notify_util:json_to_template_props(AccountJObj)}
-    ,{<<"admin">>, notify_util:json_to_template_props(Admin)}
-    ,{<<"service">>, notify_util:get_service_props(AccountJObj, ?MOD_CONFIG_CAT)}
-    ,{<<"send_from">>, get_send_from(PortDoc, Admin)}
+    [
+        {<<"numbers">>, Numbers},
+        {<<"number">>, Number},
+        {<<"request">>, Request},
+        {<<"account">>, notify_util:json_to_template_props(AccountJObj)},
+        {<<"admin">>, notify_util:json_to_template_props(Admin)},
+        {<<"service">>, notify_util:get_service_props(AccountJObj, ?MOD_CONFIG_CAT)},
+        {<<"send_from">>, get_send_from(PortDoc, Admin)}
     ].
 
 -spec get_send_from(kz_json:object(), kz_json:object()) -> kz_term:ne_binary().
 get_send_from(PortDoc, Admin) ->
-    case kz_json:get_first_defined([<<"email">>
-                                   ,[<<"Port">>, <<"email">>]
-                                   ], PortDoc)
+    case
+        kz_json:get_first_defined(
+            [
+                <<"email">>,
+                [<<"Port">>, <<"email">>]
+            ],
+            PortDoc
+        )
     of
         'undefined' -> get_admin_send_from(Admin);
         Email -> Email
@@ -136,8 +151,11 @@ find_numbers(NotifyJObj) ->
 
 -spec find_port_info(kz_json:object()) -> kz_json:object().
 find_port_info(NotifyJObj) ->
-    case kz_json:get_first_defined([<<"Port-Request-ID">>, [<<"Port">>, <<"port_id">>]], NotifyJObj) of
-        'undefined' -> NotifyJObj;
+    case
+        kz_json:get_first_defined([<<"Port-Request-ID">>, [<<"Port">>, <<"port_id">>]], NotifyJObj)
+    of
+        'undefined' ->
+            NotifyJObj;
         PortRequestId ->
             Doc = find_port_doc(PortRequestId),
             kz_json:set_value(<<"port_id">>, PortRequestId, Doc)
@@ -154,24 +172,28 @@ find_port_doc(PortRequestId) ->
 %% @doc process the AMQP requests
 %% @end
 %%------------------------------------------------------------------------------
--spec build_and_send_email(iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()) -> send_email_return().
-build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To)->
+-spec build_and_send_email(
+    iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()
+) -> send_email_return().
+build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To) ->
     [build_and_send_email(TxtBody, HTMLBody, Subject, T, Props) || T <- To];
 build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
     From = props:get_value(<<"send_from">>, Props),
     %% Content Type, Subtype, Headers, Parameters, Body
-    Email = {<<"multipart">>, <<"mixed">>
-            ,[{<<"From">>, From}
-             ,{<<"To">>, To}
-             ,{<<"Subject">>, Subject}
-             ]
-            ,[]
-            ,[{<<"multipart">>, <<"alternative">>, [], []
-              ,[{<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [], iolist_to_binary(TxtBody)}
-               ,{<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [], iolist_to_binary(HTMLBody)}
-               ]
-              }
-             ]
-            },
+    Email =
+        {<<"multipart">>, <<"mixed">>,
+            [
+                {<<"From">>, From},
+                {<<"To">>, To},
+                {<<"Subject">>, Subject}
+            ],
+            [], [
+                {<<"multipart">>, <<"alternative">>, [], [], [
+                    {<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [],
+                        iolist_to_binary(TxtBody)},
+                    {<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [],
+                        iolist_to_binary(HTMLBody)}
+                ]}
+            ]},
     lager:debug("sending email from ~s to ~s", [From, To]),
     notify_util:send_email(From, To, Email).

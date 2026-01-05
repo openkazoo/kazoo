@@ -6,30 +6,43 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_box_message).
 
--export([new/2, build_metadata_object/6, build_metadata_object/7
-        ,count_folder/2
-        ,create_message_name/3
-        ,type/0
+-export([
+    new/2,
+    build_metadata_object/6, build_metadata_object/7,
+    count_folder/2,
+    create_message_name/3,
+    type/0,
 
-        ,folder/1, folder/2, set_folder/2
-        ,set_folder_new/1, set_folder_saved/1, set_folder_deleted/1
-        ,apply_folder/2
-        ,filter_folder/2
+    folder/1, folder/2,
+    set_folder/2,
+    set_folder_new/1,
+    set_folder_saved/1,
+    set_folder_deleted/1,
+    apply_folder/2,
+    filter_folder/2,
 
-        ,message_history/1, add_message_history/2
-        ,message_name/1, message_name/2, set_message_name/2
+    message_history/1,
+    add_message_history/2,
+    message_name/1, message_name/2,
+    set_message_name/2,
 
-        ,change_message_name/2, change_to_sip_field/3
+    change_message_name/2,
+    change_to_sip_field/3,
 
-        ,length/1
-        ,media_id/1, set_media_id/2, update_media_id/2
-        ,metadata/1, metadata/2, set_metadata/2
-        ,source_id/1, set_source_id/2
-        ,to_sip/1, to_sip/2, set_to_sip/2
-        ,utc_seconds/1
+    length/1,
+    media_id/1,
+    set_media_id/2,
+    update_media_id/2,
+    metadata/1, metadata/2,
+    set_metadata/2,
+    source_id/1,
+    set_source_id/2,
+    to_sip/1, to_sip/2,
+    set_to_sip/2,
+    utc_seconds/1,
 
-        ,get_msg_id/1
-        ]).
+    get_msg_id/1
+]).
 
 -include("kz_documents.hrl").
 
@@ -108,7 +121,7 @@
 -spec new(kz_term:ne_binary(), kz_term:proplist()) -> doc().
 new(AccountId, Props) ->
     UtcSeconds = props:get_integer_value(<<"Message-Timestamp">>, Props, kz_time:now_s()),
-    Timestamp  = props:get_integer_value(<<"Document-Timestamp">>, Props, UtcSeconds),
+    Timestamp = props:get_integer_value(<<"Document-Timestamp">>, Props, UtcSeconds),
     {{Year, Month, _}, _} = calendar:gregorian_seconds_to_datetime(Timestamp),
 
     MediaId = props:get_value(<<"Media-ID">>, Props, kz_binary:rand_hex(16)),
@@ -116,34 +129,39 @@ new(AccountId, Props) ->
     Db = kazoo_modb:get_modb(AccountId, Year, Month),
     MsgId = kazoo_modb_util:modb_id(Year, Month, MediaId),
 
-    Name = create_message_name(props:get_value(<<"Box-Num">>, Props)
-                              ,props:get_value(<<"Timezone">>, Props)
-                              ,UtcSeconds
-                              ),
+    Name = create_message_name(
+        props:get_value(<<"Box-Num">>, Props),
+        props:get_value(<<"Timezone">>, Props),
+        UtcSeconds
+    ),
     Description = props:get_value(<<"Description">>, Props, <<"voicemail message with media">>),
 
-    DocProps = [{<<"_id">>, MsgId}
-               ,{?KEY_NAME, Name}
-               ,{?KEY_DESC, Description}
-               ,{?KEY_SOURCE_TYPE, ?KEY_VOICEMAIL}
-               ,{?KEY_SOURCE_ID, props:get_value(<<"Box-Id">>, Props)}
-               ,{?KEY_MEDIA_SOURCE, <<"recording">>}
-               ,{?KEY_MEDIA_FILENAME, props:get_value(<<"Attachment-Name">>, Props)}
-               ,{?KEY_STREAMABLE, 'true'}
-               ,{?KEY_UTC_SEC, UtcSeconds}
-               ],
-    kz_doc:update_pvt_parameters(kz_json:from_list(DocProps)
-                                ,Db
-                                ,[{'type', type()}
-                                 ,{'now', Timestamp}
-                                 ]
-                                ).
+    DocProps = [
+        {<<"_id">>, MsgId},
+        {?KEY_NAME, Name},
+        {?KEY_DESC, Description},
+        {?KEY_SOURCE_TYPE, ?KEY_VOICEMAIL},
+        {?KEY_SOURCE_ID, props:get_value(<<"Box-Id">>, Props)},
+        {?KEY_MEDIA_SOURCE, <<"recording">>},
+        {?KEY_MEDIA_FILENAME, props:get_value(<<"Attachment-Name">>, Props)},
+        {?KEY_STREAMABLE, 'true'},
+        {?KEY_UTC_SEC, UtcSeconds}
+    ],
+    kz_doc:update_pvt_parameters(
+        kz_json:from_list(DocProps),
+        Db,
+        [
+            {'type', type()},
+            {'now', Timestamp}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec create_message_name(kz_term:ne_binary(), kz_term:api_binary(), kz_time:gregorian_seconds()) -> kz_term:ne_binary().
+-spec create_message_name(kz_term:ne_binary(), kz_term:api_binary(), kz_time:gregorian_seconds()) ->
+    kz_term:ne_binary().
 create_message_name(BoxNum, 'undefined', UtcSeconds) ->
     create_message_name(BoxNum, kzd_accounts:default_timezone(), UtcSeconds);
 create_message_name(BoxNum, Timezone, UtcSeconds) ->
@@ -159,56 +177,83 @@ create_message_name(BoxNum, Timezone, UtcSeconds) ->
     end.
 
 -spec message_name(kz_term:ne_binary(), kz_time:datetime(), string()) -> kz_term:ne_binary().
-message_name(BoxNum, {{Y,M,D},{H,I,S}}, TZ) ->
-    list_to_binary(["mailbox ", BoxNum, " message "
-                   ,kz_term:to_binary(Y), "-"
-                   ,kz_date:pad_month(M), "-"
-                   ,kz_date:pad_day(D), " "
+message_name(BoxNum, {{Y, M, D}, {H, I, S}}, TZ) ->
+    list_to_binary([
+        "mailbox ",
+        BoxNum,
+        " message ",
+        kz_term:to_binary(Y),
+        "-",
+        kz_date:pad_month(M),
+        "-",
+        kz_date:pad_day(D),
+        " ",
 
-                   ,kz_term:to_binary(H), ":"
-                   ,kz_term:to_binary(I), ":"
-                   ,kz_term:to_binary(S), TZ
-                   ]).
+        kz_term:to_binary(H),
+        ":",
+        kz_term:to_binary(I),
+        ":",
+        kz_term:to_binary(S),
+        TZ
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc Build message metadata.
 %% @end
 %%------------------------------------------------------------------------------
--spec build_metadata_object(pos_integer(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds()) ->
-          doc().
+-spec build_metadata_object(
+    pos_integer(),
+    kapps_call:call(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_time:gregorian_seconds()
+) ->
+    doc().
 build_metadata_object(Length, Call, MediaId, CIDNumber, CIDName, Timestamp) ->
     build_metadata_object(Length, Call, MediaId, CIDNumber, CIDName, Timestamp, ?VM_FOLDER_NEW).
 
--spec build_metadata_object(pos_integer(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_term:ne_binary()) ->
-          doc().
+-spec build_metadata_object(
+    pos_integer(),
+    kapps_call:call(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_time:gregorian_seconds(),
+    kz_term:ne_binary()
+) ->
+    doc().
 build_metadata_object(Length, Call, MediaId, CIDNumber, CIDName, Timestamp, Folder) ->
     kz_json:from_list(
-      [{?KEY_MEDIA_ID, MediaId}
-      ,{?KEY_META_CALL_ID, kapps_call:call_id(Call)}
+        [
+            {?KEY_MEDIA_ID, MediaId},
+            {?KEY_META_CALL_ID, kapps_call:call_id(Call)},
 
-      ,{?KEY_META_CID_NAME, CIDName}
-      ,{?KEY_META_CID_NUMBER, CIDNumber}
+            {?KEY_META_CID_NAME, CIDName},
+            {?KEY_META_CID_NUMBER, CIDNumber},
 
-      ,{?KEY_META_FROM, kapps_call:from(Call)}
-      ,{?KEY_META_FROM_USER, kapps_call:from_user(Call)}
-      ,{?KEY_META_FROM_REALM, kapps_call:from_realm(Call)}
+            {?KEY_META_FROM, kapps_call:from(Call)},
+            {?KEY_META_FROM_USER, kapps_call:from_user(Call)},
+            {?KEY_META_FROM_REALM, kapps_call:from_realm(Call)},
 
-      ,{?KEY_META_LENGTH, Length}
-      ,{?KEY_META_TIMESTAMP, Timestamp}
+            {?KEY_META_LENGTH, Length},
+            {?KEY_META_TIMESTAMP, Timestamp},
 
-      ,{?KEY_META_TO, kapps_call:to(Call)}
-      ,{?KEY_META_TO_USER, kapps_call:to_user(Call)}
-      ,{?KEY_META_TO_REALM, kapps_call:to_realm(Call)}
+            {?KEY_META_TO, kapps_call:to(Call)},
+            {?KEY_META_TO_USER, kapps_call:to_user(Call)},
+            {?KEY_META_TO_REALM, kapps_call:to_realm(Call)},
 
-      ,{?VM_KEY_FOLDER, Folder}
-      ]).
+            {?VM_KEY_FOLDER, Folder}
+        ]
+    ).
 
 -spec get_msg_id(kz_json:object()) -> kz_term:api_ne_binary().
 get_msg_id(JObj) ->
-    Paths = [<<"_id">>
-            ,<<"media_id">>
-            ,[<<"metadata">>, <<"media_id">>]
-            ],
+    Paths = [
+        <<"_id">>,
+        <<"media_id">>,
+        [<<"metadata">>, <<"media_id">>]
+    ],
     kz_json:get_first_defined(Paths, JObj).
 
 %%------------------------------------------------------------------------------
@@ -310,7 +355,8 @@ metadata(JObj, Default) ->
     maybe_add_transcription(Metadata, JObj).
 
 -spec maybe_add_transcription(kz_term:api_object(), doc()) -> kz_term:api_object().
-maybe_add_transcription('undefined', _JObj) -> 'undefined';
+maybe_add_transcription('undefined', _JObj) ->
+    'undefined';
 maybe_add_transcription(Metadata, JObj) ->
     case kz_json:get_json_value(?KEY_TRANSCRIPTION, JObj) of
         'undefined' -> Metadata;
@@ -357,14 +403,17 @@ filter_folder(Messages, Folder) ->
 %% @doc Count message list in specific folder(s).
 %% @end
 %%------------------------------------------------------------------------------
--spec count_folder(kz_json:objects(), kz_term:ne_binary() | kz_term:ne_binaries()) -> non_neg_integer().
+-spec count_folder(kz_json:objects(), kz_term:ne_binary() | kz_term:ne_binaries()) ->
+    non_neg_integer().
 count_folder(Messages, Folders) when is_list(Folders) ->
-    lists:sum([1 || Message <- Messages,
-                    begin
-                        F = kz_json:get_value(?VM_KEY_FOLDER, Message),
-                        lists:member(F, Folders)
-                    end
-              ]);
+    lists:sum([
+        1
+     || Message <- Messages,
+        begin
+            F = kz_json:get_value(?VM_KEY_FOLDER, Message),
+            lists:member(F, Folders)
+        end
+    ]);
 count_folder(Messages, Folder) ->
     count_folder(Messages, [Folder]).
 

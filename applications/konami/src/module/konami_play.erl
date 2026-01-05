@@ -11,14 +11,15 @@
 %%%-----------------------------------------------------------------------------
 -module(konami_play).
 
--export([handle/2
-        ,number_builder/1
-        ]).
+-export([
+    handle/2,
+    number_builder/1
+]).
 
 -include("konami.hrl").
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'continue', kapps_call:call()}.
+    {'continue', kapps_call:call()}.
 handle(Data, Call) ->
     AccountId = kapps_call:account_id(Call),
     Path = kz_doc:id(Data),
@@ -31,7 +32,8 @@ handle(Data, Call) ->
 -spec play(kz_json:object(), kapps_call:call(), kz_term:ne_binary()) -> any().
 play(Data, Call, Media) ->
     case kz_json:is_false(<<"answer">>, Data) of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
             kapps_call_command:answer_now(Call),
             timer:sleep(100)
@@ -39,9 +41,10 @@ play(Data, Call, Media) ->
     lager:info("playing media ~s", [Media]),
 
     PlayCommand = kapps_call_command:play_command(Media, ?ANY_DIGIT, leg(Data, Call), Call),
-    kapps_call_command:send_command(kz_json:set_value(<<"Insert-At">>, <<"now">>, PlayCommand)
-                                   ,Call
-                                   ).
+    kapps_call_command:send_command(
+        kz_json:set_value(<<"Insert-At">>, <<"now">>, PlayCommand),
+        Call
+    ).
 
 -spec leg(kz_json:object(), kapps_call:call()) -> kz_term:ne_binary().
 leg(Data, Call) ->
@@ -103,14 +106,17 @@ number_builder_leg(NumberJObj, Media) ->
 
 -spec metaflow_jobj(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
 metaflow_jobj(NumberJObj, Media, Leg) ->
-    kz_json:set_values([{<<"module">>, <<"play">>}
-                       ,{<<"data">>, play_data(Media, Leg)}
-                       ]
-                      ,NumberJObj
-                      ).
+    kz_json:set_values(
+        [
+            {<<"module">>, <<"play">>},
+            {<<"data">>, play_data(Media, Leg)}
+        ],
+        NumberJObj
+    ).
 
 -spec play_data(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
 play_data(Media, Leg) ->
-    kz_json:from_list([{<<"id">>, Media}
-                      ,{<<"leg">>, Leg}
-                      ]).
+    kz_json:from_list([
+        {<<"id">>, Media},
+        {<<"leg">>, Leg}
+    ]).

@@ -22,13 +22,15 @@
 -define(PROVISIONER_CONFIG, <<"provisioner">>).
 -define(TEMPLATE_ATTCH, <<"template">>).
 
--define(BASE_HEADERS
-       ,props:filter_undefined(
-          [{"host", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_host">>)}
-          ,{"referer", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_referer">>)}
-          ,{"user-agent", kz_term:to_list(erlang:node())}
-          ])
-       ).
+-define(BASE_HEADERS,
+    props:filter_undefined(
+        [
+            {"host", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_host">>)},
+            {"referer", kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_referer">>)},
+            {"user-agent", kz_term:to_list(erlang:node())}
+        ]
+    )
+).
 -define(JSON_HEADERS, [{"content-type", "application/json"} | ?BASE_HEADERS]).
 -define(FORM_HEADERS, [{"content-type", "application/x-www-form-urlencoded"} | ?BASE_HEADERS]).
 
@@ -42,19 +44,21 @@ get_old_mac_address(Context) ->
     MACAddress =
         case cb_context:fetch(Context, 'db_doc') of
             'undefined' -> 'undefined';
-            JObj ->
-                kz_json:get_ne_value(<<"mac_address">>, JObj)
+            JObj -> kz_json:get_ne_value(<<"mac_address">>, JObj)
         end,
     cleanse_mac_address(MACAddress).
 
 -spec cleanse_mac_address(kz_term:api_ne_binary()) -> kz_term:api_ne_binary().
-cleanse_mac_address('undefined') -> 'undefined';
+cleanse_mac_address('undefined') ->
+    'undefined';
 cleanse_mac_address(MACAddress) ->
-    ReOptions = ['global'
-                ,{'return','binary'}
-                ],
+    ReOptions = [
+        'global',
+        {'return', 'binary'}
+    ],
     MAC = kz_term:to_lower_binary(
-            re:replace(MACAddress, <<"[^0-9a-fA-F]">>, <<>>, ReOptions)),
+        re:replace(MACAddress, <<"[^0-9a-fA-F]">>, <<>>, ReOptions)
+    ),
     case kz_term:is_empty(MAC) of
         false -> MAC;
         true -> undefined
@@ -84,14 +88,17 @@ maybe_provision(Context, 'success') ->
         <<"provisioner_v5">> when MACAddress =/= 'undefined' ->
             _ = maybe_provision_v5(Context, cb_context:req_verb(Context)),
             'true';
-        _ -> 'false'
+        _ ->
+            'false'
     end;
-maybe_provision(_Context, _Status) -> 'false'.
+maybe_provision(_Context, _Status) ->
+    'false'.
 
 -spec maybe_full_provision(kz_term:ne_binary(), cb_context:context()) -> boolean().
 maybe_full_provision('undefined', Context) ->
     OldMACAddress = get_old_mac_address(Context),
-    _ = case OldMACAddress =/= 'undefined' of
+    _ =
+        case OldMACAddress =/= 'undefined' of
             'true' -> delete_full_provision(OldMACAddress, Context);
             _ -> 'ok'
         end,
@@ -107,7 +114,6 @@ maybe_provision_v5(Context, ?HTTP_PUT) ->
     NewDevice = cb_context:doc(Context),
     _ = provisioner_v5:update_device(NewDevice, AuthToken),
     'ok';
-
 maybe_provision_v5(Context, ?HTTP_POST) ->
     AuthToken = cb_context:auth_token(Context),
     NewDevice = ensure_mac_cleansed(get_new_device(Context)),
@@ -128,16 +134,15 @@ maybe_provision_v5(Context, ?HTTP_POST) ->
 ensure_mac_cleansed(JObj) ->
     case kzd_devices:mac_address(JObj) of
         'undefined' -> JObj;
-        MacAddress ->
-            kzd_devices:set_mac_address(JObj, cleanse_mac_address(MacAddress))
+        MacAddress -> kzd_devices:set_mac_address(JObj, cleanse_mac_address(MacAddress))
     end.
 
 -spec get_new_device(cb_context:context()) -> kzd_devices:doc().
 get_new_device(Context) ->
     JObj = cb_context:doc(Context),
     Props = kz_json:to_proplist(
-              kz_doc:private_fields(JObj)
-             ),
+        kz_doc:private_fields(JObj)
+    ),
     ReqData = cb_context:fetch(Context, 'unfiltered_req_data', JObj),
     kz_json:set_values(Props, ReqData).
 
@@ -153,21 +158,24 @@ maybe_delete_provision(Context) ->
 -spec maybe_delete_provision(cb_context:context(), crossbar_status()) -> boolean().
 maybe_delete_provision(Context, 'success') ->
     MACAddress = get_mac_address(Context),
-    case MACAddress =/= 'undefined'
-        andalso get_provisioning_type()
+    case
+        MACAddress =/= 'undefined' andalso
+            get_provisioning_type()
     of
         <<"super_awesome_provisioner">> ->
             _ = delete_full_provision(MACAddress, Context),
             'true';
-        <<"provisioner_v5">>  ->
-            _ = provisioner_v5:delete_device(cb_context:doc(Context)
-                                            ,cb_context:auth_token(Context)
-                                            ),
+        <<"provisioner_v5">> ->
+            _ = provisioner_v5:delete_device(
+                cb_context:doc(Context),
+                cb_context:auth_token(Context)
+            ),
             'true';
         _ ->
             'false'
     end;
-maybe_delete_provision(_Context, _Status) -> 'false'.
+maybe_delete_provision(_Context, _Status) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -175,17 +183,21 @@ maybe_delete_provision(_Context, _Status) -> 'false'.
 %%------------------------------------------------------------------------------
 -spec maybe_update_account(cb_context:context()) -> boolean().
 maybe_update_account(Context) ->
-    case cb_context:is_context(Context)
-        andalso get_provisioning_type()
+    case
+        cb_context:is_context(Context) andalso
+            get_provisioning_type()
     of
-        'false' -> 'false';
+        'false' ->
+            'false';
         <<"provisioner_v5">> ->
-            _ = provisioner_v5:update_account(cb_context:account_id(Context)
-                                             ,cb_context:doc(Context)
-                                             ,cb_context:auth_token(Context)
-                                             ),
+            _ = provisioner_v5:update_account(
+                cb_context:account_id(Context),
+                cb_context:doc(Context),
+                cb_context:auth_token(Context)
+            ),
             'true';
-        _ -> 'false'
+        _ ->
+            'false'
     end.
 
 %%------------------------------------------------------------------------------
@@ -194,19 +206,23 @@ maybe_update_account(Context) ->
 %%------------------------------------------------------------------------------
 -spec maybe_delete_account(cb_context:context()) -> boolean().
 maybe_delete_account(Context) ->
-    case cb_context:is_context(Context)
-        andalso get_provisioning_type()
+    case
+        cb_context:is_context(Context) andalso
+            get_provisioning_type()
     of
-        'false' -> 'false';
+        'false' ->
+            'false';
         <<"super_awesome_provisioner">> ->
             _ = delete_account(Context),
             'true';
         <<"provisioner_v5">> ->
-            _ = provisioner_v5:delete_account(cb_context:account_id(Context)
-                                             ,cb_context:auth_token(Context)
-                                             ),
+            _ = provisioner_v5:delete_account(
+                cb_context:account_id(Context),
+                cb_context:auth_token(Context)
+            ),
             'true';
-        _ -> 'false'
+        _ ->
+            'false'
     end.
 
 -spec maybe_send_contact_list(cb_context:context()) -> 'ok'.
@@ -215,21 +231,25 @@ maybe_send_contact_list(Context) ->
 
 -spec maybe_send_contact_list(cb_context:context(), crossbar_status()) -> 'ok'.
 maybe_send_contact_list(Context, 'success') ->
-    case cb_context:is_context(Context)
-        andalso get_provisioning_type()
+    case
+        cb_context:is_context(Context) andalso
+            get_provisioning_type()
     of
         <<"super_awesome_provisioner">> ->
             _ = do_full_provision_contact_list(Context),
             'ok';
         <<"provisioner_v5">> ->
-            _ = provisioner_v5:update_user(cb_context:account_id(Context)
-                                          ,cb_context:doc(Context)
-                                          ,cb_context:auth_token(Context)
-                                          ),
+            _ = provisioner_v5:update_user(
+                cb_context:account_id(Context),
+                cb_context:doc(Context),
+                cb_context:auth_token(Context)
+            ),
             'ok';
-        _ -> 'ok'
+        _ ->
+            'ok'
     end;
-maybe_send_contact_list(_Context, _Status) -> 'ok'.
+maybe_send_contact_list(_Context, _Status) ->
+    'ok'.
 
 -spec do_full_provisioner_provider(cb_context:context()) -> boolean().
 do_full_provisioner_provider(Context) ->
@@ -239,18 +259,19 @@ do_full_provisioner_provider(Context) ->
 do_full_provision_contact_list(AccountId) when is_binary(AccountId) ->
     case kzd_accounts:fetch(AccountId) of
         {'ok', JObj} ->
-            Routines = [fun kz_doc:public_fields/1
-                       ,fun(J) ->
-                                ResellerId = kz_services_reseller:get_id(AccountId),
-                                kz_json:set_value(<<"provider_id">>, ResellerId, J)
-                        end
-                       ,fun(J) -> kz_json:delete_key(<<"available_apps">>, J) end
-                       ,fun(J) ->
-                                AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
-                                ContactList = provisioner_contact_list:build(AccountDb),
-                                kz_json:set_value(<<"directory">>, ContactList, J)
-                        end
-                       ],
+            Routines = [
+                fun kz_doc:public_fields/1,
+                fun(J) ->
+                    ResellerId = kz_services_reseller:get_id(AccountId),
+                    kz_json:set_value(<<"provider_id">>, ResellerId, J)
+                end,
+                fun(J) -> kz_json:delete_key(<<"available_apps">>, J) end,
+                fun(J) ->
+                    AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
+                    ContactList = provisioner_contact_list:build(AccountDb),
+                    kz_json:set_value(<<"directory">>, ContactList, J)
+                end
+            ],
             Provider = lists:foldl(fun(F, J) -> F(J) end, JObj, Routines),
             PartialURL = <<AccountId/binary, "/">>,
             maybe_send_to_full_provisioner(PartialURL, Provider);
@@ -272,12 +293,14 @@ should_build_contact_list(Context) ->
         'false' ->
             kz_doc:type(JObj) =:= <<"callflow">>;
         'true' ->
-            kz_doc:type(JObj) =:= <<"callflow">>
-                orelse kz_json:get_value(<<"name">>, JObj) =/=  kz_json:get_value(<<"name">>, OriginalJObj)
-                orelse kz_json:get_value(<<"first_name">>, JObj) =/=  kz_json:get_value(<<"first_name">>, OriginalJObj)
-                orelse kz_json:get_value(<<"last_name">>, JObj) =/=  kz_json:get_value(<<"last_name">>, OriginalJObj)
-                orelse kz_json:get_value([<<"contact_list">>, <<"exclude">>], JObj) =/=
-                kz_json:get_value([<<"contact_list">>, <<"exclude">>], OriginalJObj)
+            kz_doc:type(JObj) =:= <<"callflow">> orelse
+                kz_json:get_value(<<"name">>, JObj) =/= kz_json:get_value(<<"name">>, OriginalJObj) orelse
+                kz_json:get_value(<<"first_name">>, JObj) =/=
+                    kz_json:get_value(<<"first_name">>, OriginalJObj) orelse
+                kz_json:get_value(<<"last_name">>, JObj) =/=
+                    kz_json:get_value(<<"last_name">>, OriginalJObj) orelse
+                kz_json:get_value([<<"contact_list">>, <<"exclude">>], JObj) =/=
+                    kz_json:get_value([<<"contact_list">>, <<"exclude">>], OriginalJObj)
     end.
 
 %%------------------------------------------------------------------------------
@@ -289,32 +312,45 @@ should_build_contact_list(Context) ->
 get_provision_defaults(Context) ->
     JObj = cb_context:doc(Context),
 
-    Brand   = kz_http_util:urlencode(kz_json:get_string_value([<<"properties">>, <<"brand">>], JObj)),
-    Model   = kz_http_util:urlencode(kz_json:get_string_value([<<"properties">>, <<"model">>], JObj)),
-    Product = kz_http_util:urlencode(kz_json:get_string_value([<<"properties">>, <<"product">>], JObj)),
+    Brand = kz_http_util:urlencode(kz_json:get_string_value([<<"properties">>, <<"brand">>], JObj)),
+    Model = kz_http_util:urlencode(kz_json:get_string_value([<<"properties">>, <<"model">>], JObj)),
+    Product = kz_http_util:urlencode(
+        kz_json:get_string_value([<<"properties">>, <<"product">>], JObj)
+    ),
 
-    Url = [kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_url">>)
-          ,"?request=data"
-          ,"&brand=", kz_term:to_list(Brand)
-          ,"&model=", kz_term:to_list(Model)
-          ,"&product=", kz_term:to_list(Product)
-          ],
+    Url = [
+        kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_url">>),
+        "?request=data",
+        "&brand=",
+        kz_term:to_list(Brand),
+        "&model=",
+        kz_term:to_list(Model),
+        "&product=",
+        kz_term:to_list(Product)
+    ],
     UrlString = lists:flatten(Url),
     lager:debug("attempting to pull provisioning configs from ~s", [UrlString]),
     case kz_http:get(UrlString, ?BASE_HEADERS) of
         {'ok', 200, _, Response} ->
             lager:debug("great success, acquired provisioning template"),
             JResp = kz_json:decode(Response),
-            cb_context:setters(Context
-                              ,[{fun cb_context:set_doc/2, kz_json:set_value(<<"template">>, JResp, JObj)}
-                               ,{fun cb_context:set_resp_status/2, 'success'}
-                               ]);
+            cb_context:setters(
+                Context,
+                [
+                    {fun cb_context:set_doc/2, kz_json:set_value(<<"template">>, JResp, JObj)},
+                    {fun cb_context:set_resp_status/2, 'success'}
+                ]
+            );
         {'ok', Status, _, _} ->
             lager:debug("could not get provisioning template defaults: ~p", [Status]),
-            crossbar_util:response('error', <<"Error retrieving content from external site">>, 500, Context);
+            crossbar_util:response(
+                'error', <<"Error retrieving content from external site">>, 500, Context
+            );
         {'error', _R} ->
             lager:debug("could not get provisioning template defaults: ~p", [_R]),
-            crossbar_util:response('error', <<"Error retrieving content from external site">>, 500, Context)
+            crossbar_util:response(
+                'error', <<"Error retrieving content from external site">>, 500, Context
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -323,14 +359,16 @@ get_provision_defaults(Context) ->
 %%------------------------------------------------------------------------------
 -spec is_mac_address_in_use(cb_context:context(), kz_term:ne_binary()) -> boolean().
 is_mac_address_in_use(Context, MacAddress) ->
-    case cb_context:is_context(Context)
-        andalso get_provisioning_type()
+    case
+        cb_context:is_context(Context) andalso
+            get_provisioning_type()
     of
         <<"provisioner_v5">> ->
             AuthToken = cb_context:auth_token(Context),
             %% Note: following call will take a "long" time
             'false' =/= provisioner_v5:check_MAC(MacAddress, AuthToken);
-        _ -> 'false'
+        _ ->
+            'false'
     end.
 
 %%------------------------------------------------------------------------------
@@ -341,18 +379,21 @@ is_mac_address_in_use(Context, MacAddress) ->
 do_simple_provision(MACAddress, Context) ->
     JObj = cb_context:doc(Context),
     case kapps_config:get_string(?MOD_CONFIG_CAT, <<"provisioning_url">>) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         Url ->
             AccountRealm = kzd_accounts:fetch_realm(cb_context:account_id(Context)),
             Body =
                 kz_json:from_list(
-                  [{<<"device[mac]">>, MACAddress}
-                  ,{<<"device[label]">>, kz_json:get_ne_binary_value(<<"name">>, JObj)}
-                  ,{<<"sip[realm]">>, kzd_devices:sip_realm(JObj, AccountRealm)}
-                  ,{<<"sip[username]">>, kzd_devices:sip_username(JObj)}
-                  ,{<<"sip[password]">>, kzd_devices:sip_password(JObj)}
-                  ,{<<"submit">>, <<"true">>}
-                  ]),
+                    [
+                        {<<"device[mac]">>, MACAddress},
+                        {<<"device[label]">>, kz_json:get_ne_binary_value(<<"name">>, JObj)},
+                        {<<"sip[realm]">>, kzd_devices:sip_realm(JObj, AccountRealm)},
+                        {<<"sip[username]">>, kzd_devices:sip_username(JObj)},
+                        {<<"sip[password]">>, kzd_devices:sip_password(JObj)},
+                        {<<"submit">>, <<"true">>}
+                    ]
+                ),
             Encoded = kz_http_util:json_to_querystring(Body),
             lager:debug("posting to ~s with: ~-300s", [Url, Encoded]),
             Res = kz_http:post(Url, ?FORM_HEADERS, Encoded),
@@ -370,7 +411,6 @@ delete_account(<<_/binary>> = AccountId) ->
 delete_account(Context) ->
     delete_account(cb_context:account_id(Context)).
 
-
 -spec delete_full_provision(kz_term:ne_binary(), cb_context:context()) -> boolean().
 delete_full_provision(MACAddress, Context) ->
     {'ok', Context1} = get_merged_device(MACAddress, Context),
@@ -382,8 +422,10 @@ delete_full_provision(MACAddress, Context) ->
 do_full_provision(MACAddress, Context) ->
     {'ok', Context1} = get_merged_device(MACAddress, Context),
     OldMACAddress = get_old_mac_address(Context),
-    _ = case OldMACAddress =/= MACAddress
-            andalso OldMACAddress =/= 'undefined'
+    _ =
+        case
+            OldMACAddress =/= MACAddress andalso
+                OldMACAddress =/= 'undefined'
         of
             'true' -> delete_full_provision(OldMACAddress, Context);
             _ -> 'ok'
@@ -396,7 +438,8 @@ do_full_provision(MACAddress, Context) ->
 -spec maybe_send_to_full_provisioner(kz_term:ne_binary()) -> boolean().
 maybe_send_to_full_provisioner(PartialURL) ->
     case kapps_config:get_binary(?MOD_CONFIG_CAT, <<"provisioning_url">>) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         Url ->
             FullUrl = kz_term:to_lower_string(<<Url/binary, "/", PartialURL/binary>>),
             send_to_full_provisioner(FullUrl)
@@ -405,10 +448,13 @@ maybe_send_to_full_provisioner(PartialURL) ->
 -spec maybe_send_to_full_provisioner(kz_term:ne_binary(), kz_json:object()) -> boolean().
 maybe_send_to_full_provisioner(PartialURL, JObj) ->
     case kapps_config:get_binary(?MOD_CONFIG_CAT, <<"provisioning_url">>) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         Url ->
             FullUrl = kz_term:to_lower_string(<<Url/binary, "/", PartialURL/binary>>),
-            {'ok', _, _, RawJObj} = kz_http:get(FullUrl, ?JSON_HEADERS, [{'timeout', 10 * ?MILLISECONDS_IN_SECOND}]),
+            {'ok', _, _, RawJObj} = kz_http:get(FullUrl, ?JSON_HEADERS, [
+                {'timeout', 10 * ?MILLISECONDS_IN_SECOND}
+            ]),
             case kz_json:get_integer_value([<<"error">>, <<"code">>], kz_json:decode(RawJObj)) of
                 'undefined' -> send_to_full_provisioner('post', FullUrl, JObj);
                 404 -> send_to_full_provisioner('put', FullUrl, JObj);
@@ -432,10 +478,12 @@ send_to_full_provisioner('put', FullUrl, JObj) ->
     'true';
 send_to_full_provisioner('post', FullUrl, JObj) ->
     J = kz_json:from_list(
-          [{<<"provider_id">>, kz_json:get_value(<<"provider_id">>, JObj)}
-          ,{<<"name">>, kz_json:get_value(<<"name">>, JObj)}
-          ,{<<"settings">>, JObj}
-          ]),
+        [
+            {<<"provider_id">>, kz_json:get_value(<<"provider_id">>, JObj)},
+            {<<"name">>, kz_json:get_value(<<"name">>, JObj)},
+            {<<"settings">>, JObj}
+        ]
+    ),
     Body = kz_term:to_list(kz_json:encode(J)),
     lager:debug("making post request to ~s with: ~-300p", [FullUrl, Body]),
     Res = kz_http:post(FullUrl, ?JSON_HEADERS, Body, [{'timeout', 10 * ?MILLISECONDS_IN_SECOND}]),
@@ -445,7 +493,8 @@ send_to_full_provisioner('post', FullUrl, JObj) ->
 -spec do_awesome_provision(cb_context:context()) -> boolean().
 do_awesome_provision(Context) ->
     case get_template(Context) of
-        {'error', _} -> 'false';
+        {'error', _} ->
+            'false';
         {'ok', JObj} ->
             send_provisioning_template(JObj, Context),
             'true'
@@ -456,35 +505,38 @@ do_awesome_provision(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_merged_device(kz_term:ne_binary(), cb_context:context()) ->
-          {'ok', cb_context:context()}.
+    {'ok', cb_context:context()}.
 get_merged_device(MACAddress, Context) ->
     {'ok', Data} = merge_device(MACAddress, Context),
     {'ok', cb_context:set_doc(Context, Data)}.
 
 -spec merge_device(kz_term:ne_binary(), cb_context:context()) ->
-          {'ok', kz_json:object()}.
+    {'ok', kz_json:object()}.
 merge_device(MACAddress, Context) ->
     JObj = cb_context:doc(Context),
     AccountId = cb_context:account_id(Context),
 
-    Routines = [fun(J) -> kz_json:set_value(<<"mac_address">>, MACAddress, J) end
-               ,fun(J) ->
-                        OwnerId = kz_json:get_ne_value(<<"owner_id">>, JObj),
-                        Owner = get_owner(OwnerId, AccountId),
-                        kz_json:merge(J, Owner)
-                end
-               ,fun(J) -> kz_json:delete_key(<<"apps">>, J) end
-               ,fun(J) -> kz_json:set_value(<<"account_id">>, AccountId, J) end
-               ],
+    Routines = [
+        fun(J) -> kz_json:set_value(<<"mac_address">>, MACAddress, J) end,
+        fun(J) ->
+            OwnerId = kz_json:get_ne_value(<<"owner_id">>, JObj),
+            Owner = get_owner(OwnerId, AccountId),
+            kz_json:merge(J, Owner)
+        end,
+        fun(J) -> kz_json:delete_key(<<"apps">>, J) end,
+        fun(J) -> kz_json:set_value(<<"account_id">>, AccountId, J) end
+    ],
     MergedDevice = lists:foldl(fun(F, J) -> F(J) end, JObj, Routines),
     {'ok', kz_doc:public_fields(MergedDevice)}.
 
 -spec get_owner(kz_term:api_binary(), kz_term:ne_binary()) -> kz_json:object().
-get_owner('undefined', _) -> kz_json:new();
+get_owner('undefined', _) ->
+    kz_json:new();
 get_owner(OwnerId, AccountId) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     case kz_datamgr:open_cache_doc(AccountDb, OwnerId) of
-        {'ok', Owner} -> Owner;
+        {'ok', Owner} ->
+            Owner;
         {'error', _R} ->
             lager:debug("unable to open user definition ~s/~s: ~p", [AccountDb, OwnerId, _R]),
             kz_json:new()
@@ -497,25 +549,32 @@ get_owner(OwnerId, AccountId) ->
 send_provisioning_template(JObj, Context) ->
     %% TODO: theoretically this is the start of multiple line support....
     Line = <<"lineloop|line_1">>,
-    MAC = re:replace(kz_json:get_string_value(<<"mac_address">>, cb_context:doc(Context), "")
-                    ,"[^0-9a-fA-F]", "", [{'return', 'list'}, 'global']
-                    ),
-    LineGenerators = [fun set_device_line_defaults/1
-                     ,fun set_account_line_defaults/1
-                     ],
-    TmplGenerators = [fun set_account_id/1
-                     ,fun set_account_overrides/1
-                     ,fun set_user_overrides/1
-                     ,fun set_device_overrides/1
-                     ,fun set_global_overrides/1
-                     ],
+    MAC = re:replace(
+        kz_json:get_string_value(<<"mac_address">>, cb_context:doc(Context), ""),
+        "[^0-9a-fA-F]",
+        "",
+        [{'return', 'list'}, 'global']
+    ),
+    LineGenerators = [
+        fun set_device_line_defaults/1,
+        fun set_account_line_defaults/1
+    ],
+    TmplGenerators = [
+        fun set_account_id/1,
+        fun set_account_overrides/1,
+        fun set_user_overrides/1,
+        fun set_device_overrides/1,
+        fun set_global_overrides/1
+    ],
     LineUpdaters = lists:foldr(fun(F, U) -> F(Context) ++ U end, [], LineGenerators),
     TmplUpdaters = lists:foldr(fun(F, U) -> F(Context) ++ U end, [], TmplGenerators),
     DefaultTemplate = lists:foldr(fun(F, J) -> F(J) end, JObj, TmplUpdaters),
     LineLoop = kz_json:get_value([<<"data">>, <<"globals">>, <<"globals">>, Line], DefaultTemplate),
     LineTemplate = lists:foldr(fun(F, J) -> F(J) end, LineLoop, LineUpdaters),
 
-    Template = kz_json:set_value([<<"data">>, <<"globals">>, <<"globals">>, Line], LineTemplate, DefaultTemplate),
+    Template = kz_json:set_value(
+        [<<"data">>, <<"globals">>, <<"globals">>, Line], LineTemplate, DefaultTemplate
+    ),
     send_provisioning_request(Template, MAC).
 
 %%------------------------------------------------------------------------------
@@ -524,17 +583,18 @@ send_provisioning_template(JObj, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_template(cb_context:context()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 get_template(Context) ->
     DocId = kz_json:get_value([<<"provision">>, <<"id">>], cb_context:doc(Context)),
-    case is_binary(DocId)
-        andalso kz_datamgr:fetch_attachment(cb_context:account_db(Context), DocId, ?TEMPLATE_ATTCH)
+    case
+        is_binary(DocId) andalso
+            kz_datamgr:fetch_attachment(cb_context:account_db(Context), DocId, ?TEMPLATE_ATTCH)
     of
         'false' ->
             lager:debug("unknown template id ~s", [DocId]),
             {'error', 'not_found'};
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:debug("could not fetch template doc ~s: ~p", [DocId, _R]),
             E;
         {'ok', Attachment} ->
@@ -546,7 +606,7 @@ get_template(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_account_id(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_account_id(Context) ->
     AccountId = cb_context:auth_account_id(Context),
     [fun(J) -> kz_json:set_value(<<"account_id">>, AccountId, J) end].
@@ -557,24 +617,26 @@ set_account_id(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_account_line_defaults(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_account_line_defaults(Context) ->
-    Account = case kzd_accounts:fetch(cb_context:account_id(Context)) of
-                  {'ok', JObj} -> JObj;
-                  {'error', _} -> kz_json:new()
-              end,
-    [fun(J) ->
-             case kz_json:get_ne_value(<<"realm">>, Account) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"server_host">>, <<"value">>], Value, J)
-             end
-     end
-    ,fun(J) ->
-             case kz_json:get_ne_value(<<"name">>, Account) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"displayname">>, <<"value">>], Value, J)
-             end
-     end
+    Account =
+        case kzd_accounts:fetch(cb_context:account_id(Context)) of
+            {'ok', JObj} -> JObj;
+            {'error', _} -> kz_json:new()
+        end,
+    [
+        fun(J) ->
+            case kz_json:get_ne_value(<<"realm">>, Account) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"server_host">>, <<"value">>], Value, J)
+            end
+        end,
+        fun(J) ->
+            case kz_json:get_ne_value(<<"name">>, Account) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"displayname">>, <<"value">>], Value, J)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -583,39 +645,40 @@ set_account_line_defaults(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_device_line_defaults(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_device_line_defaults(Context) ->
     Device = cb_context:doc(Context),
-    [fun(J) ->
-             case kzd_devices:sip_username(Device) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"authname">>, <<"value">>], Value, J)
-             end
-     end
-    ,fun(J) ->
-             case kzd_devices:sip_username(Device) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"username">>, <<"value">>], Value, J)
-             end
-     end
-    ,fun(J) ->
-             case kzd_devices:sip_password(Device) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"secret">>, <<"value">>], Value, J)
-             end
-     end
-    ,fun(J) ->
-             case kzd_devices:sip_realm(Device) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"server_host">>, <<"value">>], Value, J)
-             end
-     end
-    ,fun(J) ->
-             case kzd_devices:name(Device) of
-                 'undefined' -> J;
-                 Value -> kz_json:set_value([<<"displayname">>, <<"value">>], Value, J)
-             end
-     end
+    [
+        fun(J) ->
+            case kzd_devices:sip_username(Device) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"authname">>, <<"value">>], Value, J)
+            end
+        end,
+        fun(J) ->
+            case kzd_devices:sip_username(Device) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"username">>, <<"value">>], Value, J)
+            end
+        end,
+        fun(J) ->
+            case kzd_devices:sip_password(Device) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"secret">>, <<"value">>], Value, J)
+            end
+        end,
+        fun(J) ->
+            case kzd_devices:sip_realm(Device) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"server_host">>, <<"value">>], Value, J)
+            end
+        end,
+        fun(J) ->
+            case kzd_devices:name(Device) of
+                'undefined' -> J;
+                Value -> kz_json:set_value([<<"displayname">>, <<"value">>], Value, J)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -623,18 +686,20 @@ set_device_line_defaults(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_global_overrides(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_global_overrides(_) ->
-    GlobalDefaults = case kz_datamgr:open_cache_doc(?KZ_PROVISIONER_DB, <<"base_properties">>) of
-                         {'ok', JObj} -> JObj;
-                         {'error', _} -> kz_json:new()
-                     end,
-    [fun(J) ->
-             case kz_json:get_value(<<"defaults">>, GlobalDefaults) of
-                 'undefined' -> J;
-                 Overrides -> kz_json:merge(J, Overrides)
-             end
-     end
+    GlobalDefaults =
+        case kz_datamgr:open_cache_doc(?KZ_PROVISIONER_DB, <<"base_properties">>) of
+            {'ok', JObj} -> JObj;
+            {'error', _} -> kz_json:new()
+        end,
+    [
+        fun(J) ->
+            case kz_json:get_value(<<"defaults">>, GlobalDefaults) of
+                'undefined' -> J;
+                Overrides -> kz_json:merge(J, Overrides)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -642,18 +707,20 @@ set_global_overrides(_) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_account_overrides(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_account_overrides(Context) ->
-    Account = case kzd_accounts:fetch(cb_context:account_id(Context)) of
-                  {'ok', JObj} -> JObj;
-                  {'error', _} -> kz_json:new()
-              end,
-    [fun(J) ->
-             case kz_json:get_value([<<"provision">>, <<"overrides">>], Account) of
-                 'undefined' -> J;
-                 Overrides -> kz_json:merge(J, Overrides)
-             end
-     end
+    Account =
+        case kzd_accounts:fetch(cb_context:account_id(Context)) of
+            {'ok', JObj} -> JObj;
+            {'error', _} -> kz_json:new()
+        end,
+    [
+        fun(J) ->
+            case kz_json:get_value([<<"provision">>, <<"overrides">>], Account) of
+                'undefined' -> J;
+                Overrides -> kz_json:merge(J, Overrides)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -661,21 +728,24 @@ set_account_overrides(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_user_overrides(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_user_overrides(Context) ->
     OwnerId = kz_json:get_ne_value(<<"owner_id">>, cb_context:doc(Context)),
-    User = case is_binary(OwnerId)
-               andalso kz_datamgr:open_doc(cb_context:account_db(Context), OwnerId)
-           of
-               {'ok', JObj} -> JObj;
-               _Else -> kz_json:new()
-           end,
-    [fun(J) ->
-             case kz_json:get_value([<<"provision">>, <<"overrides">>], User) of
-                 'undefined' -> J;
-                 Overrides -> kz_json:merge(J, Overrides)
-             end
-     end
+    User =
+        case
+            is_binary(OwnerId) andalso
+                kz_datamgr:open_doc(cb_context:account_db(Context), OwnerId)
+        of
+            {'ok', JObj} -> JObj;
+            _Else -> kz_json:new()
+        end,
+    [
+        fun(J) ->
+            case kz_json:get_value([<<"provision">>, <<"overrides">>], User) of
+                'undefined' -> J;
+                Overrides -> kz_json:merge(J, Overrides)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -683,16 +753,16 @@ set_user_overrides(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec set_device_overrides(cb_context:context()) ->
-          [fun((kz_json:object()) -> kz_json:object()),...].
+    [fun((kz_json:object()) -> kz_json:object()), ...].
 set_device_overrides(Context) ->
     Device = cb_context:doc(Context),
-    [fun(J) ->
-             case kz_json:get_value([<<"provision">>, <<"overrides">>], Device) of
-                 'undefined' -> J;
-                 Overrides ->
-                     kz_json:merge(J, Overrides)
-             end
-     end
+    [
+        fun(J) ->
+            case kz_json:get_value([<<"provision">>, <<"overrides">>], Device) of
+                'undefined' -> J;
+                Overrides -> kz_json:merge(J, Overrides)
+            end
+        end
     ].
 
 %%------------------------------------------------------------------------------
@@ -729,7 +799,6 @@ get_provisioning_type() ->
             Result
     end.
 
-
 -spec maybe_sync_sip_data(cb_context:context(), 'user' | 'device') -> 'ok'.
 maybe_sync_sip_data(Context, Type) ->
     ShouldSync = cb_context:fetch(Context, 'sync', 'false'),
@@ -742,8 +811,9 @@ maybe_sync_sip_data(Context, 'device', 'true') ->
     NewDevice = cb_context:doc(Context),
     OldDevice = cb_context:fetch(Context, 'db_doc'),
     OldUsername = kzd_devices:sip_username(OldDevice),
-    case kzd_devices:sip_username(NewDevice) =/= OldUsername
-        orelse kzd_devices:sip_password(NewDevice) =/= kzd_devices:sip_password(OldDevice)
+    case
+        kzd_devices:sip_username(NewDevice) =/= OldUsername orelse
+            kzd_devices:sip_password(NewDevice) =/= kzd_devices:sip_password(OldDevice)
     of
         'false' ->
             lager:debug("nothing has changed on device; no check-sync needed");
@@ -756,27 +826,34 @@ maybe_sync_sip_data(Context, 'device', 'force') ->
     Username = kzd_devices:sip_username(cb_context:doc(Context)),
     Realm = kzd_accounts:fetch_realm(cb_context:account_id(Context)),
     ShouldReboot = cb_context:req_value(Context, <<"reboot">>),
-    send_check_sync(cb_context:doc(Context), ShouldReboot, Username, Realm, cb_context:req_id(Context));
+    send_check_sync(
+        cb_context:doc(Context), ShouldReboot, Username, Realm, cb_context:req_id(Context)
+    );
 maybe_sync_sip_data(Context, 'user', 'true') ->
     Realm = kzd_accounts:fetch_realm(cb_context:account_id(Context)),
-    Req = [{<<"Realm">>, Realm}
-          ,{<<"Fields">>, [<<"Username">>]}
-          ],
-    ReqResp = kz_amqp_worker:call(Req
-                                 ,fun kapi_registration:publish_query_req/1
-                                 ,fun kapi_registration:query_resp_v/1
-                                 ),
+    Req = [
+        {<<"Realm">>, Realm},
+        {<<"Fields">>, [<<"Username">>]}
+    ],
+    ReqResp = kz_amqp_worker:call(
+        Req,
+        fun kapi_registration:publish_query_req/1,
+        fun kapi_registration:query_resp_v/1
+    ),
     case ReqResp of
-        {'error', _E} -> lager:debug("no devices to send check sync to for realm ~s", [Realm]);
-        {'timeout', _} -> lager:warning("timed out query for fetching devices for ~s", [Realm]);
+        {'error', _E} ->
+            lager:debug("no devices to send check sync to for realm ~s", [Realm]);
+        {'timeout', _} ->
+            lager:warning("timed out query for fetching devices for ~s", [Realm]);
         {'ok', JObj} ->
             ShouldReboot = cb_context:req_value(Context, <<"reboot">>),
-            lists:foreach(fun(J) ->
-                                  Username = kz_json:get_value(<<"Username">>, J),
-                                  send_check_sync('undefined', ShouldReboot, Username, Realm, 'undefined')
-                          end
-                         ,kz_json:get_value(<<"Fields">>, JObj)
-                         )
+            lists:foreach(
+                fun(J) ->
+                    Username = kz_json:get_value(<<"Username">>, J),
+                    send_check_sync('undefined', ShouldReboot, Username, Realm, 'undefined')
+                end,
+                kz_json:get_value(<<"Fields">>, JObj)
+            )
     end;
 maybe_sync_sip_data(Context, 'user', 'force') ->
     case cb_users_v2:user_devices(Context) of
@@ -787,13 +864,26 @@ maybe_sync_sip_data(Context, 'user', 'force') ->
         {'ok', DeviceDocs} ->
             ShouldReboot = cb_context:req_value(Context, <<"reboot">>),
             Realm = kzd_accounts:fetch_realm(cb_context:account_id(Context)),
-            _ = [send_check_sync(DeviceDoc, ShouldReboot, kzd_devices:presence_id(DeviceDoc), Realm, cb_context:req_id(Context))
-                 || DeviceDoc <- DeviceDocs
-                ],
+            _ = [
+                send_check_sync(
+                    DeviceDoc,
+                    ShouldReboot,
+                    kzd_devices:presence_id(DeviceDoc),
+                    Realm,
+                    cb_context:req_id(Context)
+                )
+             || DeviceDoc <- DeviceDocs
+            ],
             'ok'
     end.
 
--spec send_check_sync(kz_term:api_object(), kz_term:api_boolean(), kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
+-spec send_check_sync(
+    kz_term:api_object(),
+    kz_term:api_boolean(),
+    kz_term:api_binary(),
+    kz_term:api_binary(),
+    kz_term:api_binary()
+) -> 'ok'.
 send_check_sync(_Device, _ShouldReboot, 'undefined', _Realm, _MsgId) ->
     lager:warning("did not send check sync: username is undefined");
 send_check_sync(_Device, _ShouldReboot, _Username, 'undefined', _MsgId) ->
@@ -801,16 +891,20 @@ send_check_sync(_Device, _ShouldReboot, _Username, 'undefined', _MsgId) ->
 send_check_sync(Device, ShouldReboot, Username, Realm, MsgId) ->
     CheckSyncEvent = check_sync_event(Device, ShouldReboot),
     lager:debug("sending ~s for ~s @ ~s", [CheckSyncEvent, Username, Realm]),
-    publish_check_sync(MsgId, [{<<"Event">>, CheckSyncEvent}
-                              ,{<<"Realm">>, Realm}
-                              ,{<<"Username">>, Username}
-                               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                              ]).
+    publish_check_sync(MsgId, [
+        {<<"Event">>, CheckSyncEvent},
+        {<<"Realm">>, Realm},
+        {<<"Username">>, Username}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ]).
 
--spec check_sync_event(kzd_devices:doc() | 'undefined', kz_term:api_boolean()) -> kz_term:ne_binary().
+-spec check_sync_event(kzd_devices:doc() | 'undefined', kz_term:api_boolean()) ->
+    kz_term:ne_binary().
 check_sync_event('undefined', ShouldReboot) ->
     lager:debug("using system-configured check sync event"),
-    CheckSync = kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"check_sync_event">>, <<"check-sync">>),
+    CheckSync = kapps_config:get_ne_binary(
+        ?MOD_CONFIG_CAT, <<"check_sync_event">>, <<"check-sync">>
+    ),
     should_reboot('undefined', CheckSync, ShouldReboot);
 check_sync_event(Device, ShouldReboot) ->
     case kzd_devices:provision_check_sync_event(Device) of
@@ -818,7 +912,8 @@ check_sync_event(Device, ShouldReboot) ->
         CheckSyncEvent -> should_reboot(Device, CheckSyncEvent, ShouldReboot)
     end.
 
--spec should_reboot(kzd_devices:doc() | 'undefined', kz_term:ne_binary(), kz_term:api_boolean()) -> kz_term:ne_binary().
+-spec should_reboot(kzd_devices:doc() | 'undefined', kz_term:ne_binary(), kz_term:api_boolean()) ->
+    kz_term:ne_binary().
 should_reboot('undefined', CheckSyncEvent, _ShouldReboot) ->
     CheckSyncEvent;
 should_reboot(_DeviceDoc, CheckSyncEvent, 'undefined') ->

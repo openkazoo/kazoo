@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(blackhole_socket_handler).
 
--export([init/2
-        ,websocket_init/1
-        ,websocket_handle/2
-        ,websocket_info/2
-        ,terminate/3
-        ]).
+-export([
+    init/2,
+    websocket_init/1,
+    websocket_handle/2,
+    websocket_info/2,
+    terminate/3
+]).
 
 -include("blackhole.hrl").
 
@@ -20,27 +21,30 @@
 -type blackhole_init() :: {inet:ip_address(), kz_term:ne_binary()}.
 
 -spec init(cowboy_req:req(), cowboy_websocket:opts()) ->
-          {'ok' , cowboy_req:req(), cowboy_websocket:opts()} |
-          {'cowboy_websocket', cowboy_req:req(), blackhole_init(), cowboy_websocket:opts()}.
+    {'ok', cowboy_req:req(), cowboy_websocket:opts()}
+    | {'cowboy_websocket', cowboy_req:req(), blackhole_init(), cowboy_websocket:opts()}.
 init(Req, HandlerOpts) ->
     case cowboy_req:parse_header(<<"sec-websocket-protocol">>, Req) of
-        'undefined' -> maybe_allow_connection(Req, HandlerOpts);
+        'undefined' ->
+            maybe_allow_connection(Req, HandlerOpts);
         _SubProtocols ->
             lager:warning("sub-protocols are not supported at the moment: ~p", [_SubProtocols]),
             {'ok', cowboy_req:reply(400, Req), HandlerOpts}
     end.
 
 -spec maybe_allow_connection(cowboy_req:req(), cowboy_websocket:opts()) ->
-          {'ok', cowboy_req:req(), cowboy_websocket:opts()} |
-          {'cowboy_websocket', cowboy_req:req(), blackhole_init(), cowboy_websocket:opts()}.
+    {'ok', cowboy_req:req(), cowboy_websocket:opts()}
+    | {'cowboy_websocket', cowboy_req:req(), blackhole_init(), cowboy_websocket:opts()}.
 maybe_allow_connection(Req, HandlerOpts) ->
     {RemoteIP, _Port} = cowboy_req:peer(Req),
     MaxConnectionsPerIP = kapps_config:get_integer(?CONFIG_CAT, <<"max_connections_per_ip">>),
-    case maybe_allow_connection(Req
-                               ,RemoteIP
-                               ,MaxConnectionsPerIP
-                               ,blackhole_tracking:session_count_by_ip(RemoteIP)
-                               )
+    case
+        maybe_allow_connection(
+            Req,
+            RemoteIP,
+            MaxConnectionsPerIP,
+            blackhole_tracking:session_count_by_ip(RemoteIP)
+        )
     of
         {'ok', Req1} -> {'ok', Req1, HandlerOpts};
         Resp -> Resp
@@ -61,7 +65,7 @@ allow_connection(Req, RemoteIP) ->
     lager:info("allowing connection from ~s", [SessionId]),
     {'cowboy_websocket', Req, {RemoteIP, SessionId}, #{idle_timeout => ?IDLE_TIMEOUT}}.
 
--spec terminate(any(), cowboy_req:req(), bh_context:context() | cowboy_websocket:opts())  -> 'ok'.
+-spec terminate(any(), cowboy_req:req(), bh_context:context() | cowboy_websocket:opts()) -> 'ok'.
 terminate(_Reason, Req, Opts) when is_list(Opts) ->
     lager:info("socket for session ~s down early: ~p", [session_id(Req), _Reason]);
 terminate(_Reason, Req, Context) ->
@@ -75,11 +79,11 @@ websocket_init({RemoteIP, SessionId}) ->
     {'ok', _Context} = blackhole_socket_callback:open(self(), SessionId, RemoteIP).
 
 -spec websocket_handle(any(), bh_context:context()) ->
-          {'ok', bh_context:context(), 'hibernate'}.
+    {'ok', bh_context:context(), 'hibernate'}.
 websocket_handle({'text', Data}, Context) ->
-    JObj   = kz_json:decode(Data),
+    JObj = kz_json:decode(Data),
     Action = kz_json:get_ne_binary_value(<<"action">>, JObj, <<"noop">>),
-    Msg    = kz_json:delete_key(<<"action">>, JObj),
+    Msg = kz_json:delete_key(<<"action">>, JObj),
 
     case blackhole_socket_callback:recv({Action, Msg}, Context) of
         {'ok', NewContext} -> {'ok', NewContext, 'hibernate'};
@@ -92,8 +96,8 @@ websocket_handle(_Other, Context) ->
     {'ok', Context, 'hibernate'}.
 
 -spec websocket_info(any(), bh_context:context()) ->
-          {'ok', bh_context:context()} |
-          {'reply', {'text', binary()} | 'pong', bh_context:context()}.
+    {'ok', bh_context:context()}
+    | {'reply', {'text', binary()} | 'pong', bh_context:context()}.
 websocket_info({'$gen_cast', _}, Context) ->
     {'ok', Context};
 websocket_info({'send_data', Data}, Context) ->
@@ -108,6 +112,6 @@ websocket_info(Info, Context) ->
 session_id(Req) ->
     {IP, Port} = cowboy_req:peer(Req),
 
-    BinIP   = kz_network_utils:iptuple_to_binary(IP),
+    BinIP = kz_network_utils:iptuple_to_binary(IP),
     BinPort = kz_term:to_binary(Port),
     <<BinIP/binary, ":", BinPort/binary>>.

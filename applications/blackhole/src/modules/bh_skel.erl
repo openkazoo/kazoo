@@ -8,10 +8,11 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_skel).
 
--export([init/0
-        ,validate/2
-        ,bindings/2
-        ]).
+-export([
+    init/0,
+    validate/2,
+    bindings/2
+]).
 
 -include("blackhole.hrl").
 
@@ -21,28 +22,35 @@ init() ->
     blackhole_bindings:bind(<<"blackhole.events.bindings.skel">>, ?MODULE, 'bindings').
 
 -spec validate(bh_context:context(), map()) -> bh_context:context().
-validate(Context, #{keys := [<<"whatever_comes_after_skel.">>, _]
-                   }) ->
+validate(Context, #{keys := [<<"whatever_comes_after_skel.">>, _]}) ->
     Context;
 validate(Context, #{keys := Keys}) ->
-    bh_context:add_error(Context, <<"invalid format for skel subscription : ", (kz_binary:join(Keys))/binary>>).
+    bh_context:add_error(
+        Context, <<"invalid format for skel subscription : ", (kz_binary:join(Keys))/binary>>
+    ).
 
 -spec bindings(bh_context:context(), map()) -> map().
-bindings(_Context, #{account_id := AccountId
-                    ,keys := [<<"myskel">>, MyId]
-                    }=Map) ->
+bindings(
+    _Context,
+    #{
+        account_id := AccountId,
+        keys := [<<"myskel">>, MyId]
+    } = Map
+) ->
     Requested = <<"skel.myskel.", MyId/binary>>,
     Subscribed = [<<"skel.status.", AccountId/binary, ".", MyId/binary>>],
     Listeners = [{'amqp', 'kapi_skel', skel_bind_options(AccountId, MyId)}],
-    Map#{requested => Requested
-        ,subscribed => Subscribed
-        ,listeners => Listeners
-        }.
+    Map#{
+        requested => Requested,
+        subscribed => Subscribed,
+        listeners => Listeners
+    }.
 
 -spec skel_bind_options(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:proplist().
 skel_bind_options(AccountId, MyId) ->
-    [{'restrict_to', ['skel.updates']}
-    ,{'account_id', AccountId}
-    ,{'skel_id', MyId}
-    ,'federate'
+    [
+        {'restrict_to', ['skel.updates']},
+        {'account_id', AccountId},
+        {'skel_id', MyId},
+        'federate'
     ].

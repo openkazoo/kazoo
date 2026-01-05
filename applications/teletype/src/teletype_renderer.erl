@@ -11,17 +11,19 @@
 -define(SERVER, ?MODULE).
 -define(RENDER_TIMEOUT, 1000 * 60 * 10).
 
--export([start_link/1
-        ,render/3
-        ]).
+-export([
+    start_link/1,
+    render/3
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -type state() :: module().
 
@@ -30,21 +32,20 @@ start_link(Args) ->
     gen_server:start_link(?SERVER, [], [Args]).
 
 -spec render(kz_term:ne_binary(), binary(), kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', any()}.
+    {'ok', iolist()}
+    | {'error', any()}.
 render(TemplateId, Template, TemplateData) ->
     Renderer = next_renderer(),
     render(Renderer, TemplateId, Template, TemplateData, 3).
 
 -spec render(pid(), kz_term:ne_binary(), binary(), kz_term:proplist(), integer()) ->
-          {'ok', iolist()} |
-          {'error', any()}.
+    {'ok', iolist()}
+    | {'error', any()}.
 
 render(Renderer, TemplateId, _Template, _TemplateData, 0) ->
     ?LOG_ERROR("rendering of ~p failed after several tries", [TemplateId]),
     exit(Renderer, 'kill'),
     {'error', 'render_failed'};
-
 render(Renderer, TemplateId, Template, TemplateData, Tries) ->
     Start = kz_time:now_s(),
     PoolStatus = poolboy:status(teletype_farms_sup:render_farm_name()),
@@ -52,8 +53,10 @@ render(Renderer, TemplateId, Template, TemplateData, Tries) ->
     lager:info("starting render of ~p", [TemplateId]),
     case do_render(Renderer, TemplateId, Template, TemplateData) of
         {'error', Reason} ->
-            ?LOG_INFO("render failed in ~p, pool: ~p with reason ~p", [kz_time:now_s() - Start, PoolStatus, Reason]),
-            render(Renderer, TemplateId, Template, TemplateData, Tries-1);
+            ?LOG_INFO("render failed in ~p, pool: ~p with reason ~p", [
+                kz_time:now_s() - Start, PoolStatus, Reason
+            ]),
+            render(Renderer, TemplateId, Template, TemplateData, Tries - 1);
         GoodReturn ->
             %% LOG_INFO("render completed in ~p, pool: ~p", [kz_time:now_s() - Start, PoolStatus]),
             lager:info("render completed in ~p, pool: ~p", [kz_time:now_s() - Start, PoolStatus]),
@@ -62,13 +65,15 @@ render(Renderer, TemplateId, Template, TemplateData, Tries) ->
     end.
 
 -spec do_render(pid(), kz_term:ne_binary(), binary(), kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', any()}.
+    {'ok', iolist()}
+    | {'error', any()}.
 do_render(Renderer, TemplateId, Template, TemplateData) ->
-    try gen_server:call(Renderer
-                       ,{'render', TemplateId, Template, TemplateData}
-                       ,?RENDER_TIMEOUT
-                       )
+    try
+        gen_server:call(
+            Renderer,
+            {'render', TemplateId, Template, TemplateData},
+            ?RENDER_TIMEOUT
+        )
     catch
         _E:_R ->
             lager:debug("rendering failed: ~s: ~p", [_E, _R]),
@@ -122,11 +127,8 @@ init(_) ->
 handle_call({'render', _TemplateId, Template, TemplateData}, _From, TemplateModule) ->
     %% l?LOG_DEBUG("trying to compile template ~s as ~s for ~w", [_TemplateId, TemplateModule, _From]),
     lager:debug("trying to compile template ~s as ~s for ~w", [_TemplateId, TemplateModule, _From]),
-    {'reply'
-    ,kz_template:render(Template, TemplateModule, TemplateData)
-    ,TemplateModule
-    ,'hibernate'
-    };
+    {'reply', kz_template:render(Template, TemplateModule, TemplateData), TemplateModule,
+        'hibernate'};
 handle_call(_Req, _From, TemplateModule) ->
     {'noreply', TemplateModule}.
 

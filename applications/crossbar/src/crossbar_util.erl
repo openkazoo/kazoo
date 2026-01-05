@@ -7,23 +7,27 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_util).
 
--export([response/2
-        ,response/3
-        ,response/4
-        ,response/5
-        ]).
+-export([
+    response/2,
+    response/3,
+    response/4,
+    response/5
+]).
 -export([response_deprecated/1]).
--export([response_deprecated_redirect/2
-        ,response_deprecated_redirect/3
-        ]).
--export([response_redirect/3
-        ,response_redirect/4
-        ]).
+-export([
+    response_deprecated_redirect/2,
+    response_deprecated_redirect/3
+]).
+-export([
+    response_redirect/3,
+    response_redirect/4
+]).
 -export([response_202/2, response_202/3]).
--export([response_400/3
-        ,response_401/1
-        ,response_402/2
-        ]).
+-export([
+    response_400/3,
+    response_401/1,
+    response_402/2
+]).
 -export([response_faulty_request/1]).
 -export([response_bad_identifier/2]).
 -export([response_range_not_satisfiable/1]).
@@ -34,30 +38,34 @@
 -export([response_missing_view/1]).
 -export([response_db_missing/1]).
 -export([response_db_fatal/1]).
--export([response_auth/1
-        ,response_auth/2
-        ,response_auth/3
-        ]).
--export([flush_registrations/1
-        ,flush_registration/1, flush_registration/2
-        ]).
+-export([
+    response_auth/1,
+    response_auth/2,
+    response_auth/3
+]).
+-export([
+    flush_registrations/1,
+    flush_registration/1, flush_registration/2
+]).
 -export([move_account/2]).
 -export([get_descendants/1]).
 -export([get_tree/1]).
--export([disable_account/1, maybe_disable_account/1
-        ,enable_account/1
-        ,change_pvt_enabled/2
-        ]).
+-export([
+    disable_account/1,
+    maybe_disable_account/1,
+    enable_account/1,
+    change_pvt_enabled/2
+]).
 -export([load_apps/2]).
 -export([get_path/2]).
--export([get_user_lang/2
-        ,get_account_lang/1
-        ,get_language/1
-        ,get_language/2
-        ,get_token_restrictions/3
-        ]).
--export([get_user_timezone/2
-        ]).
+-export([
+    get_user_lang/2,
+    get_account_lang/1,
+    get_language/1,
+    get_language/2,
+    get_token_restrictions/3
+]).
+-export([get_user_timezone/2]).
 -export([apply_response_map/2]).
 -export([maybe_remove_attachments/1]).
 
@@ -68,9 +76,10 @@
 -export([format_emergency_caller_id_number/1]).
 
 -export([get_devices_by_owner/2]).
--export([maybe_refresh_fs_xml/2
-        ,refresh_fs_xml/1
-        ]).
+-export([
+    maybe_refresh_fs_xml/2,
+    refresh_fs_xml/1
+]).
 
 -ifdef(TEST).
 -export([trunkstore_servers_changed/2]).
@@ -79,9 +88,9 @@
 -include_lib("kazoo_services/include/kazoo_services.hrl").
 -include("crossbar.hrl").
 
--define(DEFAULT_LANGUAGE
-       ,kapps_config:get_ne_binary(?CONFIG_CAT, <<"default_language">>, <<"en-US">>)
-       ).
+-define(DEFAULT_LANGUAGE,
+    kapps_config:get_ne_binary(?CONFIG_CAT, <<"default_language">>, <<"en-US">>)
+).
 
 -define(KEY_EMERGENCY, <<"emergency">>).
 
@@ -93,22 +102,22 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec response(kz_json:json_term(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response(JTerm, Context) ->
     create_response('success', 'undefined', 'undefined', JTerm, Context).
 
 -spec response_202(kz_term:api_ne_binary(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_202(Msg, Context) ->
     response_202(Msg, Msg, Context).
 
 -spec response_202(kz_term:api_ne_binary(), kz_json:json_term(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_202(Msg, JTerm, Context) ->
     create_response('accepted', Msg, 202, JTerm, Context).
 
 -spec response_400(kz_term:ne_binary(), kz_json:json_term(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_400(Message, Data, Context) ->
     create_response('error', Message, 400, Data, Context).
 
@@ -117,7 +126,7 @@ response_401(Context) ->
     response('error', <<"invalid credentials">>, 401, Context).
 
 -spec response_402(kz_json:json_term(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_402(Data, Context) ->
     create_response('error', <<"accept charges">>, 402, Data, Context).
 
@@ -127,7 +136,7 @@ response_402(Data, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response(fails(), kz_term:api_ne_binary(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response('error', Msg, Context) ->
     create_response('error', Msg, 500, kz_json:new(), Context);
 response('fatal', Msg, Context) ->
@@ -139,7 +148,7 @@ response('fatal', Msg, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response(fails(), kz_term:api_ne_binary(), kz_term:api_integer(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response('error', Msg, Code, Context) ->
     create_response('error', Msg, Code, kz_json:new(), Context);
 response('fatal', Msg, Code, Context) ->
@@ -150,7 +159,13 @@ response('fatal', Msg, Code, Context) ->
 %% of type fatal or error with additional data.
 %% @end
 %%------------------------------------------------------------------------------
--spec response(fails(), kz_term:api_ne_binary(), kz_term:api_integer(), kz_json:json_term(), cb_context:context()) -> cb_context:context().
+-spec response(
+    fails(),
+    kz_term:api_ne_binary(),
+    kz_term:api_integer(),
+    kz_json:json_term(),
+    cb_context:context()
+) -> cb_context:context().
 response('error', Msg, Code, JTerm, Context) ->
     create_response('error', Msg, Code, JTerm, Context);
 response('fatal', Msg, Code, JTerm, Context) ->
@@ -162,16 +177,23 @@ response('fatal', Msg, Code, JTerm, Context) ->
 %% other parameters.
 %% @end
 %%------------------------------------------------------------------------------
--spec create_response(crossbar_status(), kz_term:api_ne_binary(), kz_term:api_integer()
-                     ,kz_json:json_term(), cb_context:context()
-                     ) -> cb_context:context().
+-spec create_response(
+    crossbar_status(),
+    kz_term:api_ne_binary(),
+    kz_term:api_integer(),
+    kz_json:json_term(),
+    cb_context:context()
+) -> cb_context:context().
 create_response(Status, Msg, Code, JTerm, Context) ->
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, Status}
-                       ,{fun cb_context:set_resp_error_msg/2, Msg}
-                       ,{fun cb_context:set_resp_error_code/2, Code}
-                       ,{fun cb_context:set_resp_data/2, JTerm}
-                       ]).
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, Status},
+            {fun cb_context:set_resp_error_msg/2, Msg},
+            {fun cb_context:set_resp_error_code/2, Code},
+            {fun cb_context:set_resp_data/2, JTerm}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Create a standard response if the request is faulty (doesn't have a
@@ -207,28 +229,36 @@ response_deprecated(Context) ->
     create_response('error', <<"deprecated">>, 410, kz_json:new(), Context).
 
 -spec response_deprecated_redirect(cb_context:context(), kz_term:ne_binary()) ->
-          cb_context:context().
+    cb_context:context().
 response_deprecated_redirect(Context, RedirectUrl) ->
     response_deprecated_redirect(Context, RedirectUrl, kz_json:new()).
 
 -spec response_deprecated_redirect(cb_context:context(), kz_term:ne_binary(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 response_deprecated_redirect(Context, RedirectUrl, JObj) ->
-    create_response('error', <<"deprecated">>, 301, JObj
-                   ,cb_context:add_resp_header(Context, <<"Location">>, RedirectUrl)
-                   ).
+    create_response(
+        'error',
+        <<"deprecated">>,
+        301,
+        JObj,
+        cb_context:add_resp_header(Context, <<"Location">>, RedirectUrl)
+    ).
 
 -spec response_redirect(cb_context:context(), kz_term:ne_binary(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 response_redirect(Context, RedirectUrl, JObj) ->
     response_redirect(Context, RedirectUrl, JObj, 301).
 
 -spec response_redirect(cb_context:context(), kz_term:ne_binary(), kz_json:object(), pos_integer()) ->
-          cb_context:context().
+    cb_context:context().
 response_redirect(Context, RedirectUrl, JObj, Redirect) ->
-    create_response('error', <<"redirect">>, Redirect, JObj
-                   ,cb_context:add_resp_header(Context, <<"Location">>, RedirectUrl)
-                   ).
+    create_response(
+        'error',
+        <<"redirect">>,
+        Redirect,
+        JObj,
+        cb_context:add_resp_header(Context, <<"Location">>, RedirectUrl)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Create a standard response if the requested ID did not match a
@@ -237,7 +267,7 @@ response_redirect(Context, RedirectUrl, JObj, Redirect) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_bad_identifier(atom() | kz_term:ne_binary(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_bad_identifier(Id, Context) when is_atom(Id) ->
     response('error', <<"bad identifier">>, 404, [kz_term:to_binary(Id)], Context);
 response_bad_identifier(?NE_BINARY = Id, Context) ->
@@ -249,7 +279,7 @@ response_bad_identifier(?NE_BINARY = Id, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_conflicting_docs(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_conflicting_docs(Context) ->
     response('error', <<"conflicting documents">>, 409, Context).
 
@@ -258,7 +288,7 @@ response_conflicting_docs(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_missing_view(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_missing_view(Context) ->
     response('fatal', <<"datastore missing view">>, 503, Context).
 
@@ -267,7 +297,7 @@ response_missing_view(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_datastore_timeout(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_datastore_timeout(Context) ->
     response('error', <<"datastore timeout">>, 503, Context).
 
@@ -276,7 +306,7 @@ response_datastore_timeout(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_datastore_conn_refused(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_datastore_conn_refused(Context) ->
     response('error', <<"datastore connection refused">>, 503, Context).
 
@@ -285,7 +315,7 @@ response_datastore_conn_refused(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec response_invalid_data(kz_json:json_term(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 response_invalid_data(JTerm, Context) ->
     response('error', <<"invalid data">>, 400, JTerm, Context).
 
@@ -309,9 +339,10 @@ response_db_fatal(Context) ->
 
 -spec flush_registrations(kz_term:ne_binary() | cb_context:context()) -> 'ok'.
 flush_registrations(<<_/binary>> = Realm) ->
-    FlushCmd = [{<<"Realm">>, Realm}
-                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ],
+    FlushCmd = [
+        {<<"Realm">>, Realm}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kz_amqp_worker:cast(FlushCmd, fun kapi_registration:publish_flush/1);
 flush_registrations(Context) ->
     flush_registrations(kzd_accounts:fetch_realm(cb_context:account_id(Context))).
@@ -320,11 +351,12 @@ flush_registrations(Context) ->
 flush_registration('undefined', _Realm) ->
     lager:debug("did not flush registration: username is undefined");
 flush_registration(Username, <<_/binary>> = Realm) ->
-    FlushCmd = [{<<"Event">>, <<"check-sync">>}
-               ,{<<"Realm">>, Realm}
-               ,{<<"Username">>, Username}
-                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-               ],
+    FlushCmd = [
+        {<<"Event">>, <<"check-sync">>},
+        {<<"Realm">>, Realm},
+        {<<"Username">>, Username}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     _ = kz_amqp_worker:cast(FlushCmd, fun kapi_switch:publish_notify/1),
     kz_amqp_worker:cast(FlushCmd, fun kapi_registration:publish_flush/1);
 flush_registration(Username, Context) ->
@@ -338,67 +370,82 @@ flush_registration(Context) ->
     AccountId = cb_context:account_id(Context),
     Realm = kzd_accounts:fetch_realm(AccountId),
 
-    Routins = [fun maybe_flush_registration_on_password/3
-              ,fun maybe_flush_registration_on_username/3
-              ,fun maybe_flush_registration_on_ownerid/3
-              ,fun maybe_flush_registration_on_enabled/3
-              ,fun maybe_flush_registration_on_deleted/3
-              ],
-    Fun = fun(_, 'ok') -> 'ok';
-             (F, 'next') -> F(Realm, OldDevice, NewDevice)
-          end,
+    Routins = [
+        fun maybe_flush_registration_on_password/3,
+        fun maybe_flush_registration_on_username/3,
+        fun maybe_flush_registration_on_ownerid/3,
+        fun maybe_flush_registration_on_enabled/3,
+        fun maybe_flush_registration_on_deleted/3
+    ],
+    Fun = fun
+        (_, 'ok') -> 'ok';
+        (F, 'next') -> F(Realm, OldDevice, NewDevice)
+    end,
     _ = lists:foldl(Fun, 'next', Routins),
     'ok'.
 
--spec maybe_flush_registration_on_password(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> 'ok' | 'next'.
+-spec maybe_flush_registration_on_password(
+    kz_term:api_binary(), kz_json:object(), kz_json:object()
+) -> 'ok' | 'next'.
 maybe_flush_registration_on_password(Realm, OldDevice, NewDevice) ->
     case kzd_devices:sip_password(OldDevice) =:= kzd_devices:sip_password(NewDevice) of
-        'true' -> 'next';
+        'true' ->
+            'next';
         'false' ->
             lager:debug("the SIP password has changed, sending a registration flush"),
             flush_registration(kzd_devices:sip_username(OldDevice), Realm)
     end.
 
--spec maybe_flush_registration_on_username(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> 'ok' | 'next'.
+-spec maybe_flush_registration_on_username(
+    kz_term:api_binary(), kz_json:object(), kz_json:object()
+) -> 'ok' | 'next'.
 maybe_flush_registration_on_username(Realm, OldDevice, NewDevice) ->
     OldUsername = kzd_devices:sip_username(OldDevice),
 
     case kzd_devices:sip_username(NewDevice) of
-        OldUsername -> 'next';
+        OldUsername ->
+            'next';
         NewUsername ->
             lager:debug("the SIP username has changed, sending a registration flush for both"),
             flush_registration(OldUsername, Realm),
             flush_registration(NewUsername, Realm)
     end.
 
--spec maybe_flush_registration_on_ownerid(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> 'ok' | 'next'.
+-spec maybe_flush_registration_on_ownerid(kz_term:api_binary(), kz_json:object(), kz_json:object()) ->
+    'ok' | 'next'.
 maybe_flush_registration_on_ownerid(Realm, OldDevice, NewDevice) ->
     OldOwnerId = kzd_devices:owner_id(OldDevice),
 
     case kzd_devices:owner_id(NewDevice) of
-        OldOwnerId -> 'next';
+        OldOwnerId ->
+            'next';
         _NewOwnerId ->
             lager:debug("the device owner_id has changed, sending a registration flush"),
             flush_registration(kzd_devices:sip_username(OldDevice), Realm)
     end.
 
--spec maybe_flush_registration_on_enabled(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> 'ok' | 'next'.
+-spec maybe_flush_registration_on_enabled(kz_term:api_binary(), kz_json:object(), kz_json:object()) ->
+    'ok' | 'next'.
 maybe_flush_registration_on_enabled(Realm, OldDevice, NewDevice) ->
     OldEnabled = kzd_devices:enabled(OldDevice),
 
     case kzd_devices:enabled(NewDevice) of
-        OldEnabled -> 'next';
+        OldEnabled ->
+            'next';
         _NewEnabled ->
             lager:debug("the device enabled has changed, sending a registration flush"),
             flush_registration(kzd_devices:sip_username(OldDevice), Realm)
     end.
 
--spec maybe_flush_registration_on_deleted(kz_term:api_binary(), kz_json:object(), kz_json:object()) -> 'ok' | 'next'.
+-spec maybe_flush_registration_on_deleted(kz_term:api_binary(), kz_json:object(), kz_json:object()) ->
+    'ok' | 'next'.
 maybe_flush_registration_on_deleted(Realm, _OldDevice, NewDevice) ->
-    case kz_doc:is_soft_deleted(NewDevice)
-        orelse kz_doc:is_deleted(NewDevice)
+    case
+        kz_doc:is_soft_deleted(NewDevice) orelse
+            kz_doc:is_deleted(NewDevice)
     of
-        'false' -> 'next';
+        'false' ->
+            'next';
         'true' ->
             lager:debug("the device has been deleted, sending a registration flush"),
             flush_registration(kzd_devices:sip_username(NewDevice), Realm)
@@ -409,28 +456,31 @@ maybe_flush_registration_on_deleted(Realm, _OldDevice, NewDevice) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec move_account(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
-move_account(?MATCH_ACCOUNT_RAW(AccountId), ToAccount=?NE_BINARY) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
+move_account(?MATCH_ACCOUNT_RAW(AccountId), ToAccount = ?NE_BINARY) ->
     case validate_move(AccountId, ToAccount) of
-        {'error', _E}=Error -> Error;
-        {'ok', JObj, ToTree} ->
-            move_account(AccountId, JObj, ToAccount, ToTree)
+        {'error', _E} = Error -> Error;
+        {'ok', JObj, ToTree} -> move_account(AccountId, JObj, ToAccount, ToTree)
     end.
 
--spec move_account(kz_term:ne_binary(), kzd_accounts:doc(), kz_term:ne_binary(), kz_term:ne_binaries()) ->
-          {'ok', kzd_services:doc()} |
-          {'error', any()}.
+-spec move_account(
+    kz_term:ne_binary(), kzd_accounts:doc(), kz_term:ne_binary(), kz_term:ne_binaries()
+) ->
+    {'ok', kzd_services:doc()}
+    | {'error', any()}.
 move_account(AccountId, JObj, ToAccount, ToTree) ->
     PreviousTree = kzd_accounts:tree(JObj),
-    Updates = [{?SERVICES_PVT_TREE, ToTree}
-              ,{?SERVICES_PVT_TREE_PREVIOUSLY, PreviousTree}
-              ,{?SERVICES_PVT_MODIFIED, kz_time:now_s()}
-              ],
+    Updates = [
+        {?SERVICES_PVT_TREE, ToTree},
+        {?SERVICES_PVT_TREE_PREVIOUSLY, PreviousTree},
+        {?SERVICES_PVT_MODIFIED, kz_time:now_s()}
+    ],
 
     %%FIXME: do something about setting pvt_auth_*_id
     case kzd_accounts:update(AccountId, Updates) of
-        {'error', _E}=Error -> Error;
+        {'error', _E} = Error ->
+            Error;
         {'ok', _AccountDoc} ->
             lager:info("moved account ~s (~s)", [AccountId, kz_doc:revision(_AccountDoc)]),
             NewResellerId = kz_services_reseller:get_id(ToAccount),
@@ -444,11 +494,12 @@ move_account(AccountId, JObj, ToAccount, ToTree) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec validate_move(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'error', kz_datamgr:data_error() | 'forbidden'} |
-          {'ok', kzd_accounts:doc(), kz_term:ne_binaries()}.
+    {'error', kz_datamgr:data_error() | 'forbidden'}
+    | {'ok', kzd_accounts:doc(), kz_term:ne_binaries()}.
 validate_move(AccountId, ToAccount) ->
     case kzd_accounts:fetch(AccountId) of
-        {'error', _E}=Error -> Error;
+        {'error', _E} = Error ->
+            Error;
         {'ok', JObj} ->
             ToTree = get_tree(ToAccount) ++ [ToAccount],
             case lists:member(AccountId, ToTree) of
@@ -462,33 +513,41 @@ validate_move(AccountId, ToAccount) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec move_descendants(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()) ->
-          {'ok', 'done'} |
-          {'error', any()}.
+    {'ok', 'done'}
+    | {'error', any()}.
 move_descendants(?MATCH_ACCOUNT_RAW(AccountId), Tree, NewResellerId) ->
     update_descendants_tree(get_descendants(AccountId), Tree, NewResellerId, AccountId).
 
--spec update_descendants_tree(kz_term:ne_binaries(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', 'done'} |
-          {'error', any()}.
-update_descendants_tree([], _, _, _) -> {'ok', 'done'};
-update_descendants_tree([Descendant|Descendants], Tree, NewResellerId, MovedAccountId) ->
+-spec update_descendants_tree(
+    kz_term:ne_binaries(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary()
+) ->
+    {'ok', 'done'}
+    | {'error', any()}.
+update_descendants_tree([], _, _, _) ->
+    {'ok', 'done'};
+update_descendants_tree([Descendant | Descendants], Tree, NewResellerId, MovedAccountId) ->
     case kzd_accounts:fetch(Descendant) of
-        {'error', _E}=Error -> Error;
+        {'error', _E} = Error ->
+            Error;
         {'ok', AccountJObj} ->
             PreviousTree = kzd_accounts:tree(AccountJObj),
             %% Preserve tree below and including common ancestor
             {_, Tail} = lists:splitwith(fun(X) -> X =/= MovedAccountId end, PreviousTree),
             ToTree = Tree ++ Tail,
-            Updates = [{?SERVICES_PVT_TREE, ToTree}
-                      ,{?SERVICES_PVT_TREE_PREVIOUSLY, PreviousTree}
-                      ,{?SERVICES_PVT_MODIFIED, kz_time:now_s()}
-                      ],
+            Updates = [
+                {?SERVICES_PVT_TREE, ToTree},
+                {?SERVICES_PVT_TREE_PREVIOUSLY, PreviousTree},
+                {?SERVICES_PVT_MODIFIED, kz_time:now_s()}
+            ],
             %%FIXME: do something about setting pvt_auth_*_id
             case kzd_accounts:update(Descendant, Updates) of
-                {'error', _E}=Error -> Error;
+                {'error', _E} = Error ->
+                    Error;
                 {'ok', _DescendantAccountJObj} ->
                     AccountId = kz_util:format_account_id(Descendant),
-                    lager:debug("updated descendant ~s (~s)", [AccountId, kz_doc:revision(_DescendantAccountJObj)]),
+                    lager:debug("updated descendant ~s (~s)", [
+                        AccountId, kz_doc:revision(_DescendantAccountJObj)
+                    ]),
                     _ = kazoo_services_maintenance:update_tree(AccountId, ToTree, NewResellerId),
                     update_descendants_tree(Descendants, Tree, NewResellerId, MovedAccountId)
             end
@@ -509,7 +568,8 @@ get_descendants(?MATCH_ACCOUNT_RAW(AccountId)) ->
 -spec get_tree(kz_term:ne_binary()) -> kz_term:ne_binaries().
 get_tree(<<_/binary>> = Account) ->
     case kzd_accounts:fetch(Account) of
-        {'ok', JObj} -> kzd_accounts:tree(JObj);
+        {'ok', JObj} ->
+            kzd_accounts:tree(JObj);
         {'error', _E} ->
             lager:error("could not load account doc ~s : ~p", [Account, _E]),
             []
@@ -520,34 +580,41 @@ get_tree(<<_/binary>> = Account) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec disable_account(kz_term:api_binary()) -> 'ok' | {'error', any()}.
-disable_account('undefined') -> 'ok';
+disable_account('undefined') ->
+    'ok';
 disable_account(AccountId) ->
-    ViewOptions = [{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
-    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions) of
+    ViewOptions = [
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
+    case
+        kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions)
+    of
         {'ok', JObjs} ->
             _ = [change_pvt_enabled('false', kz_doc:id(JObj)) || JObj <- JObjs],
             'ok';
-        {'error', R}=E ->
+        {'error', R} = E ->
             lager:debug("unable to disable descendants of ~s: ~p", [AccountId, R]),
             E
     end.
 
 -spec maybe_disable_account(kz_types:ne_binary()) ->
-          {'ok', kzd_accounts:doc()} |
-          {'error', kz_datamgr:data_error()}.
+    {'ok', kzd_accounts:doc()}
+    | {'error', kz_datamgr:data_error()}.
 maybe_disable_account(AccountId) ->
     {'ok', AccountJObj} = kzd_accounts:fetch(AccountId),
     case kzd_accounts:is_enabled(AccountJObj) of
-        'false' -> {'ok', AccountJObj};
+        'false' ->
+            {'ok', AccountJObj};
         'true' ->
             Update = [{kzd_accounts:path_enabled(), 'false'}],
             case kzd_accounts:update(AccountId, Update) of
-                {'ok', _UpdatedAccount}=OK ->
-                    lager:debug("disabled account ~s (~s)", [AccountId, kz_doc:revision(_UpdatedAccount)]),
+                {'ok', _UpdatedAccount} = OK ->
+                    lager:debug("disabled account ~s (~s)", [
+                        AccountId, kz_doc:revision(_UpdatedAccount)
+                    ]),
                     OK;
-                {'error', _E}=Error ->
+                {'error', _E} = Error ->
                     lager:info("failed to disable account ~s on save: ~p", [AccountId, _E]),
                     Error
             end
@@ -558,16 +625,20 @@ maybe_disable_account(AccountId) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec enable_account(kz_term:api_binary()) -> 'ok' | {'error', any()}.
-enable_account('undefined') -> 'ok';
+enable_account('undefined') ->
+    'ok';
 enable_account(AccountId) ->
-    ViewOptions = [{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
-    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions) of
+    ViewOptions = [
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
+    case
+        kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants">>, ViewOptions)
+    of
         {'ok', JObjs} ->
             _ = [change_pvt_enabled('true', kz_doc:id(JObj)) || JObj <- JObjs],
             'ok';
-        {'error', R}=E ->
+        {'error', R} = E ->
             lager:debug("unable to enable descendants of ~s: ~p", [AccountId, R]),
             E
     end.
@@ -578,97 +649,96 @@ enable_account(AccountId) ->
 %%------------------------------------------------------------------------------
 
 -spec response_auth(kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 response_auth(JObj) ->
     AccountId = kz_json:get_first_defined([<<"account_id">>, <<"pvt_account_id">>], JObj),
     OwnerId = kz_json:get_first_defined([<<"owner_id">>, <<"user_id">>], JObj),
     response_auth(JObj, AccountId, OwnerId).
 
 -spec response_auth(kz_json:object(), kz_term:api_binary()) ->
-          kz_json:object().
+    kz_json:object().
 response_auth(JObj, AccountId) ->
     OwnerId = kz_json:get_first_defined([<<"owner_id">>, <<"user_id">>], JObj),
     response_auth(JObj, AccountId, OwnerId).
 
 -spec response_auth(kz_json:object(), kz_term:api_binary(), kz_term:api_binary()) ->
-          kz_json:object().
+    kz_json:object().
 response_auth(JObj, AccountId, UserId) ->
     populate_resp(JObj, AccountId, UserId).
 
--spec populate_resp(kz_json:object(), kz_term:api_binary(), kz_term:api_binary()) -> kz_json:object().
-populate_resp(JObj, 'undefined', _UserId) -> JObj;
+-spec populate_resp(kz_json:object(), kz_term:api_binary(), kz_term:api_binary()) ->
+    kz_json:object().
+populate_resp(JObj, 'undefined', _UserId) ->
+    JObj;
 populate_resp(JObj, AccountId, UserId) ->
     Language = get_language(AccountId, UserId),
     Props = props:filter_undefined(
-              [{<<"apps">>, load_apps(AccountId, UserId, Language)}
-              ,{<<"language">>, Language}
-              ,{<<"account_name">>, kzd_accounts:fetch_name(AccountId)}
-              ,{<<"cluster_id">>, kzd_cluster:id()}
-              ,{<<"reseller_id">>, kz_services_reseller:get_id(AccountId)}
-              ,{<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
-              ,{<<"is_master_account">>, is_master_account(AccountId)}
-              ,{<<"capabilities">>, get_capabilities()}
-              ,{<<"ui_config">>, get_ui_config()}
-              ]),
+        [
+            {<<"apps">>, load_apps(AccountId, UserId, Language)},
+            {<<"language">>, Language},
+            {<<"account_name">>, kzd_accounts:fetch_name(AccountId)},
+            {<<"cluster_id">>, kzd_cluster:id()},
+            {<<"reseller_id">>, kz_services_reseller:get_id(AccountId)},
+            {<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)},
+            {<<"is_master_account">>, is_master_account(AccountId)},
+            {<<"capabilities">>, get_capabilities()},
+            {<<"ui_config">>, get_ui_config()}
+        ]
+    ),
     kz_json:set_values(Props, JObj).
 
 -spec get_ui_config() -> kz_json:object().
 get_ui_config() ->
-    Routines = [fun get_provisioner_config/1
-               ,fun get_mobile_config/1
-               ,fun get_kazoo_websocket_config/1
-               ,fun get_webrtc_websocket_config/1
-               ,fun get_phonebook_config/1
-               ,fun get_cluster_manager_config/1
-               ],
+    Routines = [
+        fun get_provisioner_config/1,
+        fun get_mobile_config/1,
+        fun get_kazoo_websocket_config/1,
+        fun get_webrtc_websocket_config/1,
+        fun get_phonebook_config/1,
+        fun get_cluster_manager_config/1
+    ],
     lists:foldl(fun(F, J) -> F(J) end, kz_json:new(), Routines).
 
 -spec get_provisioner_config(kz_json:object()) -> kz_json:object().
 get_provisioner_config(JObj) ->
     case kapps_config:get_ne_binary(<<"provisioner">>, <<"provisioning_url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"provisioner">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"provisioner">>, <<"url">>], URL, JObj)
     end.
 
 -spec get_mobile_config(kz_json:object()) -> kz_json:object().
 get_mobile_config(JObj) ->
     case kapps_config:get_ne_binary(<<"mobile">>, <<"url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"mobile">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"mobile">>, <<"url">>], URL, JObj)
     end.
 
 -spec get_kazoo_websocket_config(kz_json:object()) -> kz_json:object().
 get_kazoo_websocket_config(JObj) ->
     case kapps_config:get_ne_binary(<<"blackhole">>, <<"url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"kazoo_websocket">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"kazoo_websocket">>, <<"url">>], URL, JObj)
     end.
 
 -spec get_webrtc_websocket_config(kz_json:object()) -> kz_json:object().
 get_webrtc_websocket_config(JObj) ->
     case kapps_config:get_ne_binary(<<"webrtc">>, <<"url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"webrtc_websocket">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"webrtc_websocket">>, <<"url">>], URL, JObj)
     end.
 
 -spec get_phonebook_config(kz_json:object()) -> kz_json:object().
 get_phonebook_config(JObj) ->
     case kapps_config:get_ne_binary(<<"phonebook">>, <<"url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"phonebook">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"phonebook">>, <<"url">>], URL, JObj)
     end.
 
 -spec get_cluster_manager_config(kz_json:object()) -> kz_json:object().
 get_cluster_manager_config(JObj) ->
     case kapps_config:get_ne_binary(<<"cluster_manager">>, <<"url">>) of
         'undefined' -> JObj;
-        URL ->
-            kz_json:set_value([<<"api">>, <<"cluster_manager">>, <<"url">>], URL, JObj)
+        URL -> kz_json:set_value([<<"api">>, <<"cluster_manager">>, <<"url">>], URL, JObj)
     end.
 
 -spec is_master_account(kz_term:ne_binary()) -> boolean().
@@ -685,13 +755,10 @@ get_capabilities() ->
 
 -spec get_transcription_capabilities(kz_json:object()) -> kz_json:object().
 get_transcription_capabilities(JObj) ->
-    Props = [{[<<"voicemail">>, <<"transcription">>, <<"available">>]
-             ,kazoo_asr:available()
-             }
-            ,{[<<"voicemail">>, <<"transcription">>, <<"default">>]
-             ,kvm_util:transcribe_default()
-             }
-            ],
+    Props = [
+        {[<<"voicemail">>, <<"transcription">>, <<"available">>], kazoo_asr:available()},
+        {[<<"voicemail">>, <<"transcription">>, <<"default">>], kvm_util:transcribe_default()}
+    ],
     kz_json:set_values(Props, JObj).
 
 %%------------------------------------------------------------------------------
@@ -706,7 +773,8 @@ load_apps(AccountId, UserId) ->
 -spec load_apps(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:objects().
 load_apps(AccountId, UserId, Language) ->
     AppJObjs = cb_apps_util:allowed_apps(AccountId, UserId),
-    [format_app(Language, AppJObj)
+    [
+        format_app(Language, AppJObj)
      || AppJObj <- AppJObjs
     ].
 
@@ -716,37 +784,46 @@ load_apps(AccountId, UserId, Language) ->
 %%------------------------------------------------------------------------------
 -spec format_app(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 format_app(Lang, AppJObj) ->
-    Label = kz_json:get_first_defined([[Lang, <<"label">>]
-                                      ,[?DEFAULT_LANGUAGE, <<"label">>]
-                                      ,[<<"en-US">>, <<"label">>]
-                                      ]
-                                     ,kzd_app:i18n(AppJObj)
-                                     ),
+    Label = kz_json:get_first_defined(
+        [
+            [Lang, <<"label">>],
+            [?DEFAULT_LANGUAGE, <<"label">>],
+            [<<"en-US">>, <<"label">>]
+        ],
+        kzd_app:i18n(AppJObj)
+    ),
     kz_json:from_list(
-      [{<<"id">>, kz_doc:id(AppJObj)}
-      ,{<<"name">>, kzd_app:name(AppJObj)}
-      ,{<<"api_url">>, kzd_app:api_url(AppJObj)}
-      ,{<<"source_url">>, kzd_app:source_url(AppJObj)}
-      ,{<<"label">>, Label}
-      ]).
+        [
+            {<<"id">>, kz_doc:id(AppJObj)},
+            {<<"name">>, kzd_app:name(AppJObj)},
+            {<<"api_url">>, kzd_app:api_url(AppJObj)},
+            {<<"source_url">>, kzd_app:source_url(AppJObj)},
+            {<<"label">>, Label}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Update all descendants of the account id pvt_enabled flag with State.
 %% @end
 %%------------------------------------------------------------------------------
 -spec change_pvt_enabled(boolean(), kz_term:api_ne_binary()) ->
-          'ok' | {'error', any()}.
-change_pvt_enabled(_, 'undefined') -> 'ok';
+    'ok' | {'error', any()}.
+change_pvt_enabled(_, 'undefined') ->
+    'ok';
 change_pvt_enabled(IsEnabled, AccountId) ->
     try
         lager:debug("set pvt_enabled to ~s on account ~s", [IsEnabled, AccountId]),
 
         Update = [{kzd_accounts:path_enabled(), IsEnabled}],
         {'ok', _UpdatedAccountDoc} = kzd_accounts:update(AccountId, Update),
-        lager:debug("changed account ~s (~s) pvt_enabled", [AccountId, kz_doc:revision(_UpdatedAccountDoc)])
+        lager:debug("changed account ~s (~s) pvt_enabled", [
+            AccountId, kz_doc:revision(_UpdatedAccountDoc)
+        ])
     catch
         _:R ->
-            lager:debug("unable to set pvt_enabled to ~s on account ~s: ~p", [IsEnabled, AccountId, R]),
+            lager:debug("unable to set pvt_enabled to ~s on account ~s: ~p", [
+                IsEnabled, AccountId, R
+            ]),
             {'error', R}
     end.
 
@@ -770,7 +847,8 @@ get_language(AccountId, 'undefined') ->
     end;
 get_language(AccountId, UserId) ->
     case get_user_lang(AccountId, UserId) of
-        {'ok', Lang} -> Lang;
+        {'ok', Lang} ->
+            Lang;
         'error' ->
             case get_account_lang(AccountId) of
                 {'ok', Lang} -> Lang;
@@ -778,7 +856,8 @@ get_language(AccountId, UserId) ->
             end
     end.
 
--spec get_user_lang(kz_term:ne_binary(), kz_term:ne_binary()) -> 'error' | {'ok', kz_term:ne_binary()}.
+-spec get_user_lang(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    'error' | {'ok', kz_term:ne_binary()}.
 get_user_lang(AccountId, UserId) ->
     case kzd_user:fetch(AccountId, UserId) of
         {'ok', UserJObj} ->
@@ -814,16 +893,19 @@ get_user_timezone(AccountId, UserId) ->
 -spec apply_response_map(cb_context:context(), kz_term:proplist()) -> cb_context:context().
 apply_response_map(Context, Map) ->
     JObj = cb_context:doc(Context),
-    RespData = lists:foldl(fun(MapItem, J) ->
-                                   apply_response_map_item(MapItem, J, JObj)
-                           end
-                          ,cb_context:resp_data(Context)
-                          ,Map
-                          ),
+    RespData = lists:foldl(
+        fun(MapItem, J) ->
+            apply_response_map_item(MapItem, J, JObj)
+        end,
+        cb_context:resp_data(Context),
+        Map
+    ),
     cb_context:set_resp_data(Context, RespData).
 
--spec apply_response_map_item({kz_json:path(), kz_json:path() | fun()}, kz_json:object(), kz_json:object()) ->
-          kz_json:object().
+-spec apply_response_map_item(
+    {kz_json:path(), kz_json:path() | fun()}, kz_json:object(), kz_json:object()
+) ->
+    kz_json:object().
 apply_response_map_item({Key, Fun}, J, JObj) when is_function(Fun, 1) ->
     kz_json:set_value(Key, Fun(JObj), J);
 apply_response_map_item({Key, Fun}, J, JObj) when is_function(Fun, 2) ->
@@ -841,16 +923,17 @@ get_path(Req, Relative) ->
 -spec maybe_remove_attachments(cb_context:context()) -> cb_context:context().
 maybe_remove_attachments(Context) ->
     case kz_doc:maybe_remove_attachments(cb_context:doc(Context)) of
-        {'false', _} -> Context;
+        {'false', _} ->
+            Context;
         {'true', RemovedJObj} ->
             lager:debug("deleting attachments from doc"),
             crossbar_doc:save(
-              cb_context:set_doc(Context, RemovedJObj)
-             )
+                cb_context:set_doc(Context, RemovedJObj)
+            )
     end.
 
 -spec create_auth_token(cb_context:context(), atom()) ->
-          cb_context:context().
+    cb_context:context().
 create_auth_token(Context, AuthModule) ->
     JObj = cb_context:doc(Context),
     case kz_json:is_empty(JObj) of
@@ -862,7 +945,7 @@ create_auth_token(Context, AuthModule) ->
     end.
 
 -spec create_auth_token(cb_context:context(), atom(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 create_auth_token(Context, AuthModule, JObj) ->
     Data = cb_context:req_data(Context),
 
@@ -870,38 +953,46 @@ create_auth_token(Context, AuthModule, JObj) ->
     OwnerId = kz_json:get_value(<<"owner_id">>, JObj),
 
     Token = props:filter_undefined(
-              [{<<"account_id">>, AccountId}
-              ,{<<"owner_id">>, OwnerId}
-              ,{<<"as">>, kz_json:get_value(<<"as">>, Data)}
-              ,{<<"api_key">>, kz_json:get_value(<<"api_key">>, Data)}
-              ,{<<"method">>, kz_term:to_binary(AuthModule)}
-              ]),
-    JObjToken = kz_doc:update_pvt_parameters(kz_json:from_list(Token)
-                                            ,kz_util:format_account_id(AccountId, 'encoded')
-                                            ,Token
-                                            ),
+        [
+            {<<"account_id">>, AccountId},
+            {<<"owner_id">>, OwnerId},
+            {<<"as">>, kz_json:get_value(<<"as">>, Data)},
+            {<<"api_key">>, kz_json:get_value(<<"api_key">>, Data)},
+            {<<"method">>, kz_term:to_binary(AuthModule)}
+        ]
+    ),
+    JObjToken = kz_doc:update_pvt_parameters(
+        kz_json:from_list(Token),
+        kz_util:format_account_id(AccountId, 'encoded'),
+        Token
+    ),
 
     %%FIXME: do something about setting pvt_auth_*_id
     case kz_datamgr:save_doc(?KZ_TOKEN_DB, JObjToken) of
         {'ok', Doc} ->
             AuthToken = kz_doc:id(Doc),
             lager:debug("created new local auth token ~s", [AuthToken]),
-            response(response_auth(JObj, AccountId, OwnerId)
-                    ,cb_context:setters(Context
-                                       ,[{fun cb_context:set_auth_token/2, AuthToken}
-                                        ,{fun cb_context:set_auth_doc/2, Doc}
-                                        ])
-                    );
+            response(
+                response_auth(JObj, AccountId, OwnerId),
+                cb_context:setters(
+                    Context,
+                    [
+                        {fun cb_context:set_auth_token/2, AuthToken},
+                        {fun cb_context:set_auth_doc/2, Doc}
+                    ]
+                )
+            );
         {'error', R} ->
             lager:debug("could not create new local auth token, ~p", [R]),
             cb_context:add_system_error('invalid_credentials', Context)
     end.
 
 -spec get_token_restrictions(atom(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          kz_term:api_object().
+    kz_term:api_object().
 get_token_restrictions(AuthModule, AccountId, OwnerId) ->
     case kzd_accounts:is_superduper_admin(AccountId) of
-        'true' -> 'undefined';
+        'true' ->
+            'undefined';
         'false' ->
             Restrictions =
                 case get_account_token_restrictions(AccountId, AuthModule) of
@@ -934,16 +1025,20 @@ get_system_token_restrictions(AuthModule) ->
 get_account_token_restrictions(AccountId, AuthModule) ->
     AccountDB = kz_util:format_account_db(AccountId),
     case kz_datamgr:open_cache_doc(AccountDB, ?CB_ACCOUNT_TOKEN_RESTRICTIONS) of
-        {'error', _} -> 'undefined';
+        {'error', _} ->
+            'undefined';
         {'ok', RestrictionsDoc} ->
-            kz_json:get_first_defined([[<<"restrictions">>, kz_term:to_binary(AuthModule)]
-                                      ,[<<"restrictions">>, ?CATCH_ALL]
-                                      ]
-                                     ,RestrictionsDoc
-                                     )
+            kz_json:get_first_defined(
+                [
+                    [<<"restrictions">>, kz_term:to_binary(AuthModule)],
+                    [<<"restrictions">>, ?CATCH_ALL]
+                ],
+                RestrictionsDoc
+            )
     end.
 
--spec get_priv_level_restrictions(kz_term:api_object(), kz_term:ne_binary()) -> kz_term:api_object().
+-spec get_priv_level_restrictions(kz_term:api_object(), kz_term:ne_binary()) ->
+    kz_term:api_object().
 get_priv_level_restrictions('undefined', _PrivLevel) ->
     'undefined';
 get_priv_level_restrictions(Restrictions, PrivLevel) ->
@@ -961,9 +1056,10 @@ get_priv_level_restrictions(Restrictions, PrivLevel) ->
 -spec descendants_count() -> 'ok'.
 descendants_count() ->
     Limit = kapps_config:get_integer(?SYSCONFIG_COUCH, <<"default_chunk_size">>, 1000),
-    ViewOptions = [{'limit', Limit}
-                  ,{'skip', 0}
-                  ],
+    ViewOptions = [
+        {'limit', Limit},
+        {'skip', 0}
+    ],
     descendants_count(ViewOptions).
 
 -spec descendants_count(kz_term:proplist() | kz_term:ne_binary()) -> 'ok'.
@@ -971,9 +1067,10 @@ descendants_count(<<_/binary>> = Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     descendants_count([{'key', AccountId}]);
 descendants_count(Opts) ->
-    ViewOptions = [{'group_level', 1}
-                   | props:delete('group_level', Opts)
-                  ],
+    ViewOptions = [
+        {'group_level', 1}
+        | props:delete('group_level', Opts)
+    ],
 
     case load_descendants_count(ViewOptions) of
         {'error', 'no_descendants'} ->
@@ -986,23 +1083,24 @@ descendants_count(Opts) ->
 
 -spec handle_descendant_counts(kz_term:proplist(), kz_term:proplist()) -> 'ok'.
 handle_descendant_counts(ViewOptions, Counts) ->
-    _ = [maybe_update_descendants_count(AccountId, Count)
-         || {AccountId, Count} <- Counts
-        ],
+    _ = [
+        maybe_update_descendants_count(AccountId, Count)
+     || {AccountId, Count} <- Counts
+    ],
 
     case props:get_value('skip', ViewOptions) of
-        'undefined' -> 'ok';
+        'undefined' ->
+            'ok';
         Skip ->
             Limit = props:get_value('limit', ViewOptions),
-            descendants_count(props:set_value('skip', Skip+Limit, ViewOptions))
+            descendants_count(props:set_value('skip', Skip + Limit, ViewOptions))
     end.
 
 -spec handle_no_descendants(kz_term:proplist()) -> 'ok'.
 handle_no_descendants(ViewOptions) ->
     case props:get_value('key', ViewOptions) of
         'undefined' -> 'ok';
-        AccountId ->
-            maybe_update_descendants_count(AccountId, 0)
+        AccountId -> maybe_update_descendants_count(AccountId, 0)
     end.
 
 %%------------------------------------------------------------------------------
@@ -1011,10 +1109,12 @@ handle_no_descendants(ViewOptions) ->
 %%------------------------------------------------------------------------------
 
 -spec format_emergency_caller_id_number(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 format_emergency_caller_id_number(Context) ->
     Doc = cb_context:req_data(Context),
-    cb_context:set_req_data(Context, kzd_module_utils:maybe_normalize_emergency_caller_id_number(Doc)).
+    cb_context:set_req_data(
+        Context, kzd_module_utils:maybe_normalize_emergency_caller_id_number(Doc)
+    ).
 
 -type refresh_type() :: 'user' | 'device' | 'sys_info' | 'account'.
 
@@ -1023,36 +1123,36 @@ maybe_refresh_fs_xml(Kind, Context) ->
     DbDoc = cb_context:fetch(Context, 'db_doc'),
     Doc = cb_context:doc(Context),
     Precondition =
-        (kzd_devices:presence_id(DbDoc) =/= kzd_devices:presence_id(Doc))
-        or (kz_json:get_value([<<"media">>, <<"encryption">>, <<"enforce_security">>], DbDoc) =/=
-                kz_json:get_value([<<"media">>, <<"encryption">>, <<"enforce_security">>], Doc)
-           ),
+        (kzd_devices:presence_id(DbDoc) =/= kzd_devices:presence_id(Doc)) or
+            (kz_json:get_value([<<"media">>, <<"encryption">>, <<"enforce_security">>], DbDoc) =/=
+                kz_json:get_value([<<"media">>, <<"encryption">>, <<"enforce_security">>], Doc)),
+
     maybe_refresh_fs_xml(Kind, Context, Precondition).
 
 -spec maybe_refresh_fs_xml(refresh_type(), cb_context:context(), boolean()) -> 'ok'.
-maybe_refresh_fs_xml('user', _Context, 'false') -> 'ok';
+maybe_refresh_fs_xml('user', _Context, 'false') ->
+    'ok';
 maybe_refresh_fs_xml('user', Context, 'true') ->
     Doc = cb_context:doc(Context),
     AccountDb = cb_context:account_db(Context),
     Realm = kzd_accounts:fetch_realm(AccountDb),
     Id = kz_doc:id(Doc),
     Devices = get_devices_by_owner(AccountDb, Id),
-    lists:foreach(fun (DevDoc) -> refresh_fs_xml(Realm, DevDoc) end, Devices);
+    lists:foreach(fun(DevDoc) -> refresh_fs_xml(Realm, DevDoc) end, Devices);
 maybe_refresh_fs_xml('device', Context, Precondition) ->
-    Doc   = cb_context:doc(Context),
+    Doc = cb_context:doc(Context),
     DbDoc = cb_context:fetch(Context, 'db_doc'),
-    ( Precondition
-      or (kzd_devices:sip_username(DbDoc) =/= kzd_devices:sip_username(Doc))
-      or (kzd_devices:sip_password(DbDoc) =/= kzd_devices:sip_password(Doc))
-      or (kz_json:get_value(<<"owner_id">>, DbDoc) =/=
-              kz_json:get_value(<<"owner_id">>, Doc))
-      or (kz_json:is_true(<<"enabled">>, DbDoc)
-          andalso not kz_json:is_true(<<"enabled">>, Doc)
-         )
-    )
-        andalso refresh_fs_xml(kzd_accounts:fetch_realm(cb_context:account_db(Context))
-                              ,DbDoc
-                              ),
+    (Precondition or
+        (kzd_devices:sip_username(DbDoc) =/= kzd_devices:sip_username(Doc)) or
+        (kzd_devices:sip_password(DbDoc) =/= kzd_devices:sip_password(Doc)) or
+        (kz_json:get_value(<<"owner_id">>, DbDoc) =/=
+            kz_json:get_value(<<"owner_id">>, Doc)) or
+        (kz_json:is_true(<<"enabled">>, DbDoc) andalso
+            not kz_json:is_true(<<"enabled">>, Doc))) andalso
+        refresh_fs_xml(
+            kzd_accounts:fetch_realm(cb_context:account_db(Context)),
+            DbDoc
+        ),
     'ok';
 maybe_refresh_fs_xml('account', Context, _) ->
     Devices = get_account_devices(cb_context:account_id(Context)),
@@ -1065,45 +1165,50 @@ maybe_refresh_fs_xml('sys_info', Context, Precondition) ->
     DbDoc = cb_context:fetch(Context, 'db_doc'),
     DbServers = kz_json:get_value(<<"servers">>, DbDoc, []),
 
-    ( Precondition
-      or trunkstore_servers_changed(Servers, DbServers)
-    ).
+    (Precondition or
+        trunkstore_servers_changed(Servers, DbServers)).
 
 -spec trunkstore_servers_changed(kz_json:objects(), kz_json:objects()) -> boolean().
-trunkstore_servers_changed([], []) -> 'false';
-trunkstore_servers_changed([], _DbServers) -> 'true';
-trunkstore_servers_changed(_Servers, []) -> 'true';
+trunkstore_servers_changed([], []) ->
+    'false';
+trunkstore_servers_changed([], _DbServers) ->
+    'true';
+trunkstore_servers_changed(_Servers, []) ->
+    'true';
 trunkstore_servers_changed(Servers, DbServers) ->
     MappedServers = map_servers(Servers),
     DbMappedServers = map_servers(DbServers),
 
-    servers_changed(MappedServers, DbMappedServers)
-        orelse servers_changed(DbMappedServers, MappedServers).
+    servers_changed(MappedServers, DbMappedServers) orelse
+        servers_changed(DbMappedServers, MappedServers).
 
 -spec servers_changed(kz_json:object(), kz_json:object()) -> boolean().
 servers_changed(Servers1, Servers2) ->
-    kz_json:any(fun({Name, S}) ->
-                        server_changed(S, kz_json:get_value(Name, Servers2))
-                end
-               ,Servers1
-               ).
+    kz_json:any(
+        fun({Name, S}) ->
+            server_changed(S, kz_json:get_value(Name, Servers2))
+        end,
+        Servers1
+    ).
 
 -spec server_changed(kz_json:object(), kz_term:api_object()) -> boolean().
 server_changed(_Server, 'undefined') ->
     lager:debug("server ~s existence has changed", [kz_json:get_value(<<"server_name">>, _Server)]),
     'true';
 server_changed(Server1, Server2) ->
-    Keys = [ [<<"auth">>, <<"auth_method">>]
-           ,[<<"auth">>, <<"ip">>]
-           ,[<<"auth">>, <<"auth_user">>]
-           ,[<<"auth">>, <<"auth_password">>]
-           ,[<<"options">>, <<"enabled">>]
-           ],
-    lists:any(fun(K) ->
-                      kz_json:get_value(K, Server1) =/= kz_json:get_value(K, Server2)
-              end
-             ,Keys
-             ).
+    Keys = [
+        [<<"auth">>, <<"auth_method">>],
+        [<<"auth">>, <<"ip">>],
+        [<<"auth">>, <<"auth_user">>],
+        [<<"auth">>, <<"auth_password">>],
+        [<<"options">>, <<"enabled">>]
+    ],
+    lists:any(
+        fun(K) ->
+            kz_json:get_value(K, Server1) =/= kz_json:get_value(K, Server2)
+        end,
+        Keys
+    ).
 
 -spec map_servers(kz_json:objects()) -> kz_json:object().
 map_servers(Servers) ->
@@ -1123,35 +1228,42 @@ refresh_fs_xml(Context) ->
 -spec refresh_fs_xml(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 refresh_fs_xml(Realm, Doc) ->
     case kzd_devices:sip_username(Doc, kz_json:get_value(<<"username">>, Doc)) of
-        'undefined' -> 'ok';
+        'undefined' ->
+            'ok';
         Username ->
-            lager:debug("flushing fs xml for user '~s' at '~s'", [Username,Realm]),
-            Req = [{<<"Username">>, Username}
-                  ,{<<"Realm">>, Realm}
-                   | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                  ],
+            lager:debug("flushing fs xml for user '~s' at '~s'", [Username, Realm]),
+            Req = [
+                {<<"Username">>, Username},
+                {<<"Realm">>, Realm}
+                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ],
             kz_amqp_worker:cast(Req, fun kapi_switch:publish_fs_xml_flush/1)
     end.
 
 -spec get_devices_by_owner(kz_term:ne_binary(), kz_term:api_binary()) -> kz_term:ne_binaries().
-get_devices_by_owner(_AccountDb, 'undefined') -> [];
+get_devices_by_owner(_AccountDb, 'undefined') ->
+    [];
 get_devices_by_owner(AccountDb, OwnerId) ->
-    ViewOptions = [{'key', [OwnerId, <<"device">>]},
-                   'include_docs'
-                  ],
+    ViewOptions = [
+        {'key', [OwnerId, <<"device">>]},
+        'include_docs'
+    ],
     case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find documents owned by ~s: ~p", [OwnerId, _R]),
             []
     end.
 
 -spec get_account_devices(kz_term:api_binary()) -> kz_term:ne_binaries().
-get_account_devices('undefined') -> [];
+get_account_devices('undefined') ->
+    [];
 get_account_devices(Account) ->
     AccountDb = kz_util:format_account_db(Account),
     case kz_datamgr:get_results(AccountDb, <<"devices/crossbar_listing">>, []) of
-        {'ok', JObjs} -> [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find device documents owned by ~s: ~p", [AccountDb, _R]),
             []
@@ -1162,19 +1274,24 @@ get_account_devices(Account) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec load_descendants_count(kz_term:proplist()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', any()}.
+    {'ok', kz_term:proplist()}
+    | {'error', any()}.
 load_descendants_count(ViewOptions) ->
     lager:debug("counting descendants with ~p", [ViewOptions]),
-    case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants_count">>, ViewOptions) of
-        {'error', _E}=Resp -> Resp;
-        {'ok', []} -> {'error', 'no_descendants'};
+    case
+        kz_datamgr:get_results(
+            ?KZ_ACCOUNTS_DB, <<"accounts/listing_by_descendants_count">>, ViewOptions
+        )
+    of
+        {'error', _E} = Resp ->
+            Resp;
+        {'ok', []} ->
+            {'error', 'no_descendants'};
         {'ok', JObjs} ->
-            {'ok', [{kz_json:get_value(<<"key">>, JObj)
-                    ,kz_json:get_value(<<"value">>, JObj)
-                    }
-                    || JObj <- JObjs
-                   ]}
+            {'ok', [
+                {kz_json:get_value(<<"key">>, JObj), kz_json:get_value(<<"value">>, JObj)}
+             || JObj <- JObjs
+            ]}
     end.
 
 %%------------------------------------------------------------------------------
@@ -1196,18 +1313,19 @@ maybe_update_descendants_count(AccountId, NewCount, Try) ->
             maybe_update_descendants_count(AccountId, AccountJObj, NewCount, Try)
     end.
 
--spec maybe_update_descendants_count(kz_term:ne_binary(), kzd_accounts:doc(), integer(), integer()) -> 'ok'.
+-spec maybe_update_descendants_count(kz_term:ne_binary(), kzd_accounts:doc(), integer(), integer()) ->
+    'ok'.
 maybe_update_descendants_count(AccountId, AccountJObj, NewCount, Try) ->
     OldCount = kz_json:get_integer_value(<<"descendants_count">>, AccountJObj),
     compare_descendants_count(AccountId, NewCount, OldCount, Try).
 
 -spec compare_descendants_count(kz_term:ne_binary(), integer(), integer(), integer()) -> 'ok'.
-compare_descendants_count(_, Count, Count, _) -> 'ok';
+compare_descendants_count(_, Count, Count, _) ->
+    'ok';
 compare_descendants_count(AccountId, NewCount, _, Try) ->
     case update_descendants_count(AccountId, NewCount) of
         'ok' -> 'ok';
-        'error' ->
-            maybe_update_descendants_count(AccountId, NewCount, Try-1)
+        'error' -> maybe_update_descendants_count(AccountId, NewCount, Try - 1)
     end.
 
 %%------------------------------------------------------------------------------
@@ -1218,6 +1336,8 @@ compare_descendants_count(AccountId, NewCount, _, Try) ->
 update_descendants_count(AccountId, NewCount) ->
     Update = [{<<"descendants_count">>, NewCount}],
     case kzd_accounts:update(AccountId, Update) of
-        {'error', _E} -> 'error';
-        {'ok', _AccountDoc} -> lager:debug("updated descendants count to ~p for ~s", [NewCount, AccountId])
+        {'error', _E} ->
+            'error';
+        {'ok', _AccountDoc} ->
+            lager:debug("updated descendants count to ~p for ~s", [NewCount, AccountId])
     end.

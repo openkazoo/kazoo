@@ -5,11 +5,12 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_att_handlers_errors).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,validate/1, validate/2, validate/3
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    validate/1, validate/2, validate/3
+]).
 
 -include("crossbar.hrl").
 
@@ -26,14 +27,16 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
-    Bindings = [{<<"*.allowed_methods">>, 'allowed_methods'}
-               ,{<<"*.resource_exists">>, 'resource_exists'}
-               ,{<<"*.validate">>, 'validate'}
-               ,{<<"*.execute.get">>, 'get'}
-               ],
-    _ = [crossbar_bindings:bind(<<Binding/binary, ".att_handlers_errors">>, ?MODULE, Fun)
-         || {Binding, Fun} <- Bindings
-        ],
+    Bindings = [
+        {<<"*.allowed_methods">>, 'allowed_methods'},
+        {<<"*.resource_exists">>, 'resource_exists'},
+        {<<"*.validate">>, 'validate'},
+        {<<"*.execute.get">>, 'get'}
+    ],
+    _ = [
+        crossbar_bindings:bind(<<Binding/binary, ".att_handlers_errors">>, ?MODULE, Fun)
+     || {Binding, Fun} <- Bindings
+    ],
     ok.
 
 %%------------------------------------------------------------------------------
@@ -91,7 +94,8 @@ validate_requests(Context, ?HTTP_GET) ->
 validate_request(Context, Id, ?HTTP_GET) ->
     read(Id, Context).
 
--spec validate_request(cb_context:context(), path_token(), path_token(), http_method()) -> cb_context:context().
+-spec validate_request(cb_context:context(), path_token(), path_token(), http_method()) ->
+    cb_context:context().
 validate_request(Context, Resource, Id, ?HTTP_GET) ->
     read(Resource, Id, Context).
 
@@ -111,9 +115,10 @@ read(<<Year:4/binary, Month:2/binary, _/binary>> = Id, Context) ->
 
 -spec read(kz_term:ne_binary(), kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
 read(<<"handler">>, HandlerId, Context) ->
-    Options = [{'mapper', crossbar_view:map_value_fun()}
-              ,{'range_keymap', [HandlerId]}
-              ],
+    Options = [
+        {'mapper', crossbar_view:map_value_fun()},
+        {'range_keymap', [HandlerId]}
+    ],
     crossbar_view:load_modb(Context, ?CB_LIST_BY_HANDLER, Options).
 
 %%------------------------------------------------------------------------------

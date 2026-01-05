@@ -6,20 +6,27 @@
 %%%-----------------------------------------------------------------------------
 -module(kapps_config_doc).
 
--export([get_keys/1
-        ,get_config/1
-        ,get_node/2
-        ,apply_default_values/3
-        ,apply_default_node/1, apply_schema_defaults/2, apply_schema_defaults_to_default/2
-        ,schema_defaults/1
-        ,config_with_defaults/1, config_with_default_node/1
-        ,diff_from_default/2
-        ,default_config/2, stored_config/2
-        ,build_default/1, build_default/2
-        ,default_node/2, stored_node/2, diff_node_from_default/3
-        ,list_configs/0
-        ,node_config/2
-        ]).
+-export([
+    get_keys/1,
+    get_config/1,
+    get_node/2,
+    apply_default_values/3,
+    apply_default_node/1,
+    apply_schema_defaults/2,
+    apply_schema_defaults_to_default/2,
+    schema_defaults/1,
+    config_with_defaults/1,
+    config_with_default_node/1,
+    diff_from_default/2,
+    default_config/2,
+    stored_config/2,
+    build_default/1, build_default/2,
+    default_node/2,
+    stored_node/2,
+    diff_node_from_default/3,
+    list_configs/0,
+    node_config/2
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
@@ -46,7 +53,7 @@ get_node(Config, Node) ->
     kzd_system_configs:node(Config, Node, kz_json:new()).
 
 -spec apply_default_values(kzd_system_configs:doc(), kz_term:ne_binary(), kzd_system_configs:doc()) ->
-          kzd_system_configs:doc().
+    kzd_system_configs:doc().
 apply_default_values(Config, Node, Defaults) ->
     NodeSection = get_node(Config, Node),
     DefaultSection = get_node(Config, ?DEFAULT),
@@ -58,27 +65,29 @@ apply_default_values(Config, Node, Defaults) ->
 
 -spec apply_default_node(kzd_system_configs:doc()) -> kzd_system_configs:doc().
 apply_default_node(Config) ->
-    lists:foldl(fun(NodeOrZoneKey, ConfigAcc) ->
-                        apply_default_values(ConfigAcc, NodeOrZoneKey, kz_json:new())
-                end
-               ,Config
-               ,get_keys(Config)
-               ).
+    lists:foldl(
+        fun(NodeOrZoneKey, ConfigAcc) ->
+            apply_default_values(ConfigAcc, NodeOrZoneKey, kz_json:new())
+        end,
+        Config,
+        get_keys(Config)
+    ).
 
 -spec apply_schema_defaults(kz_term:ne_binary(), kzd_system_configs:doc()) ->
-          kzd_system_configs:doc().
+    kzd_system_configs:doc().
 apply_schema_defaults(Id, Config) ->
     SchemaDefaults = schema_defaults(Id),
 
-    lists:foldl(fun(NodeOrZoneKey, ConfigAcc) ->
-                        apply_default_values(ConfigAcc, NodeOrZoneKey, SchemaDefaults)
-                end
-               ,Config
-               ,[?DEFAULT|get_keys(Config)]
-               ).
+    lists:foldl(
+        fun(NodeOrZoneKey, ConfigAcc) ->
+            apply_default_values(ConfigAcc, NodeOrZoneKey, SchemaDefaults)
+        end,
+        Config,
+        [?DEFAULT | get_keys(Config)]
+    ).
 
 -spec apply_schema_defaults_to_default(kz_term:ne_binary(), kzd_system_configs:doc()) ->
-          kzd_system_configs:doc().
+    kzd_system_configs:doc().
 apply_schema_defaults_to_default(Id, Config) ->
     SchemaDefaults = schema_defaults(Id),
     apply_default_values(Config, ?DEFAULT, SchemaDefaults).
@@ -103,12 +112,13 @@ config_with_defaults(Id) ->
 -spec default_config(kz_term:ne_binary(), kz_term:ne_binaries()) -> kzd_system_configs:doc().
 default_config(Id, Keys) ->
     DefaultNode = schema_defaults(Id),
-    lists:foldl(fun(Key, ConfigsAcc) ->
-                        kz_json:set_value(Key, DefaultNode, ConfigsAcc)
-                end
-               ,kzd_system_configs:new()
-               ,[?DEFAULT|Keys]
-               ).
+    lists:foldl(
+        fun(Key, ConfigsAcc) ->
+            kz_json:set_value(Key, DefaultNode, ConfigsAcc)
+        end,
+        kzd_system_configs:new(),
+        [?DEFAULT | Keys]
+    ).
 
 -spec node_config(kz_term:ne_binary(), kz_term:ne_binary()) -> kzd_system_configs:node_config().
 node_config(Id, Node) ->
@@ -117,18 +127,21 @@ node_config(Id, Node) ->
     DefaultConfig = get_node(Config, ?DEFAULT),
     kz_json:merge_recursive(DefaultConfig, NodeConfig).
 
--spec stored_config(kz_term:ne_binary(), kz_json:key() | kz_json:keys()) -> kzd_system_configs:doc().
-stored_config(Id, Node)
-  when is_binary(Node) ->
+-spec stored_config(kz_term:ne_binary(), kz_json:key() | kz_json:keys()) ->
+    kzd_system_configs:doc().
+stored_config(Id, Node) when
+    is_binary(Node)
+->
     stored_config(Id, [Node]);
 stored_config(Id, Nodes) ->
     Config = config_with_default_node(Id),
-    lists:foldl(fun(Node, ConfigAcc) ->
-                        apply_default_values(ConfigAcc, Node, Config)
-                end
-               ,Config
-               ,Nodes
-               ).
+    lists:foldl(
+        fun(Node, ConfigAcc) ->
+            apply_default_values(ConfigAcc, Node, Config)
+        end,
+        Config,
+        Nodes
+    ).
 
 -spec config_with_default_node(kz_term:ne_binary() | kz_json:object()) -> kz_json:object().
 config_with_default_node(?NE_BINARY = Id) ->
@@ -145,12 +158,13 @@ diff_from_default(Id, Config) ->
 
 -spec build_default(kz_term:ne_binary(), kz_json:object()) -> kzd_system_configs:doc().
 build_default(Id, Config) ->
-    UpdatedConfig = lists:foldl(fun(Node, ConfigAcc) ->
-                                        apply_default_values(ConfigAcc, Node, Config)
-                                end
-                               ,kz_json:new()
-                               ,get_keys(Config)
-                               ),
+    UpdatedConfig = lists:foldl(
+        fun(Node, ConfigAcc) ->
+            apply_default_values(ConfigAcc, Node, Config)
+        end,
+        kz_json:new(),
+        get_keys(Config)
+    ),
     apply_schema_defaults(Id, UpdatedConfig).
 
 -spec build_default(kz_term:ne_binary()) -> kzd_system_configs:doc().
@@ -175,7 +189,8 @@ default_node(Id, _Node) ->
 stored_node(Id, Node) ->
     get_node(stored_config(Id, [<<"default">>, Node]), Node).
 
--spec diff_node_from_default(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
+-spec diff_node_from_default(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_json:object().
 diff_node_from_default(Id, ?DEFAULT, JObj) ->
     kz_json:diff(JObj, schema_defaults(Id));
 diff_node_from_default(Id, _Node, JObj) ->

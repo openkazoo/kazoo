@@ -14,24 +14,27 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/0
-        ,new/1, new/2, new/4
-        ,new_thief/2
-        ,stop_agent/2
-        ,workers/0
-        ,find_acct_supervisors/1
-        ,find_agent_supervisor/2
-        ,status/0
-        ,agents_running/0
-        ,restart_acct/1
-        ,restart_agent/2
-        ]).
+-export([
+    start_link/0,
+    new/1, new/2, new/4,
+    new_thief/2,
+    stop_agent/2,
+    workers/0,
+    find_acct_supervisors/1,
+    find_agent_supervisor/2,
+    status/0,
+    agents_running/0,
+    restart_acct/1,
+    restart_agent/2
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(CHILD_ID(AccountId, AgentId), <<AccountId/binary, "-", AgentId/binary>>).
--define(THIEF_ID(AccountId, QueueId, CallId), <<"thief-", AccountId/binary, "-", QueueId/binary, "-", CallId/binary>>).
+-define(THIEF_ID(AccountId, QueueId, CallId),
+    <<"thief-", AccountId/binary, "-", QueueId/binary, "-", CallId/binary>>
+).
 -define(CHILD(Id, Args), ?SUPER_NAME_ARGS_TYPE(Id, 'acdc_agent_sup', Args, 'transient')).
 -define(INITIAL_CHILDREN, []).
 
@@ -65,7 +68,8 @@ new(AcctId, AgentId) ->
     {'ok', JObj} = kz_datamgr:open_doc(kz_util:format_account_id(AcctId, 'encoded'), AgentId),
     start_agent(AcctId, AgentId, JObj).
 
--spec new(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) -> kz_types:sup_startchild_ret().
+-spec new(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) ->
+    kz_types:sup_startchild_ret().
 new(AcctId, AgentId, AgentJObj, Queues) ->
     start_agent(AcctId, AgentId, AgentJObj, [Queues]).
 
@@ -93,9 +97,10 @@ workers() -> [Pid || {_, Pid, 'supervisor', [_]} <- supervisor:which_children(?S
 
 -spec restart_acct(kz_term:ne_binary()) -> [kz_types:sup_startchild_ret()].
 restart_acct(AcctId) ->
-    [restart_agent(AcctId, AgentId)
-     || {_, {AcctId1, AgentId, _}} <- agents_running()
-            ,AcctId =:= AcctId1
+    [
+        restart_agent(AcctId, AgentId)
+     || {_, {AcctId1, AgentId, _}} <- agents_running(),
+        AcctId =:= AcctId1
     ].
 
 -spec restart_agent(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:sup_startchild_ret().
@@ -128,15 +133,18 @@ agents_running() ->
 -spec find_agent_supervisor(kz_term:api_binary(), kz_term:api_binary()) -> kz_term:api_pid().
 find_agent_supervisor(AcctId, AgentId) -> find_agent_supervisor(AcctId, AgentId, workers()).
 
--spec find_agent_supervisor(kz_term:api_binary(), kz_term:api_binary(), kz_term:pids()) -> kz_term:api_pid().
-find_agent_supervisor(AcctId, AgentId, _) when AcctId =:= 'undefined';
-                                               AgentId =:= 'undefined' ->
+-spec find_agent_supervisor(kz_term:api_binary(), kz_term:api_binary(), kz_term:pids()) ->
+    kz_term:api_pid().
+find_agent_supervisor(AcctId, AgentId, _) when
+    AcctId =:= 'undefined';
+    AgentId =:= 'undefined'
+->
     lager:debug("failed to get good data: ~s ~s", [AcctId, AgentId]),
     'undefined';
 find_agent_supervisor(AcctId, AgentId, []) ->
     lager:debug("supervisor for agent ~s(~s) not found", [AgentId, AcctId]),
     'undefined';
-find_agent_supervisor(AcctId, AgentId, [Super|Rest]) ->
+find_agent_supervisor(AcctId, AgentId, [Super | Rest]) ->
     case catch acdc_agent_listener:config(acdc_agent_sup:listener(Super)) of
         {'EXIT', _E} -> find_agent_supervisor(AcctId, AgentId, Rest);
         {AcctId, AgentId, _} -> Super;
@@ -173,19 +181,22 @@ init([]) ->
 %% account ID/agent ID pair.
 %% @end
 %%------------------------------------------------------------------------------
--spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_types:sup_startchild_ret().
+-spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_types:sup_startchild_ret().
 start_agent(AcctId, AgentId, AgentJObj) ->
     start_agent(AcctId, AgentId, AgentJObj, []).
 
--spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), [any()]) -> kz_types:sup_startchild_ret().
+-spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), [any()]) ->
+    kz_types:sup_startchild_ret().
 start_agent(AcctId, AgentId, AgentJObj, ExtraArgs) ->
     Id = ?CHILD_ID(AcctId, AgentId),
     case supervisor:start_child(?SERVER, ?CHILD(Id, [AcctId, AgentId, AgentJObj] ++ ExtraArgs)) of
-        {'error', 'already_present'}=E ->
+        {'error', 'already_present'} = E ->
             lager:debug("agent ~s(~s) already present", [AgentId, AcctId]),
             E;
-        {'error', {'already_started', Pid}}=E ->
+        {'error', {'already_started', Pid}} = E ->
             lager:debug("agent ~s(~s) already started here: ~p", [AgentId, AcctId, Pid]),
             E;
-        StartChildRet -> StartChildRet
+        StartChildRet ->
+            StartChildRet
     end.

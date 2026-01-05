@@ -86,7 +86,13 @@
 -export([delete_conference_queue/1]).
 -export([bind_q_to_conference/2, bind_q_to_conference/3]).
 -export([unbind_q_from_conference/2, unbind_q_from_conference/3, unbind_q_from_conference/4]).
--export([conference_publish/2, conference_publish/3, conference_publish/4, conference_publish/5, conference_publish/6]).
+-export([
+    conference_publish/2,
+    conference_publish/3,
+    conference_publish/4,
+    conference_publish/5,
+    conference_publish/6
+]).
 
 -export([presence_exchange/0]).
 -export([new_presence_queue/0, new_presence_queue/1]).
@@ -118,21 +124,26 @@
 
 -export([offnet_resource_publish/1, offnet_resource_publish/2, offnet_resource_publish/3]).
 
--export([configuration_exchange/0
-        ,configuration_publish/2, configuration_publish/3, configuration_publish/4
-        ,document_change_publish/5, document_change_publish/6
-        ]).
--export([document_routing_key/0, document_routing_key/1
-        ,document_routing_key/2, document_routing_key/3
-        ,document_routing_key/4
-        ]).
+-export([
+    configuration_exchange/0,
+    configuration_publish/2, configuration_publish/3, configuration_publish/4,
+    document_change_publish/5, document_change_publish/6
+]).
+-export([
+    document_routing_key/0,
+    document_routing_key/1,
+    document_routing_key/2,
+    document_routing_key/3,
+    document_routing_key/4
+]).
 -export([bind_q_to_configuration/2, unbind_q_from_configuration/2]).
 -export([new_configuration_queue/1, new_configuration_queue/2, delete_configuration_queue/1]).
 
 -export([monitor_exchange/0, monitor_publish/3]).
--export([bind_q_to_monitor/2
-        ,unbind_q_from_monitor/2
-        ]).
+-export([
+    bind_q_to_monitor/2,
+    unbind_q_from_monitor/2
+]).
 -export([new_monitor_queue/0, new_monitor_queue/1, delete_monitor_queue/1]).
 
 -export([bind_q_to_exchange/3, bind_q_to_exchange/4]).
@@ -158,21 +169,17 @@
 -export([trim/3]).
 -endif.
 
--define(KEY_SAFE(C), ((C >= $a
-                       andalso C =< $z
-                      )
-                      orelse (C >= $A
-                              andalso C =< $Z
-                             )
-                      orelse (C >= $0
-                              andalso C =< $9
-                             )
-                      orelse (C =:= $-
-                              orelse C =:= $~
-                              orelse C =:= $_
-                             )
-                     )
-       ).
+-define(KEY_SAFE(C),
+    ((C >= $a andalso
+        C =< $z) orelse
+        (C >= $A andalso
+            C =< $Z) orelse
+        (C >= $0 andalso
+            C =< $9) orelse
+        (C =:= $- orelse
+            C =:= $~ orelse
+            C =:= $_))
+).
 
 -define(P_GET(K, Prop), props:get_value(K, Prop)).
 -define(P_GET(K, Prop, D), props:get_value(K, Prop, D)).
@@ -195,7 +202,9 @@ targeted_publish(Queue, Payload) ->
 targeted_publish(?NE_BINARY = Queue, Payload, ContentType) ->
     targeted_publish(Queue, Payload, ContentType, []).
 
--spec targeted_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec targeted_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 targeted_publish(?NE_BINARY = Queue, Payload, ContentType, Options) ->
     basic_publish(?EXCHANGE_TARGETED, Queue, Payload, ContentType, Options).
 
@@ -215,7 +224,8 @@ kapps_publish(Routing, Payload) ->
 kapps_publish(Routing, Payload, ContentType) ->
     kapps_publish(Routing, Payload, ContentType, []).
 
--spec kapps_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec kapps_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 kapps_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_KAPPS, Routing, Payload, ContentType, Opts).
 
@@ -227,7 +237,9 @@ presence_publish(Routing, Payload) ->
 presence_publish(Routing, Payload, ContentType) ->
     presence_publish(Routing, Payload, ContentType, []).
 
--spec presence_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec presence_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 presence_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_PRESENCE, Routing, Payload, ContentType, Opts).
 
@@ -239,7 +251,9 @@ notifications_publish(Routing, Payload) ->
 notifications_publish(Routing, Payload, ContentType) ->
     notifications_publish(Routing, Payload, ContentType, []).
 
--spec notifications_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec notifications_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 notifications_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_NOTIFICATIONS, Routing, Payload, ContentType, Opts).
 
@@ -251,7 +265,8 @@ sysconf_publish(Routing, Payload) ->
 sysconf_publish(Routing, Payload, ContentType) ->
     sysconf_publish(Routing, Payload, ContentType, []).
 
--spec sysconf_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec sysconf_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 sysconf_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_SYSCONF, Routing, Payload, ContentType, Opts).
 
@@ -263,7 +278,9 @@ bookkeepers_publish(Routing, Payload) ->
 bookkeepers_publish(Routing, Payload, ContentType) ->
     bookkeepers_publish(Routing, Payload, ContentType, []).
 
--spec bookkeepers_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bookkeepers_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 bookkeepers_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_BOOKKEEPERS, Routing, Payload, ContentType, Opts).
 
@@ -277,7 +294,8 @@ bookkeepers_publish(Routing, Payload, ContentType, Opts) ->
 callmgr_publish(Payload, ContentType, RoutingKey) ->
     basic_publish(?EXCHANGE_CALLMGR, RoutingKey, Payload, ContentType).
 
--spec callmgr_publish(amqp_payload(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec callmgr_publish(amqp_payload(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 callmgr_publish(Payload, ContentType, RoutingKey, Opts) ->
     basic_publish(?EXCHANGE_CALLMGR, RoutingKey, Payload, ContentType, Opts).
 
@@ -289,20 +307,30 @@ configuration_publish(RoutingKey, Payload) ->
 configuration_publish(RoutingKey, Payload, ContentType) ->
     configuration_publish(RoutingKey, Payload, ContentType, []).
 
--spec configuration_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec configuration_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 configuration_publish(RoutingKey, Payload, ContentType, Props) ->
     basic_publish(?EXCHANGE_CONFIGURATION, RoutingKey, Payload, ContentType, Props).
 
 -spec document_change_publish(Action, Db, Type, Id, Payload) -> 'ok' when
-      Action :: atom(), %% edited | created | deleted
-      Db :: kz_term:ne_binary(),
-      Type :: kz_term:ne_binary(),
-      Id :: kz_term:ne_binary(),
-      Payload :: amqp_payload().
+    %% edited | created | deleted
+    Action :: atom(),
+    Db :: kz_term:ne_binary(),
+    Type :: kz_term:ne_binary(),
+    Id :: kz_term:ne_binary(),
+    Payload :: amqp_payload().
 document_change_publish(Action, Db, Type, Id, JSON) ->
     document_change_publish(Action, Db, Type, Id, JSON, ?DEFAULT_CONTENT_TYPE).
 
--spec document_change_publish(atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary()) -> 'ok'.
+-spec document_change_publish(
+    atom(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    amqp_payload(),
+    kz_term:ne_binary()
+) -> 'ok'.
 document_change_publish(Action, Db, Type, Id, Payload, ContentType) ->
     RoutingKey = document_routing_key(Action, Db, Type, Id),
     configuration_publish(RoutingKey, Payload, ContentType).
@@ -315,44 +343,70 @@ document_routing_key() ->
 document_routing_key(Action) ->
     document_routing_key(Action, <<"*">>).
 
--spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 document_routing_key(Action, Db) ->
     document_routing_key(Action, Db, <<"*">>).
 
--spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 document_routing_key(Action, Db, Type) ->
     document_routing_key(Action, Db, Type, <<"*">>).
 
--spec document_routing_key(atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec document_routing_key(
+    atom() | kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> kz_term:ne_binary().
 document_routing_key(<<"*">>, Db, Type, Id) ->
-    list_to_binary([<<"*.">>, kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
+    list_to_binary([
+        <<"*.">>,
+        kz_term:to_binary(Db),
+        ".",
+        kz_term:to_binary(Type),
+        ".",
+        encode(kz_term:to_binary(Id))
+    ]);
 document_routing_key(<<"db_", _/binary>> = Action, Db, Type, Id) ->
-    list_to_binary([Action
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
+    list_to_binary([
+        Action,
+        ".",
+        kz_term:to_binary(Db),
+        ".",
+        kz_term:to_binary(Type),
+        ".",
+        encode(kz_term:to_binary(Id))
+    ]);
 document_routing_key(<<"doc_", _/binary>> = Action, Db, Type, Id) ->
-    list_to_binary([Action
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
-document_routing_key(Action, Db, <<"database">>=Type, Id) ->
-    list_to_binary(["db_", kz_term:to_list(Action)
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]);
+    list_to_binary([
+        Action,
+        ".",
+        kz_term:to_binary(Db),
+        ".",
+        kz_term:to_binary(Type),
+        ".",
+        encode(kz_term:to_binary(Id))
+    ]);
+document_routing_key(Action, Db, <<"database">> = Type, Id) ->
+    list_to_binary([
+        "db_",
+        kz_term:to_list(Action),
+        ".",
+        kz_term:to_binary(Db),
+        ".",
+        kz_term:to_binary(Type),
+        ".",
+        encode(kz_term:to_binary(Id))
+    ]);
 document_routing_key(Action, Db, Type, Id) ->
-    list_to_binary(["doc_", kz_term:to_list(Action)
-                   ,".", kz_term:to_binary(Db)
-                   ,".", kz_term:to_binary(Type)
-                   ,".", encode(kz_term:to_binary(Id))
-                   ]).
+    list_to_binary([
+        "doc_",
+        kz_term:to_list(Action),
+        ".",
+        kz_term:to_binary(Db),
+        ".",
+        kz_term:to_binary(Type),
+        ".",
+        encode(kz_term:to_binary(Id))
+    ]).
 
 -spec callctl_publish(kz_term:ne_binary(), amqp_payload()) -> 'ok'.
 callctl_publish(CtrlQ, Payload) ->
@@ -362,7 +416,8 @@ callctl_publish(CtrlQ, Payload) ->
 callctl_publish(CtrlQ, Payload, ContentType) ->
     callctl_publish(CtrlQ, Payload, ContentType, []).
 
--spec callctl_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec callctl_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 callctl_publish(CtrlQ, Payload, ContentType, Props) ->
     basic_publish(?EXCHANGE_CALLCTL, CtrlQ, Payload, ContentType, Props).
 
@@ -374,7 +429,8 @@ callevt_publish(RoutingKey, Payload) ->
 callevt_publish(RoutingKey, Payload, ContentType) ->
     callevt_publish(RoutingKey, Payload, ContentType, []).
 
--spec callevt_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec callevt_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 callevt_publish(RoutingKey, Payload, ContentType, Prop) ->
     basic_publish(?EXCHANGE_CALLEVT, RoutingKey, Payload, ContentType, Prop).
 
@@ -425,7 +481,9 @@ conference_publish(Payload, 'event', ConfId) ->
 conference_publish(Payload, 'command', ConfId) ->
     conference_publish(Payload, 'command', ConfId, []).
 
--spec conference_publish(amqp_payload(), conf_routing_type(), kz_term:api_binary(), kz_term:proplist()) -> 'ok'.
+-spec conference_publish(
+    amqp_payload(), conf_routing_type(), kz_term:api_binary(), kz_term:proplist()
+) -> 'ok'.
 conference_publish(Payload, 'discovery', ConfId, Options) ->
     conference_publish(Payload, 'discovery', ConfId, Options, ?DEFAULT_CONTENT_TYPE);
 conference_publish(Payload, 'config', ConfId, Options) ->
@@ -435,17 +493,44 @@ conference_publish(Payload, 'event', ConfId, Options) ->
 conference_publish(Payload, 'command', ConfId, Options) ->
     conference_publish(Payload, 'command', ConfId, Options, ?DEFAULT_CONTENT_TYPE).
 
--spec conference_publish(amqp_payload(), conf_routing_type(), kz_term:api_binary(), kz_term:proplist(), kz_term:ne_binary()) -> 'ok'.
+-spec conference_publish(
+    amqp_payload(),
+    conf_routing_type(),
+    kz_term:api_binary(),
+    kz_term:proplist(),
+    kz_term:ne_binary()
+) -> 'ok'.
 conference_publish(Payload, 'discovery', _, Options, ContentType) ->
     basic_publish(?EXCHANGE_CONFERENCE, ?KEY_CONFERENCE_DISCOVERY, Payload, ContentType, Options);
 conference_publish(Payload, 'config', ConfProfile, Options, ContentType) ->
-    basic_publish(?EXCHANGE_CONFERENCE, <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>, Payload, ContentType, Options);
+    basic_publish(
+        ?EXCHANGE_CONFERENCE,
+        <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>,
+        Payload,
+        ContentType,
+        Options
+    );
 conference_publish(Payload, 'event', ConfId, Options, ContentType) ->
-    basic_publish(?EXCHANGE_CONFERENCE, <<?KEY_CONFERENCE_EVENT/binary, ConfId/binary>>, Payload, ContentType, Options);
+    basic_publish(
+        ?EXCHANGE_CONFERENCE,
+        <<?KEY_CONFERENCE_EVENT/binary, ConfId/binary>>,
+        Payload,
+        ContentType,
+        Options
+    );
 conference_publish(Payload, 'command', ConfId, Options, ContentType) ->
-    basic_publish(?EXCHANGE_CONFERENCE, conference_command_binding(ConfId), Payload, ContentType, Options).
+    basic_publish(
+        ?EXCHANGE_CONFERENCE, conference_command_binding(ConfId), Payload, ContentType, Options
+    ).
 
--spec conference_publish(amqp_payload(), 'event', kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> 'ok'.
+-spec conference_publish(
+    amqp_payload(),
+    'event',
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    kz_term:ne_binary()
+) -> 'ok'.
 conference_publish(Payload, 'event', ConfId, CallId, Options, ContentType) ->
     RoutingKey = <<?KEY_CONFERENCE_EVENT/binary, ConfId/binary, ".", CallId/binary>>,
     basic_publish(?EXCHANGE_CONFERENCE, RoutingKey, Payload, ContentType, Options).
@@ -458,7 +543,9 @@ registrar_publish(Routing, Payload) ->
 registrar_publish(Routing, Payload, ContentType) ->
     registrar_publish(Routing, Payload, ContentType, []).
 
--spec registrar_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec registrar_publish(
+    kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 registrar_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_REGISTRAR, Routing, Payload, ContentType, Opts).
 
@@ -470,7 +557,8 @@ leader_publish(Routing, Payload) ->
 leader_publish(Routing, Payload, ContentType) ->
     leader_publish(Routing, Payload, ContentType, []).
 
--spec leader_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec leader_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 leader_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_LEADER, Routing, Payload, ContentType, Opts).
 
@@ -482,10 +570,10 @@ tasks_publish(Routing, Payload) ->
 tasks_publish(Routing, Payload, ContentType) ->
     tasks_publish(Routing, Payload, ContentType, []).
 
--spec tasks_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec tasks_publish(kz_term:ne_binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) ->
+    'ok'.
 tasks_publish(Routing, Payload, ContentType, Opts) ->
     basic_publish(?EXCHANGE_TASKS, Routing, Payload, ContentType, Opts).
-
 
 %%------------------------------------------------------------------------------
 %% @doc Generic publisher for an `Exchange.Queue'.
@@ -501,55 +589,80 @@ basic_publish(Exchange, RoutingKey, Payload) ->
 basic_publish(Exchange, RoutingKey, Payload, ContentType) ->
     basic_publish(Exchange, RoutingKey, Payload, ContentType, []).
 
--spec basic_publish(kz_term:ne_binary(), binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
-basic_publish(Exchange, RoutingKey, Payload, ContentType, Prop)
-  when is_list(Payload) ->
+-spec basic_publish(
+    kz_term:ne_binary(), binary(), amqp_payload(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
+basic_publish(Exchange, RoutingKey, Payload, ContentType, Prop) when
+    is_list(Payload)
+->
     basic_publish(Exchange, RoutingKey, iolist_to_binary(Payload), ContentType, Prop);
-basic_publish(Exchange, <<"pid://", _/binary>>=RoutingKey, ?NE_BINARY = Payload, ContentType, Props)
-  when is_binary(Exchange),
-       is_binary(RoutingKey),
-       is_binary(ContentType),
-       is_list(Props) ->
+basic_publish(
+    Exchange, <<"pid://", _/binary>> = RoutingKey, ?NE_BINARY = Payload, ContentType, Props
+) when
+    is_binary(Exchange),
+    is_binary(RoutingKey),
+    is_binary(ContentType),
+    is_list(Props)
+->
     Headers = props:get_value('headers', Props, []),
-    {'match', [Pid, RK]}= re:run(RoutingKey, <<"pid://(.*)/(.*)">>, [{'capture', [1,2], 'binary'}]),
+    {'match', [Pid, RK]} = re:run(RoutingKey, <<"pid://(.*)/(.*)">>, [{'capture', [1, 2], 'binary'}]),
     NewProps = props:set_value('headers', [{?KEY_DELIVER_TO_PID, binary, Pid} | Headers], Props),
     basic_publish(Exchange, RK, Payload, ContentType, NewProps);
-basic_publish(Exchange, RoutingKey, ?NE_BINARY = Payload, ContentType, Props)
-  when is_binary(Exchange),
-       is_binary(RoutingKey),
-       is_binary(ContentType),
-       is_list(Props) ->
-    BP = #'basic.publish'{exchange = Exchange
-                         ,routing_key = RoutingKey
-                         ,mandatory = ?P_GET('mandatory', Props, 'false')
-                         ,immediate = ?P_GET('immediate', Props, 'false')
-                         },
+basic_publish(Exchange, RoutingKey, ?NE_BINARY = Payload, ContentType, Props) when
+    is_binary(Exchange),
+    is_binary(RoutingKey),
+    is_binary(ContentType),
+    is_list(Props)
+->
+    BP = #'basic.publish'{
+        exchange = Exchange,
+        routing_key = RoutingKey,
+        mandatory = ?P_GET('mandatory', Props, 'false'),
+        immediate = ?P_GET('immediate', Props, 'false')
+    },
 
     %% Add the message to the publish, converting to binary
     %% See http://www.rabbitmq.com/amqp-0-9-1-reference.html#class.basic
     MsgProps =
-        #'P_basic'{content_type = ContentType % MIME content type
-                  ,content_encoding = ?P_GET('content_encoding', Props) % MIME encoding
-                  ,headers = ?P_GET('headers', Props) % message headers
-                  ,delivery_mode = ?P_GET('delivery_mode', Props) % persistent(2) or not(1)
-                  ,priority = ?P_GET('priority', Props) % message priority, 0-9
-                  ,correlation_id = ?P_GET('correlation_id', Props) % correlation identifier
-                  ,reply_to = ?P_GET('reply_to', Props) % address to reply to
+        % MIME content type
+        #'P_basic'{
+            content_type = ContentType,
+            % MIME encoding
+            content_encoding = ?P_GET('content_encoding', Props),
+            % message headers
+            headers = ?P_GET('headers', Props),
+            % persistent(2) or not(1)
+            delivery_mode = ?P_GET('delivery_mode', Props),
+            % message priority, 0-9
+            priority = ?P_GET('priority', Props),
+            % correlation identifier
+            correlation_id = ?P_GET('correlation_id', Props),
+            % address to reply to
+            reply_to = ?P_GET('reply_to', Props),
 
-                   %% TODO:: new rabbit wants an integer...
-                  ,expiration = ?P_GET('expiration', Props) % expires time
+            %% TODO:: new rabbit wants an integer...
 
-                  ,message_id = ?P_GET('message_id', Props) % app message id
-                  ,timestamp = ?P_GET('timestamp', Props, kz_time:now_us()) % message timestamp
-                  ,type = ?P_GET('type', Props) % message type
-                  ,user_id = ?P_GET('user_id', Props) % creating user
-                  ,app_id = ?P_GET('app_id', Props) % creating app
-                  ,cluster_id = ?P_GET('cluster_id', Props) % cluster
-                  },
+            % expires time
+            expiration = ?P_GET('expiration', Props),
 
-    AM = #'amqp_msg'{payload = encode(MsgProps#'P_basic'.content_encoding, Payload)
-                    ,props = MsgProps
-                    },
+            % app message id
+            message_id = ?P_GET('message_id', Props),
+            % message timestamp
+            timestamp = ?P_GET('timestamp', Props, kz_time:now_us()),
+            % message type
+            type = ?P_GET('type', Props),
+            % creating user
+            user_id = ?P_GET('user_id', Props),
+            % creating app
+            app_id = ?P_GET('app_id', Props),
+            % cluster
+            cluster_id = ?P_GET('cluster_id', Props)
+        },
+
+    AM = #'amqp_msg'{
+        payload = encode(MsgProps#'P_basic'.content_encoding, Payload),
+        props = MsgProps
+    },
 
     case ?P_GET('maybe_publish', Props, 'false') of
         'true' -> kz_amqp_channel:maybe_publish(BP, AM);
@@ -631,7 +744,6 @@ leader_exchange() ->
 tasks_exchange() ->
     new_exchange(?EXCHANGE_TASKS, ?TYPE_TASKS).
 
-
 %%------------------------------------------------------------------------------
 %% @doc A generic Exchange maker.
 %% @end
@@ -643,32 +755,35 @@ new_exchange(Exchange, Type) ->
 
 -spec new_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 new_exchange(Exchange, Type, Options) ->
-    ED = #'exchange.declare'{exchange = Exchange
-                            ,type = Type
-                            ,passive = ?P_GET('passive', Options, 'false')
-                            ,durable = ?P_GET('durable', Options, 'false')
-                            ,auto_delete = ?P_GET('auto_delete', Options, 'false')
-                            ,internal = ?P_GET('internal', Options, 'false')
-                            ,nowait = ?P_GET('nowait', Options, 'false')
-                            ,arguments = ?P_GET('arguments', Options, [])
-                            },
+    ED = #'exchange.declare'{
+        exchange = Exchange,
+        type = Type,
+        passive = ?P_GET('passive', Options, 'false'),
+        durable = ?P_GET('durable', Options, 'false'),
+        auto_delete = ?P_GET('auto_delete', Options, 'false'),
+        internal = ?P_GET('internal', Options, 'false'),
+        nowait = ?P_GET('nowait', Options, 'false'),
+        arguments = ?P_GET('arguments', Options, [])
+    },
     kz_amqp_channel:command(ED).
 
 -spec declare_exchange(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_amqp_exchange().
 declare_exchange(Exchange, Type) ->
     declare_exchange(Exchange, Type, []).
 
--spec declare_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> kz_amqp_exchange().
+-spec declare_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    kz_amqp_exchange().
 declare_exchange(Exchange, Type, Options) ->
-    #'exchange.declare'{exchange = Exchange
-                       ,type = Type
-                       ,passive = ?P_GET('passive', Options, 'false')
-                       ,durable = ?P_GET('durable', Options, 'false')
-                       ,auto_delete = ?P_GET('auto_delete', Options, 'false')
-                       ,internal = ?P_GET('internal', Options, 'false')
-                       ,nowait = ?P_GET('nowait', Options, 'false')
-                       ,arguments = ?P_GET('arguments', Options, [])
-                       }.
+    #'exchange.declare'{
+        exchange = Exchange,
+        type = Type,
+        passive = ?P_GET('passive', Options, 'false'),
+        durable = ?P_GET('durable', Options, 'false'),
+        auto_delete = ?P_GET('auto_delete', Options, 'false'),
+        internal = ?P_GET('internal', Options, 'false'),
+        nowait = ?P_GET('nowait', Options, 'false'),
+        arguments = ?P_GET('arguments', Options, [])
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Create AMQP queues.
@@ -725,39 +840,48 @@ new_bookkeepers_queue(Queue) -> new_queue(Queue, [{'nowait', 'false'}]).
 
 -spec new_callevt_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_callevt_queue(<<>>) ->
-    new_queue(<<>>, [{'exclusive', 'false'}
-                    ,{'auto_delete', 'true'}
-                    ,{'nowait', 'false'}
-                    ]);
+    new_queue(<<>>, [
+        {'exclusive', 'false'},
+        {'auto_delete', 'true'},
+        {'nowait', 'false'}
+    ]);
 new_callevt_queue(CallID) ->
-    new_queue(list_to_binary([?EXCHANGE_CALLEVT, ".", encode(CallID)])
-             ,[{'exclusive', 'false'}
-              ,{'auto_delete', 'true'}
-              ,{'nowait', 'false'}
-              ]).
+    new_queue(
+        list_to_binary([?EXCHANGE_CALLEVT, ".", encode(CallID)]),
+        [
+            {'exclusive', 'false'},
+            {'auto_delete', 'true'},
+            {'nowait', 'false'}
+        ]
+    ).
 
 -spec new_callctl_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_callctl_queue(<<>>) ->
-    new_queue(<<>>, [{'exclusive', 'false'}
-                    ,{'auto_delete', 'true'}
-                    ,{'nowait', 'false'}
-                    ]);
+    new_queue(<<>>, [
+        {'exclusive', 'false'},
+        {'auto_delete', 'true'},
+        {'nowait', 'false'}
+    ]);
 new_callctl_queue(CallID) ->
-    new_queue(list_to_binary([?EXCHANGE_CALLCTL, ".", encode(CallID)])
-             ,[{'exclusive', 'false'}
-              ,{'auto_delete', 'true'}
-              ,{'nowait', 'false'}
-              ]).
+    new_queue(
+        list_to_binary([?EXCHANGE_CALLCTL, ".", encode(CallID)]),
+        [
+            {'exclusive', 'false'},
+            {'auto_delete', 'true'},
+            {'nowait', 'false'}
+        ]
+    ).
 
 -spec new_resource_queue() -> kz_term:ne_binary() | {'error', any()}.
 new_resource_queue() -> new_resource_queue(?RESOURCE_QUEUE_NAME).
 
 -spec new_resource_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_resource_queue(Queue) ->
-    new_queue(Queue, [{'exclusive', 'false'}
-                     ,{'auto_delete', 'true'}
-                     ,{'nowait', 'false'}
-                     ]).
+    new_queue(Queue, [
+        {'exclusive', 'false'},
+        {'auto_delete', 'true'},
+        {'nowait', 'false'}
+    ]).
 
 -spec new_callmgr_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_callmgr_queue(Queue) -> new_callmgr_queue(Queue, []).
@@ -768,7 +892,8 @@ new_callmgr_queue(Queue, Opts) -> new_queue(Queue, Opts).
 -spec new_configuration_queue(kz_term:ne_binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_configuration_queue(Queue) -> new_configuration_queue(Queue, []).
 
--spec new_configuration_queue(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:ne_binary() | {'error', any()}.
+-spec new_configuration_queue(kz_term:ne_binary(), kz_term:proplist()) ->
+    kz_term:ne_binary() | {'error', any()}.
 new_configuration_queue(Queue, Options) -> new_queue(Queue, Options).
 
 -spec new_monitor_queue() -> kz_term:ne_binary() | {'error', any()}.
@@ -776,19 +901,21 @@ new_monitor_queue() -> new_monitor_queue(<<>>).
 
 -spec new_monitor_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_monitor_queue(Queue) ->
-    new_queue(Queue, [{'exclusive', 'false'}
-                     ,{'auto_delete', 'true'}
-                     ]).
+    new_queue(Queue, [
+        {'exclusive', 'false'},
+        {'auto_delete', 'true'}
+    ]).
 
 -spec new_conference_queue() -> kz_term:ne_binary() | {'error', any()}.
 new_conference_queue() -> new_conference_queue(<<>>).
 
 -spec new_conference_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_conference_queue(Queue) ->
-    new_queue(Queue, [{'exclusive', 'false'}
-                     ,{'auto_delete', 'true'}
-                     ,{'nowait', 'false'}
-                     ]).
+    new_queue(Queue, [
+        {'exclusive', 'false'},
+        {'auto_delete', 'true'},
+        {'nowait', 'false'}
+    ]).
 
 -spec new_tasks_queue() -> kz_term:ne_binary() | {'error', any()}.
 new_tasks_queue() -> new_tasks_queue(<<>>).
@@ -796,10 +923,11 @@ new_tasks_queue() -> new_tasks_queue(<<>>).
 -spec new_tasks_queue(binary()) -> kz_term:ne_binary() | {'error', any()}.
 new_tasks_queue(Queue) -> new_queue(Queue, [{'nowait', 'false'}]).
 
-
--type new_queue_ret() :: kz_term:api_binary() | integer() |
-                         {kz_term:ne_binary(), integer(), integer()} |
-                         {'error', any()}.
+-type new_queue_ret() ::
+    kz_term:api_binary()
+    | integer()
+    | {kz_term:ne_binary(), integer(), integer()}
+    | {'error', any()}.
 
 %%------------------------------------------------------------------------------
 %% @doc Declare a queue and returns the queue Name.
@@ -824,30 +952,35 @@ new_queue(<<"amq.", _/binary>>, Options) ->
 new_queue(<<>>, Options) ->
     new_queue(new_queue_name(), Options);
 new_queue(Queue, Options) when is_binary(Queue) ->
-    QD = #'queue.declare'{queue = Queue
-                         ,passive = ?P_GET('passive', Options, 'false')
-                         ,durable = ?P_GET('durable', Options, 'false')
-                         ,exclusive = ?P_GET('exclusive', Options, 'false')
-                         ,auto_delete = ?P_GET('auto_delete', Options, 'true')
-                         ,nowait = ?P_GET('nowait', Options, 'false')
-                         ,arguments = queue_arguments(?P_GET('arguments', Options, []))
-                         },
+    QD = #'queue.declare'{
+        queue = Queue,
+        passive = ?P_GET('passive', Options, 'false'),
+        durable = ?P_GET('durable', Options, 'false'),
+        exclusive = ?P_GET('exclusive', Options, 'false'),
+        auto_delete = ?P_GET('auto_delete', Options, 'true'),
+        nowait = ?P_GET('nowait', Options, 'false'),
+        arguments = queue_arguments(?P_GET('arguments', Options, []))
+    },
 
     %% can be queue | message_count | consumer_count | all
     Return = ?P_GET('return_field', Options, 'queue'),
 
     case catch kz_amqp_channel:command(QD) of
-        {'ok', #'queue.declare_ok'{queue=Q}} when Return =:= 'queue' -> Q;
-        {'ok', #'queue.declare_ok'{message_count=Cnt}} when Return =:= 'message_count' -> Cnt;
-        {'ok', #'queue.declare_ok'{consumer_count=Cnt}} when Return =:= 'consumer_count' -> Cnt;
-        {'ok', #'queue.declare_ok'{queue=Q
-                                  ,message_count=MCnt
-                                  ,consumer_count=CCnt
-                                  }} when Return =:= 'all' ->
+        {'ok', #'queue.declare_ok'{queue = Q}} when Return =:= 'queue' -> Q;
+        {'ok', #'queue.declare_ok'{message_count = Cnt}} when Return =:= 'message_count' -> Cnt;
+        {'ok', #'queue.declare_ok'{consumer_count = Cnt}} when Return =:= 'consumer_count' -> Cnt;
+        {'ok', #'queue.declare_ok'{
+            queue = Q,
+            message_count = MCnt,
+            consumer_count = CCnt
+        }} when Return =:= 'all' ->
             {Q, MCnt, CCnt};
-        {'error', _}=E -> E;
-        {'EXIT', {{'shutdown', Reason}, _}} -> {'error', Reason};
-        {'EXIT',{'noproc', _}} -> {'error', 'no_channel'}
+        {'error', _} = E ->
+            E;
+        {'EXIT', {{'shutdown', Reason}, _}} ->
+            {'error', Reason};
+        {'EXIT', {'noproc', _}} ->
+            {'error', 'no_channel'}
     end.
 
 -spec new_queue_name() -> kz_term:ne_binary().
@@ -860,10 +993,11 @@ new_queue_name(Name) ->
 
 -spec queue_arguments(kz_term:proplist()) -> amqp_properties().
 queue_arguments(Arguments) ->
-    Routines = [fun max_length/2
-               ,fun message_ttl/2
-               ,fun max_priority/2
-               ],
+    Routines = [
+        fun max_length/2,
+        fun message_ttl/2,
+        fun max_priority/2
+    ],
     lists:foldl(fun(F, Acc) -> F(Arguments, Acc) end, Arguments, Routines).
 
 -spec max_priority(kz_term:proplist(), amqp_properties()) -> amqp_properties().
@@ -873,33 +1007,38 @@ max_priority(Args, Acc) ->
     case Property of
         Val when is_integer(Val) ->
             AMQPValue = trim(0, 255, Val),
-            [{<<"x-max-priority">>, 'byte', AMQPValue}|Acc1];
-        _Else -> Acc1
+            [{<<"x-max-priority">>, 'byte', AMQPValue} | Acc1];
+        _Else ->
+            Acc1
     end.
 
 -spec trim(integer(), integer(), integer()) -> integer().
-trim(Min, _  , Val) when Val < Min -> Min;
-trim(_  , Max, Val) when Val > Max -> Max;
-trim(_  , _  , Val)                -> Val.
+trim(Min, _, Val) when Val < Min -> Min;
+trim(_, Max, Val) when Val > Max -> Max;
+trim(_, _, Val) -> Val.
 
 -spec max_length(kz_term:proplist(), amqp_properties()) -> amqp_properties().
 max_length(Args, Acc) ->
     case props:get_value(<<"x-max-length">>, Args) of
-        'undefined' -> [{<<"x-max-length">>, 'short', 100}|Acc];
-        'infinity' -> props:delete(<<"x-max-length">>, Acc);
+        'undefined' ->
+            [{<<"x-max-length">>, 'short', 100} | Acc];
+        'infinity' ->
+            props:delete(<<"x-max-length">>, Acc);
         Value ->
             Acc1 = props:delete(<<"x-max-length">>, Acc),
-            [{<<"x-max-length">>, 'short', Value}|Acc1]
+            [{<<"x-max-length">>, 'short', Value} | Acc1]
     end.
 
 -spec message_ttl(kz_term:proplist(), amqp_properties()) -> amqp_properties().
 message_ttl(Args, Acc) ->
     case props:get_value(<<"x-message-ttl">>, Args) of
-        'undefined' -> [{<<"x-message-ttl">>, 'signedint', 60 * ?MILLISECONDS_IN_SECOND}|Acc];
-        'infinity' -> props:delete(<<"x-message-ttl">>, Acc);
+        'undefined' ->
+            [{<<"x-message-ttl">>, 'signedint', 60 * ?MILLISECONDS_IN_SECOND} | Acc];
+        'infinity' ->
+            props:delete(<<"x-message-ttl">>, Acc);
         Value ->
             Acc1 = props:delete(<<"x-message-ttl">>, Acc),
-            [{<<"x-message-ttl">>, 'signedint', Value}|Acc1]
+            [{<<"x-message-ttl">>, 'signedint', Value} | Acc1]
     end.
 
 %%------------------------------------------------------------------------------
@@ -966,11 +1105,12 @@ queue_delete(Queue) -> queue_delete(Queue, []).
 queue_delete(Queue, _Prop) when not is_binary(Queue) ->
     {'error', 'invalid_queue_name'};
 queue_delete(Queue, Prop) ->
-    QD = #'queue.delete'{queue=Queue
-                        ,if_unused = ?P_GET('if_unused', Prop, 'false')
-                        ,if_empty = ?P_GET('if_empty', Prop, 'false')
-                        ,nowait = ?P_GET('nowait', Prop, 'true')
-                        },
+    QD = #'queue.delete'{
+        queue = Queue,
+        if_unused = ?P_GET('if_unused', Prop, 'false'),
+        if_empty = ?P_GET('if_empty', Prop, 'false'),
+        nowait = ?P_GET('nowait', Prop, 'true')
+    },
     kz_amqp_channel:command(QD).
 
 %%------------------------------------------------------------------------------
@@ -1080,7 +1220,6 @@ bind_q_to_monitor(Queue, Routing) ->
 unbind_q_from_monitor(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_MONITOR).
 
-
 -spec bind_q_to_conference(kz_term:ne_binary(), conf_routing_type()) -> 'ok'.
 bind_q_to_conference(Queue, 'discovery') ->
     bind_q_to_conference(Queue, 'discovery', 'undefined');
@@ -1095,11 +1234,15 @@ bind_q_to_conference(Queue, 'config') ->
 bind_q_to_conference(Queue, 'discovery', _) ->
     bind_q_to_exchange(Queue, ?KEY_CONFERENCE_DISCOVERY, ?EXCHANGE_CONFERENCE);
 bind_q_to_conference(Queue, 'event', EventKey) ->
-    bind_q_to_exchange(Queue, <<?KEY_CONFERENCE_EVENT/binary, EventKey/binary>>, ?EXCHANGE_CONFERENCE);
+    bind_q_to_exchange(
+        Queue, <<?KEY_CONFERENCE_EVENT/binary, EventKey/binary>>, ?EXCHANGE_CONFERENCE
+    );
 bind_q_to_conference(Queue, 'command', ConfId) ->
     bind_q_to_exchange(Queue, conference_command_binding(ConfId), ?EXCHANGE_CONFERENCE);
 bind_q_to_conference(Queue, 'config', ConfProfile) ->
-    bind_q_to_exchange(Queue, <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>, ?EXCHANGE_CONFERENCE).
+    bind_q_to_exchange(
+        Queue, <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>, ?EXCHANGE_CONFERENCE
+    ).
 
 -spec conference_command_binding(kz_term:ne_binary()) -> kz_term:ne_binary().
 conference_command_binding(ConferenceId) ->
@@ -1127,14 +1270,20 @@ bind_q_to_exchange(Queue, _Routing, _Exchange) when not is_binary(Queue) ->
 bind_q_to_exchange(Queue, Routing, Exchange) ->
     bind_q_to_exchange(Queue, Routing, Exchange, []).
 
--spec bind_q_to_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
+-spec bind_q_to_exchange(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()
+) -> 'ok'.
 bind_q_to_exchange(Queue, Routing, Exchange, Options) ->
-    QB = #'queue.bind'{queue = Queue %% what queue does the binding attach to?
-                      ,exchange = Exchange %% what exchange does the binding attach to?
-                      ,routing_key = Routing %% how does an exchange know a message should go to a bound queue?
-                      ,nowait = ?P_GET('nowait', Options, 'false')
-                      ,arguments = []
-                      },
+    %% what queue does the binding attach to?
+    QB = #'queue.bind'{
+        queue = Queue,
+        %% what exchange does the binding attach to?
+        exchange = Exchange,
+        %% how does an exchange know a message should go to a bound queue?
+        routing_key = Routing,
+        nowait = ?P_GET('nowait', Options, 'false'),
+        arguments = []
+    },
     kz_amqp_channel:command(QB).
 
 %%------------------------------------------------------------------------------
@@ -1143,7 +1292,7 @@ bind_q_to_exchange(Queue, Routing, Exchange, Options) ->
 %%------------------------------------------------------------------------------
 
 -spec unbind_q_from_conference(kz_term:ne_binary(), conf_routing_type()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_conference(Queue, 'discovery') ->
     unbind_q_from_conference(Queue, 'discovery', 'undefined');
 unbind_q_from_conference(Queue, 'command') ->
@@ -1154,100 +1303,108 @@ unbind_q_from_conference(Queue, 'event') ->
     unbind_q_from_conference(Queue, 'event', <<"*">>).
 
 -spec unbind_q_from_conference(kz_term:ne_binary(), conf_routing_type(), kz_term:api_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_conference(Queue, 'discovery', _) ->
     unbind_q_from_exchange(Queue, ?KEY_CONFERENCE_DISCOVERY, ?EXCHANGE_CONFERENCE);
 unbind_q_from_conference(Queue, 'event', ConfId) ->
     unbind_q_from_conference(Queue, 'event', ConfId, <<"*">>);
 unbind_q_from_conference(Queue, 'config', ConfProfile) ->
-    unbind_q_from_exchange(Queue, <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>, ?EXCHANGE_CONFERENCE);
+    unbind_q_from_exchange(
+        Queue, <<?KEY_CONFERENCE_CONFIG/binary, ConfProfile/binary>>, ?EXCHANGE_CONFERENCE
+    );
 unbind_q_from_conference(Queue, 'command', ConfId) ->
     unbind_q_from_exchange(Queue, conference_command_binding(ConfId), ?EXCHANGE_CONFERENCE).
 
--spec unbind_q_from_conference(kz_term:ne_binary(), 'event', kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+-spec unbind_q_from_conference(
+    kz_term:ne_binary(), 'event', kz_term:ne_binary(), kz_term:ne_binary()
+) ->
+    'ok' | {'error', any()}.
 unbind_q_from_conference(Queue, 'event', ConfId, CallId) ->
-    unbind_q_from_exchange(Queue, <<?KEY_CONFERENCE_EVENT/binary, ConfId/binary, ".", CallId/binary>>, ?EXCHANGE_CONFERENCE).
+    unbind_q_from_exchange(
+        Queue,
+        <<?KEY_CONFERENCE_EVENT/binary, ConfId/binary, ".", CallId/binary>>,
+        ?EXCHANGE_CONFERENCE
+    ).
 
 -spec unbind_q_from_callctl(kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_callctl(Queue) ->
     unbind_q_from_exchange(Queue, Queue, ?EXCHANGE_CALLCTL).
 
 -spec unbind_q_from_notifications(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_notifications(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_NOTIFICATIONS).
 
 -spec unbind_q_from_sysconf(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_sysconf(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_SYSCONF).
 
 -spec unbind_q_from_bookkeepers(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_bookkeepers(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_BOOKKEEPERS).
 
 -spec unbind_q_from_resource(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_resource(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_RESOURCE).
 
 -spec unbind_q_from_callevt(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_callevt(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_CALLEVT).
 
 -spec unbind_q_from_callmgr(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_callmgr(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_CALLMGR).
 
 -spec unbind_q_from_configuration(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_configuration(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_CONFIGURATION).
 
 -spec unbind_q_from_targeted(kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_targeted(Queue) ->
     unbind_q_from_exchange(Queue, Queue, ?EXCHANGE_TARGETED).
 
 -spec unbind_q_from_nodes(kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_nodes(Queue) ->
     unbind_q_from_exchange(Queue, Queue, ?EXCHANGE_NODES).
 
 -spec unbind_q_from_kapps(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_kapps(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_KAPPS).
 
 -spec unbind_q_from_presence(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_presence(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_PRESENCE).
 
 -spec unbind_q_from_registrar(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_registrar(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_REGISTRAR).
 
 -spec unbind_q_from_tasks(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_tasks(Queue, Routing) ->
     unbind_q_from_exchange(Queue, Routing, ?EXCHANGE_TASKS).
 
-
 -spec unbind_q_from_exchange(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', any()}.
+    'ok' | {'error', any()}.
 unbind_q_from_exchange(Queue, Routing, Exchange) ->
-    UB = #'queue.unbind'{queue = Queue
-                        ,exchange = Exchange
-                        ,routing_key = Routing
-                        ,arguments = []
-                        },
+    UB = #'queue.unbind'{
+        queue = Queue,
+        exchange = Exchange,
+        routing_key = Routing,
+        arguments = []
+    },
     kz_amqp_channel:command(UB).
 
 %%------------------------------------------------------------------------------
@@ -1261,13 +1418,14 @@ basic_consume(Queue) -> basic_consume(Queue, []).
 
 -spec basic_consume(kz_term:ne_binary(), kz_term:proplist()) -> 'ok' | {'error', any()}.
 basic_consume(Queue, Options) ->
-    BC = #'basic.consume'{queue = Queue
-                         ,consumer_tag = <<>>
-                         ,no_local = ?P_GET('no_local', Options, 'false')
-                         ,no_ack = ?P_GET('no_ack', Options, 'true')
-                         ,exclusive = ?P_GET('exclusive', Options, 'true')
-                         ,nowait = ?P_GET('nowait', Options, 'false')
-                         },
+    BC = #'basic.consume'{
+        queue = Queue,
+        consumer_tag = <<>>,
+        no_local = ?P_GET('no_local', Options, 'false'),
+        no_ack = ?P_GET('no_ack', Options, 'true'),
+        exclusive = ?P_GET('exclusive', Options, 'true'),
+        nowait = ?P_GET('nowait', Options, 'false')
+    },
     kz_amqp_channel:command(BC).
 
 %%------------------------------------------------------------------------------
@@ -1280,7 +1438,7 @@ basic_consume(Queue, Options) ->
 basic_cancel() -> kz_amqp_channel:command(#'basic.cancel'{}).
 
 -spec basic_cancel(kz_term:ne_binary()) -> 'ok'.
-basic_cancel(ConsumerTag) -> kz_amqp_channel:command(#'basic.cancel'{consumer_tag=ConsumerTag}).
+basic_cancel(ConsumerTag) -> kz_amqp_channel:command(#'basic.cancel'{consumer_tag = ConsumerTag}).
 
 %%------------------------------------------------------------------------------
 %% @doc This method sets confirmation from server.
@@ -1300,11 +1458,11 @@ flow_control() -> flow_control('true').
 
 -spec flow_control(boolean()) -> 'ok'.
 flow_control(Active) ->
-    kz_amqp_channel:command(#'channel.flow'{active=Active}).
+    kz_amqp_channel:command(#'channel.flow'{active = Active}).
 
 -spec flow_control_reply(boolean()) -> 'ok'.
 flow_control_reply(Active) ->
-    kz_amqp_channel:command(#'channel.flow_ok'{active=Active}).
+    kz_amqp_channel:command(#'channel.flow_ok'{active = Active}).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -1315,20 +1473,21 @@ access_request() -> access_request([]).
 
 -spec access_request(kz_term:proplist()) -> #'access.request'{}.
 access_request(Options) ->
-    #'access.request'{realm = ?P_GET('realm', Options, <<"/data">>)
-                     ,exclusive = ?P_GET('exclusive', Options, 'false')
-                     ,passive = ?P_GET('passive', Options, 'true')
-                     ,active = ?P_GET('active', Options, 'true')
-                     ,write = ?P_GET('write', Options, 'true')
-                     ,read = ?P_GET('read', Options, 'true')
-                     }.
+    #'access.request'{
+        realm = ?P_GET('realm', Options, <<"/data">>),
+        exclusive = ?P_GET('exclusive', Options, 'false'),
+        passive = ?P_GET('passive', Options, 'true'),
+        active = ?P_GET('active', Options, 'true'),
+        write = ?P_GET('write', Options, 'true'),
+        read = ?P_GET('read', Options, 'true')
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Determines if the content is flagged as type JSON.
 %% @end
 %%------------------------------------------------------------------------------
 -spec is_json(amqp_basic()) -> boolean().
-is_json(#'P_basic'{content_type=CT}) -> CT =:= ?DEFAULT_CONTENT_TYPE.
+is_json(#'P_basic'{content_type = CT}) -> CT =:= ?DEFAULT_CONTENT_TYPE.
 
 %%------------------------------------------------------------------------------
 %% @doc When sent by the client, this method acknowledges one or more messages
@@ -1336,8 +1495,8 @@ is_json(#'P_basic'{content_type=CT}) -> CT =:= ?DEFAULT_CONTENT_TYPE.
 %% @end
 %%------------------------------------------------------------------------------
 -spec basic_ack(integer() | #'basic.deliver'{}) -> 'ok'.
-basic_ack(#'basic.deliver'{delivery_tag=DTag}) -> basic_ack(DTag);
-basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
+basic_ack(#'basic.deliver'{delivery_tag = DTag}) -> basic_ack(DTag);
+basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag = DTag}).
 
 %%------------------------------------------------------------------------------
 %% @doc  Reject one or more incoming messages.
@@ -1346,8 +1505,8 @@ basic_ack(DTag) -> kz_amqp_channel:command(#'basic.ack'{delivery_tag=DTag}).
 %% @end
 %%------------------------------------------------------------------------------
 -spec basic_nack(integer() | #'basic.deliver'{}) -> 'ok'.
-basic_nack(#'basic.deliver'{delivery_tag=DTag}) -> basic_nack(DTag);
-basic_nack(DTag) -> kz_amqp_channel:command(#'basic.nack'{delivery_tag=DTag}).
+basic_nack(#'basic.deliver'{delivery_tag = DTag}) -> basic_nack(DTag);
+basic_nack(DTag) -> kz_amqp_channel:command(#'basic.nack'{delivery_tag = DTag}).
 
 %%------------------------------------------------------------------------------
 %% @doc Determine if the AMQP host is currently reachable.
@@ -1367,10 +1526,11 @@ is_host_available() -> kz_amqp_connections:is_available().
 %%------------------------------------------------------------------------------
 -spec basic_qos(non_neg_integer()) -> 'ok'.
 basic_qos(PreFetch) when is_integer(PreFetch) ->
-    kz_amqp_channel:command(#'basic.qos'{prefetch_count = PreFetch
-                                        ,prefetch_size = 0
-                                        ,global = 'false'
-                                        }).
+    kz_amqp_channel:command(#'basic.qos'{
+        prefetch_count = PreFetch,
+        prefetch_size = 0,
+        global = 'false'
+    }).
 
 %%------------------------------------------------------------------------------
 %% @doc Encode a key so characters like dot won't interfere with routing separator.
@@ -1380,14 +1540,16 @@ basic_qos(PreFetch) when is_integer(PreFetch) ->
 encode(<<>>) -> <<>>;
 encode(<<"*">>) -> <<"*">>;
 encode(<<"#">>) -> <<"#">>;
-encode(Bin) -> << <<(encode_char(B))/binary>> || <<B>> <= Bin >>.
+encode(Bin) -> <<<<(encode_char(B))/binary>> || <<B>> <= Bin>>.
 
 -define(HI4(C), (C band 2#11110000) bsr 4).
 -define(LO4(C), (C band 2#00001111)).
 
 encode_char(C) when ?KEY_SAFE(C) -> <<C>>;
-encode_char($\s) -> <<$+>>;
-encode_char($.) -> <<$%, $2, $E>>;
+encode_char($\s) ->
+    <<$+>>;
+encode_char($.) ->
+    <<$%, $2, $E>>;
 encode_char(C) ->
     Hi4 = ?HI4(C),
     Lo4 = ?LO4(C),
@@ -1400,8 +1562,9 @@ hexint(C) when C < 16 -> ($A + (C - 10)).
 split_routing_key(<<"consumer://", _/binary>> = RoutingKey) ->
     Size = byte_size(RoutingKey),
     {Start, _} = lists:last(binary:matches(RoutingKey, <<"/">>)),
-    {list_to_pid(kz_term:to_list(binary:part(RoutingKey, 11, Start - 11)))
-    ,binary:part(RoutingKey, Start + 1, Size - Start - 1)
+    {
+        list_to_pid(kz_term:to_list(binary:part(RoutingKey, 11, Start - 11))),
+        binary:part(RoutingKey, Start + 1, Size - Start - 1)
     };
 split_routing_key(RoutingKey) ->
     {'undefined', RoutingKey}.

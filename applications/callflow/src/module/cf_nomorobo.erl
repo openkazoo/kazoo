@@ -46,14 +46,16 @@
 
 -behaviour(gen_cf_action).
 
--export([handle/2
-        ,nomorobo_req/2
-        ]).
+-export([
+    handle/2,
+    nomorobo_req/2
+]).
 
 -ifdef(TEST).
--export([nomorobo_branches/1
-        ,nomorobo_branch/2
-        ]).
+-export([
+    nomorobo_branches/1,
+    nomorobo_branch/2
+]).
 -endif.
 
 -include("callflow.hrl").
@@ -74,7 +76,7 @@ handle(Data, Call) ->
     end.
 
 -spec nomorobo_score(kz_json:object(), kapps_call:call()) ->
-          kz_term:api_integer().
+    kz_term:api_integer().
 nomorobo_score(Data, Call) ->
     URI = nomorobo_uri(Call),
 
@@ -99,21 +101,26 @@ nomorobo_score(Data, Call) ->
 nomorobo_req(URI, Data) ->
     Username = kz_json:get_binary_value(<<"username">>, Data),
     Password = kz_json:get_binary_value(<<"password">>, Data),
-    Options = [{'basic_auth', {Username, Password}}
-              ,{'ssl', [{'verify', 'verify_none'}]}
-              ],
+    Options = [
+        {'basic_auth', {Username, Password}},
+        {'ssl', [{'verify', 'verify_none'}]}
+    ],
 
     kz_http:get(kz_term:to_list(URI), [], Options).
 
 -spec nomorobo_uri(kapps_call:call()) -> kz_term:ne_binary().
 nomorobo_uri(Call) ->
-    lists:foldl(fun uri_replace/2
-               ,?URL
-               ,[{<<"{TO}">>, knm_converters:to_npan(kapps_call:request_user(Call))}
-                ,{<<"{FROM}">>, knm_converters:to_npan(kapps_call:caller_id_number(Call))}
-                ]).
+    lists:foldl(
+        fun uri_replace/2,
+        ?URL,
+        [
+            {<<"{TO}">>, knm_converters:to_npan(kapps_call:request_user(Call))},
+            {<<"{FROM}">>, knm_converters:to_npan(kapps_call:caller_id_number(Call))}
+        ]
+    ).
 
--spec uri_replace({kz_term:ne_binary(), kz_term:ne_binary()}, kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec uri_replace({kz_term:ne_binary(), kz_term:ne_binary()}, kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 uri_replace({S, R}, U) -> binary:replace(U, S, R).
 
 -spec nomorobo_score_from_resp(binary()) -> kz_term:api_integer().
@@ -135,26 +142,27 @@ continue_to_score(Call, Score) ->
     cf_exe:continue(Branch, Call).
 
 -spec nomorobo_branch(integer(), kz_term:integers()) -> kz_term:ne_binary().
-nomorobo_branch(Score, [Lo|Keys]) ->
+nomorobo_branch(Score, [Lo | Keys]) ->
     branch_to_binary(nomorobo_branch(Score, Lo, Keys)).
 
 -spec branch_to_binary(integer()) -> kz_term:ne_binary().
 branch_to_binary(-1) -> ?DEFAULT_CHILD_KEY;
 branch_to_binary(I) -> kz_term:to_binary(I).
 
-nomorobo_branch(_Score, Branch, []) -> Branch;
-nomorobo_branch(Score, _Lo, [K|Ks]) when K =< Score ->
+nomorobo_branch(_Score, Branch, []) ->
+    Branch;
+nomorobo_branch(Score, _Lo, [K | Ks]) when K =< Score ->
     nomorobo_branch(Score, K, Ks);
-nomorobo_branch(Score, Lo, [_K|Ks]) ->
+nomorobo_branch(Score, Lo, [_K | Ks]) ->
     nomorobo_branch(Score, Lo, Ks).
 
 -spec continue_to_default(kapps_call:call()) -> 'ok'.
 continue_to_default(Call) ->
     case nomorobo_branches(cf_exe:get_all_branch_keys(Call)) of
-        [-1|_] ->
+        [-1 | _] ->
             lager:info("branching to default child"),
             cf_exe:continue(Call);
-        [0|_] ->
+        [0 | _] ->
             lager:info("branching to '0' child"),
             cf_exe:continue(<<"0">>, Call);
         _ ->
@@ -169,9 +177,9 @@ nomorobo_branches({'branch_keys', Keys}) ->
 -spec nomorobo_branches(kz_term:ne_binaries(), kz_term:integers()) -> kz_term:integers().
 nomorobo_branches([], Branches) ->
     lists:sort(Branches);
-nomorobo_branches([?DEFAULT_CHILD_KEY|Keys], Branches) ->
+nomorobo_branches([?DEFAULT_CHILD_KEY | Keys], Branches) ->
     nomorobo_branches(Keys, [-1 | Branches]);
-nomorobo_branches([Key|Keys], Branches) ->
+nomorobo_branches([Key | Keys], Branches) ->
     try kz_term:to_integer(Key) of
         I -> nomorobo_branches(Keys, [I | Branches])
     catch

@@ -29,10 +29,19 @@ handle(Data, Call) ->
     CustomHeaders = kz_json:get_ne_json_value(<<"custom_sip_headers">>, Data),
 
     lager:info("attempting ~b user devices with strategy ~s", [length(Endpoints), Strategy]),
-    case length(Endpoints) > 0
-        andalso kapps_call_command:b_bridge(Endpoints, Timeout, Strategy, IgnoreEarlyMedia
-                                           ,'undefined', CustomHeaders, <<"false">>, FailOnSingleReject, Call
-                                           )
+    case
+        length(Endpoints) > 0 andalso
+            kapps_call_command:b_bridge(
+                Endpoints,
+                Timeout,
+                Strategy,
+                IgnoreEarlyMedia,
+                'undefined',
+                CustomHeaders,
+                <<"false">>,
+                FailOnSingleReject,
+                Call
+            )
     of
         'false' ->
             lager:notice("user ~s has no endpoints", [UserId]),
@@ -40,7 +49,8 @@ handle(Data, Call) ->
         {'ok', _} ->
             lager:info("completed successful bridge to user"),
             cf_exe:stop(Call);
-        {'fail', _}=Reason -> maybe_handle_bridge_failure(Reason, Call);
+        {'fail', _} = Reason ->
+            maybe_handle_bridge_failure(Reason, Call);
         {'error', _R} ->
             lager:info("error bridging to user: ~p", [_R]),
             cf_exe:continue(Call)
@@ -59,8 +69,9 @@ maybe_handle_bridge_failure(Reason, Call) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_endpoints(kz_term:api_binary(), kz_json:object(), kapps_call:call()) ->
-          kz_json:objects().
-get_endpoints('undefined', _, _) -> [];
+    kz_json:objects().
+get_endpoints('undefined', _, _) ->
+    [];
 get_endpoints(UserId, Data, Call) ->
     Params = kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Data),
     kz_endpoints:by_owner_id(UserId, Params, Call).

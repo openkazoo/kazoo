@@ -45,18 +45,20 @@ normalize_kz_nodes(Nodes) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec extract_node_metadata(kz_types:kz_node(), kz_json:objects()) -> kz_json:objects().
-extract_node_metadata(#kz_node{node=NodeName, version=Version, zone=Zone}=Node, Acc) ->
-    Routines = [{fun maybe_extract_apps_metadata/2, Node}
-               ,{fun maybe_extract_freeswitch_metadata/2, Node}
-               ,{fun maybe_extract_kamailio_metadata/2, Node}
-               ],
+extract_node_metadata(#kz_node{node = NodeName, version = Version, zone = Zone} = Node, Acc) ->
+    Routines = [
+        {fun maybe_extract_apps_metadata/2, Node},
+        {fun maybe_extract_freeswitch_metadata/2, Node},
+        {fun maybe_extract_kamailio_metadata/2, Node}
+    ],
     NodeMeta = lists:foldl(fun({F, N}, A) -> F(N, A) end, kz_json:new(), Routines),
-    JObj = kz_json:from_list([{<<"node">>, NodeName}
-                             ,{<<"zone">>, Zone}
-                             ,{<<"type">>, node_type(Node)}
-                             ,{<<"version">>, Version}
-                             ,{<<"metadata">>, NodeMeta}
-                             ]),
+    JObj = kz_json:from_list([
+        {<<"node">>, NodeName},
+        {<<"zone">>, Zone},
+        {<<"type">>, node_type(Node)},
+        {<<"version">>, Version},
+        {<<"metadata">>, NodeMeta}
+    ]),
     [JObj | Acc].
 
 %%------------------------------------------------------------------------------
@@ -64,8 +66,9 @@ extract_node_metadata(#kz_node{node=NodeName, version=Version, zone=Zone}=Node, 
 %% @end
 %%------------------------------------------------------------------------------
 -spec node_type(kz_types:kz_node()) -> kz_term:ne_binary().
-node_type(#kz_node{kapps=[{<<"kamailio">>=NodeType, _}]}) -> NodeType;
-node_type(#kz_node{kapps=Kapps}) ->
+node_type(#kz_node{kapps = [{<<"kamailio">> = NodeType, _}]}) ->
+    NodeType;
+node_type(#kz_node{kapps = Kapps}) ->
     case proplists:is_defined(<<"ecallmgr">>, Kapps) of
         'true' -> <<"ecallmgr">>;
         _ -> <<"kapps">>
@@ -76,7 +79,7 @@ node_type(#kz_node{kapps=Kapps}) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_extract_apps_metadata(kz_types:kz_node(), kz_json:objects()) -> kz_json:objects().
-maybe_extract_apps_metadata(#kz_node{kapps=Apps}, Acc) ->
+maybe_extract_apps_metadata(#kz_node{kapps = Apps}, Acc) ->
     AppsMeta = lists:foldl(fun app_metadata/2, [], Apps),
     kz_json:set_value(<<"apps">>, AppsMeta, Acc).
 
@@ -86,9 +89,10 @@ maybe_extract_apps_metadata(#kz_node{kapps=Apps}, Acc) ->
 %%------------------------------------------------------------------------------
 -spec app_metadata({kz_term:ne_binary(), #whapp_info{}}, kz_json:objects()) -> kz_json:objects().
 app_metadata({AppName, {'whapp_info', StartTs, _}}, Acc) ->
-    JObj = kz_json:from_list([{<<"name">>, AppName}
-                             ,{<<"startup">>, StartTs}
-                             ]),
+    JObj = kz_json:from_list([
+        {<<"name">>, AppName},
+        {<<"startup">>, StartTs}
+    ]),
     [JObj | Acc].
 
 %%------------------------------------------------------------------------------
@@ -96,8 +100,9 @@ app_metadata({AppName, {'whapp_info', StartTs, _}}, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_extract_freeswitch_metadata(kz_types:node(), kz_json:objects()) -> kz_json:objects().
-maybe_extract_freeswitch_metadata(#kz_node{media_servers=[]}, Acc) -> Acc;
-maybe_extract_freeswitch_metadata(#kz_node{media_servers=Servers}, Acc) ->
+maybe_extract_freeswitch_metadata(#kz_node{media_servers = []}, Acc) ->
+    Acc;
+maybe_extract_freeswitch_metadata(#kz_node{media_servers = Servers}, Acc) ->
     MediaServers = media_servers(Servers),
     kz_json:set_value(<<"media_servers">>, MediaServers, Acc).
 
@@ -113,12 +118,21 @@ media_servers(Servers) ->
 %% @doc extract runtime stats and version info from media server entry
 %% @end
 %%------------------------------------------------------------------------------
--spec media_servers_foldl({kz_term:ne_binary(), kz_json:object()}, kz_json:objects()) -> kz_json:objects().
+-spec media_servers_foldl({kz_term:ne_binary(), kz_json:object()}, kz_json:objects()) ->
+    kz_json:objects().
 media_servers_foldl({Server, Meta}, Acc) ->
-    Stats = kz_json:from_list(props:filter_empty([{<<"sessions">>, kz_json:get_value(<<"Sessions">>, Meta)}
-                                                 ,{<<"startup">>, kz_json:get_value(<<"Startup">>, Meta)}
-                                                 ,{<<"version">>, binary:replace(kz_json:get_ne_binary_value(<<"Version">>, Meta, <<"">>), <<" ">>, <<"-">>, ['global'])}
-                                                 ])),
+    Stats = kz_json:from_list(
+        props:filter_empty([
+            {<<"sessions">>, kz_json:get_value(<<"Sessions">>, Meta)},
+            {<<"startup">>, kz_json:get_value(<<"Startup">>, Meta)},
+            {<<"version">>,
+                binary:replace(
+                    kz_json:get_ne_binary_value(<<"Version">>, Meta, <<"">>), <<" ">>, <<"-">>, [
+                        'global'
+                    ]
+                )}
+        ])
+    ),
     kz_json:set_value(Server, Stats, Acc).
 
 %%------------------------------------------------------------------------------
@@ -126,10 +140,12 @@ media_servers_foldl({Server, Meta}, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_extract_kamailio_metadata(kz_types:kz_node(), kz_json:objects()) -> kz_json:objects().
-maybe_extract_kamailio_metadata(#kz_node{roles=[]}, Acc) -> Acc;
-maybe_extract_kamailio_metadata(#kz_node{roles=Roles}, Acc) ->
+maybe_extract_kamailio_metadata(#kz_node{roles = []}, Acc) ->
+    Acc;
+maybe_extract_kamailio_metadata(#kz_node{roles = Roles}, Acc) ->
     case props:get_value(<<"Registrar">>, Roles) of
-        'undefined' -> Acc;
+        'undefined' ->
+            Acc;
         Registrar ->
             Registrations = kz_json:get_integer_value(<<"Registrations">>, Registrar, 0),
             lager:notice("Registrations: ~p", [Registrations]),

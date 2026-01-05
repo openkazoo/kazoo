@@ -33,7 +33,6 @@ start(_Type, _Args) ->
 stop(_State) ->
     'ok'.
 
-
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     _ = kapi_call:declare_exchanges(),
@@ -41,10 +40,12 @@ declare_exchanges() ->
     _ = kapi_conf:declare_exchanges(),
     _ = kapi_conference:declare_exchanges(),
     _ = kapi_dialplan:declare_exchanges(),
-    _ = kapi_fax:declare_exchanges(), %% TODO: decouple
+    %% TODO: decouple
+    _ = kapi_fax:declare_exchanges(),
     _ = kapi_notifications:declare_exchanges(),
     _ = kapi_offnet_resource:declare_exchanges(),
-    _ = kapi_pivot:declare_exchanges(), %% TODO: decouple
+    %% TODO: decouple
+    _ = kapi_pivot:declare_exchanges(),
     _ = kapi_route:declare_exchanges(),
     _ = kapi_presence:declare_exchanges(),
     _ = kapi_metaflow:declare_exchanges(),

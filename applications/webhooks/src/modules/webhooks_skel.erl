@@ -5,10 +5,11 @@
 %%%-----------------------------------------------------------------------------
 -module(webhooks_skel).
 
--export([init/0
-        ,bindings_and_responders/0
-        ,handle_event/2
-        ]).
+-export([
+    init/0,
+    bindings_and_responders/0,
+    handle_event/2
+]).
 
 -include("webhooks.hrl").
 
@@ -16,12 +17,13 @@
 -define(HOOK_NAME, <<"skel">>).
 -define(NAME, <<"Skel">>).
 -define(DESC, <<"Example webhook module">>).
--define(METADATA
-       ,kz_json:from_list([{<<"_id">>, ?ID}
-                          ,{<<"name">>, ?NAME}
-                          ,{<<"description">>, ?DESC}
-                          ])
-       ).
+-define(METADATA,
+    kz_json:from_list([
+        {<<"_id">>, ?ID},
+        {<<"name">>, ?NAME},
+        {<<"description">>, ?DESC}
+    ])
+).
 
 -spec init() -> 'ok'.
 init() ->
@@ -29,12 +31,7 @@ init() ->
 
 -spec bindings_and_responders() -> {gen_listener:bindings(), gen_listener:responders()}.
 bindings_and_responders() ->
-    {[{'self', []}]
-    ,[{{?MODULE, 'handle_event'}
-      ,[{<<"category">>, <<"name">>}]
-      }
-     ]
-    }.
+    {[{'self', []}], [{{?MODULE, 'handle_event'}, [{<<"category">>, <<"name">>}]}]}.
 
 -spec handle_event(kz_json:object(), kz_term:proplist()) -> any().
 handle_event(JObj, _Props) ->

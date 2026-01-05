@@ -14,7 +14,6 @@
 -export([sort_by/1, sort_by/2, set_sort_by/2]).
 -export([users/1, users/2, set_users/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

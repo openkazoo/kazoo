@@ -8,16 +8,17 @@
 
 -export([retry504s/1]).
 
--export([new_connection/1
-        ,admin_connection/1
-        ,get_db/2
-        ,server_url/1
-        ,db_url/2
-        ,server_info/1
-        ,connection_info/1
-        ,format_error/1
-        ,is_couchdb/1
-        ]).
+-export([
+    new_connection/1,
+    admin_connection/1,
+    get_db/2,
+    server_url/1,
+    db_url/2,
+    server_info/1,
+    connection_info/1,
+    format_error/1,
+    is_couchdb/1
+]).
 
 -export([maybe_add_rev/3]).
 
@@ -50,37 +51,39 @@ retry504s(Fun, Cnt) ->
     try Fun() of
         {'error', {'ok', 504, _, _}} ->
             kazoo_stats:increment_counter(<<"bigcouch-504-error">>),
-            timer:sleep(100 * (Cnt+1)),
-            retry504s(Fun, Cnt+1);
+            timer:sleep(100 * (Cnt + 1)),
+            retry504s(Fun, Cnt + 1);
         {'error', {'ok', 500, _, _}} ->
             kazoo_stats:increment_counter(<<"bigcouch-500-error">>),
-            timer:sleep(100 * (Cnt+1)),
-            retry504s(Fun, Cnt+1);
+            timer:sleep(100 * (Cnt + 1)),
+            retry504s(Fun, Cnt + 1);
         {'error', {'ok', ErrCode, _Hdrs, _Body}} ->
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
             {'error', kz_term:to_integer(ErrCode)};
         %% couchbeam doesn't pass 202 as acceptable
-        {'error', {'bad_response',{202, _Headers, Body}}} ->
+        {'error', {'bad_response', {202, _Headers, Body}}} ->
             {'ok', kz_json:decode(Body)};
-        {'error', {'bad_response',{204, _Headers, _Body}}} ->
+        {'error', {'bad_response', {204, _Headers, _Body}}} ->
             {'ok', kz_json:new()};
-        {'error', {'bad_response',{_Code, _Headers, _Body}}=Response} ->
+        {'error', {'bad_response', {_Code, _Headers, _Body}} = Response} ->
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
             lager:critical("response code ~b not expected : ~p", [_Code, _Body]),
             {'error', format_error(Response)};
-        {'error', Other}=Error when is_binary(Other) ->
+        {'error', Other} = Error when is_binary(Other) ->
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
             Error;
         {'error', Other} ->
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
             {'error', format_error(Other)};
-        OK -> OK
-    catch _E:_R ->
+        OK ->
+            OK
+    catch
+        _E:_R ->
             ST = erlang:get_stacktrace(),
             lager:debug("exception running fun: ~p:~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             kazoo_stats:increment_counter(<<"bigcouch-other-error">>),
-            retry504s(Fun, Cnt+1)
+            retry504s(Fun, Cnt + 1)
     end.
 
 %%------------------------------------------------------------------------------
@@ -88,21 +91,23 @@ retry504s(Fun, Cnt) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec new_connection(couch_connection() | map()) ->
-          server() |
-          {'error', 'timeout' | 'ehostunreach' | _}.
-new_connection(#{}=Map) ->
+    server()
+    | {'error', 'timeout' | 'ehostunreach' | _}.
+new_connection(#{} = Map) ->
     connect(maps:fold(fun connection_parse/3, #kz_couch_connection{}, Map)).
 
 -spec maybe_add_auth(string(), string(), string()) -> string() | binary().
-maybe_add_auth("", _Pass, Host) -> Host;
+maybe_add_auth("", _Pass, Host) ->
+    Host;
 maybe_add_auth(User, Pass, Host) ->
     list_to_binary([kz_term:to_binary(User), ":", kz_term:to_binary(Pass), "@", Host]).
 
 check_options(Options) ->
-    Routines = [fun convert_options/1
-               ,fun filter_options/1
-               ,fun maybe_default_recv_timeout/1
-               ],
+    Routines = [
+        fun convert_options/1,
+        fun filter_options/1,
+        fun maybe_default_recv_timeout/1
+    ],
     lists:foldl(fun(Fun, Opts) -> Fun(Opts) end, Options, Routines).
 
 -spec maybe_default_recv_timeout(kz_term:proplist()) -> kz_term:proplist().
@@ -113,7 +118,7 @@ maybe_default_recv_timeout(Options) ->
     end.
 
 filter_options(Options) ->
-    [ KV || {K, _} = KV <- Options, not lists:member(K, ?NO_OPTIONS)].
+    [KV || {K, _} = KV <- Options, not lists:member(K, ?NO_OPTIONS)].
 
 convert_options(Options) ->
     [convert_option(O) || O <- Options].
@@ -126,70 +131,79 @@ convert_option({K, V} = KV) ->
     end.
 
 -spec connection_parse(any(), any(), couch_connection()) -> couch_connection().
-connection_parse(settings, Map, Conn)
-  when is_map(Map) ->
+connection_parse(settings, Map, Conn) when
+    is_map(Map)
+->
     maps:fold(fun connection_parse/3, Conn, Map);
 connection_parse(credentials, #{username := Username, password := Password}, Conn) ->
-    Conn#kz_couch_connection{username=Username, password=Password};
-connection_parse(pool, #{name := PoolName, size := PoolSize}, #kz_couch_connection{options=Options}=Conn) ->
-    KVs = [{pool, PoolName}
-          ,{pool_name, PoolName}
-          ,{pool_size, PoolSize}
-          ],
+    Conn#kz_couch_connection{username = Username, password = Password};
+connection_parse(
+    pool, #{name := PoolName, size := PoolSize}, #kz_couch_connection{options = Options} = Conn
+) ->
+    KVs = [
+        {pool, PoolName},
+        {pool_name, PoolName},
+        {pool_size, PoolSize}
+    ],
     Conn#kz_couch_connection{options = Options ++ KVs};
 connection_parse(ip, V, Conn) ->
-    Conn#kz_couch_connection{host=V};
+    Conn#kz_couch_connection{host = V};
 connection_parse(host, V, Conn) ->
-    Conn#kz_couch_connection{host=V};
+    Conn#kz_couch_connection{host = V};
 connection_parse(port, V, Conn) ->
-    Conn#kz_couch_connection{port=V};
+    Conn#kz_couch_connection{port = V};
 connection_parse(username, V, Conn) ->
-    Conn#kz_couch_connection{username=V};
+    Conn#kz_couch_connection{username = V};
 connection_parse(password, V, Conn) ->
-    Conn#kz_couch_connection{password=V};
-connection_parse(K, V, #kz_couch_connection{options=Options}=Conn) ->
+    Conn#kz_couch_connection{password = V};
+connection_parse(K, V, #kz_couch_connection{options = Options} = Conn) ->
     Conn#kz_couch_connection{options = [{K, V} | Options]}.
 
 -spec connect(couch_connection()) ->
-          {'ok', server()} |
-          {'error', 'timeout'} |
-          {'error', 'ehostunreach'}.
-connect(#kz_couch_connection{host=Host
-                            ,port=Port
-                            ,username=User
-                            ,password=Pass
-                            ,options=Options
-                            }) ->
-    ConnMap = #{host => Host
-               ,port => Port
-               ,username => User
-               ,password => Pass
-               ,options => Options
-               },
+    {'ok', server()}
+    | {'error', 'timeout'}
+    | {'error', 'ehostunreach'}.
+connect(#kz_couch_connection{
+    host = Host,
+    port = Port,
+    username = User,
+    password = Pass,
+    options = Options
+}) ->
+    ConnMap = #{
+        host => Host,
+        port => Port,
+        username => User,
+        password => Pass,
+        options => Options
+    },
     Opts = [{'connection_map', ConnMap} | check_options(Options)],
-    Conn = couchbeam:server_connection(kz_term:to_list(maybe_add_auth(User, Pass, Host)), Port, <<>>, Opts),
+    Conn = couchbeam:server_connection(
+        kz_term:to_list(maybe_add_auth(User, Pass, Host)), Port, <<>>, Opts
+    ),
     lager:debug("new connection to host ~s:~b, testing: ~p", [Host, Port, Conn]),
     connection_info(Conn).
 
 -spec add_couch_version(kz_term:ne_binary(), kz_term:api_ne_binary(), server()) -> server().
-add_couch_version(<<"1.6", _/binary>>, 'undefined', #server{options=Options}=Conn) ->
+add_couch_version(<<"1.6", _/binary>>, 'undefined', #server{options = Options} = Conn) ->
     Conn#server{options = props:set_value('driver_version', 'couchdb_1_6', Options)};
-add_couch_version(<<"1.1", _/binary>>, _Bigcouch, #server{options=Options}=Conn) ->
+add_couch_version(<<"1.1", _/binary>>, _Bigcouch, #server{options = Options} = Conn) ->
     Conn#server{options = props:set_value('driver_version', 'bigcouch', Options)};
-add_couch_version(_, 'undefined', #server{options=Options}=Conn) ->
+add_couch_version(_, 'undefined', #server{options = Options} = Conn) ->
     Conn#server{options = props:set_value('driver_version', 'couchdb_2', Options)};
-add_couch_version(_, _, #server{options=Options}=Conn) ->
+add_couch_version(_, _, #server{options = Options} = Conn) ->
     Conn#server{options = props:set_value('driver_version', 'bigcouch', Options)}.
 
--spec server_info(server()) -> {'ok', kz_json:object()} |
-          {'error', any()}.
-server_info(#server{}=Conn) -> couchbeam:server_info(Conn).
+-spec server_info(server()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
+server_info(#server{} = Conn) -> couchbeam:server_info(Conn).
 
 -spec server_url(server()) -> kz_term:ne_binary().
-server_url(#server{url=Url}) -> Url.
+server_url(#server{url = Url}) -> Url.
 
 -spec db_url(server(), kz_term:ne_binary()) -> kz_term:ne_binary().
-db_url(#server{}=Conn, DbName) ->
+db_url(#server{} = Conn, DbName) ->
     Server = server_url(Conn),
     list_to_binary([Server, "/", DbName]).
 
@@ -229,14 +243,14 @@ admin_connection(Conn) ->
     maybe_use_admin_conn(Conn).
 
 -spec maybe_use_admin_conn(server()) -> server().
-maybe_use_admin_conn(#server{options=Options}=Conn) ->
+maybe_use_admin_conn(#server{options = Options} = Conn) ->
     case props:get_value('admin_connection', Options) of
         'undefined' -> maybe_use_admin_port(Conn);
         AdminConn -> AdminConn
     end.
 
 -spec maybe_use_admin_port(server()) -> server().
-maybe_use_admin_port(#server{options=Options}=Conn) ->
+maybe_use_admin_port(#server{options = Options} = Conn) ->
     ConnectionMap = props:get_value('connection_map', Options, #{}),
     ConnMapOptions = maps:get('options', ConnectionMap),
     case props:get_value('admin_port', ConnMapOptions) of
@@ -250,72 +264,95 @@ maybe_use_admin_port(#server{options=Options}=Conn) ->
     end.
 
 -spec change_connection_to_admin(server(), inet:port_number(), inet:port_number()) -> server().
-change_connection_to_admin(#server{url=Host
-                                  ,options=Options
-                                  }=Conn
-                          ,APIPort
-                          ,AdminPort
-                          ) ->
+change_connection_to_admin(
+    #server{
+        url = Host,
+        options = Options
+    } = Conn,
+    APIPort,
+    AdminPort
+) ->
     ConnectionMap = props:get_value('connection_map', Options, #{}),
     ConnMapOptions = maps:get('options', ConnectionMap),
 
     ConnMapOptions1 = props:set_value('port', AdminPort, ConnMapOptions),
-    Options1 = props:set_value('connection_map', ConnectionMap#{'options'=>ConnMapOptions1}, Options),
-    Conn#server{url=binary:replace(Host, kz_term:to_binary(APIPort), kz_term:to_binary(AdminPort))
-               ,options=Options1
-               }.
+    Options1 = props:set_value(
+        'connection_map', ConnectionMap#{'options' => ConnMapOptions1}, Options
+    ),
+    Conn#server{
+        url = binary:replace(Host, kz_term:to_binary(APIPort), kz_term:to_binary(AdminPort)),
+        options = Options1
+    }.
 
 -spec format_error(any()) -> any().
-format_error({'failure', 404}) -> 'not_found';
-format_error({'failure', 400}) -> 'client_error';
-format_error({'http_error', {'status', 504}}) -> 'gateway_timeout';
-format_error({'conn_failed', {'error', 'timeout'}}) -> 'connection_timeout';
-format_error({'conn_failed', {'error', 'enetunreach'}}) -> 'network_unreachable';
+format_error({'failure', 404}) ->
+    'not_found';
+format_error({'failure', 400}) ->
+    'client_error';
+format_error({'http_error', {'status', 504}}) ->
+    'gateway_timeout';
+format_error({'conn_failed', {'error', 'timeout'}}) ->
+    'connection_timeout';
+format_error({'conn_failed', {'error', 'enetunreach'}}) ->
+    'network_unreachable';
 format_error({'conn_failed', {'error', 'system_limit'}}) ->
     lager:critical("system limit reached for database operations!!"),
     'system_limit';
-format_error({'conn_failed',{'error','econnrefused'}}) ->
+format_error({'conn_failed', {'error', 'econnrefused'}}) ->
     lager:warning("connection is being refused"),
     'econnrefused';
 format_error({'ok', 500, _Headers, Body}) ->
     case kz_json:get_value(<<"error">>, kz_json:decode(Body)) of
-        <<"timeout">> -> 'server_timeout';
+        <<"timeout">> ->
+            'server_timeout';
         _Error ->
             lager:warning("server error: ~s", [Body]),
             'server_error'
     end;
-format_error({'bad_response',{500, _Headers, Body}}) ->
+format_error({'bad_response', {500, _Headers, Body}}) ->
     lager:warning_unsafe("server error - headers: ~p", [_Headers]),
     lager:warning_unsafe("server error - body : ~s", [Body]),
     kz_json:get_first_defined([<<"reason">>, <<"error">>], kz_json:decode(Body), 'unknown_error');
-format_error({'bad_response',{Code, _Headers, Body}}) ->
+format_error({'bad_response', {Code, _Headers, Body}}) ->
     lager:warning_unsafe("server error - headers: ~p : ~p", [Code, _Headers]),
     lager:warning_unsafe("server error - body : ~p ~s", [Code, Body]),
     BodyJObj = kz_json:decode(Body),
-    iolist_to_binary([integer_to_list(Code), ": ", kz_json:get_value(<<"error">>, BodyJObj, <<"unknown error">>)]);
-format_error('timeout') -> 'timeout';
-format_error('conflict') -> 'conflict';
-format_error('not_found') -> 'not_found';
-format_error('db_not_found') -> 'db_not_found';
-format_error({'error', 'connect_timeout'}) -> 'connect_timeout';
-format_error({'http_error', _, Msg}) -> Msg;
+    iolist_to_binary([
+        integer_to_list(Code), ": ", kz_json:get_value(<<"error">>, BodyJObj, <<"unknown error">>)
+    ]);
+format_error('timeout') ->
+    'timeout';
+format_error('conflict') ->
+    'conflict';
+format_error('not_found') ->
+    'not_found';
+format_error('db_not_found') ->
+    'db_not_found';
+format_error({'error', 'connect_timeout'}) ->
+    'connect_timeout';
+format_error({'http_error', _, Msg}) ->
+    Msg;
 format_error({'error', {'closed', _Buffer}}) ->
     lager:warning("socket closed unexpectedly"),
     'tcp_closed';
 format_error({'error', 'closed'}) ->
     lager:warning("socket closed unexpectedly"),
     'tcp_closed';
-format_error({'error', Error}) -> Error;
-format_error(<<"400: illegal_database_name">>) -> 'illegal_database_name';
-format_error('forbidden') -> 'forbidden';
+format_error({'error', Error}) ->
+    Error;
+format_error(<<"400: illegal_database_name">>) ->
+    'illegal_database_name';
+format_error('forbidden') ->
+    'forbidden';
 format_error(E) ->
     lager:warning("unformatted error: ~p", [E]),
     E.
 
 -spec maybe_add_rev(couchbeam_db(), kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
-maybe_add_rev(#db{name=_Name}=Db, DocId, Options) ->
-    case props:get_value('rev', Options) =:= 'undefined'
-        andalso do_fetch_rev(Db, DocId)
+maybe_add_rev(#db{name = _Name} = Db, DocId, Options) ->
+    case
+        props:get_value('rev', Options) =:= 'undefined' andalso
+            do_fetch_rev(Db, DocId)
     of
         <<_/binary>> = Rev ->
             lager:debug("adding rev ~s to options", [Rev]),
@@ -335,16 +372,16 @@ maybe_add_rev(#db{name=_Name}=Db, DocId, Options) ->
     end.
 
 -spec do_fetch_rev(couchbeam_db(), kz_term:ne_binary()) ->
-          kz_term:ne_binary() |
-          couchbeam_error().
-do_fetch_rev(#db{}=Db, DocId) ->
+    kz_term:ne_binary()
+    | couchbeam_error().
+do_fetch_rev(#db{} = Db, DocId) ->
     case kz_term:is_empty(DocId) of
         'true' -> {'error', 'empty_doc_id'};
         'false' -> ?RETRY_504(couchbeam:lookup_doc_rev(Db, DocId))
     end.
 
 -spec connection_info(server()) -> {'ok', server()} | {'error', term()}.
-connection_info(#server{url=Url}=Conn) ->
+connection_info(#server{url = Url} = Conn) ->
     case server_info(Conn) of
         {'ok', ConnData} ->
             CouchVersion = kz_json:get_ne_binary_value(<<"version">>, ConnData),
@@ -359,7 +396,7 @@ connection_info(#server{url=Url}=Conn) ->
         {'error', {'conn_failed', {'error', 'ehostunreach'}}} ->
             lager:warning("connection to ~s failed: Host is unreachable", [Url]),
             {'error', 'ehostunreach'};
-        {'error', _E}=E ->
+        {'error', _E} = E ->
             lager:warning("connection to ~s failed: ~p", [Url, _E]),
             E
     end.

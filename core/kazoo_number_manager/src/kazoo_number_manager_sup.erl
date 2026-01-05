@@ -19,16 +19,15 @@
 
 -define(SERVER, ?MODULE).
 
--define(ORIGIN_BINDINGS, [[{'type', <<"number">>}]
-                         ]).
+-define(ORIGIN_BINDINGS, [[{'type', <<"number">>}]]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ]).
+-define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?WORKER('knm_search')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?WORKER('knm_search')
+]).
 
 %%==============================================================================
 %% API functions

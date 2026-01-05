@@ -5,46 +5,49 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_item_plan).
 
--export([cumulative_merge_scheme/0
-        ,cumulative_merge_sum/2
-        ,cumulative_merge_object/2
-        ,cumulative_merge_list/2
-        ,cumulative_merge_or/2
-        ,cumulative_merge_and/2
-        ]).
--export([minimum/1, minimum/2
-        ,maximum/1, maximum/2
-        ,prorate/1, prorate/2
-        ,prorate_additions/1, prorate_additions/2
-        ,prorate_removals/1, prorate_removals/2
-        ,step/1, step/2
-        ,flat_rates/1, flat_rates/2
-        ,flat_rate/1, flat_rate/2
-        ,rates/1, rates/2
-        ,rate/1, rate/2
-        ,exceptions/1, exceptions/2
-        ,should_cascade/1, should_cascade/2
-        ,masquerade_as/1, masquerade_as/2
-        ,name/1, name/2
-        ,discounts/1, discounts/2
-        ,single_discount/1, single_discount/2
-        ,single_discount_rates/1, single_discount_rates/2
-        ,single_discount_rate/1, single_discount_rate/2
-        ,cumulative_discount/1, cumulative_discount/2
-        ,cumulative_discount_rate/1, cumulative_discount_rate/2
-        ,cumulative_discount_rates/1, cumulative_discount_rates/2
-        ,cumulative_discount_maximum/1, cumulative_discount_maximum/2
-        ,activation_charge/1, activation_charge/2
-        ,keys/1
-        ]).
+-export([
+    cumulative_merge_scheme/0,
+    cumulative_merge_sum/2,
+    cumulative_merge_object/2,
+    cumulative_merge_list/2,
+    cumulative_merge_or/2,
+    cumulative_merge_and/2
+]).
+-export([
+    minimum/1, minimum/2,
+    maximum/1, maximum/2,
+    prorate/1, prorate/2,
+    prorate_additions/1, prorate_additions/2,
+    prorate_removals/1, prorate_removals/2,
+    step/1, step/2,
+    flat_rates/1, flat_rates/2,
+    flat_rate/1, flat_rate/2,
+    rates/1, rates/2,
+    rate/1, rate/2,
+    exceptions/1, exceptions/2,
+    should_cascade/1, should_cascade/2,
+    masquerade_as/1, masquerade_as/2,
+    name/1, name/2,
+    discounts/1, discounts/2,
+    single_discount/1, single_discount/2,
+    single_discount_rates/1, single_discount_rates/2,
+    single_discount_rate/1, single_discount_rate/2,
+    cumulative_discount/1, cumulative_discount/2,
+    cumulative_discount_rate/1, cumulative_discount_rate/2,
+    cumulative_discount_rates/1, cumulative_discount_rates/2,
+    cumulative_discount_maximum/1, cumulative_discount_maximum/2,
+    activation_charge/1, activation_charge/2,
+    keys/1
+]).
 
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().
 -type api_doc() :: kz_term:api_object().
--export_type([doc/0
-             ,api_doc/0
-             ]).
+-export_type([
+    doc/0,
+    api_doc/0
+]).
 
 -define(ACTIVATION_CHARGE, <<"activation_charge">>).
 -define(MINIMUM, <<"minimum">>).
@@ -66,90 +69,115 @@
 -define(UNPRORATE, <<"unprorate">>).
 -define(STEP, <<"step">>).
 
--spec cumulative_merge_scheme() -> [{kz_json:key(), fun((kz_json:path(), kz_json:object()|kz_json:objects()) -> kz_json:api_json_term())}].
+-spec cumulative_merge_scheme() ->
+    [
+        {kz_json:key(), fun(
+            (kz_json:path(), kz_json:object() | kz_json:objects()) -> kz_json:api_json_term()
+        )}
+    ].
 cumulative_merge_scheme() ->
-    [{?ACTIVATION_CHARGE, fun kz_json:find/2}
-    ,{?MINIMUM, fun ?MODULE:cumulative_merge_sum/2}
-    ,{?PRORATE_ADDITIONS, fun ?MODULE:cumulative_merge_or/2}
-    ,{?PRORATE_REMOVALS, fun ?MODULE:cumulative_merge_or/2}
-    ,{?STEP, fun kz_json:find/2}
-    ,{?FLAT_RATES, fun ?MODULE:cumulative_merge_object/2}
-    ,{?FLAT_RATE, fun kz_json:find/2}
-    ,{?RATES, fun ?MODULE:cumulative_merge_object/2}
-    ,{?RATE, fun kz_json:find/2}
-    ,{?EXCEPTIONS, fun ?MODULE:cumulative_merge_list/2}
-    ,{?CASCADE, fun ?MODULE:cumulative_merge_or/2}
-    ,{?MASQUERADE, fun kz_json:find/2}
-    ,{?NAME, fun kz_json:find/2}
-    ,{[?DISCOUNTS, ?SINGLE, ?RATE], fun kz_json:find/2}
-    ,{[?DISCOUNTS, ?SINGLE, ?RATES], fun ?MODULE:cumulative_merge_object/2}
-    ,{[?DISCOUNTS, ?CUMULATIVE, ?RATE], fun kz_json:find/2}
-    ,{[?DISCOUNTS, ?CUMULATIVE, ?RATES], fun ?MODULE:cumulative_merge_object/2}
-    ,{[?DISCOUNTS, ?CUMULATIVE, ?MAXIMUM], fun ?MODULE:cumulative_merge_sum/2}
+    [
+        {?ACTIVATION_CHARGE, fun kz_json:find/2},
+        {?MINIMUM, fun ?MODULE:cumulative_merge_sum/2},
+        {?PRORATE_ADDITIONS, fun ?MODULE:cumulative_merge_or/2},
+        {?PRORATE_REMOVALS, fun ?MODULE:cumulative_merge_or/2},
+        {?STEP, fun kz_json:find/2},
+        {?FLAT_RATES, fun ?MODULE:cumulative_merge_object/2},
+        {?FLAT_RATE, fun kz_json:find/2},
+        {?RATES, fun ?MODULE:cumulative_merge_object/2},
+        {?RATE, fun kz_json:find/2},
+        {?EXCEPTIONS, fun ?MODULE:cumulative_merge_list/2},
+        {?CASCADE, fun ?MODULE:cumulative_merge_or/2},
+        {?MASQUERADE, fun kz_json:find/2},
+        {?NAME, fun kz_json:find/2},
+        {[?DISCOUNTS, ?SINGLE, ?RATE], fun kz_json:find/2},
+        {[?DISCOUNTS, ?SINGLE, ?RATES], fun ?MODULE:cumulative_merge_object/2},
+        {[?DISCOUNTS, ?CUMULATIVE, ?RATE], fun kz_json:find/2},
+        {[?DISCOUNTS, ?CUMULATIVE, ?RATES], fun ?MODULE:cumulative_merge_object/2},
+        {[?DISCOUNTS, ?CUMULATIVE, ?MAXIMUM], fun ?MODULE:cumulative_merge_sum/2}
     ].
 
 -spec cumulative_merge_sum(kz_json:path(), kz_json:objects()) -> non_neg_integer().
-cumulative_merge_sum(Key, [JObj|JObjs]) ->
-    lists:foldl(fun(J, 'undefined') ->
-                        kz_json:get_integer_value(Key, J);
-                   (J, Value) ->
-                        Value + kz_json:get_integer_value(Key, J, 0)
-                end, kz_json:get_integer_value(Key, JObj), JObjs).
+cumulative_merge_sum(Key, [JObj | JObjs]) ->
+    lists:foldl(
+        fun
+            (J, 'undefined') ->
+                kz_json:get_integer_value(Key, J);
+            (J, Value) ->
+                Value + kz_json:get_integer_value(Key, J, 0)
+        end,
+        kz_json:get_integer_value(Key, JObj),
+        JObjs
+    ).
 
 -spec cumulative_merge_object(kz_json:path(), kz_json:objects()) -> kz_json:object().
-cumulative_merge_object(Key, [JObj|JObjs]) ->
-    lists:foldl(fun(J, 'undefined') ->
-                        kz_json:get_value(Key, J);
-                   (J, Value) ->
-                        kz_json:merge(kz_json:get_value(Key, J, kz_json:new()), Value)
-                end, kz_json:get_value(Key, JObj), JObjs).
+cumulative_merge_object(Key, [JObj | JObjs]) ->
+    lists:foldl(
+        fun
+            (J, 'undefined') ->
+                kz_json:get_value(Key, J);
+            (J, Value) ->
+                kz_json:merge(kz_json:get_value(Key, J, kz_json:new()), Value)
+        end,
+        kz_json:get_value(Key, JObj),
+        JObjs
+    ).
 
 -spec cumulative_merge_list(kz_json:path(), kz_json:objects()) -> list().
-cumulative_merge_list(Key, [JObj|JObjs]) ->
-    case lists:foldl(fun(J, 'undefined') ->
-                             kz_json:get_value(Key, J);
-                        (J, Value) ->
-                             lists:merge(kz_json:get_list_value(Key, J, []), Value)
-                     end
-                    ,kz_json:get_value(Key, JObj)
-                    ,JObjs
-                    )
+cumulative_merge_list(Key, [JObj | JObjs]) ->
+    case
+        lists:foldl(
+            fun
+                (J, 'undefined') ->
+                    kz_json:get_value(Key, J);
+                (J, Value) ->
+                    lists:merge(kz_json:get_list_value(Key, J, []), Value)
+            end,
+            kz_json:get_value(Key, JObj),
+            JObjs
+        )
     of
         'undefined' -> 'undefined';
         List -> sets:to_list(sets:from_list(List))
     end.
 
 -spec cumulative_merge_or(kz_json:path(), kz_json:objects()) -> boolean().
-cumulative_merge_or(Key, [JObj|JObjs]) ->
-    lists:foldl(fun(J, 'undefined') ->
-                        kz_json:get_value(Key, J);
-                   (J, Value) ->
-                        case kz_json:get_value(Key, J) of
-                            'undefined' -> Value;
-                            Boolean ->
-                                kz_term:is_true(Boolean)
-                                    orelse Value
-                        end
+cumulative_merge_or(Key, [JObj | JObjs]) ->
+    lists:foldl(
+        fun
+            (J, 'undefined') ->
+                kz_json:get_value(Key, J);
+            (J, Value) ->
+                case kz_json:get_value(Key, J) of
+                    'undefined' ->
+                        Value;
+                    Boolean ->
+                        kz_term:is_true(Boolean) orelse
+                            Value
                 end
-               ,kz_json:get_value(Key, JObj)
-               ,JObjs
-               ).
+        end,
+        kz_json:get_value(Key, JObj),
+        JObjs
+    ).
 
 -spec cumulative_merge_and(kz_json:path(), kz_json:objects()) -> boolean().
-cumulative_merge_and(Key, [JObj|JObjs]) ->
-    lists:foldl(fun(J, 'undefined') ->
-                        kz_json:get_value(Key, J);
-                   (J, Value) ->
-                        case kz_json:get_value(Key, J) of
-                            'undefined' -> Value;
-                            Boolean ->
-                                kz_term:is_true(Boolean)
-                                    andalso Value
-                        end
+cumulative_merge_and(Key, [JObj | JObjs]) ->
+    lists:foldl(
+        fun
+            (J, 'undefined') ->
+                kz_json:get_value(Key, J);
+            (J, Value) ->
+                case kz_json:get_value(Key, J) of
+                    'undefined' ->
+                        Value;
+                    Boolean ->
+                        kz_term:is_true(Boolean) andalso
+                            Value
                 end
-               ,kz_json:get_value(Key, JObj)
-               ,JObjs
-               ).
+        end,
+        kz_json:get_value(Key, JObj),
+        JObjs
+    ).
 
 -spec keys(doc()) -> kz_json:path().
 keys(ItemPlan) ->
@@ -176,11 +204,13 @@ prorate(ItemPlan) ->
     case prorate(ItemPlan, 'undefined') of
         'undefined' ->
             kz_json:from_list(
-              [{<<"additions">>, 'true'}
-              ,{<<"removals">>, 'true'}
-              ]
-             );
-        Else -> Else
+                [
+                    {<<"additions">>, 'true'},
+                    {<<"removals">>, 'true'}
+                ]
+            );
+        Else ->
+            Else
     end.
 
 -spec prorate(doc(), Default) -> kz_json:object() | Default.

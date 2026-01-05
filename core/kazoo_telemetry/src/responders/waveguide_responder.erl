@@ -10,23 +10,26 @@
 
 -behaviour(gen_statem).
 
--export([start_link/0
-        ,status/0
-        ,stop/0
-        ]).
+-export([
+    start_link/0,
+    status/0,
+    stop/0
+]).
 
--export([init/1
-        ,callback_mode/0
-        ,terminate/3
-        ,code_change/4
-        ]).
+-export([
+    init/1,
+    callback_mode/0,
+    terminate/3,
+    code_change/4
+]).
 
--export([grace_period/3
-        ,activating/3
-        ,handshaking/3
-        ,submitting/3
-        ,waiting/3
-        ]).
+-export([
+    grace_period/3,
+    activating/3,
+    handshaking/3,
+    submitting/3,
+    waiting/3
+]).
 
 -define(SERVER, ?MODULE).
 
@@ -43,10 +46,11 @@
 -type state() :: #state{}.
 -type statem_events() :: 'ping' | 'timeout' | 'wakeup'.
 -type statem_state() :: 'activating' | 'grace_period' | 'handshaking' | 'submitting' | 'waiting'.
--type statem_reply() :: {'next_state', statem_state(), state()} |
-                        'repeat_state_and_data' |
-                        {'keep_state', state()} |
-                        {'keep_state_and_data', [{'state_timeout', non_neg_integer(), 'timeout' | 'retry'}]}.
+-type statem_reply() ::
+    {'next_state', statem_state(), state()}
+    | 'repeat_state_and_data'
+    | {'keep_state', state()}
+    | {'keep_state_and_data', [{'state_timeout', non_neg_integer(), 'timeout' | 'retry'}]}.
 
 %%%=============================================================================
 %%% API
@@ -57,7 +61,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
-start_link()  ->
+start_link() ->
     gen_statem:start_link({'local', ?SERVER}, ?MODULE, [], []).
 
 -spec stop() -> 'ok'.
@@ -92,7 +96,7 @@ init([]) ->
 %%------------------------------------------------------------------------------
 -spec callback_mode() -> ['state_functions' | 'state_enter'].
 callback_mode() ->
-    ['state_functions','state_enter'].
+    ['state_functions', 'state_enter'].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -136,19 +140,21 @@ grace_period('state_timeout', 'retry', _State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec activating(gen_statem:event_type(), statem_events(), state()) -> statem_reply().
-activating('enter', _OldState, #state{retry=Retries}=State) when Retries < ?MAX_RETRIES ->
+activating('enter', _OldState, #state{retry = Retries} = State) when Retries < ?MAX_RETRIES ->
     _ = timer:apply_after(?TRANSITION_TIMER, 'gen_statem', 'cast', [?SERVER, 'ping']),
     {'keep_state', State};
 activating('enter', _OldState, State) ->
     _ = timer:apply_after(?RETRY_INTERVAL, 'gen_statem', 'cast', [?SERVER, 'ping']),
-    {'keep_state', State#state{retry=0}};
-activating('cast', 'ping', #state{retry=Retries}=State) ->
+    {'keep_state', State#state{retry = 0}};
+activating('cast', 'ping', #state{retry = Retries} = State) ->
     {'ok', Data} = waveguide_reducer:ping(?WG_ACTIVATION_PING),
     case wg_httpc:post(Data) of
         {'ok', _} ->
             {'next_state', 'handshaking', State};
         {'retry', _} ->
-            {'keep_state', State#state{retry=Retries+1}, [{'state_timeout', ?TRANSITION_TIMER, 'retry'}]}
+            {'keep_state', State#state{retry = Retries + 1}, [
+                {'state_timeout', ?TRANSITION_TIMER, 'retry'}
+            ]}
     end;
 activating('state_timeout', 'retry', _State) ->
     'repeat_state_and_data'.
@@ -158,17 +164,19 @@ activating('state_timeout', 'retry', _State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handshaking(gen_statem:event_type(), statem_events(), state()) -> statem_reply().
-handshaking('enter', _OldState, #state{retry=Retries}=State) when Retries < ?MAX_RETRIES ->
+handshaking('enter', _OldState, #state{retry = Retries} = State) when Retries < ?MAX_RETRIES ->
     _ = timer:apply_after(?TRANSITION_TIMER, 'gen_statem', 'cast', [?SERVER, 'ping']),
     {'keep_state', State};
 handshaking('enter', _OldState, State) ->
     _ = timer:apply_after(?RETRY_INTERVAL, 'gen_statem', 'cast', [?SERVER, 'ping']),
-    {'keep_state', State#state{retry=0}};
-handshaking('cast', 'ping', #state{retry=Retries}=State) ->
+    {'keep_state', State#state{retry = 0}};
+handshaking('cast', 'ping', #state{retry = Retries} = State) ->
     {'ok', Data} = waveguide_reducer:ping(?WG_HANDSHAKE_PING),
     case wg_httpc:post(Data) of
         {'retry', _} ->
-            {'keep_state', State#state{retry=Retries+1}, [{'state_timeout', ?TRANSITION_TIMER, 'retry'}]};
+            {'keep_state', State#state{retry = Retries + 1}, [
+                {'state_timeout', ?TRANSITION_TIMER, 'retry'}
+            ]};
         {'ok', _} ->
             {'next_state', 'submitting', State}
     end;
@@ -180,17 +188,19 @@ handshaking('state_timeout', 'retry', _State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec submitting(gen_statem:event_type(), statem_events(), state()) -> statem_reply().
-submitting('enter', _OldState, #state{retry=Retries}=State) when Retries < ?MAX_RETRIES ->
+submitting('enter', _OldState, #state{retry = Retries} = State) when Retries < ?MAX_RETRIES ->
     _ = timer:apply_after(?TRANSITION_TIMER, 'gen_statem', 'cast', [?SERVER, 'ping']),
     {'keep_state', State};
-submitting  ('enter', _OldState, State) ->
+submitting('enter', _OldState, State) ->
     _ = timer:apply_after(?RETRY_INTERVAL, 'gen_statem', 'cast', [?SERVER, 'ping']),
-    {'keep_state', State#state{retry=0}};
-submitting('cast', 'ping', #state{retry=Retries}=State) ->
+    {'keep_state', State#state{retry = 0}};
+submitting('cast', 'ping', #state{retry = Retries} = State) ->
     {'ok', Data} = waveguide_reducer:ping(?WG_MAIN_PING),
     case wg_httpc:post(Data) of
         {'retry', _} ->
-            {'keep_state', State#state{retry=Retries+1}, [{'state_timeout', ?TRANSITION_TIMER, 'timeout'}]};
+            {'keep_state', State#state{retry = Retries + 1}, [
+                {'state_timeout', ?TRANSITION_TIMER, 'timeout'}
+            ]};
         {'ok', _} ->
             {'next_state', 'waiting', State}
     end;
@@ -203,7 +213,7 @@ submitting('state_timeout', 'timeout', _State) ->
 %%------------------------------------------------------------------------------
 -spec waiting(gen_statem:event_type(), statem_events(), state()) -> statem_reply().
 waiting('enter', _OldState, State) ->
-    {'keep_state', State, [{'state_timeout', ?TM_COLLECTION_INTERVAL*1000, 'wakeup'}]};
+    {'keep_state', State, [{'state_timeout', ?TM_COLLECTION_INTERVAL * 1000, 'wakeup'}]};
 waiting('state_timeout', 'wakeup', State) ->
     {'next_state', 'submitting', State}.
 
@@ -224,22 +234,26 @@ create_alert(Days, 'true') ->
     DaysBin = integer_to_binary(Days),
     case kapps_util:get_master_account_id() of
         {'ok', AccountId} ->
-            Props = [{<<"category">>, <<"kazoo_telemetry">>}
-                    ],
-            From = [kz_json:from_list([{<<"type">>, <<"account">>}
-                                      ,{<<"value">>, AccountId}
-                                      ])
-                   ],
-            To = [kz_json:from_list([{<<"type">>, AccountId}
-                                    ,{<<"value">>, <<"admins">>}
-                                    ])
-                 ],
+            Props = [{<<"category">>, <<"kazoo_telemetry">>}],
+            From = [
+                kz_json:from_list([
+                    {<<"type">>, <<"account">>},
+                    {<<"value">>, AccountId}
+                ])
+            ],
+            To = [
+                kz_json:from_list([
+                    {<<"type">>, AccountId},
+                    {<<"value">>, <<"admins">>}
+                ])
+            ],
             Title = <<"kazoo telemetry grace period active">>,
-            Msg = <<"kazoo telemetry will automatically enable in ",DaysBin/binary," days.">>,
+            Msg = <<"kazoo telemetry will automatically enable in ", DaysBin/binary, " days.">>,
             {'ok', AlertJObj} = kapps_alert:create(Title, Msg, From, To, Props),
             {'ok', _} = kapps_alert:save(AlertJObj),
             'ok';
-        _ -> 'ok'
+        _ ->
+            'ok'
     end;
 create_alert(_Days, 'false') ->
     lager:debug("alerts are disabled, not creating alert").

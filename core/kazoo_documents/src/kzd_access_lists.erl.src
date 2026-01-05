@@ -10,7 +10,6 @@
 -export([order/1, order/2, set_order/2]).
 -export([user_agent/1, user_agent/2, set_user_agent/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

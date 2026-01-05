@@ -23,16 +23,17 @@ validate_request(JObj) ->
     AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj),
     DollarAmount =
         kz_currency:units_to_dollars(
-          kz_json:get_integer_value(<<"Amount">>, JObj, 0)
-         ),
+            kz_json:get_integer_value(<<"Amount">>, JObj, 0)
+        ),
     Result = do_request(AccountId, DollarAmount),
     Resp = kz_json:from_list(
-             [{?KEY_MSG_ID, kz_api:msg_id(JObj)}
-             ,{<<"Transaction-ID">>, kz_json:get_ne_binary_value(<<"Transaction-ID">>, JObj)}
-             ,{<<"Transaction-DB">>, kz_json:get_ne_binary_value(<<"Transaction-DB">>, JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ] ++ Result
-            ),
+        [
+            {?KEY_MSG_ID, kz_api:msg_id(JObj)},
+            {<<"Transaction-ID">>, kz_json:get_ne_binary_value(<<"Transaction-ID">>, JObj)},
+            {<<"Transaction-DB">>, kz_json:get_ne_binary_value(<<"Transaction-DB">>, JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ] ++ Result
+    ),
     ServerId = kz_api:server_id(JObj),
     Publisher = fun(P) -> kapi_bookkeepers:publish_sale_resp(ServerId, P) end,
     kz_amqp_worker:cast(Resp, Publisher).
@@ -41,8 +42,9 @@ validate_request(JObj) ->
 do_request(AccountId, DollarAmount) ->
     try braintree_transaction:quick_sale(AccountId, DollarAmount) of
         Transaction ->
-            [{<<"Status">>, <<"success">>}
-            ,{<<"Details">>, braintree_transaction:record_to_json(Transaction)}
+            [
+                {<<"Status">>, <<"success">>},
+                {<<"Details">>, braintree_transaction:record_to_json(Transaction)}
             ]
     catch
         'throw':Error ->

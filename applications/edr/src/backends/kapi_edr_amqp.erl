@@ -10,17 +10,27 @@
 
 -export([event/1, event_v/1]).
 
--export([bind_q/2
-        ,unbind_q/2
-        ]).
+-export([
+    bind_q/2,
+    unbind_q/2
+]).
 -export([declare_exchanges/0]).
 -export([publish_event/1]).
 
--define(EVENT_HEADERS, [<<"Body">>, <<"ID">>, <<"Severity">>, <<"Timestamp">>, <<"Gregorian-Time">>, <<"Verbosity">>, <<"Node">>]).
+-define(EVENT_HEADERS, [
+    <<"Body">>,
+    <<"ID">>,
+    <<"Severity">>,
+    <<"Timestamp">>,
+    <<"Gregorian-Time">>,
+    <<"Verbosity">>,
+    <<"Node">>
+]).
 -define(OPTIONAL_EVENT_HEADERS, [<<"Account-ID">>, <<"Account-Tree">>]).
--define(EVENT_VALUES, [{<<"Event-Category">>, <<"edr">>}
-                      ,{<<"Event-Name">>, <<"event">>}
-                      ]).
+-define(EVENT_VALUES, [
+    {<<"Event-Category">>, <<"edr">>},
+    {<<"Event-Name">>, <<"event">>}
+]).
 -define(EVENT_TYPES, [{<<"Body">>, fun kz_json:is_json_object/1}]).
 
 %%------------------------------------------------------------------------------
@@ -34,12 +44,14 @@ event(Prop) when is_list(Prop) ->
         'true' -> kz_api:build_message(Prop, ?EVENT_HEADERS, ?OPTIONAL_EVENT_HEADERS);
         'false' -> {'error', "Proplist failed validation"}
     end;
-event(JObj) -> event(kz_json:to_proplist(JObj)).
+event(JObj) ->
+    event(kz_json:to_proplist(JObj)).
 
 -spec event_v(kz_term:api_terms()) -> boolean().
 event_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?EVENT_HEADERS, ?EVENT_VALUES, ?EVENT_TYPES);
-event_v(JObj) -> event_v(kz_json:to_proplist(JObj)).
+event_v(JObj) ->
+    event_v(kz_json:to_proplist(JObj)).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, Props) ->
@@ -84,14 +96,17 @@ declare_exchanges() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec publish_event(edr_event()) -> 'ok'.
-publish_event(#edr_event{}=Event) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(event_to_payload(Event), ?EVENT_VALUES, fun event/1),
+publish_event(#edr_event{} = Event) ->
+    {'ok', Payload} = kz_api:prepare_api_payload(
+        event_to_payload(Event), ?EVENT_VALUES, fun event/1
+    ),
     RoutingKey = edr_bindings:event_binding_key(Event),
     kz_amqp_util:kapps_publish(RoutingKey, Payload).
 
 -spec event_to_payload(edr_event()) -> kz_json:object().
-event_to_payload(#edr_event{}=Event) ->
-    FormatterOptions = kz_json:from_list([{<<"include_metadata">>, 'true'}
-                                         ,{<<"normalize">>, 'false'}
-                                         ]),
+event_to_payload(#edr_event{} = Event) ->
+    FormatterOptions = kz_json:from_list([
+        {<<"include_metadata">>, 'true'},
+        {<<"normalize">>, 'false'}
+    ]),
     edr_fmt_json:to_jobj(FormatterOptions, Event).

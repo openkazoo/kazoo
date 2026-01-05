@@ -60,13 +60,19 @@ send(JObj, Account) ->
 
     Props = create_template_props(JObj),
 
-    CustomTxtTemplate = kz_json:get_value([<<"notifications">>, <<"vm_full">>, <<"email_text_template">>], Account),
+    CustomTxtTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"vm_full">>, <<"email_text_template">>], Account
+    ),
     {'ok', TxtBody} = notify_util:render_template(CustomTxtTemplate, ?DEFAULT_TEXT_TMPL, Props),
 
-    CustomHtmlTemplate = kz_json:get_value([<<"notifications">>, <<"vm_full">>, <<"email_html_template">>], Account),
+    CustomHtmlTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"vm_full">>, <<"email_html_template">>], Account
+    ),
     {'ok', HTMLBody} = notify_util:render_template(CustomHtmlTemplate, ?DEFAULT_HTML_TMPL, Props),
 
-    CustomSubjectTemplate = kz_json:get_value([<<"notifications">>, <<"vm_full">>, <<"email_subject_template">>], Account),
+    CustomSubjectTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"vm_full">>, <<"email_subject_template">>], Account
+    ),
     {'ok', Subject} = notify_util:render_template(CustomSubjectTemplate, ?DEFAULT_SUBJ_TMPL, Props),
 
     AccountDb = kz_util:format_account_db(kz_json:get_value(<<"Account-ID">>, JObj)),
@@ -78,9 +84,10 @@ send(JObj, Account) ->
     {'ok', UserJObj} = get_owner(AccountDb, VMBox),
 
     BoxEmails = kzd_voicemail_box:notification_emails(VMBox),
-    Emails = maybe_add_user_email(BoxEmails
-                                 ,get_user_email(UserJObj, Account)
-                                 ),
+    Emails = maybe_add_user_email(
+        BoxEmails,
+        get_user_email(UserJObj, Account)
+    ),
 
     build_and_send_email(TxtBody, HTMLBody, Subject, Emails, Props).
 
@@ -107,7 +114,7 @@ get_owner(AccountDb, VMBox) ->
     get_owner(AccountDb, VMBox, kzd_voicemail_box:owner_id(VMBox)).
 
 -spec get_owner(kz_term:ne_binary(), kzd_voicemail_box:doc(), kz_term:api_binary()) ->
-          {'ok', kzd_user:doc()}.
+    {'ok', kzd_user:doc()}.
 get_owner(_AccountDb, _VMBox, 'undefined') ->
     lager:debug("no owner of voicemail box ~s, using empty owner", [kz_doc:id(_VMBox)]),
     {'ok', kz_json:new()};
@@ -128,13 +135,15 @@ create_template_props(JObj) ->
     AccountDb = kz_util:format_account_db(kz_json:get_value(<<"Account-ID">>, JObj)),
     {'ok', AccountJObj} = kzd_accounts:fetch(AccountDb),
 
-    [{<<"service">>, notify_util:get_service_props(JObj, AccountJObj, ?MOD_CONFIG_CAT)}
-    ,{<<"voicemail">>, [{<<"name">>, get_vm_name(JObj)}
-                       ,{<<"box">>, kz_json:get_value(<<"Voicemail-Box">>, JObj)}
-                       ,{<<"max_message_count">>, kz_json:get_value(<<"Max-Message-Count">>, JObj)}
-                       ,{<<"message_count">>, kz_json:get_value(<<"Message-Count">>, JObj)}
-                       ]}
-    ,{<<"custom">>, notify_util:json_to_template_props(JObj)}
+    [
+        {<<"service">>, notify_util:get_service_props(JObj, AccountJObj, ?MOD_CONFIG_CAT)},
+        {<<"voicemail">>, [
+            {<<"name">>, get_vm_name(JObj)},
+            {<<"box">>, kz_json:get_value(<<"Voicemail-Box">>, JObj)},
+            {<<"max_message_count">>, kz_json:get_value(<<"Max-Message-Count">>, JObj)},
+            {<<"message_count">>, kz_json:get_value(<<"Message-Count">>, JObj)}
+        ]},
+        {<<"custom">>, notify_util:json_to_template_props(JObj)}
     ].
 
 -spec get_vm_name(kz_json:object()) -> binary().
@@ -149,7 +158,8 @@ get_vm_doc(JObj) ->
     VMId = kz_json:get_value(<<"Voicemail-Box">>, JObj),
     AccoundDB = kz_util:format_account_db(kz_json:get_value(<<"Account-ID">>, JObj)),
     case kz_datamgr:open_cache_doc(AccoundDB, VMId) of
-        {'ok', VMDoc} -> VMDoc;
+        {'ok', VMDoc} ->
+            VMDoc;
         {'error', _E} ->
             lager:info("could not open doc ~p in ~p", [VMId, AccoundDB]),
             'error'
@@ -159,7 +169,9 @@ get_vm_doc(JObj) ->
 %% @doc process the AMQP requests
 %% @end
 %%------------------------------------------------------------------------------
--spec build_and_send_email(iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()) -> send_email_return().
+-spec build_and_send_email(
+    iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()
+) -> send_email_return().
 build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To) ->
     [build_and_send_email(TxtBody, HTMLBody, Subject, T, Props) || T <- To];
 build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
@@ -168,27 +180,34 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
     From = props:get_value(<<"send_from">>, Service),
 
     %% Content Type, Subtype, Headers, Parameters, Body
-    Email = {<<"multipart">>, <<"mixed">>
-            ,[{<<"From">>, From}
-             ,{<<"To">>, To}
-             ,{<<"Subject">>, Subject}
-             ]
-            ,[]
-            ,[{<<"multipart">>, <<"alternative">>, [], []
-              ,[{<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [], iolist_to_binary(TxtBody)}
-               ,{<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [], iolist_to_binary(HTMLBody)}
-               ]
-              }
-             ]
-            },
+    Email =
+        {<<"multipart">>, <<"mixed">>,
+            [
+                {<<"From">>, From},
+                {<<"To">>, To},
+                {<<"Subject">>, Subject}
+            ],
+            [], [
+                {<<"multipart">>, <<"alternative">>, [], [], [
+                    {<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [],
+                        iolist_to_binary(TxtBody)},
+                    {<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [],
+                        iolist_to_binary(HTMLBody)}
+                ]}
+            ]},
     notify_util:send_email(From, To, Email).
 
 -spec is_notice_enabled(kz_json:object()) -> boolean().
 is_notice_enabled(JObj) ->
-    case  kz_json:get_value([<<"notifications">>
-                            ,<<"voicemail_full">>
-                            ,<<"enabled">>
-                            ], JObj)
+    case
+        kz_json:get_value(
+            [
+                <<"notifications">>,
+                <<"voicemail_full">>,
+                <<"enabled">>
+            ],
+            JObj
+        )
     of
         'undefined' -> is_notice_enabled_default();
         Value -> kz_term:is_true(Value)

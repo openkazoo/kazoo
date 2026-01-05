@@ -9,11 +9,13 @@
 -export([active/1, active/2, set_active/2]).
 -export([cid/1, cid/2, set_cid/2]).
 -export([comment/1, comment/2, set_comment/2]).
--export([max_concurent_calls_per_user/1, max_concurent_calls_per_user/2, set_max_concurent_calls_per_user/2]).
+-export([
+    max_concurent_calls_per_user/1, max_concurent_calls_per_user/2,
+    set_max_concurent_calls_per_user/2
+]).
 -export([pin/1, pin/2, set_pin/2]).
 -export([retain_cid/1, retain_cid/2, set_retain_cid/2]).
 -export([user_id/1, user_id/2, set_user_id/2]).
-
 
 -include("kz_documents.hrl").
 

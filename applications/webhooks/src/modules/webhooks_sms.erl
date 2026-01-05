@@ -10,11 +10,12 @@
 %%%-----------------------------------------------------------------------------
 -module(webhooks_sms).
 
--export([init/0
-        ,bindings_and_responders/0
-        ,account_bindings/1
-        ,handle_sms/2
-        ]).
+-export([
+    init/0,
+    bindings_and_responders/0,
+    account_bindings/1,
+    handle_sms/2
+]).
 
 -include("webhooks.hrl").
 
@@ -23,14 +24,15 @@
 -define(NAME, <<"SMS">>).
 -define(DESC, <<"Receive notifications when sms is received">>).
 
--define(METADATA
-       ,kz_json:from_list(
-          [{<<"_id">>, ?ID}
-          ,{<<"name">>, ?NAME}
-          ,{<<"description">>, ?DESC}
-          ]
-         )
-       ).
+-define(METADATA,
+    kz_json:from_list(
+        [
+            {<<"_id">>, ?ID},
+            {<<"name">>, ?NAME},
+            {<<"description">>, ?DESC}
+        ]
+    )
+).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -78,18 +80,18 @@ handle_sms(Payload, _Props) ->
 %%% Internal functions
 %%%=============================================================================
 
-
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec bindings() -> gen_listener:bindings().
 bindings() ->
-    [{'im', [{'restrict_to', ['inbound']}
-            ,{'route_type', 'offnet'}
-            ,{'im_types', ['sms']}
-            ]
-     }
+    [
+        {'im', [
+            {'restrict_to', ['inbound']},
+            {'route_type', 'offnet'},
+            {'im_types', ['sms']}
+        ]}
     ].
 %%------------------------------------------------------------------------------
 %% @doc
@@ -98,12 +100,14 @@ bindings() ->
 -spec format_event(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 format_event(Payload, AccountId) ->
     kz_json:from_list(
-      [{<<"id">>, kz_im:message_id(Payload)}
-      ,{<<"account_id">>, AccountId}
-      ,{<<"type">>, kz_im:type(Payload)}
-      ,{<<"from">>, kz_im:from(Payload)}
-      ,{<<"to">>, kz_im:to(Payload)}
-      ,{<<"body">>, kz_im:body(Payload)}
-      ,{<<"origin">>, kz_im:route_type(Payload)}
-      ,{<<"charges">>, kz_im:charges(Payload)}
-      ]).
+        [
+            {<<"id">>, kz_im:message_id(Payload)},
+            {<<"account_id">>, AccountId},
+            {<<"type">>, kz_im:type(Payload)},
+            {<<"from">>, kz_im:from(Payload)},
+            {<<"to">>, kz_im:to(Payload)},
+            {<<"body">>, kz_im:body(Payload)},
+            {<<"origin">>, kz_im:route_type(Payload)},
+            {<<"charges">>, kz_im:charges(Payload)}
+        ]
+    ).

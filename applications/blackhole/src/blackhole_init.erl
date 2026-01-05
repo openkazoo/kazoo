@@ -12,16 +12,18 @@
 
 -include("blackhole.hrl").
 
--define(USE_COMPRESSION, kapps_config:get_is_true(?CONFIG_CAT, <<"compress_response_body">>, 'true')).
+-define(USE_COMPRESSION,
+    kapps_config:get_is_true(?CONFIG_CAT, <<"compress_response_body">>, 'true')
+).
 -define(SOCKET_PORT, kapps_config:get_integer(?APP_NAME, <<"port">>, 5555)).
 -define(SOCKET_ACCEPTORS, kapps_config:get_integer(?APP_NAME, <<"acceptors">>, 100)).
 
--define(BASE_TRANSPORT_OPTIONS(IP, Workers)
-       ,[{'ip', IP}
-        ,{'num_acceptors', Workers}
-        ,{'send_timeout', kapps_config:get_integer(?CONFIG_CAT, <<"send_timeout_ms">>, 5 * ?MILLISECONDS_IN_SECOND)}
-        ]
-       ).
+-define(BASE_TRANSPORT_OPTIONS(IP, Workers), [
+    {'ip', IP},
+    {'num_acceptors', Workers},
+    {'send_timeout',
+        kapps_config:get_integer(?CONFIG_CAT, <<"send_timeout_ms">>, 5 * ?MILLISECONDS_IN_SECOND)}
+]).
 -spec blackhole_routes() -> cowboy_router:routes().
 blackhole_routes() -> [{'_', paths_list()}].
 
@@ -56,23 +58,29 @@ start_link() ->
 -spec maybe_start_plaintext(cowboy_router:dispatch_rules(), inet:ip_address()) -> 'ok'.
 maybe_start_plaintext(Dispatch, IP) ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"use_plaintext">>, 'true') of
-        'false' -> lager:info("plaintext websocket support not enabled");
+        'false' ->
+            lager:info("plaintext websocket support not enabled");
         'true' ->
             Port = ?SOCKET_PORT,
-            ReqTimeout = kapps_config:get_integer(?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND),
+            ReqTimeout = kapps_config:get_integer(
+                ?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND
+            ),
             Workers = ?SOCKET_ACCEPTORS,
 
             %% Name, NbAcceptors, Transport, TransOpts, Protocol, ProtoOpts
             try
                 lager:info("trying to bind to address ~s port ~b", [inet:ntoa(IP), Port]),
-                cowboy:start_clear('blackhole_socket_handler'
-                                  ,[{'port', Port} | ?BASE_TRANSPORT_OPTIONS(IP, Workers)]
-                                  ,#{'env' => #{'dispatch' => Dispatch
-                                               ,'timeout' => ReqTimeout
-                                               }
-                                    ,'stream_handlers' => maybe_add_compression_handler()
-                                    }
-                                  )
+                cowboy:start_clear(
+                    'blackhole_socket_handler',
+                    [{'port', Port} | ?BASE_TRANSPORT_OPTIONS(IP, Workers)],
+                    #{
+                        'env' => #{
+                            'dispatch' => Dispatch,
+                            'timeout' => ReqTimeout
+                        },
+                        'stream_handlers' => maybe_add_compression_handler()
+                    }
+                )
             of
                 {'ok', _} ->
                     lager:info("started plaintext Websocket server");
@@ -98,30 +106,40 @@ start_ssl(Dispatch, IP) ->
             lager:debug("trying to start SSL WEBSOCKET server"),
             _SslStarted = ssl:start(),
             lager:debug("starting SSL : ~p", [_SslStarted]),
-            ReqTimeout = kapps_config:get_integer(?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND),
+            ReqTimeout = kapps_config:get_integer(
+                ?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND
+            ),
             Workers = kapps_config:get_integer(?CONFIG_CAT, <<"ssl_workers">>, 100),
 
             try
-                lager:info("trying to bind SSL WEBSOCKET server to address ~s port ~b"
-                          ,[inet:ntoa(IP)
-                           ,props:get_value('port', SSLOpts)
-                           ]
-                          ),
-                cowboy:start_tls('blackhole_socket_handler_ssl'
-                                ,?BASE_TRANSPORT_OPTIONS(IP, Workers) ++ SSLOpts
-                                ,#{'env' => #{'dispatch' => Dispatch
-                                             ,'timeout' => ReqTimeout
-                                             }
-                                  ,'stream_handlers' => maybe_add_compression_handler()
-                                  }
-                                )
+                lager:info(
+                    "trying to bind SSL WEBSOCKET server to address ~s port ~b",
+                    [
+                        inet:ntoa(IP),
+                        props:get_value('port', SSLOpts)
+                    ]
+                ),
+                cowboy:start_tls(
+                    'blackhole_socket_handler_ssl',
+                    ?BASE_TRANSPORT_OPTIONS(IP, Workers) ++ SSLOpts,
+                    #{
+                        'env' => #{
+                            'dispatch' => Dispatch,
+                            'timeout' => ReqTimeout
+                        },
+                        'stream_handlers' => maybe_add_compression_handler()
+                    }
+                )
             of
                 {'ok', _} ->
-                    lager:info("started SSL WEBSOCKET server on port ~b", [props:get_value('port', SSLOpts)]);
+                    lager:info("started SSL WEBSOCKET server on port ~b", [
+                        props:get_value('port', SSLOpts)
+                    ]);
                 {'error', {'already_started', _P}} ->
-                    lager:info("already started SSL WEBSOCKET server on port ~b at ~p"
-                              ,[props:get_value('port', SSLOpts), _P]
-                              )
+                    lager:info(
+                        "already started SSL WEBSOCKET server on port ~b at ~p",
+                        [props:get_value('port', SSLOpts), _P]
+                    )
             catch
                 'throw':{'invalid_file', _File} ->
                     lager:info("SSL disabled: failed to find ~s", [_File]);
@@ -143,33 +161,40 @@ ssl_opts(RootDir) ->
 
 -spec base_ssl_opts(list()) -> kz_term:proplist().
 base_ssl_opts(RootDir) ->
-    [{'port', kapps_config:get_integer(?CONFIG_CAT, <<"ssl_port">>, 5556)}
-    ,{'certfile', find_file(kapps_config:get_string(?CONFIG_CAT
-                                                   ,<<"ssl_cert">>
-                                                   ,filename:join([RootDir, <<"priv/ssl/blackhole.crt">>])
-                                                   )
-                           ,RootDir
-                           )
-     }
-    ,{'keyfile', find_file(kapps_config:get_string(?CONFIG_CAT
-                                                  ,<<"ssl_key">>
-                                                  ,filename:join([RootDir, <<"priv/ssl/blackhole.key">>])
-                                                  )
-                          ,RootDir
-                          )
-     }
-    ,{'password', kapps_config:get_string(?CONFIG_CAT, <<"ssl_password">>, <<>>)}
+    [
+        {'port', kapps_config:get_integer(?CONFIG_CAT, <<"ssl_port">>, 5556)},
+        {'certfile',
+            find_file(
+                kapps_config:get_string(
+                    ?CONFIG_CAT,
+                    <<"ssl_cert">>,
+                    filename:join([RootDir, <<"priv/ssl/blackhole.crt">>])
+                ),
+                RootDir
+            )},
+        {'keyfile',
+            find_file(
+                kapps_config:get_string(
+                    ?CONFIG_CAT,
+                    <<"ssl_key">>,
+                    filename:join([RootDir, <<"priv/ssl/blackhole.key">>])
+                ),
+                RootDir
+            )},
+        {'password', kapps_config:get_string(?CONFIG_CAT, <<"ssl_password">>, <<>>)}
     ].
 
 -spec find_file(list(), list()) -> list().
 find_file(File, Root) ->
     case filelib:is_file(File) of
-        'true' -> File;
+        'true' ->
+            File;
         'false' ->
             FromRoot = filename:join([Root, File]),
             lager:info("failed to find file at ~s, trying ~s", [File, FromRoot]),
             case filelib:is_file(FromRoot) of
-                'true' -> FromRoot;
+                'true' ->
+                    FromRoot;
                 'false' ->
                     lager:info("failed to find file at ~s", [FromRoot]),
                     throw({'invalid_file', File})

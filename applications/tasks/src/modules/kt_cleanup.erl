@@ -22,38 +22,38 @@
 -define(CLEANUP_CAT, <<(?CONFIG_CAT)/binary, ".cleanup">>).
 
 %% How long to pause before attempting to delete the next chunk of soft-deleted docs
--define(SOFT_DELETE_PAUSE
-       ,kapps_config:get_integer(?CONFIG_CAT, <<"soft_delete_pause_ms">>, 10 * ?MILLISECONDS_IN_SECOND)
-       ).
+-define(SOFT_DELETE_PAUSE,
+    kapps_config:get_integer(?CONFIG_CAT, <<"soft_delete_pause_ms">>, 10 * ?MILLISECONDS_IN_SECOND)
+).
 
-
--define(DEFAULT_CLEANUP
-       ,kz_json:from_list(
-          [{<<"classifications">>, [<<"account">>
-                                   ,<<"modb">>
-                                   ,<<"yodb">>
-                                   ,<<"ratedeck">>
-                                   ,<<"resource_selectors">>
-                                   ]
-           }
-          ,{<<"databases">>, [?KZ_ALERTS_DB
-                             ,?KZ_ACCOUNTS_DB
-                             ,?KZ_CONFIG_DB
-                             ,?KZ_DATA_DB
-                             ,?KZ_MEDIA_DB
-                             ,?KZ_OFFNET_DB
-                             ,?KZ_PORT_REQUESTS_DB
-                             ,?KZ_SIP_DB
-                             ,?KZ_WEBHOOKS_DB
-                             ,<<"functions">>
-                             ]
-           }
-          ]
-         )
-       ).
--define(CLEANUP_DBS
-       ,kapps_config:get_json(?CLEANUP_CAT, <<"cleanup_dbs">>, ?DEFAULT_CLEANUP)
-       ).
+-define(DEFAULT_CLEANUP,
+    kz_json:from_list(
+        [
+            {<<"classifications">>, [
+                <<"account">>,
+                <<"modb">>,
+                <<"yodb">>,
+                <<"ratedeck">>,
+                <<"resource_selectors">>
+            ]},
+            {<<"databases">>, [
+                ?KZ_ALERTS_DB,
+                ?KZ_ACCOUNTS_DB,
+                ?KZ_CONFIG_DB,
+                ?KZ_DATA_DB,
+                ?KZ_MEDIA_DB,
+                ?KZ_OFFNET_DB,
+                ?KZ_PORT_REQUESTS_DB,
+                ?KZ_SIP_DB,
+                ?KZ_WEBHOOKS_DB,
+                <<"functions">>
+            ]}
+        ]
+    )
+).
+-define(CLEANUP_DBS,
+    kapps_config:get_json(?CLEANUP_CAT, <<"cleanup_dbs">>, ?DEFAULT_CLEANUP)
+).
 
 %%%=============================================================================
 %%% API
@@ -73,10 +73,12 @@ init() ->
 cleanup_soft_deletes(Db) ->
     CleanupDbs = ?CLEANUP_DBS,
     Classification = kzs_util:db_classification(Db),
-    case lists:member(Db, kz_json:get_list_value(<<"databases">>, CleanupDbs, []))
-        orelse lists:member(kz_term:to_binary(Classification)
-                           ,kz_json:get_list_value(<<"classifications">>, CleanupDbs, [])
-                           )
+    case
+        lists:member(Db, kz_json:get_list_value(<<"databases">>, CleanupDbs, [])) orelse
+            lists:member(
+                kz_term:to_binary(Classification),
+                kz_json:get_list_value(<<"classifications">>, CleanupDbs, [])
+            )
     of
         'true' ->
             lager:debug("cleaning up database ~s(~s)", [Db, Classification]),
@@ -131,12 +133,16 @@ delete_soft_deleted(Db, JObjs) ->
 -spec build_id_rev(kz_json:object()) -> kz_json:object().
 build_id_rev(JObj0) ->
     JObj =
-        kz_json:get_ne_json_value(<<"value">>, JObj0
-                                 ,kz_json:get_ne_json_value(<<"doc">>, JObj0, JObj0)
-                                 ),
+        kz_json:get_ne_json_value(
+            <<"value">>,
+            JObj0,
+            kz_json:get_ne_json_value(<<"doc">>, JObj0, JObj0)
+        ),
     kz_json:from_list(
-      [{<<"_id">>, kz_doc:id(JObj)}
-      ,{<<"_rev">>, kz_doc:revision(JObj)}
-      ]).
+        [
+            {<<"_id">>, kz_doc:id(JObj)},
+            {<<"_rev">>, kz_doc:revision(JObj)}
+        ]
+    ).
 
 %%% End of Module.

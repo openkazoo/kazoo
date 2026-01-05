@@ -7,15 +7,16 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_resource_templates).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -32,8 +33,12 @@
 %%------------------------------------------------------------------------------
 -spec init() -> ok.
 init() ->
-    _ = crossbar_bindings:bind(<<"*.allowed_methods.resource_templates">>, ?MODULE, 'allowed_methods'),
-    _ = crossbar_bindings:bind(<<"*.resource_exists.resource_templates">>, ?MODULE, 'resource_exists'),
+    _ = crossbar_bindings:bind(
+        <<"*.allowed_methods.resource_templates">>, ?MODULE, 'allowed_methods'
+    ),
+    _ = crossbar_bindings:bind(
+        <<"*.resource_exists.resource_templates">>, ?MODULE, 'resource_exists'
+    ),
     _ = crossbar_bindings:bind(<<"*.validate.resource_templates">>, ?MODULE, 'validate'),
     _ = crossbar_bindings:bind(<<"*.execute.put.resource_templates">>, ?MODULE, 'put'),
     _ = crossbar_bindings:bind(<<"*.execute.post.resource_templates">>, ?MODULE, 'post'),
@@ -95,7 +100,8 @@ validate(Context, Id) ->
     C = determine_template_database(Context),
     validate_resource_templates(cb_context:req_verb(C), Id, C).
 
--spec validate_resource_templates(http_method(), path_token(), cb_context:context()) -> cb_context:context().
+-spec validate_resource_templates(http_method(), path_token(), cb_context:context()) ->
+    cb_context:context().
 validate_resource_templates(?HTTP_GET, Id, Context) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"resource_template">>));
 validate_resource_templates(?HTTP_POST, Id, Context) ->
@@ -145,7 +151,8 @@ determine_template_database(Context) ->
 -spec reseller_template_database(cb_context:context()) -> cb_context:context().
 reseller_template_database(Context) ->
     case kz_services_reseller:get_id(cb_context:account_id(Context)) of
-        'undefined' -> Context;
+        'undefined' ->
+            Context;
         ResellerId ->
             ResellerDb = kz_util:format_account_id(ResellerId, 'encoded'),
             cb_context:set_account_db(Context, ResellerDb)
@@ -155,7 +162,8 @@ reseller_template_database(Context) ->
 local_template_database(Context) ->
     AccountId = cb_context:auth_account_id(Context),
     case kz_services_reseller:is_reseller(AccountId) of
-        'false' -> reseller_template_database(Context);
+        'false' ->
+            reseller_template_database(Context);
         'true' ->
             AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
             cb_context:set_account_db(Context, AccountDb)
@@ -173,11 +181,14 @@ is_allowed_to_update(Context) ->
 
 -spec forbidden(cb_context:context()) -> cb_context:context().
 forbidden(Context) ->
-    cb_context:add_validation_error(<<"Account">>
-                                   ,<<"forbidden">>
-                                   ,kz_json:from_list([{<<"message">>, <<"You are not authorized to modify the resource templates">>}])
-                                   ,Context
-                                   ).
+    cb_context:add_validation_error(
+        <<"Account">>,
+        <<"forbidden">>,
+        kz_json:from_list([
+            {<<"message">>, <<"You are not authorized to modify the resource templates">>}
+        ]),
+        Context
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -188,7 +199,7 @@ validate_request(ResourceId, Context) ->
     Context1 = check_template_name(Context),
     case cb_context:has_errors(Context1) of
         'true' -> Context1;
-        'false' -> on_successful_validation(ResourceId,Context1)
+        'false' -> on_successful_validation(ResourceId, Context1)
     end.
 
 %%------------------------------------------------------------------------------
@@ -203,12 +214,14 @@ validate_patch(ResourceId, Context) ->
 check_template_name(Context) ->
     case kz_json:get_ne_value(<<"template_name">>, cb_context:req_data(Context)) of
         'undefined' ->
-            cb_context:add_validation_error(<<"template_name">>
-                                           ,<<"required">>
-                                           ,kz_json:from_list([{<<"message">>, <<"Template name is required">>}])
-                                           ,Context
-                                           );
-        _Name -> cb_context:set_resp_status(Context, 'success')
+            cb_context:add_validation_error(
+                <<"template_name">>,
+                <<"required">>,
+                kz_json:from_list([{<<"message">>, <<"Template name is required">>}]),
+                Context
+            );
+        _Name ->
+            cb_context:set_resp_status(Context, 'success')
     end.
 
 -spec on_successful_validation(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
@@ -234,4 +247,4 @@ merge(Context) ->
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].

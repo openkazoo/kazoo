@@ -10,11 +10,13 @@
 -export([name/1, name/2, set_name/2]).
 -export([params/1, params/2, set_params/2]).
 -export([params_client_id/1, params_client_id/2, set_params_client_id/2]).
--export([params_include_granted_scopes/1, params_include_granted_scopes/2, set_params_include_granted_scopes/2]).
+-export([
+    params_include_granted_scopes/1, params_include_granted_scopes/2,
+    set_params_include_granted_scopes/2
+]).
 -export([params_response_type/1, params_response_type/2, set_params_response_type/2]).
 -export([params_scopes/1, params_scopes/2, set_params_scopes/2]).
 -export([url/1, url/2, set_url/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -85,7 +87,9 @@ params_include_granted_scopes(Doc, Default) ->
 
 -spec set_params_include_granted_scopes(doc(), boolean()) -> doc().
 set_params_include_granted_scopes(Doc, ParamsIncludeGrantedScopes) ->
-    kz_json:set_value([<<"params">>, <<"include_granted_scopes">>], ParamsIncludeGrantedScopes, Doc).
+    kz_json:set_value(
+        [<<"params">>, <<"include_granted_scopes">>], ParamsIncludeGrantedScopes, Doc
+    ).
 
 -spec params_response_type(doc()) -> kz_term:api_binary().
 params_response_type(Doc) ->

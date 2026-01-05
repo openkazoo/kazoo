@@ -12,7 +12,7 @@
 -include("fax.hrl").
 
 -spec init(cowboy_req:req(), any()) ->
-          {'ok', cowboy_req:req(), 'ok'}.
+    {'ok', cowboy_req:req(), 'ok'}.
 init(Req0, _Opts) ->
     kz_util:put_callid(kz_binary:rand_hex(16)),
     maybe_send_job_file(Req0, cowboy_req:path_info(Req0)).
@@ -21,15 +21,16 @@ maybe_send_job_file(Req0, [JobId]) ->
     lager:debug("fetching fax job ~s", [JobId]),
     TmpDir = kapps_config:get_binary(?CONFIG_CAT, <<"file_cache_path">>, <<"/tmp/">>),
     File = list_to_binary([TmpDir, JobId]),
-    Req1 = case file:read_file(File) of
-               {'ok', Content} ->
-                   lager:debug("sending fax contents for ~s", [File]),
-                   Headers = #{<<"content-type">> => <<"image/tiff">>},
-                   cowboy_req:reply(200, Headers, Content, Req0);
-               {'error', _Reason} ->
-                   lager:debug("could not open file '~s': ~p", [File, _Reason]),
-                   cowboy_req:reply(404, Req0)
-           end,
+    Req1 =
+        case file:read_file(File) of
+            {'ok', Content} ->
+                lager:debug("sending fax contents for ~s", [File]),
+                Headers = #{<<"content-type">> => <<"image/tiff">>},
+                cowboy_req:reply(200, Headers, Content, Req0);
+            {'error', _Reason} ->
+                lager:debug("could not open file '~s': ~p", [File, _Reason]),
+                cowboy_req:reply(404, Req0)
+        end,
     {'ok', Req1, 'ok'};
 maybe_send_job_file(Req0, _Else) ->
     lager:debug("not sending job file contents for ~p", [_Else]),

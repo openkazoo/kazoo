@@ -7,25 +7,28 @@
 -module(cccp_platform_listener).
 -behaviour(gen_listener).
 
--export([start_link/1
-        ,handle_answer/2
-        ]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    start_link/1,
+    handle_answer/2
+]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("cccp.hrl").
 
 -define(SERVER, ?MODULE).
--define(RESPONDERS, [{{'cccp_util', 'relay_amqp'},[{<<"call_event">>, <<"*">>}]}
-                    ,{{'cccp_util', 'handle_disconnect'},[{<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>}]}
-                    ,{{?MODULE, 'handle_answer'}, [{<<"call_event">>, <<"*">>}]}
-                    ]).
+-define(RESPONDERS, [
+    {{'cccp_util', 'relay_amqp'}, [{<<"call_event">>, <<"*">>}]},
+    {{'cccp_util', 'handle_disconnect'}, [{<<"call_event">>, <<"CHANNEL_EXECUTE_COMPLETE">>}]},
+    {{?MODULE, 'handle_answer'}, [{<<"call_event">>, <<"*">>}]}
+]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -41,15 +44,24 @@
 -spec start_link(kapps_call:call()) -> kz_types:startlink_ret().
 start_link(Call) ->
     CallId = kapps_call:call_id(Call),
-    Bindings = [{'call', [{'callid', CallId}]}
-               ,{'self', []}
-               ],
-    gen_listener:start_link(?SERVER, [{'bindings', Bindings}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], [Call]).
+    Bindings = [
+        {'call', [{'callid', CallId}]},
+        {'self', []}
+    ],
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', Bindings},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        [Call]
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -62,7 +74,7 @@ start_link(Call) ->
 -spec init([kapps_call:call()]) -> {'ok', state()}.
 init([Call]) ->
     CallUpdate = kapps_call:kvs_store('server_pid', self(), Call),
-    {'ok', #state{call=CallUpdate}}.
+    {'ok', #state{call = CallUpdate}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -77,13 +89,13 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',Queue}}, #state{call=Call}=State) ->
-    {'noreply', State#state{call=kapps_call:set_controller_queue(Queue, Call)}};
-handle_cast({'gen_listener',{'is_consuming', 'true'}}, #state{call=Call}=State) ->
+handle_cast({'gen_listener', {'created_queue', Queue}}, #state{call = Call} = State) ->
+    {'noreply', State#state{call = kapps_call:set_controller_queue(Queue, Call)}};
+handle_cast({'gen_listener', {'is_consuming', 'true'}}, #state{call = Call} = State) ->
     kapps_call_command:answer(Call),
     {'noreply', State};
 handle_cast({'call_update', CallUpdate}, State) ->
-    {'noreply', State#state{call=CallUpdate}};
+    {'noreply', State#state{call = CallUpdate}};
 handle_cast('stop_platform_listener', State) ->
     {'stop', 'normal', State};
 handle_cast(_Msg, State) ->
@@ -102,7 +114,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), state()) -> gen_listener:handle_event_return().
-handle_event(_JObj, #state{call=Call}) ->
+handle_event(_JObj, #state{call = Call}) ->
     {'reply', [{'call', Call}]}.
 
 %%------------------------------------------------------------------------------
@@ -129,13 +141,16 @@ code_change(_OldVsn, State, _Extra) ->
 handle_answer(JObj, Props) ->
     Srv = props:get_value('server', Props),
     case kz_util:get_event_type(JObj) of
-        {<<"call_event">>,<<"CHANNEL_ANSWER">>} ->
-            CallUpdate = kapps_call:kvs_store('consumer_pid', self(), props:get_value('call', Props)),
+        {<<"call_event">>, <<"CHANNEL_ANSWER">>} ->
+            CallUpdate = kapps_call:kvs_store(
+                'consumer_pid', self(), props:get_value('call', Props)
+            ),
             gen_listener:cast(Srv, {'call_update', CallUpdate}),
             process_call(CallUpdate);
-        {<<"call_event">>,<<"CHANNEL_DESTROY">>} ->
+        {<<"call_event">>, <<"CHANNEL_DESTROY">>} ->
             gen_listener:cast(Srv, 'stop_platform_listener');
-        _ -> 'ok'
+        _ ->
+            'ok'
     end.
 
 %%%=============================================================================
@@ -160,7 +175,9 @@ process_call(Call) ->
 dial(JObj, Call) ->
     AccountId = kz_json:get_value(<<"account_id">>, JObj),
     UserId = kz_json:get_value(<<"user_id">>, JObj),
-    MaxConcurentCallsPerUser = kz_json:get_integer_value(<<"max_concurent_calls_per_user">>, JObj, 1),
+    MaxConcurentCallsPerUser = kz_json:get_integer_value(
+        <<"max_concurent_calls_per_user">>, JObj, 1
+    ),
     case (cccp_util:count_user_legs(UserId, AccountId) >= MaxConcurentCallsPerUser * 2) of
         'true' ->
             kapps_call_command:b_prompt(<<"cf-move-too_many_channels">>, Call),
@@ -171,13 +188,17 @@ dial(JObj, Call) ->
             AuthDocId = kz_json:get_value(<<"id">>, JObj),
             RetainCID = kz_json:get_binary_boolean(<<"retain_cid">>, JObj, <<"false">>),
             CallUpdate = kapps_call:kvs_store('auth_doc_id', AuthDocId, Call),
-            gen_listener:cast(kapps_call:kvs_fetch('server_pid', CallUpdate), {'call_update', CallUpdate}),
+            gen_listener:cast(
+                kapps_call:kvs_fetch('server_pid', CallUpdate), {'call_update', CallUpdate}
+            ),
             {'num_to_dial', ToDID} = cccp_util:get_number(CallUpdate),
             CallId = kapps_call:call_id(CallUpdate),
             CtrlQ = kapps_call:control_queue(CallUpdate),
             CallerName = knm_converters:normalize(kapps_call:caller_id_name(Call)),
             CallerNumber = knm_converters:normalize(kapps_call:caller_id_number(Call)),
-            cccp_util:bridge(CallId, ToDID, UserId, CtrlQ, AccountId, RetainCID, CallerName, CallerNumber),
+            cccp_util:bridge(
+                CallId, ToDID, UserId, CtrlQ, AccountId, RetainCID, CallerName, CallerNumber
+            ),
             cccp_util:store_last_dialed(ToDID, AuthDocId)
     end.
 

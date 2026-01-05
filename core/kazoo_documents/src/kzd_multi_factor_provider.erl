@@ -11,7 +11,6 @@
 -export([provider_name/1, provider_name/2, set_provider_name/2]).
 -export([settings/1, settings/2, set_settings/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

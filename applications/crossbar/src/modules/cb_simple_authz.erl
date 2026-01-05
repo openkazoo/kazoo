@@ -11,21 +11,23 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_simple_authz).
 
--export([init/0
-        ,authorize/1
-        ]).
+-export([
+    init/0,
+    authorize/1
+]).
 
 -include("crossbar.hrl").
 
 -define(SERVER, ?MODULE).
 -define(VIEW_SUMMARY, <<"accounts/listing_by_id">>).
--define(SYS_ADMIN_MODS, [<<"acls">>
-                        ,<<"global_provisioner_templates">>
-                        ,<<"global_resources">>
-                        ,<<"rates">>
-                        ,<<"sup">>
-                        ,<<"templates">>
-                        ]).
+-define(SYS_ADMIN_MODS, [
+    <<"acls">>,
+    <<"global_provisioner_templates">>,
+    <<"global_resources">>,
+    <<"rates">>,
+    <<"sup">>,
+    <<"templates">>
+]).
 
 %% Endpoints performing their own auth
 -define(IGNORE_MODS, []).
@@ -49,21 +51,19 @@ authorize(Context) ->
     authorize(Context, cb_context:req_verb(Context), cb_context:req_nouns(Context)).
 
 authorize(Context, Verb, [{?KZ_ACCOUNTS_DB, []}]) ->
-    cb_context:is_superduper_admin(Context)
-        orelse Verb =:= ?HTTP_PUT;
-authorize(_Context, ?HTTP_GET, [{<<"global_provisioner_templates">>,_}|_]) ->
+    cb_context:is_superduper_admin(Context) orelse
+        Verb =:= ?HTTP_PUT;
+authorize(_Context, ?HTTP_GET, [{<<"global_provisioner_templates">>, _} | _]) ->
     'true';
 authorize(Context, Verb, _Nouns) ->
     AuthAccountId = cb_context:auth_account_id(Context),
     IsSysAdmin = cb_context:is_superduper_admin(AuthAccountId),
-    case (not should_ignore(Context)
-          andalso (allowed_if_sys_admin_mod(IsSysAdmin, Context)
-                   andalso account_is_descendant(IsSysAdmin, Context)
-                  )
-         )
-        orelse (Verb =:= ?HTTP_GET
-                andalso cb_context:magic_pathed(Context)
-               )
+    case
+        (not should_ignore(Context) andalso
+            (allowed_if_sys_admin_mod(IsSysAdmin, Context) andalso
+                account_is_descendant(IsSysAdmin, Context))) orelse
+            (Verb =:= ?HTTP_GET andalso
+                cb_context:magic_pathed(Context))
     of
         'true' ->
             lager:debug("authorizing the request"),
@@ -75,9 +75,12 @@ authorize(Context, Verb, _Nouns) ->
 
 -spec should_ignore(cb_context:context()) -> boolean().
 should_ignore(Context) ->
-    lists:any(fun({Noun, _}) ->
-                      lists:member(Noun, ?IGNORE_MODS)
-              end, cb_context:req_nouns(Context)).
+    lists:any(
+        fun({Noun, _}) ->
+            lists:member(Noun, ?IGNORE_MODS)
+        end,
+        cb_context:req_nouns(Context)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Returns true if the requested account id is a descendant or the same
@@ -85,7 +88,8 @@ should_ignore(Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec account_is_descendant(boolean(), cb_context:context()) -> boolean().
-account_is_descendant('true', _Context) -> 'true';
+account_is_descendant('true', _Context) ->
+    'true';
 account_is_descendant('false', Context) ->
     account_is_descendant('false', Context, cb_context:auth_account_id(Context)).
 
@@ -106,12 +110,17 @@ account_is_descendant('false', Context, AuthAccountId) ->
             ReqAccountId = hd(Params),
             %% we will get the requested account definition from accounts using a view
             %% with a complex key (whose alternate value is useful to use on retrieval)
-            lager:debug("checking if account ~s is a descendant of ~s", [ReqAccountId, AuthAccountId]),
-            case ReqAccountId =:= AuthAccountId
-                orelse kzd_accounts:fetch(ReqAccountId)
+            lager:debug("checking if account ~s is a descendant of ~s", [
+                ReqAccountId, AuthAccountId
+            ]),
+            case
+                ReqAccountId =:= AuthAccountId orelse
+                    kzd_accounts:fetch(ReqAccountId)
             of
                 'true' ->
-                    lager:debug("authorizing, requested account is the same as the auth token account"),
+                    lager:debug(
+                        "authorizing, requested account is the same as the auth token account"
+                    ),
                     'true';
                 %% if the requested account exists, the second component of the key
                 %% is the parent tree, make sure the authorized account id is in that tree
@@ -119,10 +128,14 @@ account_is_descendant('false', Context, AuthAccountId) ->
                     Tree = kzd_accounts:tree(JObj),
                     case lists:member(AuthAccountId, Tree) of
                         'true' ->
-                            lager:debug("authorizing requested account is a descendant of the auth token"),
+                            lager:debug(
+                                "authorizing requested account is a descendant of the auth token"
+                            ),
                             'true';
                         'false' ->
-                            lager:debug("not authorizing, requested account is not a descendant of the auth token"),
+                            lager:debug(
+                                "not authorizing, requested account is not a descendant of the auth token"
+                            ),
                             'false'
                     end;
                 %% anything else and they are not allowed
@@ -143,7 +156,9 @@ allowed_if_sys_admin_mod(IsSysAdmin, Context) ->
         %% if this is request is not made to a system admin module then this
         %% function doesn't deny it
         'false' ->
-            lager:debug("authorizing, the request does not contain any system administration modules"),
+            lager:debug(
+                "authorizing, the request does not contain any system administration modules"
+            ),
             'true';
         %% if this request is to a system admin module then check if the
         %% account has the 'pvt_superduper_admin'
@@ -162,6 +177,7 @@ allowed_if_sys_admin_mod(IsSysAdmin, Context) ->
 -spec is_sys_admin_mod(cb_context:context()) -> boolean().
 is_sys_admin_mod(Context) ->
     Nouns = cb_context:req_nouns(Context),
-    lists:any(fun kz_term:identity/1
-             ,[props:get_value(Mod, Nouns) =/= 'undefined' || Mod <- ?SYS_ADMIN_MODS]
-             ).
+    lists:any(
+        fun kz_term:identity/1,
+        [props:get_value(Mod, Nouns) =/= 'undefined' || Mod <- ?SYS_ADMIN_MODS]
+    ).

@@ -13,12 +13,12 @@
 
 -include("doodle.hrl").
 
--define(SIP_ENDPOINT_ID_KEY(Realm, User)
-       ,{?MODULE, 'sip_endpoint_id', Realm, User}
-       ).
--define(SIP_ENDPOINT_KEY(Realm, User)
-       ,{?MODULE, 'sip_endpoint', Realm, User}
-       ).
+-define(SIP_ENDPOINT_ID_KEY(Realm, User),
+    {?MODULE, 'sip_endpoint_id', Realm, User}
+).
+-define(SIP_ENDPOINT_KEY(Realm, User),
+    {?MODULE, 'sip_endpoint', Realm, User}
+).
 -define(DEFAULT_INCEPTION, <<"offnet">>).
 -define(MDN_VIEW, <<"mobile/listing_by_mdn">>).
 -define(CONVERT_MDN, 'true').
@@ -50,32 +50,33 @@ get_inbound_destination(JObj) ->
     {knm_converters:normalize(Number), Inception}.
 
 -spec lookup_mdn(kz_term:ne_binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:api_binary()} |
-          {'error', any()}.
+    {'ok', kz_term:ne_binary(), kz_term:api_binary()}
+    | {'error', any()}.
 lookup_mdn(Number) ->
     Num = knm_converters:normalize(Number),
     case kz_cache:fetch_local(?CACHE_NAME, cache_key_mdn(Num)) of
         {'ok', {Id, OwnerId}} ->
             lager:debug("cached number ~s is associated with ~s/~s", [Num, OwnerId, Id]),
             {'ok', Id, OwnerId};
-        {'error', 'not_found'} -> fetch_mdn(Num)
+        {'error', 'not_found'} ->
+            fetch_mdn(Num)
     end.
 
 -spec fetch_mdn(kz_term:ne_binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:api_binary()} |
-          {'error', any()}.
+    {'ok', kz_term:ne_binary(), kz_term:api_binary()}
+    | {'error', any()}.
 fetch_mdn(Num) ->
     case knm_number:lookup_account(Num) of
         {'ok', AccountId, _Props} ->
             fetch_mdn_result(AccountId, Num);
-        {'error', Reason}=E ->
+        {'error', Reason} = E ->
             lager:debug("~s is not associated with any account, ~p", [Num, Reason]),
             E
     end.
 
 -spec fetch_mdn_result(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:api_binary()} |
-          {'error', 'not_found'}.
+    {'ok', kz_term:ne_binary(), kz_term:api_binary()}
+    | {'error', 'not_found'}.
 fetch_mdn_result(AccountId, Num) ->
     AccountDb = kz_util:format_account_db(AccountId),
     ViewOptions = [{'key', mdn_from_e164(Num)}],
@@ -85,14 +86,15 @@ fetch_mdn_result(AccountId, Num) ->
             OwnerId = kz_json:get_value([<<"value">>, <<"owner_id">>], JObj),
             lager:debug("~s is associated with mobile device ~s in account ~s", [Num, Id, AccountId]),
             cache_mdn_result(AccountDb, Id, OwnerId);
-        {'error', 'not_found'}=E -> E;
-        {'error', _R}=E ->
+        {'error', 'not_found'} = E ->
+            E;
+        {'error', _R} = E ->
             lager:warning("could not fetch mdn for ~p: ~p", [Num, _R]),
             E
     end.
 
 -spec cache_mdn_result(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binary()) ->
-          {'ok', kz_term:ne_binary(), kz_term:api_binary()}.
+    {'ok', kz_term:ne_binary(), kz_term:api_binary()}.
 cache_mdn_result(AccountDb, Id, OwnerId) ->
     CacheProps = [{'origin', [{'db', AccountDb, Id}]}],
     kz_cache:store_local(?CACHE_NAME, cache_key_mdn(Id), {Id, OwnerId}, CacheProps),

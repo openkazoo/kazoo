@@ -7,13 +7,15 @@
 
 -include("kazoo_ips.hrl").
 
--export([available/0
-        ,available/1
-        ,available/2
-        ]).
--export([assigned/0
-        ,assigned/1
-        ]).
+-export([
+    available/0,
+    available/1,
+    available/2
+]).
+-export([
+    assigned/0,
+    assigned/1
+]).
 -export([zones/0]).
 -export([hosts/0]).
 -export([summary/1]).
@@ -23,34 +25,38 @@
 %% @end
 %%------------------------------------------------------------------------------
 
--spec available() -> {'ok', kz_json:objects()} |
-          {'error', any()}.
+-spec available() ->
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 available() -> available('undefined').
 
 -spec available(kz_term:api_binary()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 available(Zone) -> available(Zone, 1).
 
 -spec available(kz_term:api_binary(), non_neg_integer()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 available(Zone, Quantity) ->
     ViewOptions = props:filter_undefined(
-                    [{'key', Zone}
-                    ,{'limit', Quantity}
-                    ]
-                   ),
-    case kz_datamgr:get_results(?KZ_DEDICATED_IP_DB
-                               ,<<"dedicated_ips/available_listing">>
-                               ,ViewOptions
-                               )
+        [
+            {'key', Zone},
+            {'limit', Quantity}
+        ]
+    ),
+    case
+        kz_datamgr:get_results(
+            ?KZ_DEDICATED_IP_DB,
+            <<"dedicated_ips/available_listing">>,
+            ViewOptions
+        )
     of
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun() -> available(Zone, Quantity) end);
         {'ok', JObjs} ->
             {'ok', [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs]};
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:debug("unable to get available dedicated ips: ~p", [_R]),
             E
     end.
@@ -59,8 +65,9 @@ available(Zone, Quantity) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec assigned() -> {'ok', kz_json:objects()} |
-          {'error', any()}.
+-spec assigned() ->
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 assigned() ->
     case fetch_assigned(['include_docs']) of
         {'ok', JObjs} ->
@@ -70,8 +77,8 @@ assigned() ->
     end.
 
 -spec assigned(kz_term:ne_binary()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 assigned(Account) ->
     AccountId = kz_util:format_account_id(Account, 'raw'),
     ViewOptions = [{'key', AccountId}],
@@ -83,18 +90,21 @@ assigned(Account) ->
     end.
 
 -spec fetch_assigned(kz_datamgr:view_options()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 fetch_assigned(ViewOptions) ->
-    case kz_datamgr:get_results(?KZ_DEDICATED_IP_DB
-                               ,<<"dedicated_ips/assigned_to_listing">>
-                               ,ViewOptions
-                               )
+    case
+        kz_datamgr:get_results(
+            ?KZ_DEDICATED_IP_DB,
+            <<"dedicated_ips/assigned_to_listing">>,
+            ViewOptions
+        )
     of
-        {'ok', _}=Ok -> Ok;
+        {'ok', _} = Ok ->
+            Ok;
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun() -> fetch_assigned(ViewOptions) end);
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:debug("unable to get assigned dedicated ips: ~p", [_R]),
             E
     end.
@@ -105,8 +115,9 @@ sort_assigned(IPs) ->
     sort_assigned(kz_term:shuffle_list(IPs), ZoneName, []).
 
 -spec sort_assigned(kz_json:objects(), kz_term:ne_binary(), kz_json:objects()) -> kz_json:objects().
-sort_assigned([], _, Sorted) -> Sorted;
-sort_assigned([IP|IPs], ZoneName, Sorted) ->
+sort_assigned([], _, Sorted) ->
+    Sorted;
+sort_assigned([IP | IPs], ZoneName, Sorted) ->
     case kz_json:get_value(<<"zone">>, IP) =:= ZoneName of
         'true' -> sort_assigned(IPs, ZoneName, [IP] ++ Sorted);
         'false' -> sort_assigned(IPs, ZoneName, Sorted ++ [IP])
@@ -123,24 +134,28 @@ get_zone_name() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec zones() ->
-          {'ok', kz_term:ne_binaries()} |
-          {'error', any()}.
+    {'ok', kz_term:ne_binaries()}
+    | {'error', any()}.
 zones() ->
-    ViewOptions = ['group'
-                  ,{'group_level', 1}
-                  ],
-    case kz_datamgr:get_results(?KZ_DEDICATED_IP_DB
-                               ,<<"dedicated_ips/zone_listing">>
-                               ,ViewOptions
-                               )
+    ViewOptions = [
+        'group',
+        {'group_level', 1}
+    ],
+    case
+        kz_datamgr:get_results(
+            ?KZ_DEDICATED_IP_DB,
+            <<"dedicated_ips/zone_listing">>,
+            ViewOptions
+        )
     of
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun zones/0);
         {'ok', JObjs} ->
-            {'ok', [kz_json:get_value(<<"key">>, JObj)
-                    || JObj <- JObjs
-                   ]};
-        {'error', _R}=E ->
+            {'ok', [
+                kz_json:get_value(<<"key">>, JObj)
+             || JObj <- JObjs
+            ]};
+        {'error', _R} = E ->
             lager:debug("unable to get zones: ~p", [_R]),
             E
     end.
@@ -150,24 +165,28 @@ zones() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec hosts() ->
-          {'ok', kz_term:ne_binaries()} |
-          {'error', any()}.
+    {'ok', kz_term:ne_binaries()}
+    | {'error', any()}.
 hosts() ->
-    ViewOptions = ['group'
-                  ,{'group_level', 1}
-                  ],
-    case kz_datamgr:get_results(?KZ_DEDICATED_IP_DB
-                               ,<<"dedicated_ips/host_listing">>
-                               ,ViewOptions
-                               )
+    ViewOptions = [
+        'group',
+        {'group_level', 1}
+    ],
+    case
+        kz_datamgr:get_results(
+            ?KZ_DEDICATED_IP_DB,
+            <<"dedicated_ips/host_listing">>,
+            ViewOptions
+        )
     of
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun hosts/0);
         {'ok', JObjs} ->
-            {'ok', [kz_json:get_value(<<"key">>, JObj)
-                    || JObj <- JObjs
-                   ]};
-        {'error', _R}=E ->
+            {'ok', [
+                kz_json:get_value(<<"key">>, JObj)
+             || JObj <- JObjs
+            ]};
+        {'error', _R} = E ->
             lager:debug("unable to get hosts: ~p", [_R]),
             E
     end.
@@ -177,19 +196,22 @@ hosts() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec summary(kz_term:api_binary()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 summary(Host) ->
     ViewOptions = props:filter_undefined([{'key', Host}]),
-    case kz_datamgr:get_results(?KZ_DEDICATED_IP_DB
-                               ,<<"dedicated_ips/summary_listing">>
-                               ,ViewOptions
-                               )
+    case
+        kz_datamgr:get_results(
+            ?KZ_DEDICATED_IP_DB,
+            <<"dedicated_ips/summary_listing">>,
+            ViewOptions
+        )
     of
         {'error', 'not_found'} ->
             kz_ip_utils:refresh_database(fun() -> summary(Host) end);
-        {'ok', JObjs} -> {'ok', [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs]};
-        {'error', _R}=E ->
+        {'ok', JObjs} ->
+            {'ok', [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs]};
+        {'error', _R} = E ->
             lager:debug("unable to get host ips: ~p", [_R]),
             E
     end.

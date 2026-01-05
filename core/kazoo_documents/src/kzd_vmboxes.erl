@@ -11,7 +11,9 @@
 -export([delete_after_notify/1, delete_after_notify/2, set_delete_after_notify/2]).
 -export([flags/1, flags/2, set_flags/2]).
 -export([is_setup/1, is_setup/2, set_is_setup/2]).
--export([is_voicemail_ff_rw_enabled/1, is_voicemail_ff_rw_enabled/2, set_is_voicemail_ff_rw_enabled/2]).
+-export([
+    is_voicemail_ff_rw_enabled/1, is_voicemail_ff_rw_enabled/2, set_is_voicemail_ff_rw_enabled/2
+]).
 -export([mailbox/1, mailbox/2, set_mailbox/2]).
 -export([media/1, media/2, set_media/2]).
 -export([media_unavailable/1, media_unavailable/2, set_media_unavailable/2]).
@@ -28,13 +30,15 @@
 -export([save_after_notify/1, save_after_notify/2, set_save_after_notify/2]).
 -export([seek_duration_ms/1, seek_duration_ms/2, set_seek_duration_ms/2]).
 -export([include_message_on_notify/1, include_message_on_notify/2, set_include_message_on_notify/2]).
--export([include_transcription_on_notify/1, include_transcription_on_notify/2, set_include_transcription_on_notify/2]).
+-export([
+    include_transcription_on_notify/1, include_transcription_on_notify/2,
+    set_include_transcription_on_notify/2
+]).
 -export([skip_envelope/1, skip_envelope/2, set_skip_envelope/2]).
 -export([skip_greeting/1, skip_greeting/2, set_skip_greeting/2]).
 -export([skip_instructions/1, skip_instructions/2, set_skip_instructions/2]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([transcribe/1, transcribe/2, set_transcribe/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -305,9 +309,14 @@ include_message_on_notify(Doc) ->
 
 -spec include_message_on_notify(doc(), Default) -> boolean() | Default.
 include_message_on_notify(Doc, Default) ->
-    case kz_json:get_first_defined([<<"include_message_on_notify">>
-                                   ,<<"should_include_attachment">>
-                                   ], Doc)
+    case
+        kz_json:get_first_defined(
+            [
+                <<"include_message_on_notify">>,
+                <<"should_include_attachment">>
+            ],
+            Doc
+        )
     of
         'undefined' -> Default;
         Value -> kz_term:is_true(Value)

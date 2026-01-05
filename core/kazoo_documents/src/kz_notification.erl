@@ -6,27 +6,46 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_notification).
 
--export([macros/1, set_macros/2
-        ,macro/2, set_macro/3
-        ,subject/1, set_subject/2
-        ,category/1, set_category/2
-        ,name/1, set_name/2
+-export([
+    macros/1,
+    set_macros/2,
+    macro/2,
+    set_macro/3,
+    subject/1,
+    set_subject/2,
+    category/1,
+    set_category/2,
+    name/1,
+    set_name/2,
 
-        ,to/1, set_to/2, to_email_addresses/1, to_email_type/1
-        ,cc/1, set_cc/2, cc_email_addresses/1, cc_email_type/1
-        ,bcc/1, set_bcc/2, bcc_email_addresses/1, bcc_email_type/1
+    to/1,
+    set_to/2,
+    to_email_addresses/1,
+    to_email_type/1,
+    cc/1,
+    set_cc/2,
+    cc_email_addresses/1,
+    cc_email_type/1,
+    bcc/1,
+    set_bcc/2,
+    bcc_email_addresses/1,
+    bcc_email_type/1,
 
-        ,from/1, set_from/2
-        ,reply_to/1, set_reply_to/2
+    from/1,
+    set_from/2,
+    reply_to/1,
+    set_reply_to/2,
 
-        ,id/1, db_id/1, resp_id/1
+    id/1,
+    db_id/1,
+    resp_id/1,
 
-        ,set_base_properties/1, set_base_properties/2
-        ,base_properties/1, base_properties/2
-        ,pvt_type/0, pvt_type/1
+    set_base_properties/1, set_base_properties/2,
+    base_properties/1, base_properties/2,
+    pvt_type/0, pvt_type/1,
 
-        ,is_enabled/1, is_enabled/2
-        ]).
+    is_enabled/1, is_enabled/2
+]).
 
 -type doc() :: kz_json:object().
 -export_type([doc/0]).
@@ -190,8 +209,9 @@ base_properties(JObj) ->
 
 -spec base_properties(doc(), kz_term:ne_binary()) -> kz_json:flat_proplist().
 base_properties(_JObj, Id) ->
-    [{kz_doc:path_id(), db_id(Id)}
-    ,{kz_doc:path_type(), ?PVT_TYPE}
+    [
+        {kz_doc:path_id(), db_id(Id)},
+        {kz_doc:path_type(), ?PVT_TYPE}
     ].
 
 -spec pvt_type() -> kz_term:ne_binary().

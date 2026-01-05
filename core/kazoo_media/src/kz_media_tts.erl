@@ -19,11 +19,14 @@ get_uri(Id, JObj) ->
     Format = kz_json:get_ne_binary_value(<<"Format">>, JObj, <<"wav">>),
     Host = kz_media_util:proxy_host(),
     Port = kapps_config:get_integer(?CONFIG_CAT, <<"proxy_port">>, 24517),
-    StreamType = kz_media_util:convert_stream_type(kz_json:get_ne_binary_value(<<"Stream-Type">>, JObj)),
+    StreamType = kz_media_util:convert_stream_type(
+        kz_json:get_ne_binary_value(<<"Stream-Type">>, JObj)
+    ),
 
-    UrlParts = [kz_media_util:base_url(Host, Port)
-               ,StreamType
-               ,<<"tts">>
-               ,<<Id/binary, ".", Format/binary>>
-               ],
+    UrlParts = [
+        kz_media_util:base_url(Host, Port),
+        StreamType,
+        <<"tts">>,
+        <<Id/binary, ".", Format/binary>>
+    ],
     kz_binary:join(UrlParts, <<"/">>).

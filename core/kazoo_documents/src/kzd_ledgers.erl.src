@@ -23,7 +23,6 @@
 -export([usage_type/1, usage_type/2, set_usage_type/2]).
 -export([usage_unit/1, usage_unit/2, set_usage_unit/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

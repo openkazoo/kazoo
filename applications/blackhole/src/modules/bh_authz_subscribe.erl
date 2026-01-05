@@ -7,9 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_authz_subscribe).
 
--export([init/0
-        ,authorize_account/2
-        ]).
+-export([
+    init/0,
+    authorize_account/2
+]).
 
 -include("blackhole.hrl").
 
@@ -44,9 +45,8 @@ authorize_account(Context, #{account_id := AccountId}) ->
 maybe_authorize_account(Context, 'undefined', _AccountId) ->
     lager:warning("auth_account_id is not set, maybe you need to start bh_token_auth ?"),
     bh_context:add_error(Context, <<"auth_account_id not set">>);
-
 maybe_authorize_account(Context, AuthAccountId, AccountId) ->
     case kzd_accounts:is_in_account_hierarchy(AuthAccountId, AccountId, 'true') of
-        'true'  -> Context;
+        'true' -> Context;
         'false' -> bh_context:add_error(Context, <<"unauthorized account id">>)
     end.

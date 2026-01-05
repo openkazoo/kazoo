@@ -14,9 +14,12 @@
 -spec handle(kz_json:object(), kapps_call:call()) -> 'ok'.
 handle(Data, Call) ->
     AccountId = kapps_call:account_id(Call),
-    Number = cf_util:normalize_capture_group(kapps_call:kvs_fetch('cf_capture_group', Call), AccountId),
-    case Number =/= 'undefined'
-        andalso cf_flow:lookup(Number, AccountId)
+    Number = cf_util:normalize_capture_group(
+        kapps_call:kvs_fetch('cf_capture_group', Call), AccountId
+    ),
+    case
+        Number =/= 'undefined' andalso
+            cf_flow:lookup(Number, AccountId)
     of
         'false' ->
             lager:debug("capture group is empty and can not be set as destination, hanging up."),
@@ -33,20 +36,22 @@ update_call(Number, Data, {'ok', Call}) ->
     Mode = kz_json:get_ne_binary_value(<<"mode">>, Data, <<"full">>),
     Strategy = kz_json:get_ne_binary_value(<<"endpoint_strategy">>, Data, <<"overwrite">>),
 
-    lager:debug("setting privacy mode for number ~s to ~s. use endpoint privacy: ~s"
-               ,[Number, Mode, Strategy]
-               ),
-    Routines = [{fun kapps_call:set_request/2
-                ,list_to_binary([Number, "@", kapps_call:request_realm(Call)])
-                }
-               ,{fun kapps_call:set_custom_channel_vars/2
-                ,kz_privacy:flags_by_mode(Mode)
-                }
-               ,{fun kapps_call:kvs_store/3
-                ,<<"use_endpoint_privacy">>
-                ,should_use_endpoint_privacy(Strategy)
-                }
-               ],
+    lager:debug(
+        "setting privacy mode for number ~s to ~s. use endpoint privacy: ~s",
+        [Number, Mode, Strategy]
+    ),
+    Routines = [
+        {
+            fun kapps_call:set_request/2,
+            list_to_binary([Number, "@", kapps_call:request_realm(Call)])
+        },
+        {fun kapps_call:set_custom_channel_vars/2, kz_privacy:flags_by_mode(Mode)},
+        {
+            fun kapps_call:kvs_store/3,
+            <<"use_endpoint_privacy">>,
+            should_use_endpoint_privacy(Strategy)
+        }
+    ],
     cf_exe:set_call(kapps_call:exec(Routines, Call)).
 
 -spec should_use_endpoint_privacy(kz_term:ne_binary()) -> boolean().

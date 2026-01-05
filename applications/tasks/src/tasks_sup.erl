@@ -15,20 +15,21 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('kz_tasks_scheduler')
-                  ,?WORKER('tasks_listener')
-                   %% Jobs not generating CSV output
-                  ,?WORKER('kz_tasks_trigger')
-                   %% Numbers
-                  ,?WORKER('knm_port_request_crawler')
-                  ,?WORKER('knm_number_crawler')
-                   %% DB
-                  ,?WORKER('kz_account_crawler')
-                   %% Standalone tasks
-                  ,?WORKER('kz_notify_resend')
-                   %% Compaction jobs reporter
-                  ,?WORKER('kt_compaction_reporter')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('kz_tasks_scheduler'),
+    ?WORKER('tasks_listener'),
+    %% Jobs not generating CSV output
+    ?WORKER('kz_tasks_trigger'),
+    %% Numbers
+    ?WORKER('knm_port_request_crawler'),
+    ?WORKER('knm_number_crawler'),
+    %% DB
+    ?WORKER('kz_account_crawler'),
+    %% Standalone tasks
+    ?WORKER('kz_notify_resend'),
+    %% Compaction jobs reporter
+    ?WORKER('kt_compaction_reporter')
+]).
 
 %%==============================================================================
 %% API functions

@@ -19,14 +19,15 @@
 -define(SERVER, {'local', ?MODULE}).
 
 -define(CHILDREN, [
-                   #{id => kz_openoffice_server
-                    ,start => { kz_openoffice_server, start_link, []}
-                    ,restart => permanent
-                    ,shutdown => 5000
-                    ,type => worker
-                    ,modules => [kz_openoffice_server]
-                    }
-                  ]).
+    #{
+        id => kz_openoffice_server,
+        start => {kz_openoffice_server, start_link, []},
+        restart => permanent,
+        shutdown => 5000,
+        type => worker,
+        modules => [kz_openoffice_server]
+    }
+]).
 
 %%%=============================================================================
 %%% API functions

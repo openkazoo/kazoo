@@ -39,8 +39,7 @@ queue() ->
 queue(Pid) when is_pid(Pid) ->
     case whoami(Pid) of
         Pid -> exit(<<"not registered">>);
-        Name ->
-            queue(Name)
+        Name -> queue(Name)
     end;
 queue(Name) when is_atom(Name) ->
     queue(Name, node());

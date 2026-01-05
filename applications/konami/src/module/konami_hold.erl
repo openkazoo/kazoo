@@ -13,14 +13,15 @@
 %%%-----------------------------------------------------------------------------
 -module(konami_hold).
 
--export([handle/2
-        ,number_builder/1
-        ]).
+-export([
+    handle/2,
+    number_builder/1
+]).
 
 -include("konami.hrl").
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'continue', kapps_call:call()}.
+    {'continue', kapps_call:call()}.
 handle(Data, Call) ->
     AMOH = kz_json:get_value(<<"moh_aleg">>, Data),
     AMOHToPlay = kz_media_util:media_path(AMOH, kapps_call:account_id(Call)),
@@ -32,13 +33,16 @@ handle(Data, Call) ->
 
     RequestingLeg = kz_json:get_ne_binary_value(<<"dtmf_leg">>, Data),
 
-    HoldCommand = kapps_call_command:soft_hold_command(RequestingLeg, Unholdkey, AMOHToPlay, BMOHToPlay),
+    HoldCommand = kapps_call_command:soft_hold_command(
+        RequestingLeg, Unholdkey, AMOHToPlay, BMOHToPlay
+    ),
 
     lager:debug("leg ~s is putting ~s on hold", [RequestingLeg, hold_leg(Call, RequestingLeg)]),
 
-    kapps_call_command:send_command(props:set_value(<<"Insert-At">>, <<"now">>, HoldCommand)
-                                   ,Call
-                                   ),
+    kapps_call_command:send_command(
+        props:set_value(<<"Insert-At">>, <<"now">>, HoldCommand),
+        Call
+    ),
     {'continue', Call}.
 
 -spec hold_leg(kapps_call:call(), kz_term:ne_binary()) -> kz_term:ne_binary().
@@ -82,7 +86,9 @@ number_builder_check_option(NumberJObj, _Option) ->
 
 -spec number_builder_moh(kz_json:object()) -> kz_json:object().
 number_builder_moh(NumberJObj) ->
-    {'ok', [MOH]} = io:fread("Any custom music on hold to play ('n' to leave as default MOH, 'h' for help)? ", "~s"),
+    {'ok', [MOH]} = io:fread(
+        "Any custom music on hold to play ('n' to leave as default MOH, 'h' for help)? ", "~s"
+    ),
     metaflow_jobj(NumberJObj, MOH).
 
 -spec metaflow_jobj(kz_json:object(), string()) -> kz_json:object().
@@ -92,9 +98,13 @@ metaflow_jobj(NumberJObj, "h") ->
     io:format("To set an third-party HTTP url, enter: http://other.server.com/moh.mp3~n~n", []),
     number_builder_moh(NumberJObj);
 metaflow_jobj(NumberJObj, MOH) ->
-    kz_json:set_values([{<<"module">>, <<"hold">>}
-                       ,{<<"data">>, moh_data(MOH)}
-                       ], NumberJObj).
+    kz_json:set_values(
+        [
+            {<<"module">>, <<"hold">>},
+            {<<"data">>, moh_data(MOH)}
+        ],
+        NumberJObj
+    ).
 
 -spec moh_data(string()) -> kz_json:object().
 moh_data("n") ->

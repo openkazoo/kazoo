@@ -17,9 +17,10 @@
 
 -define(DIALPLAN_REQ_HEADERS, [<<"Dialplan-Command">>]).
 -define(OPTIONAL_DIALPLAN_REQ_HEADERS, [<<"Conference-ID">>, <<"Participant-ID">>]).
--define(DIALPLAN_REQ_VALUES, [{<<"Event-Category">>, <<"conference">>}
-                             ,{<<"Event-Name">>, <<"dialplan_req">>}
-                             ]).
+-define(DIALPLAN_REQ_VALUES, [
+    {<<"Event-Category">>, <<"conference">>},
+    {<<"Event-Name">>, <<"dialplan_req">>}
+]).
 -define(DIALPLAN_REQ_TYPES, []).
 
 -spec dialplan_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.

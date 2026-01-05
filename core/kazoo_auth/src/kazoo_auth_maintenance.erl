@@ -15,13 +15,13 @@
 -export([register_common_providers/0]).
 -export([register_auth_app_key/2]).
 
--export([refresh/0
-        ,register_views/0
-        ,flush/0
-        ]).
+-export([
+    refresh/0,
+    register_views/0,
+    flush/0
+]).
 
 -export([ensure_secret/0]).
-
 
 %%==============================================================================
 %% Internal functions
@@ -31,23 +31,26 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec register_auth_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
+-spec register_auth_app(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> any().
 register_auth_app(AccountId, OAuthId, Secret, Provider) ->
-    Doc = kz_json:from_list([{<<"_id">>, OAuthId}
-                            ,{<<"pvt_account_id">>, AccountId}
-                            ,{<<"pvt_secret">>, Secret}
-                            ,{<<"pvt_user_prefix">>, kz_binary:rand_hex(16)}
-                            ,{<<"pvt_auth_provider">>, Provider}
-                            ,{<<"pvt_type">>, <<"app">>}
-                            ]),
+    Doc = kz_json:from_list([
+        {<<"_id">>, OAuthId},
+        {<<"pvt_account_id">>, AccountId},
+        {<<"pvt_secret">>, Secret},
+        {<<"pvt_user_prefix">>, kz_binary:rand_hex(16)},
+        {<<"pvt_auth_provider">>, Provider},
+        {<<"pvt_type">>, <<"app">>}
+    ]),
     case kz_datamgr:open_doc(?KZ_AUTH_DB, OAuthId) of
         {'ok', _JObj} -> {'error', <<"already registered">>};
         {'error', _} -> kz_datamgr:save_doc(?KZ_AUTH_DB, Doc)
     end.
 
 -spec register_auth_app_key(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          kz_datamgr:data_error().
+    {'ok', kz_json:object()}
+    | kz_datamgr:data_error().
 register_auth_app_key(AppId, PemFile) ->
     Pem = kz_auth_keys:get_private_key_from_file(PemFile),
     KeyId = kz_binary:rand_hex(16),
@@ -61,7 +64,8 @@ refresh() ->
     case kz_datamgr:db_exists(?KZ_AUTH_DB) of
         'false' ->
             init_db(kz_datamgr:db_create(?KZ_AUTH_DB));
-        'true' -> init_db('true')
+        'true' ->
+            init_db('true')
     end.
 
 -spec init_db(boolean()) -> 'ok'.
@@ -87,8 +91,13 @@ flush() ->
 
 -spec ensure_secret() -> 'ok'.
 ensure_secret() ->
-    _ = case kapps_config:get_ne_binary(?CONFIG_CAT, ?KAZOO_SIGNATURE_ID) of
-            'undefined' -> kapps_config:set_string(?CONFIG_CAT, ?KAZOO_SIGNATURE_ID, ?KAZOO_GEN_SIGNATURE_SECRET);
-            _ -> 'ok'
+    _ =
+        case kapps_config:get_ne_binary(?CONFIG_CAT, ?KAZOO_SIGNATURE_ID) of
+            'undefined' ->
+                kapps_config:set_string(
+                    ?CONFIG_CAT, ?KAZOO_SIGNATURE_ID, ?KAZOO_GEN_SIGNATURE_SECRET
+                );
+            _ ->
+                'ok'
         end,
     'ok'.

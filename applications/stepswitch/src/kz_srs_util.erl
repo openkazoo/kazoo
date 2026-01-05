@@ -14,7 +14,6 @@
 -define(MIN_START, 0).
 -define(MAX_STOP, 99999999999).
 
-
 -spec select_filter_action(kz_json:object()) -> 'keep' | 'drop'.
 select_filter_action(Params) ->
     do_select_filter_action(kz_json:get_ne_binary_value(<<"action">>, Params)).
@@ -22,7 +21,8 @@ do_select_filter_action(<<"keep">>) -> 'keep';
 do_select_filter_action(<<"drop">>) -> 'drop';
 do_select_filter_action(Data) -> throw({invalid_filter_action, Data}).
 
--spec select_filter_mode(kz_json:object(), kz_term:ne_binaries(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec select_filter_mode(kz_json:object(), kz_term:ne_binaries(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 select_filter_mode(Params, ModesList, Default) ->
     do_select_filter_mode(kz_json:get_ne_binary_value(<<"mode">>, Params, Default), ModesList).
 do_select_filter_mode(Mode, ModesList) ->
@@ -31,12 +31,13 @@ do_select_filter_mode(Mode, ModesList) ->
         'false' -> throw({invalid_filter_mode, Mode})
     end.
 
--type source() :: 'number' |
-                  'cid_number' |
-                  {'request', kz_term:ne_binary()} |
-                  {'resource', kz_term:ne_binary()} |
-                  {'database', kz_term:ne_binary()} |
-                  {'database', kz_term:ne_binary(), kz_term:proplist()}.
+-type source() ::
+    'number'
+    | 'cid_number'
+    | {'request', kz_term:ne_binary()}
+    | {'resource', kz_term:ne_binary()}
+    | {'database', kz_term:ne_binary()}
+    | {'database', kz_term:ne_binary(), kz_term:proplist()}.
 
 -spec get_source(kz_term:ne_binary()) -> source().
 get_source(<<"number">>) -> 'number';
@@ -47,11 +48,13 @@ get_source(<<"resource:", Field/binary>>) -> {'resource', Field};
 get_source(<<"database:", Selector/binary>>) -> {'database', Selector};
 get_source(Type) -> throw({invalid_filter_type, Type}).
 
--spec get_value(source(), any(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary()) -> any().
+-spec get_value(source(), any(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary()) ->
+    any().
 get_value(Type, Resources, Number, OffnetJObj, DB) ->
     get_value(Type, Resources, Number, OffnetJObj, DB, 'undefined').
 
--spec get_value(source(), any(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary(), any()) -> any().
+-spec get_value(source(), any(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary(), any()) ->
+    any().
 get_value('number', _Resources, Number, _OffnetJObj, _DB, _Default) ->
     Number;
 get_value('cid_number', _Resources, _Number, OffnetJObj, _DB, _Default) ->
@@ -67,8 +70,10 @@ get_value('service_plans', _Resources, _Number, OffnetJObj, _DB, _Default) ->
 get_value({'request', Field}, _Resources, _Number, OffnetJObj, _DB, Default) ->
     kz_json:get_value(Field, OffnetJObj, Default);
 get_value({'resource', Field}, Resources, _Number, _OffnetJObj, _DB, _Default) ->
-    [{stepswitch_resources:get_resrc_id(R), get_data_from_resource(Field, R)}
-     || R <- Resources];
+    [
+        {stepswitch_resources:get_resrc_id(R), get_data_from_resource(Field, R)}
+     || R <- Resources
+    ];
 get_value({'database', SelectorName}, Resources, Number, OffnetJObj, DB, Default) ->
     Keys = [[stepswitch_resources:get_resrc_id(R), SelectorName] || R <- Resources],
     View = <<"resource_selectors/resource_name_listing">>,
@@ -78,22 +83,25 @@ get_value({'database', View, Options}, _Resources, _Number, _OffnetJObj, DB, Def
     case kz_datamgr:get_results(DB, View, Options) of
         {'ok', Rows} ->
             Now = kz_time:now_s(),
-            lists:foldl(fun(Row, Acc) ->
-                                filter_by_start_stop(Now, Row, Acc, Default)
-                        end
-                       ,[]
-                       ,Rows
-                       );
+            lists:foldl(
+                fun(Row, Acc) ->
+                    filter_by_start_stop(Now, Row, Acc, Default)
+                end,
+                [],
+                Rows
+            );
         {'error', E} ->
             throw({'database_error', E})
     end;
 get_value(Value, _Resources, _Number, _OffnetJObj, _DB, _Default) ->
     throw({'invalid_filter_value', Value}).
 
--spec get_value_fold(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
+-spec get_value_fold(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) ->
+    kz_term:ne_binaries().
 get_value_fold(PlanId, JObj, Acc) ->
     case kz_json:is_json_object(JObj) of
-        'false' -> Acc;
+        'false' ->
+            Acc;
         'true' ->
             PlanAccountId = kz_json:get_binary_value(<<"account_id">>, JObj, <<>>),
             [<<PlanId/binary, <<":">>/binary, PlanAccountId/binary>> | Acc]
@@ -118,14 +126,15 @@ filter_by_start_stop(Now, Row, Acc, Default) ->
     filter_by_start_stop(Now, Start, Stop, Row, Acc, Default).
 
 filter_by_start_stop(Now, Start, Stop, Row, Acc, Default) ->
-    case Start =< Now
-        andalso
-        Stop >= Now
+    case
+        Start =< Now andalso
+            Stop >= Now
     of
         'true' ->
             ID = kz_json:get_ne_value([<<"value">>, <<"resource">>], Row),
             Value = kz_json:get_ne_value([<<"value">>, <<"data">>], Row),
             OldValue = props:get_value(ID, Acc, Default),
             props:set_value(ID, [Value | OldValue], Acc);
-        'false' -> Acc
+        'false' ->
+            Acc
     end.

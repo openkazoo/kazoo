@@ -16,10 +16,13 @@
 %% @doc Convert audio file/content-type if initial format not supported
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_convert_content(binary(), kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()) -> conversion_return().
+-spec maybe_convert_content(
+    binary(), kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()
+) -> conversion_return().
 maybe_convert_content(Content, ContentType, SupportedContentTypes, PreferredContentType) ->
     case lists:member(ContentType, SupportedContentTypes) of
-        'true' -> {Content, ContentType};
+        'true' ->
+            {Content, ContentType};
         'false' ->
             lager:debug("content-type ~s is not supported by asr provider", [ContentType]),
             case convert_content(Content, ContentType, PreferredContentType) of
@@ -29,11 +32,13 @@ maybe_convert_content(Content, ContentType, SupportedContentTypes, PreferredCont
     end.
 
 -spec convert_content(binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> binary() | 'error'.
-convert_content(Content, <<"audio/mpeg">>=_ConvertFrom, <<"application/wav">> = _ConvertTo) ->
+convert_content(Content, <<"audio/mpeg">> = _ConvertFrom, <<"application/wav">> = _ConvertTo) ->
     Mp3File = kazoo_speech_util:tmp_file_name(<<"mp3">>),
     WavFile = kazoo_speech_util:tmp_file_name(<<"wav">>),
     kz_util:write_file(Mp3File, Content),
-    Cmd = io_lib:format("lame --decode ~s ~s &> /dev/null && echo -n \"success\"", [Mp3File, WavFile]),
+    Cmd = io_lib:format("lame --decode ~s ~s &> /dev/null && echo -n \"success\"", [
+        Mp3File, WavFile
+    ]),
     _ = os:cmd(Cmd),
     kz_util:delete_file(Mp3File),
     case file:read_file(WavFile) of

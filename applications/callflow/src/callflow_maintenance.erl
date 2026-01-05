@@ -7,37 +7,44 @@
 %%%-----------------------------------------------------------------------------
 -module(callflow_maintenance).
 
--export([lookup_endpoint/1
-        ,lookup_endpoint/2
-        ]).
+-export([
+    lookup_endpoint/1,
+    lookup_endpoint/2
+]).
 -export([blocking_refresh/0]).
 -export([refresh/0, refresh/1]).
 -export([migrate_menus/0, migrate_menus/1]).
--export([migrate_recorded_names/0
-        ,migrate_recorded_name/1
-        ]).
--export([show_calls/0
-        ,call_count/0
-        ]).
+-export([
+    migrate_recorded_names/0,
+    migrate_recorded_name/1
+]).
+-export([
+    show_calls/0,
+    call_count/0
+]).
 -export([flush/0]).
--export([account_set_classifier_inherit/2
-        ,account_set_classifier_deny/2
-        ,all_accounts_set_classifier_inherit/1
-        ,all_accounts_set_classifier_deny/1
-        ,device_classifier_inherit/2
-        ,device_classifier_deny/2
-        ,list_account_restrictions/1
-        ]).
+-export([
+    account_set_classifier_inherit/2,
+    account_set_classifier_deny/2,
+    all_accounts_set_classifier_inherit/1,
+    all_accounts_set_classifier_deny/1,
+    device_classifier_inherit/2,
+    device_classifier_deny/2,
+    list_account_restrictions/1
+]).
 -export([update_feature_codes/0, update_feature_codes/1]).
 
--export([allow_authz_context/1, allow_authz_context/2
-        ,deny_authz_context/1
-        ,disable_authz_contexts/0, enable_authz_contexts/0
-        ]).
+-export([
+    allow_authz_context/1, allow_authz_context/2,
+    deny_authz_context/1,
+    disable_authz_contexts/0,
+    enable_authz_contexts/0
+]).
 
 -include("callflow.hrl").
 
--define(DOLLAR_SIGN, 36). % = $\$ but makes fmt wonky atm
+% = $\$ but makes fmt wonky atm
+-define(DOLLAR_SIGN, 36).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -52,15 +59,18 @@ lookup_endpoint(URI) ->
 
 -spec lookup_endpoint(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 lookup_endpoint(Username, Realm) ->
-    _ = case kapps_util:get_account_by_realm(Realm) of
+    _ =
+        case kapps_util:get_account_by_realm(Realm) of
             {'ok', AccountDb} ->
                 case cf_util:endpoint_id_by_sip_username(AccountDb, Username) of
                     {'ok', EndpointId} ->
                         Endpoint = kz_endpoint:get(EndpointId, AccountDb),
                         io:format("~p~n", [Endpoint]);
-                    _Else -> io:format("unable to find username ~s in ~s~n", [Username, AccountDb])
+                    _Else ->
+                        io:format("unable to find username ~s in ~s~n", [Username, AccountDb])
                 end;
-            _Else -> io:format("unable to find account with realm ~s~n", [Realm])
+            _Else ->
+                io:format("unable to find account with realm ~s~n", [Realm])
         end,
     'no_return'.
 
@@ -86,11 +96,12 @@ show_calls() ->
 
 do_show_calls([], Total) ->
     io:format("Total: ~p~n", [Total]);
-do_show_calls([Srv|Srvs], Total) ->
-    case catch(cf_exe:get_call(Srv)) of
+do_show_calls([Srv | Srvs], Total) ->
+    case catch (cf_exe:get_call(Srv)) of
         {'ok', Call} ->
             io:format("CF_EXE(~p): ~p~n", [Srv, kapps_call:to_proplist(Call)]);
-        _ -> 'ok'
+        _ ->
+            'ok'
     end,
     do_show_calls(Srvs, Total + 1).
 
@@ -116,7 +127,9 @@ refresh() ->
 
 -spec refresh(binary() | string()) -> 'ok'.
 refresh(Account) ->
-    io:format("This function is deprecated please use kapps_maintenance:refresh(~p) instead.", [Account]).
+    io:format("This function is deprecated please use kapps_maintenance:refresh(~p) instead.", [
+        Account
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -127,8 +140,9 @@ migrate_recorded_names() ->
     migrate_recorded_names(kapps_util:get_all_accounts()).
 
 -spec migrate_recorded_names(kz_term:ne_binaries()) -> 'no_return'.
-migrate_recorded_names([]) -> 'no_return';
-migrate_recorded_names([Account|Accounts]) ->
+migrate_recorded_names([]) ->
+    'no_return';
+migrate_recorded_names([Account | Accounts]) ->
     _ = (catch migrate_recorded_name(Account)),
     migrate_recorded_names(Accounts).
 
@@ -137,10 +151,13 @@ migrate_recorded_name(Db) ->
     lager:info("migrating all name recordings from vmboxes w/ owner_id in ~s", [Db]),
 
     case kz_datamgr:get_results(Db, <<"vmboxes/crossbar_listing">>, ['include_docs']) of
-        {'ok', []} -> lager:info("no vmboxes in ~s", [Db]);
-        {'error', _E} -> lager:info("unable to get vm box list: ~p", [_E]);
+        {'ok', []} ->
+            lager:info("no vmboxes in ~s", [Db]);
+        {'error', _E} ->
+            lager:info("unable to get vm box list: ~p", [_E]);
         {'ok', VMBoxes} ->
-            [do_recorded_name_migration(Db, kz_json:get_value(<<"doc">>, VMBox))
+            [
+                do_recorded_name_migration(Db, kz_json:get_value(<<"doc">>, VMBox))
              || VMBox <- VMBoxes
             ]
     end.
@@ -149,14 +166,16 @@ migrate_recorded_name(Db) ->
 do_recorded_name_migration(Db, VMBox) ->
     VMBoxId = kz_doc:id(VMBox),
     case kz_json:get_value(?RECORDED_NAME_KEY, VMBox) of
-        'undefined' -> lager:info("vm box ~s has no recorded name to migrate", [VMBoxId]);
+        'undefined' ->
+            lager:info("vm box ~s has no recorded name to migrate", [VMBoxId]);
         MediaId ->
             lager:info("vm box ~s has recorded name in doc ~s", [VMBoxId, MediaId]),
             _ = do_recorded_name_migration(Db, MediaId, kz_json:get_value(<<"owner_id">>, VMBox)),
             {'ok', _} = kz_datamgr:save_doc(Db, kz_json:delete_key(?RECORDED_NAME_KEY, VMBox))
     end.
 
--spec do_recorded_name_migration(kz_term:ne_binary(), kz_json:object(), kz_term:api_binary()) -> any().
+-spec do_recorded_name_migration(kz_term:ne_binary(), kz_json:object(), kz_term:api_binary()) ->
+    any().
 do_recorded_name_migration(_Db, _MediaId, 'undefined') ->
     lager:info("no owner id on vm box");
 do_recorded_name_migration(Db, MediaId, OwnerId) ->
@@ -164,12 +183,16 @@ do_recorded_name_migration(Db, MediaId, OwnerId) ->
     case kz_json:get_value(?RECORDED_NAME_KEY, Owner) of
         'undefined' ->
             lager:info("no recorded name on owner, setting to ~s", [MediaId]),
-            {'ok', _} = kz_datamgr:save_doc(Db, kz_json:set_value(?RECORDED_NAME_KEY, MediaId, Owner)),
+            {'ok', _} = kz_datamgr:save_doc(
+                Db, kz_json:set_value(?RECORDED_NAME_KEY, MediaId, Owner)
+            ),
             lager:info("updated owner doc with recorded name doc id ~s", [MediaId]);
         MediaId ->
             lager:info("owner already has recorded name at ~s", [MediaId]);
         OwnerMediaId ->
-            lager:info("owner has recorded name at ~s(not ~s), using owners", [OwnerMediaId, MediaId]),
+            lager:info("owner has recorded name at ~s(not ~s), using owners", [
+                OwnerMediaId, MediaId
+            ]),
             kz_datamgr:del_doc(Db, MediaId)
     end.
 
@@ -178,7 +201,7 @@ do_recorded_name_migration(Db, MediaId, OwnerId) ->
 %% the latest version.
 %% @end
 %%------------------------------------------------------------------------------
--spec migrate_menus() -> ['done' | 'error',...].
+-spec migrate_menus() -> ['done' | 'error', ...].
 migrate_menus() ->
     [migrate_menus(Account) || Account <- kapps_util:get_all_accounts('raw')].
 
@@ -211,7 +234,9 @@ do_menu_migration(Menu, Db) ->
             {'ok', _} = kz_datamgr:put_attachment(Db, MediaId, AName, Bin),
             'ok' = update_doc([<<"media">>, <<"greeting">>], MediaId, MenuId, Db),
             'ok' = update_doc([<<"pvt_vsn">>], <<"2">>, MenuId, Db),
-            lager:info("migrated menu ~s in ~s prompt to /~s/~s/~s", [MenuId, Db, Db, MediaId, AName]);
+            lager:info("migrated menu ~s in ~s prompt to /~s/~s/~s", [
+                MenuId, Db, Db, MediaId, AName
+            ]);
         _ ->
             lager:info("menu ~s in ~s has no greeting or prompt", [MenuId, Db])
     end.
@@ -222,14 +247,15 @@ do_menu_migration(Menu, Db) ->
 %%------------------------------------------------------------------------------
 -spec create_media_doc(binary(), binary(), binary(), binary()) -> binary().
 create_media_doc(Name, SourceType, SourceId, Db) ->
-    Props = [{<<"name">>, Name}
-            ,{<<"description">>, <<SourceType/binary, " recorded/prompt media">>}
-            ,{<<"source_type">>, SourceType}
-            ,{<<"source_id">>, SourceId}
-            ,{<<"content_type">>, <<"audio/mpeg">>}
-            ,{<<"media_type">>, <<"mp3">>}
-            ,{<<"streamable">>, 'true'}
-            ],
+    Props = [
+        {<<"name">>, Name},
+        {<<"description">>, <<SourceType/binary, " recorded/prompt media">>},
+        {<<"source_type">>, SourceType},
+        {<<"source_id">>, SourceId},
+        {<<"content_type">>, <<"audio/mpeg">>},
+        {<<"media_type">>, <<"mp3">>},
+        {<<"streamable">>, 'true'}
+    ],
     Doc = kz_doc:update_pvt_parameters(kz_json:from_list(Props), Db, [{'type', <<"media">>}]),
     {'ok', JObj} = kz_datamgr:save_doc(Db, Doc),
     kz_doc:id(JObj).
@@ -239,17 +265,17 @@ create_media_doc(Name, SourceType, SourceId, Db) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec update_doc(list() | binary(), kz_json:json_term(), binary(), binary()) ->
-          'ok' |
-          {'error', atom()}.
+    'ok'
+    | {'error', atom()}.
 update_doc(Key, Value, Id, Db) ->
     case kz_datamgr:open_doc(Db, Id) of
         {'ok', JObj} ->
             case kz_datamgr:save_doc(Db, kz_json:set_value(Key, Value, JObj)) of
                 {'error', 'conflict'} -> update_doc(Key, Value, Id, Db);
                 {'ok', _} -> 'ok';
-                {'error', _}=E -> lager:info("unable to update ~s in ~s, ~p", [Id, Db, E])
+                {'error', _} = E -> lager:info("unable to update ~s in ~s, ~p", [Id, Db, E])
             end;
-        {'error', _}=E ->
+        {'error', _} = E ->
             lager:info("unable to update ~s in ~s, ~p", [Id, Db, E])
     end.
 
@@ -288,7 +314,8 @@ all_accounts_set_classifier_deny(Classifier) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec set_account_classifier_action(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec set_account_classifier_action(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    'ok'.
 set_account_classifier_action(Action, Classifier, AccountDb) ->
     'true' = is_classifier(Classifier),
     io:format("found account: ~p", [kzd_accounts:fetch_name(AccountDb)]),
@@ -304,14 +331,15 @@ set_account_classifier_action(Action, Classifier, AccountDb) ->
 -spec all_accounts_set_classifier(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 all_accounts_set_classifier(Action, Classifier) ->
     'true' = is_classifier(Classifier),
-    lists:foreach(fun(AccountDb) ->
-                          timer:sleep(2000),
-                          %% Not sure if this interruption is really needed.
-                          %%  Keeping it as it was taken as an example from kapps_util:update_all_accounts/1
-                          set_account_classifier_action(Action, Classifier, AccountDb)
-                  end
-                 ,kapps_util:get_all_accounts()
-                 ).
+    lists:foreach(
+        fun(AccountDb) ->
+            timer:sleep(2000),
+            %% Not sure if this interruption is really needed.
+            %%  Keeping it as it was taken as an example from kapps_util:update_all_accounts/1
+            set_account_classifier_action(Action, Classifier, AccountDb)
+        end,
+        kapps_util:get_all_accounts()
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Set `call_restriction' flag on device level.
@@ -336,7 +364,8 @@ device_classifier_deny(Classifier, Uri) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec set_device_classifier_action(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec set_device_classifier_action(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    'ok'.
 set_device_classifier_action(Action, Classifier, Uri) ->
     'true' = is_classifier(Classifier),
     [User, Realm] = binary:split(Uri, <<"@">>),
@@ -361,9 +390,12 @@ set_device_classifier_action(Action, Classifier, Uri) ->
 is_classifier(Classifier) ->
     Classifiers = kz_json:get_keys(knm_converters:available_classifiers()),
     case lists:member(Classifier, Classifiers) of
-        'true' -> 'true';
+        'true' ->
+            'true';
         'false' ->
-            io:format("classifier '~s' not among configured classifiers: ~p", [Classifier, Classifiers]),
+            io:format("classifier '~s' not among configured classifiers: ~p", [
+                Classifier, Classifiers
+            ]),
             'false'
     end.
 
@@ -379,9 +411,9 @@ is_classifier(Classifier) ->
 -spec list_account_restrictions(kz_term:ne_binary()) -> 'ok'.
 list_account_restrictions(Account) ->
     {'ok', AccountDb} = kapps_util:get_accounts_by_name(kzd_accounts:normalize_name(Account)),
-    DbNameEncoded = kz_util:format_account_id(AccountDb,'encoded'),
+    DbNameEncoded = kz_util:format_account_id(AccountDb, 'encoded'),
     io:format("\nAccount level classifiers:\n\n"),
-    print_call_restrictions(DbNameEncoded, kz_util:format_account_id(AccountDb,'raw')),
+    print_call_restrictions(DbNameEncoded, kz_util:format_account_id(AccountDb, 'raw')),
     print_users_level_call_restrictions(DbNameEncoded),
     print_devices_level_call_restrictions(DbNameEncoded),
     print_trunkstore_call_restrictions(DbNameEncoded).
@@ -390,10 +422,15 @@ list_account_restrictions(Account) ->
 print_call_restrictions(DbName, DocId) ->
     case kz_datamgr:open_doc(DbName, DocId) of
         {'ok', JObj} ->
-            lists:foreach(fun(Classifier) ->
-                                  io:format("Classifier ~p:\t\t action ~p\n",[Classifier, kz_json:get_value([<<"call_restriction">>,Classifier,<<"action">>], JObj)])
-                          end,
-                          kz_json:get_keys(<<"call_restriction">>, JObj));
+            lists:foreach(
+                fun(Classifier) ->
+                    io:format("Classifier ~p:\t\t action ~p\n", [
+                        Classifier,
+                        kz_json:get_value([<<"call_restriction">>, Classifier, <<"action">>], JObj)
+                    ])
+                end,
+                kz_json:get_keys(<<"call_restriction">>, JObj)
+            );
         {'error', E} ->
             io:format("An error occurred: ~p\n", [E])
     end.
@@ -403,11 +440,15 @@ print_users_level_call_restrictions(DbName) ->
     case kz_datamgr:get_results(DbName, <<"users/crossbar_listing">>) of
         {'ok', JObj} ->
             io:format("\n\nUser level classifiers:\n"),
-            lists:foreach(fun(UserObj) ->
-                                  io:format("\nUsername: ~s\n\n", [kz_json:get_value([<<"value">>,<<"username">>],UserObj)]),
-                                  print_call_restrictions(DbName, kz_doc:id(UserObj))
-                          end,
-                          JObj);
+            lists:foreach(
+                fun(UserObj) ->
+                    io:format("\nUsername: ~s\n\n", [
+                        kz_json:get_value([<<"value">>, <<"username">>], UserObj)
+                    ]),
+                    print_call_restrictions(DbName, kz_doc:id(UserObj))
+                end,
+                JObj
+            );
         {'error', E} ->
             io:format("An error occurred: ~p", [E])
     end.
@@ -417,11 +458,15 @@ print_devices_level_call_restrictions(DbName) ->
     case kz_datamgr:get_results(DbName, <<"devices/crossbar_listing">>) of
         {'ok', JObj} ->
             io:format("\n\nDevice level classifiers:\n"),
-            lists:foreach(fun(UserObj) ->
-                                  io:format("\nDevice: ~s\n\n", [kz_json:get_value([<<"value">>,<<"name">>],UserObj)]),
-                                  print_call_restrictions(DbName, kz_doc:id(UserObj))
-                          end,
-                          JObj);
+            lists:foreach(
+                fun(UserObj) ->
+                    io:format("\nDevice: ~s\n\n", [
+                        kz_json:get_value([<<"value">>, <<"name">>], UserObj)
+                    ]),
+                    print_call_restrictions(DbName, kz_doc:id(UserObj))
+                end,
+                JObj
+            );
         {'error', E} ->
             io:format("An error occurred: ~p", [E])
     end.
@@ -431,15 +476,18 @@ print_trunkstore_call_restrictions(DbName) ->
     case kz_datamgr:get_results(DbName, <<"trunkstore/lookup_user_flags">>) of
         {'ok', JObj} ->
             io:format("\n\nTrunkstore classifiers:\n\n"),
-            lists:foreach(fun(UserObj) ->
-                                  io:format("Trunk: ~s@~s\n\n", lists:reverse(kz_json:get_value(<<"key">>,UserObj))),
-                                  print_call_restrictions(DbName, kz_doc:id(UserObj))
-                          end,
-                          JObj);
+            lists:foreach(
+                fun(UserObj) ->
+                    io:format(
+                        "Trunk: ~s@~s\n\n", lists:reverse(kz_json:get_value(<<"key">>, UserObj))
+                    ),
+                    print_call_restrictions(DbName, kz_doc:id(UserObj))
+                end,
+                JObj
+            );
         {'error', E} ->
             io:format("An error occurred: ~p", [E])
     end.
-
 
 %%------------------------------------------------------------------------------
 %% @doc Update certain patterns matching feature codes (see KAZOO-3122).
@@ -451,8 +499,9 @@ update_feature_codes() ->
     lists:foreach(fun update_feature_codes/1, kapps_util:get_all_accounts()).
 
 -spec update_feature_codes(kz_term:ne_binary()) -> 'ok'.
-update_feature_codes(Account)
-  when not is_binary(Account) ->
+update_feature_codes(Account) when
+    not is_binary(Account)
+->
     update_feature_codes(kz_term:to_binary(Account));
 update_feature_codes(Account) ->
     AccountDb = kz_util:format_account_db(Account),
@@ -467,16 +516,17 @@ update_feature_codes(Account) ->
 
 -spec maybe_update_feature_codes(kz_term:ne_binary(), kz_json:objects()) -> 'ok'.
 maybe_update_feature_codes(Db, Patterns) ->
-    lists:foreach(fun(Pattern) -> maybe_update_feature_code(Db, Pattern) end
-                 ,Patterns
-                 ),
+    lists:foreach(
+        fun(Pattern) -> maybe_update_feature_code(Db, Pattern) end,
+        Patterns
+    ),
     io:format("~s : feature codes up to date\n", [kz_util:format_account_id(Db, 'raw')]).
 
 -spec maybe_update_feature_code(kz_term:ne_binary(), kz_json:object()) -> 'ok'.
 maybe_update_feature_code(Db, Pattern) ->
     maybe_update_feature_code(Db, Pattern, kz_json:get_ne_binary_value(<<"key">>, Pattern)).
 
-maybe_update_feature_code(Db, Pattern, <<"^\\*5([0-9]*)", ?DOLLAR_SIGN>>=_Regex) ->
+maybe_update_feature_code(Db, Pattern, <<"^\\*5([0-9]*)", ?DOLLAR_SIGN>> = _Regex) ->
     DocId = kz_doc:id(Pattern),
     NewRegex = <<"^\\*5(|[0-9]{2,})", ?DOLLAR_SIGN>>,
     Update = [{<<"patterns">>, [NewRegex]}],
@@ -486,9 +536,10 @@ maybe_update_feature_code(Db, Pattern, <<"^\\*5([0-9]*)", ?DOLLAR_SIGN>>=_Regex)
         {'error', _Reason} ->
             io:format("failed to update doc ~s with new patterns\n", [DocId]);
         {'ok', _} ->
-            io:format("successfully updated patterns for doc ~s (~p -> ~p)\n"
-                     ,[DocId, _Regex, NewRegex]
-                     )
+            io:format(
+                "successfully updated patterns for doc ~s (~p -> ~p)\n",
+                [DocId, _Regex, NewRegex]
+            )
     end;
 maybe_update_feature_code(_Db, _Pattern, _Regex) ->
     io:format("skipping pattern ~p\n", [_Regex]).
@@ -514,9 +565,12 @@ deny_authz_context(App) ->
 
 permit_authz_contexts() ->
     case kapps_config:is_true(?APP_NAME, <<"allow_authz_context_overrides">>) of
-        'true' -> 'ok';
+        'true' ->
+            'ok';
         'false' ->
-            {'ok', _} = kapps_config:set_default(?APP_NAME, <<"allow_authz_context_overrides">>, 'true'),
+            {'ok', _} = kapps_config:set_default(
+                ?APP_NAME, <<"allow_authz_context_overrides">>, 'true'
+            ),
             io:format("authz context overrides were disabled; now enabled...~n")
     end.
 
@@ -541,7 +595,8 @@ add_allowed_authz_context(Context) ->
 remove_allowed_authz_context(Context) ->
     Contexts = kapps_config:get_ne_binaries(?APP_NAME, <<"authz_contexts">>, []),
     case lists:member(Context, Contexts) of
-        'false' -> io:format("app context is not currently allowed~n");
+        'false' ->
+            io:format("app context is not currently allowed~n");
         'true' ->
             Updated = lists:delete(Context, Contexts),
             {'ok', _} = kapps_config:set_default(?APP_NAME, <<"authz_contexts">>, Updated),
@@ -557,5 +612,6 @@ fetch_app_context(App, DefaultContext) ->
             io:format("no authz context set for ~s, setting to ~s~n", [App, DefaultContext]),
             {'ok', _} = kapps_config:set_default(App, <<"authz_context">>, DefaultContext),
             DefaultContext;
-        Context -> Context
+        Context ->
+            Context
     end.

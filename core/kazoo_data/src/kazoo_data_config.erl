@@ -5,16 +5,17 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_data_config).
 
--export([get_ne_binary/1, get_ne_binary/2
-        ,get_ne_binaries/1, get_ne_binaries/2
-        ,get_pos_integer/1, get_pos_integer/2
-        ,get_json/1, get_json/2
-        ,get_is_true/1, get_is_true/2
-        ]).
+-export([
+    get_ne_binary/1, get_ne_binary/2,
+    get_ne_binaries/1, get_ne_binaries/2,
+    get_pos_integer/1, get_pos_integer/2,
+    get_json/1, get_json/2,
+    get_is_true/1, get_is_true/2
+]).
 
 -include("kz_data.hrl").
 
--compile({no_auto_import,[get/1]}).
+-compile({no_auto_import, [get/1]}).
 
 -spec get_pos_integer(kz_term:ne_binary()) -> kz_term:api_pos_integer().
 get_pos_integer(Key) ->
@@ -35,8 +36,7 @@ get_ne_binary(Key) ->
 get_ne_binary(Key, Default) ->
     case get(Key) of
         'undefined' -> Default;
-        {'ok', Value} ->
-            nonempty(kz_term:to_binary(Value), Default)
+        {'ok', Value} -> nonempty(kz_term:to_binary(Value), Default)
     end.
 
 -spec get_ne_binaries(kz_term:ne_binary()) -> kz_term:api_ne_binaries().
@@ -47,8 +47,7 @@ get_ne_binaries(Key) ->
 get_ne_binaries(Key, Default) ->
     case get(Key) of
         'undefined' -> Default;
-        {'ok', Value} ->
-            nonempty(Value, Default)
+        {'ok', Value} -> nonempty(Value, Default)
     end.
 
 -spec get_json(kz_term:ne_binary()) -> kz_term:api_object().
@@ -59,8 +58,7 @@ get_json(Key) ->
 get_json(Key, Default) ->
     case get(Key) of
         'undefined' -> Default;
-        {'ok', Value} ->
-            as_json(Value, Default)
+        {'ok', Value} -> as_json(Value, Default)
     end.
 
 -spec get_is_true(kz_term:ne_binary()) -> boolean().
@@ -71,13 +69,13 @@ get_is_true(Key) ->
 get_is_true(Key, Default) ->
     case get(Key) of
         'undefined' -> Default;
-        {'ok', Value} ->
-            as_boolean(Value, Default)
+        {'ok', Value} -> as_boolean(Value, Default)
     end.
 
--spec get(kz_term:ne_binary()) -> 'undefined' |
-          {'ok', any()}.
-get(<<_/binary>>=Key) ->
+-spec get(kz_term:ne_binary()) ->
+    'undefined'
+    | {'ok', any()}.
+get(<<_/binary>> = Key) ->
     application:get_env(?APP, kz_term:to_atom(Key, 'true')).
 
 -spec nonempty(any(), Default) -> any() | Default.

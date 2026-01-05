@@ -8,20 +8,27 @@
 %%%-----------------------------------------------------------------------------
 -module(ecallmgr_fs_xml).
 
--export([route_resp_xml/3 ,authn_resp_xml/1, reverse_authn_resp_xml/1
-        ,acl_xml/1, not_found/0, empty_response/0
-        ,sip_profiles_xml/1, sofia_gateways_xml_to_json/1
-        ,sip_channel_xml/1
-        ,conference_resp_xml/1
-        ,event_filters_resp_xml/1
-        ]).
+-export([
+    route_resp_xml/3,
+    authn_resp_xml/1,
+    reverse_authn_resp_xml/1,
+    acl_xml/1,
+    not_found/0,
+    empty_response/0,
+    sip_profiles_xml/1,
+    sofia_gateways_xml_to_json/1,
+    sip_channel_xml/1,
+    conference_resp_xml/1,
+    event_filters_resp_xml/1
+]).
 
--export([build_leg_vars/1
-        ,get_leg_vars/1
-        ,get_channel_vars/1
-        ,kazoo_var_to_fs_var/2
-        ,escape/2
-        ]).
+-export([
+    build_leg_vars/1,
+    get_leg_vars/1,
+    get_channel_vars/1,
+    kazoo_var_to_fs_var/2,
+    escape/2
+]).
 
 -export([config_el/2, config_el/3]).
 -export([section_el/2, section_el/3]).
@@ -37,7 +44,8 @@
 
 -include("ecallmgr.hrl").
 
--define(DEFAULT_USER_CACHE_TIME_IN_MS, ?MILLISECONDS_IN_HOUR). %% 1 hour
+%% 1 hour
+-define(DEFAULT_USER_CACHE_TIME_IN_MS, ?MILLISECONDS_IN_HOUR).
 
 -spec acl_xml(kz_json:object()) -> {'ok', iolist()}.
 acl_xml(AclsJObj) ->
@@ -69,21 +77,25 @@ sip_channel_xml(Props) ->
     {'ok', xmerl:export([SectionEl], 'fs_xml')}.
 
 -spec authn_resp_xml(kz_term:api_terms()) -> {'ok', iolist()}.
-authn_resp_xml([_|_]=RespProp) ->
-    authn_resp_xml(props:get_value(<<"Auth-Method">>, RespProp)
-                  ,kz_json:from_list(RespProp)
-                  );
+authn_resp_xml([_ | _] = RespProp) ->
+    authn_resp_xml(
+        props:get_value(<<"Auth-Method">>, RespProp),
+        kz_json:from_list(RespProp)
+    );
 authn_resp_xml(JObj) ->
     DomainName = kz_json:get_value(<<"Domain-Name">>, JObj),
     UserId = kz_json:get_value(<<"User-ID">>, JObj),
 
     case authn_resp_xml(kz_json:get_value(<<"Auth-Method">>, JObj), JObj) of
-        {'ok', []}=OK -> OK;
+        {'ok', []} = OK ->
+            OK;
         {'ok', Elements} ->
-            Number = kz_json:get_value([<<"Custom-SIP-Headers">>,<<"P-Kazoo-Primary-Number">>],JObj),
+            Number = kz_json:get_value(
+                [<<"Custom-SIP-Headers">>, <<"P-Kazoo-Primary-Number">>], JObj
+            ),
             Expires = ecallmgr_util:maybe_add_expires_deviation_ms(
-                        kz_json:get_value(<<"Expires">>,JObj)
-                       ),
+                kz_json:get_value(<<"Expires">>, JObj)
+            ),
             Username = kz_json:get_value(<<"Auth-Username">>, JObj, UserId),
             UserEl = user_el(user_el_props(Number, Username, Expires), Elements),
             DomainEl = domain_el(kz_json:get_value(<<"Auth-Realm">>, JObj, DomainName), UserEl),
@@ -97,10 +109,10 @@ authn_resp_xml(<<"gsm">>, JObj) ->
     PassEl2 = param_el(<<"nonce">>, kz_json:get_value(<<"Auth-Nonce">>, JObj)),
     ParamsEl = params_el([PassEl1, PassEl2]),
 
-    VariableEls = [variable_el(K, V) || {K, V} <- get_channel_params(JObj) ],
+    VariableEls = [variable_el(K, V) || {K, V} <- get_channel_params(JObj)],
     VariablesEl = variables_el(VariableEls),
 
-    HeaderEls = [header_el(K, V) || {K, V} <- get_custom_sip_headers(JObj) ],
+    HeaderEls = [header_el(K, V) || {K, V} <- get_custom_sip_headers(JObj)],
     HeadersEl = registration_headers_el(HeaderEls),
     {'ok', [VariablesEl, ParamsEl, HeadersEl]};
 authn_resp_xml(<<"password">>, JObj) ->
@@ -132,20 +144,23 @@ authn_resp_params(JObj) ->
 
 -spec authn_resp_params(kz_term:ne_binary(), kz_json:object()) -> list().
 authn_resp_params(<<"jsonrpc-authenticate">>, _JObj) ->
-    [param_el(<<"jsonrpc-allowed-methods">>, <<"verto">>)
-    ,param_el(<<"jsonrpc-allowed-event-channels">>, <<"conference">>)
+    [
+        param_el(<<"jsonrpc-allowed-methods">>, <<"verto">>),
+        param_el(<<"jsonrpc-allowed-event-channels">>, <<"conference">>)
     ];
 authn_resp_params(_, _JObj) ->
     [].
 
 -spec reverse_authn_resp_xml(kz_term:api_terms()) -> {'ok', iolist()}.
-reverse_authn_resp_xml([_|_]=RespProp) ->
-    reverse_authn_resp_xml(props:get_value(<<"Auth-Method">>, RespProp)
-                          ,kz_json:from_list(RespProp)
-                          );
+reverse_authn_resp_xml([_ | _] = RespProp) ->
+    reverse_authn_resp_xml(
+        props:get_value(<<"Auth-Method">>, RespProp),
+        kz_json:from_list(RespProp)
+    );
 reverse_authn_resp_xml(JObj) ->
     case reverse_authn_resp_xml(kz_json:get_value(<<"Auth-Method">>, JObj), JObj) of
-        {'ok', []}=OK -> OK;
+        {'ok', []} = OK ->
+            OK;
         {'ok', Elements} ->
             UserEl = user_el(kz_json:get_value(<<"User-ID">>, JObj), Elements),
             DomainEl = domain_el(kz_json:get_value(<<"Domain-Name">>, JObj), UserEl),
@@ -154,12 +169,14 @@ reverse_authn_resp_xml(JObj) ->
     end.
 
 -spec reverse_authn_resp_xml(kz_term:ne_binary(), kz_json:object()) ->
-          {'ok', kz_types:xml_els()}.
+    {'ok', kz_types:xml_els()}.
 reverse_authn_resp_xml(<<"password">>, JObj) ->
     UserId = kz_json:get_value(<<"User-ID">>, JObj),
 
     PassEl = param_el(<<"reverse-auth-pass">>, kz_json:get_value(<<"Auth-Password">>, JObj)),
-    UserEl = param_el(<<"reverse-auth-user">>, kz_json:get_value(<<"Auth-Username">>, JObj, UserId)),
+    UserEl = param_el(
+        <<"reverse-auth-user">>, kz_json:get_value(<<"Auth-Username">>, JObj, UserId)
+    ),
 
     ParamsEl = params_el([PassEl, UserEl]),
 
@@ -173,10 +190,11 @@ reverse_authn_resp_xml(_Method, _JObj) ->
 
 -spec empty_response() -> {'ok', []}.
 empty_response() ->
-    {'ok', ""}. %"<document type=\"freeswitch/xml\"></document>").
+    %"<document type=\"freeswitch/xml\"></document>").
+    {'ok', ""}.
 
 -spec conference_resp_xml(kz_term:api_terms()) -> {'ok', iolist()}.
-conference_resp_xml([_|_]=Resp) ->
+conference_resp_xml([_ | _] = Resp) ->
     Ps = props:get_value(<<"Profiles">>, Resp, kz_json:new()),
     CCs = props:get_value(<<"Caller-Controls">>, Resp, kz_json:new()),
     As = props:get_value(<<"Advertise">>, Resp, kz_json:new()),
@@ -187,36 +205,43 @@ conference_resp_xml([_|_]=Resp) ->
     CallerControlsEl = caller_controls_xml(CCs),
     ChatPermsEl = chat_permissions_xml(CPs),
 
-    ConfigurationEl = config_el(<<"conference.conf">>, <<"Built by Kazoo">>
-                               ,[AdvertiseEl, ProfilesEl, CallerControlsEl, ChatPermsEl]
-                               ),
+    ConfigurationEl = config_el(
+        <<"conference.conf">>,
+        <<"Built by Kazoo">>,
+        [AdvertiseEl, ProfilesEl, CallerControlsEl, ChatPermsEl]
+    ),
     SectionEl = section_el(<<"configuration">>, ConfigurationEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
-conference_resp_xml(Resp) -> conference_resp_xml(kz_json:to_proplist(Resp)).
+conference_resp_xml(Resp) ->
+    conference_resp_xml(kz_json:to_proplist(Resp)).
 
 conference_profiles_xml(Profiles) when is_list(Profiles) ->
     ProfileEls = [conference_profile_xml(Name, Params) || {Name, Params} <- Profiles],
     profiles_el(ProfileEls);
-conference_profiles_xml(Profiles) -> conference_profiles_xml(kz_json:to_proplist(Profiles)).
+conference_profiles_xml(Profiles) ->
+    conference_profiles_xml(kz_json:to_proplist(Profiles)).
 
 advertise_xml(As) when is_list(As) ->
     RoomEls = [room_el(Name, Status) || {Name, Status} <- As],
     advertise_el(RoomEls);
-advertise_xml(As) -> advertise_xml(kz_json:to_proplist(As)).
+advertise_xml(As) ->
+    advertise_xml(kz_json:to_proplist(As)).
 
 caller_controls_xml(CCs) when is_list(CCs) ->
     GroupsEls = [group_xml(Name, Params) || {Name, Params} <- CCs],
     caller_controls_el(GroupsEls);
-caller_controls_xml(CCs) -> caller_controls_xml(kz_json:to_proplist(CCs)).
+caller_controls_xml(CCs) ->
+    caller_controls_xml(kz_json:to_proplist(CCs)).
 
 group_xml(Name, Controls) when is_list(Controls) ->
-    ControlEls = [control_el(kz_json:get_value(<<"action">>, Control)
-                            ,kz_json:get_value(<<"digits">>, Control)
-                            ,kz_json:get_value(<<"data">>, Control)
-                            )
-                  || Control <- Controls
-                 ],
+    ControlEls = [
+        control_el(
+            kz_json:get_value(<<"action">>, Control),
+            kz_json:get_value(<<"digits">>, Control),
+            kz_json:get_value(<<"data">>, Control)
+        )
+     || Control <- Controls
+    ],
     group_el(Name, ControlEls);
 group_xml(Name, Controls) ->
     group_xml(Name, kz_json:to_proplist(Controls)).
@@ -224,7 +249,8 @@ group_xml(Name, Controls) ->
 chat_permissions_xml(CPs) when is_list(CPs) ->
     ProfileEls = [profile_xml(Name, Users) || {Name, Users} <- CPs],
     chat_permissions_el(ProfileEls);
-chat_permissions_xml(CPs) -> chat_permissions_xml(kz_json:to_proplist(CPs)).
+chat_permissions_xml(CPs) ->
+    chat_permissions_xml(kz_json:to_proplist(CPs)).
 
 profile_xml(Name, Users) ->
     UserEls = [chat_user_el(User, Commands) || {User, Commands} <- kz_json:to_proplist(Users)],
@@ -235,28 +261,29 @@ conference_profile_xml(Name, Params) ->
     profile_el(Name, ParamEls).
 
 -spec route_resp_xml(atom(), kz_term:api_terms(), kz_term:proplist()) -> {'ok', iolist()}.
-route_resp_xml(Section, [_|_]=RespProp, Props) -> route_resp_xml(Section, kz_json:from_list(RespProp), Props);
+route_resp_xml(Section, [_ | _] = RespProp, Props) ->
+    route_resp_xml(Section, kz_json:from_list(RespProp), Props);
 route_resp_xml(Section, RespJObj, Props) ->
-    route_resp_xml(kz_json:get_value(<<"Method">>, RespJObj)
-                  ,kz_json:get_value(<<"Routes">>, RespJObj, [])
-                  ,kz_json:set_value(<<"Fetch-Section">>, kz_term:to_binary(Section), RespJObj)
-                  ,Props
-                  ).
+    route_resp_xml(
+        kz_json:get_value(<<"Method">>, RespJObj),
+        kz_json:get_value(<<"Routes">>, RespJObj, []),
+        kz_json:set_value(<<"Fetch-Section">>, kz_term:to_binary(Section), RespJObj),
+        Props
+    ).
 
 %% Prop = Route Response
 -type route_resp_fold_acc() :: {pos_integer(), kz_types:xml_els()}.
 
 -spec route_resp_fold(kz_json:object(), route_resp_fold_acc()) ->
-          route_resp_fold_acc().
+    route_resp_fold_acc().
 route_resp_fold(RouteJObj, {Idx, Acc}) ->
     case ecallmgr_util:build_channel(RouteJObj) of
-        {'error', _} -> {Idx+1, Acc};
-        {'ok', Channel} ->
-            route_resp_fold(RouteJObj, {Idx, Acc}, Channel)
+        {'error', _} -> {Idx + 1, Acc};
+        {'ok', Channel} -> route_resp_fold(RouteJObj, {Idx, Acc}, Channel)
     end.
 
 -spec route_resp_fold(kz_json:object(), route_resp_fold_acc(), kz_term:ne_binary()) ->
-          route_resp_fold_acc().
+    route_resp_fold_acc().
 route_resp_fold(RouteJObj, {Idx, Acc}, Channel) ->
     RouteJObj1 =
         case kz_json:get_value(<<"Progress-Timeout">>, RouteJObj) of
@@ -264,7 +291,8 @@ route_resp_fold(RouteJObj, {Idx, Acc}, Channel) ->
                 kz_json:set_value(<<"Progress-Timeout">>, <<"6">>, RouteJObj);
             I when is_integer(I) ->
                 kz_json:set_value(<<"Progress-Timeout">>, integer_to_list(I), RouteJObj);
-            _ -> RouteJObj
+            _ ->
+                RouteJObj
         end,
 
     ChannelVars = get_channel_vars(kz_json:to_proplist(RouteJObj1)),
@@ -275,18 +303,20 @@ route_resp_fold(RouteJObj, {Idx, Acc}, Channel) ->
     BridgeEl = action_el(<<"bridge">>, [ChannelVars, Channel]),
 
     ConditionEl = condition_el([BPEl, HangupEl, FailureEl, BridgeEl]),
-    ExtEl = extension_el([<<"match_">>, Idx+$0], <<"true">>, [ConditionEl]),
+    ExtEl = extension_el([<<"match_">>, Idx + $0], <<"true">>, [ConditionEl]),
 
-    {Idx+1, [ExtEl | Acc]}.
+    {Idx + 1, [ExtEl | Acc]}.
 
 -spec should_bypass_media(kz_json:object()) -> string().
 should_bypass_media(RouteJObj) ->
     case kz_json:get_value(<<"Media">>, RouteJObj) of
         <<"bypass">> -> "true";
-        _ -> "false" %% default to not bypassing media
+        %% default to not bypassing media
+        _ -> "false"
     end.
 
--spec route_resp_xml(kz_term:ne_binary(), kz_json:objects(), kz_json:object(), kz_term:proplist()) -> {'ok', iolist()}.
+-spec route_resp_xml(kz_term:ne_binary(), kz_json:objects(), kz_json:object(), kz_term:proplist()) ->
+    {'ok', iolist()}.
 route_resp_xml(<<"bridge">>, Routes, JObj, Props) ->
     lager:debug("creating a bridge XML response"),
     LogEl = route_resp_log_winning_node(),
@@ -298,49 +328,51 @@ route_resp_xml(<<"bridge">>, Routes, JObj, Props) ->
     FailConditionEl = condition_el(FailRespondEl),
     FailExtEl = extension_el(<<"failed_bridge">>, <<"false">>, [FailConditionEl]),
     Context = context(JObj, Props),
-    ContextEl = context_el(Context, [LogEl, RingbackEl, TransferEl] ++ unset_custom_sip_headers(Props) ++ Extensions ++ [FailExtEl]),
+    ContextEl = context_el(
+        Context,
+        [LogEl, RingbackEl, TransferEl] ++ unset_custom_sip_headers(Props) ++ Extensions ++
+            [FailExtEl]
+    ),
     SectionEl = section_el(<<"dialplan">>, <<"Route Bridge Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(<<"park">>, _Routes, JObj, Props) ->
-    Exten = [route_resp_log_winning_node()
-            ,route_resp_set_winning_node()
-            ,route_resp_bridge_id()
-            ,route_resp_ringback(JObj)
-            ,route_resp_transfer_ringback(JObj)
-            ,route_resp_pre_park_action(JObj)
-            ,maybe_start_dtmf_action(Props)
-             | route_resp_ccvs(JObj)
-             ++ route_resp_cavs(JObj)
-             ++ unset_custom_sip_headers(Props)
-             ++ [action_el(<<"park">>)]
-            ],
+    Exten = [
+        route_resp_log_winning_node(),
+        route_resp_set_winning_node(),
+        route_resp_bridge_id(),
+        route_resp_ringback(JObj),
+        route_resp_transfer_ringback(JObj),
+        route_resp_pre_park_action(JObj),
+        maybe_start_dtmf_action(Props)
+        | route_resp_ccvs(JObj) ++
+            route_resp_cavs(JObj) ++
+            unset_custom_sip_headers(Props) ++
+            [action_el(<<"park">>)]
+    ],
     ParkExtEl = extension_el(<<"park">>, 'undefined', [condition_el(Exten)]),
     Context = context(JObj, Props),
     ContextEl = context_el(Context, [ParkExtEl]),
     SectionEl = section_el(<<"dialplan">>, <<"Route Park Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(<<"error">>, _Routes, JObj, Props) ->
     Section = kz_json:get_value(<<"Fetch-Section">>, JObj, <<"dialplan">>),
-    route_resp_xml(<<Section/binary, "_error">>,_Routes, JObj, Props);
-
+    route_resp_xml(<<Section/binary, "_error">>, _Routes, JObj, Props);
 route_resp_xml(<<"dialplan_error">>, _Routes, JObj, Props) ->
     ErrCode = kz_json:get_value(<<"Route-Error-Code">>, JObj),
     ErrMsg = [" ", kz_json:get_value(<<"Route-Error-Message">>, JObj, <<>>)],
-    Exten = [route_resp_log_winning_node()
-            ,route_resp_set_winning_node()
-            ,route_resp_bridge_id()
-            ,route_resp_ringback(JObj)
-            ,route_resp_transfer_ringback(JObj)
-            ,action_el(<<"respond">>, [ErrCode, ErrMsg])
-            ],
+    Exten = [
+        route_resp_log_winning_node(),
+        route_resp_set_winning_node(),
+        route_resp_bridge_id(),
+        route_resp_ringback(JObj),
+        route_resp_transfer_ringback(JObj),
+        action_el(<<"respond">>, [ErrCode, ErrMsg])
+    ],
     ErrExtEl = extension_el([condition_el(Exten)]),
     Context = context(JObj, Props),
     ContextEl = context_el(Context, [ErrExtEl]),
     SectionEl = section_el(<<"dialplan">>, <<"Route Error Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(<<"chatplan_error">>, _Routes, JObj, _Props) ->
     ErrCode = kz_json:get_value(<<"Route-Error-Code">>, JObj),
     ErrMsg = [" ", kz_json:get_value(<<"Route-Error-Message">>, JObj, <<>>)],
@@ -349,7 +381,6 @@ route_resp_xml(<<"chatplan_error">>, _Routes, JObj, _Props) ->
     ContextEl = context_el(?DEFAULT_FREESWITCH_CONTEXT, [ErrExtEl]),
     SectionEl = section_el(<<"chatplan">>, <<"Route Error Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(<<"sms">>, _Routes, _JObj, Props) ->
     lager:debug("creating a chatplan XML response"),
     StopActionEl = action_el(<<"stop">>, <<"stored">>),
@@ -358,26 +389,26 @@ route_resp_xml(<<"sms">>, _Routes, _JObj, Props) ->
     ContextEl = context_el(Context, [StopExtEl]),
     SectionEl = section_el(<<"chatplan">>, <<"Chat Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(<<"sms_error">>, _Routes, JObj, _Props) ->
     ErrCode = kz_json:get_value(<<"Route-Error-Code">>, JObj),
     ErrMsg = [" ", kz_json:get_value(<<"Route-Error-Message">>, JObj, <<>>)],
-    Exten = [route_resp_log_winning_node()
-            ,route_resp_set_winning_node()
-            ,action_el(<<"respond">>, [ErrCode, ErrMsg])
-            ],
+    Exten = [
+        route_resp_log_winning_node(),
+        route_resp_set_winning_node(),
+        action_el(<<"respond">>, [ErrCode, ErrMsg])
+    ],
     ErrExtEl = extension_el([condition_el(Exten)]),
     ContextEl = context_el(?DEFAULT_FREESWITCH_CONTEXT, [ErrExtEl]),
     SectionEl = section_el(<<"chatplan">>, <<"Route Error Response">>, ContextEl),
     {'ok', xmerl:export([SectionEl], 'fs_xml')};
-
 route_resp_xml(Method, Routes, JObj, Props) ->
     lager:debug("trying fun for ~p", [Method]),
     Fun = props:get_value(<<"Route-Resp-Xml-Fun">>, Props),
     maybe_route_resp_xml_fun(Fun, Method, Routes, JObj, Props).
 
-maybe_route_resp_xml_fun(Fun, Method, Routes, JObj, Props)
-  when is_function(Fun, 4) ->
+maybe_route_resp_xml_fun(Fun, Method, Routes, JObj, Props) when
+    is_function(Fun, 4)
+->
     Fun(Method, Routes, JObj, Props);
 maybe_route_resp_xml_fun(_Fun, Method, Routes, JObj, Props) ->
     lager:error("route resp xml method ~p not handled, reverting to error", [Method]),
@@ -391,8 +422,10 @@ route_resp_bridge_id() ->
 -spec unset_custom_sip_headers(kz_term:proplist()) -> kz_types:xml_els().
 unset_custom_sip_headers(Props) ->
     case get_custom_sip_headers(Props) of
-        [] -> [];
-        [{K,_}] -> [action_el(<<"unset">>, K)];
+        [] ->
+            [];
+        [{K, _}] ->
+            [action_el(<<"unset">>, K)];
         [{K1, _} | KVs] ->
             Keys = ["^^;", K1] ++ [<<";", K/binary>> || {K, _} <- KVs],
             [action_el(<<"multiunset">>, list_to_binary(Keys))]
@@ -406,7 +439,9 @@ not_found() ->
 
 -spec route_resp_log_winning_node() -> kz_types:xml_el().
 route_resp_log_winning_node() ->
-    action_el(<<"log">>, [<<"NOTICE log|${uuid}|", (kz_term:to_binary(node()))/binary, " won call control">>]).
+    action_el(<<"log">>, [
+        <<"NOTICE log|${uuid}|", (kz_term:to_binary(node()))/binary, " won call control">>
+    ]).
 
 route_resp_set_winning_node() ->
     action_el(<<"export">>, [?SET_CCV(<<"Ecallmgr-Node">>, (kz_term:to_binary(node())))]).
@@ -440,16 +475,18 @@ route_resp_cavs(JObj) ->
 
 -spec route_ccvs_list(kz_term:proplist()) -> kz_term:ne_binary().
 route_ccvs_list(CCVs) ->
-    L = [kz_term:to_list(ecallmgr_util:get_fs_kv(K, V))
-         || {K, V} <- CCVs
-        ],
+    L = [
+        kz_term:to_list(ecallmgr_util:get_fs_kv(K, V))
+     || {K, V} <- CCVs
+    ],
     <<"^^|", (kz_term:to_binary(string:join(L, "|")))/binary>>.
 
 -spec route_cavs_list(kz_term:proplist()) -> kz_term:ne_binary().
 route_cavs_list(CAVs) ->
-    L = [kz_term:to_list(ecallmgr_util:get_fs_kv(?CAV(K), V))
-         || {K, V} <- CAVs
-        ],
+    L = [
+        kz_term:to_list(ecallmgr_util:get_fs_kv(?CAV(K), V))
+     || {K, V} <- CAVs
+    ],
     <<"^^|", (kz_term:to_binary(string:join(L, "|")))/binary>>.
 
 -spec route_resp_transfer_ringback(kz_json:object()) -> kz_types:xml_el().
@@ -487,100 +524,124 @@ check_dtmf_type(Props) ->
     end.
 
 -spec build_leg_vars(kz_json:object() | kz_term:proplist()) -> kz_term:ne_binaries().
-build_leg_vars([]) -> [];
-build_leg_vars([_|_]=Prop) ->
+build_leg_vars([]) ->
+    [];
+build_leg_vars([_ | _] = Prop) ->
     lists:foldr(fun kazoo_var_to_fs_var/2, maybe_endpoint_privacy_header(Prop), Prop);
-build_leg_vars(JObj) -> build_leg_vars(kz_json:to_proplist(JObj)).
+build_leg_vars(JObj) ->
+    build_leg_vars(kz_json:to_proplist(JObj)).
 
 -spec get_leg_vars(kz_json:object() | kz_term:proplist()) -> iolist().
-get_leg_vars([]) -> [];
-get_leg_vars([Binary|_]=Binaries)
-  when is_binary(Binary) ->
-    ["[^^", ?BRIDGE_CHANNEL_VAR_SEPARATOR
-    ,string:join([kz_term:to_list(V) || V <- Binaries]
-                ,?BRIDGE_CHANNEL_VAR_SEPARATOR
-                )
-    ,"]"
+get_leg_vars([]) ->
+    [];
+get_leg_vars([Binary | _] = Binaries) when
+    is_binary(Binary)
+->
+    [
+        "[^^",
+        ?BRIDGE_CHANNEL_VAR_SEPARATOR,
+        string:join(
+            [kz_term:to_list(V) || V <- Binaries],
+            ?BRIDGE_CHANNEL_VAR_SEPARATOR
+        ),
+        "]"
     ];
-get_leg_vars([_|_]=Prop) ->
-    ["[^^", ?BRIDGE_CHANNEL_VAR_SEPARATOR
-    ,string:join([kz_term:to_list(V)
-                  || V <- lists:foldr(fun kazoo_var_to_fs_var/2
-                                     ,maybe_endpoint_privacy_header(Prop)
-                                     ,Prop
-                                     )
-                 ]
-                ,?BRIDGE_CHANNEL_VAR_SEPARATOR
+get_leg_vars([_ | _] = Prop) ->
+    [
+        "[^^",
+        ?BRIDGE_CHANNEL_VAR_SEPARATOR,
+        string:join(
+            [
+                kz_term:to_list(V)
+             || V <- lists:foldr(
+                    fun kazoo_var_to_fs_var/2,
+                    maybe_endpoint_privacy_header(Prop),
+                    Prop
                 )
-    ,"]"
+            ],
+            ?BRIDGE_CHANNEL_VAR_SEPARATOR
+        ),
+        "]"
     ];
-get_leg_vars(JObj) -> get_leg_vars(kz_json:to_proplist(JObj)).
+get_leg_vars(JObj) ->
+    get_leg_vars(kz_json:to_proplist(JObj)).
 
 -spec maybe_endpoint_privacy_header(kz_term:proplist()) -> kz_term:ne_binaries().
 maybe_endpoint_privacy_header(Prop) ->
-    case kz_privacy:has_flags(Prop)
-        andalso kz_privacy:use_sip_privacy_header()
+    case
+        kz_privacy:has_flags(Prop) andalso
+            kz_privacy:use_sip_privacy_header()
     of
         'true' -> [<<"sip_h_Privacy=id">>];
         'false' -> []
     end.
 
 -spec get_channel_vars(kz_json:object() | kz_term:proplist()) -> iolist().
-get_channel_vars([]) -> [];
-get_channel_vars([_|_]=Props) ->
-    Routines = [fun channel_vars_set_overwrite/1
-               ,fun channel_vars_handle_asserted_identity/1
-               ,fun kazoo_vars_to_fs_vars/1
-               ],
+get_channel_vars([]) ->
+    [];
+get_channel_vars([_ | _] = Props) ->
+    Routines = [
+        fun channel_vars_set_overwrite/1,
+        fun channel_vars_handle_asserted_identity/1,
+        fun kazoo_vars_to_fs_vars/1
+    ],
     {_, Results} =
-        lists:foldl(fun(F, Acc) ->
-                            F(Acc)
-                    end
-                   ,{Props, []}
-                   ,Routines
-                   ),
-    ["{"
-    ,string:join([kz_term:to_list(Result)
-                  || Result <- Results
-                 ]
-                ,","
-                )
-    ,"}"
+        lists:foldl(
+            fun(F, Acc) ->
+                F(Acc)
+            end,
+            {Props, []},
+            Routines
+        ),
+    [
+        "{",
+        string:join(
+            [
+                kz_term:to_list(Result)
+             || Result <- Results
+            ],
+            ","
+        ),
+        "}"
     ];
-get_channel_vars(JObj) -> get_channel_vars(kz_json:to_proplist(JObj)).
+get_channel_vars(JObj) ->
+    get_channel_vars(kz_json:to_proplist(JObj)).
 
 -type channel_var_fold() :: {kz_term:proplist(), iolist()}.
 -spec channel_vars_set_overwrite(channel_var_fold()) -> channel_var_fold().
 channel_vars_set_overwrite({Props, Results}) ->
-    {Props ++ [{<<"Overwrite-Channel-Vars">>, <<"true">>}]
-    ,Results
-    }.
+    {Props ++ [{<<"Overwrite-Channel-Vars">>, <<"true">>}], Results}.
 
 -spec channel_vars_handle_asserted_identity(channel_var_fold()) -> channel_var_fold().
-channel_vars_handle_asserted_identity({Props, Results}=Acc) ->
+channel_vars_handle_asserted_identity({Props, Results} = Acc) ->
     Name = props:get_ne_binary_value(<<"Asserted-Identity-Name">>, Props),
     Number = props:get_ne_binary_value(<<"Asserted-Identity-Number">>, Props),
     CCVs = props:get_value(<<"Custom-Channel-Vars">>, Props, kz_json:new()),
     DefaultRealm = kz_json:get_ne_binary_value(<<"Realm">>, CCVs),
     Realm = props:get_ne_binary_value(<<"Asserted-Identity-Realm">>, Props, DefaultRealm),
     case create_asserted_identity_header(Name, Number, Realm) of
-        'undefined' -> Acc;
+        'undefined' ->
+            Acc;
         AssertedIdentity ->
-            build_asserted_identity(AssertedIdentity, props:delete(<<"Caller-ID-Type">>, Props), Results)
+            build_asserted_identity(
+                AssertedIdentity, props:delete(<<"Caller-ID-Type">>, Props), Results
+            )
     end.
 
-
--spec build_asserted_identity(kz_term:ne_binary(), kz_term:prolist(), iolist()) -> channel_var_fold().
+-spec build_asserted_identity(kz_term:ne_binary(), kz_term:prolist(), iolist()) ->
+    channel_var_fold().
 build_asserted_identity(AssertedIdentity, Props, Results) ->
-    {Props
-    ,[<<"sip_cid_type=none">>
-     ,<<"sip_h_P-Asserted-Identity='", AssertedIdentity/binary, "'">>
-          | Results
-     ] ++ maybe_endpoint_privacy_header(Props)
-    }.
+    {Props,
+        [
+            <<"sip_cid_type=none">>,
+            <<"sip_h_P-Asserted-Identity='", AssertedIdentity/binary, "'">>
+            | Results
+        ] ++ maybe_endpoint_privacy_header(Props)}.
 
--spec create_asserted_identity_header(kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) ->
-          kz_term:api_binary().
+-spec create_asserted_identity_header(
+    kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()
+) ->
+    kz_term:api_binary().
 create_asserted_identity_header(_, 'undefined', _) ->
     'undefined';
 create_asserted_identity_header(_, _, 'undefined') ->
@@ -596,16 +657,14 @@ kazoo_vars_to_fs_vars({Props, Results}) ->
 kazoo_vars_to_fs_vars(Props) ->
     kazoo_vars_to_fs_vars({Props, []}).
 
--spec kazoo_var_to_fs_var({binary(), binary() | kz_json:object()}, kz_term:ne_binaries()) -> iolist().
+-spec kazoo_var_to_fs_var({binary(), binary() | kz_json:object()}, kz_term:ne_binaries()) ->
+    iolist().
 kazoo_var_to_fs_var({<<"Custom-Channel-Vars">>, JObj}, Vars) ->
     kz_json:foldl(fun kazoo_var_to_fs_var_fold/3, Vars, JObj);
-
 kazoo_var_to_fs_var({<<"Custom-Application-Vars">>, JObj}, Vars) ->
     kz_json:foldl(fun kazoo_cavs_to_fs_vars_fold/3, Vars, JObj);
-
 kazoo_var_to_fs_var({<<"Custom-SIP-Headers">>, SIPJObj}, Vars) ->
     kz_json:foldl(fun sip_headers_fold/3, Vars, SIPJObj);
-
 kazoo_var_to_fs_var({<<"To-User">>, Username}, Vars) ->
     Prefix = [?CHANNEL_VAR_PREFIX, "Username"],
     [encode_fs_val(Prefix, Username) | Vars];
@@ -615,74 +674,67 @@ kazoo_var_to_fs_var({<<"To-Realm">>, Realm}, Vars) ->
 kazoo_var_to_fs_var({<<"To-URI">>, ToURI}, Vars) ->
     Val = <<"<", ToURI/binary, ">">>,
     [encode_fs_val("sip_invite_to_uri", Val) | Vars];
-
 kazoo_var_to_fs_var({<<"Caller-ID-Type">>, <<"from">>}, Vars) ->
-    [ <<"sip_cid_type=none">> | Vars];
+    [<<"sip_cid_type=none">> | Vars];
 kazoo_var_to_fs_var({<<"Caller-ID-Type">>, <<"rpid">>}, Vars) ->
-    [ <<"sip_cid_type=rpid">> | Vars];
+    [<<"sip_cid_type=rpid">> | Vars];
 kazoo_var_to_fs_var({<<"Caller-ID-Type">>, <<"pid">>}, Vars) ->
-    [ <<"sip_cid_type=pid">> | Vars];
-
+    [<<"sip_cid_type=pid">> | Vars];
 kazoo_var_to_fs_var({<<"origination_uuid">> = K, UUID}, Vars) ->
     [encode_fs_val(K, UUID) | Vars];
-
 kazoo_var_to_fs_var({<<"Hold-Media">>, Media}, Vars) ->
     MediaPath = ecallmgr_util:moh_media_path(Media, 'extant', get('callid'), kz_json:new()),
     [encode_fs_val("hold_music", MediaPath) | Vars];
-
 kazoo_var_to_fs_var({<<"Codecs">>, []}, Vars) ->
     Vars;
 kazoo_var_to_fs_var({<<"Codecs">>, Cs}, Vars) ->
-    Codecs = [kz_term:to_list(codec_mappings(C))
-              || C <- Cs,
-                 not kz_term:is_empty(C)
-             ],
+    Codecs = [
+        kz_term:to_list(codec_mappings(C))
+     || C <- Cs,
+        not kz_term:is_empty(C)
+    ],
     CodecStr = string:join(Codecs, ":"),
     Val = ["^^:", CodecStr],
     [encode_fs_val("absolute_codec_string", Val) | Vars];
-
 %% SPECIAL CASE: Timeout must be larger than zero
 kazoo_var_to_fs_var({<<"Timeout">>, V}, Vars) ->
     case kz_term:to_integer(V) of
         TO when TO > 0 ->
-            [<<"call_timeout=", (kz_term:to_binary(TO))/binary>>
-            ,<<"originate_timeout=", (kz_term:to_binary(TO))/binary>>
-                 | Vars
+            [
+                <<"call_timeout=", (kz_term:to_binary(TO))/binary>>,
+                <<"originate_timeout=", (kz_term:to_binary(TO))/binary>>
+                | Vars
             ];
-        _Else -> Vars
+        _Else ->
+            Vars
     end;
-
-kazoo_var_to_fs_var({<<"Forward-IP">>, <<"sip:", _/binary>>=V}, Vars) ->
+kazoo_var_to_fs_var({<<"Forward-IP">>, <<"sip:", _/binary>> = V}, Vars) ->
     [encode_fs_val("sip_route_uri", V) | Vars];
-
 kazoo_var_to_fs_var({<<"Forward-IP">>, V}, Vars) ->
     kazoo_var_to_fs_var({<<"Forward-IP">>, <<"sip:", V/binary>>}, Vars);
-
 kazoo_var_to_fs_var({<<"Enable-T38-Gateway">>, Direction}, Vars) ->
     Val = <<"t38_gateway ", Direction/binary>>,
     [encode_fs_val("execute_on_answer", Val) | Vars];
-
 kazoo_var_to_fs_var({<<"Confirm-File">>, V}, Vars) ->
     Val = ecallmgr_util:media_path(V, 'extant', get('callid'), kz_json:new()),
     [encode_fs_val("group_confirm_file", Val) | Vars];
-
 kazoo_var_to_fs_var({<<"SIP-Invite-Parameters">>, V}, Vars) ->
     Val = kz_util:iolist_join(<<";">>, V),
     [encode_fs_val("sip_invite_params", Val) | Vars];
-
-kazoo_var_to_fs_var({<<"Participant-Flags">>, [_|_]=Flags}, Vars) ->
+kazoo_var_to_fs_var({<<"Participant-Flags">>, [_ | _] = Flags}, Vars) ->
     ParticipantFlags = participant_flags_to_var(Flags),
     Val = <<"^^!", ParticipantFlags/binary>>,
     [encode_fs_val("conference_member_flags", Val) | Vars];
-
 kazoo_var_to_fs_var({AMQPHeader, V}, Vars) ->
     case lists:keyfind(AMQPHeader, 1, ?SPECIAL_CHANNEL_VARS) of
-        'false' -> Vars;
+        'false' ->
+            Vars;
         {_, Prefix} ->
             Val = ecallmgr_util:maybe_sanitize_fs_value(AMQPHeader, V),
             [encode_fs_val(Prefix, Val) | Vars]
     end;
-kazoo_var_to_fs_var(_, Vars) -> Vars.
+kazoo_var_to_fs_var(_, Vars) ->
+    Vars.
 
 -spec participant_flags_to_var(kz_term:ne_binaries()) -> kz_term:ne_binary().
 participant_flags_to_var(Flags) ->
@@ -704,14 +756,18 @@ sip_headers_fold(K, V, Vars0) ->
     Val = maybe_expand_macro(kz_term:to_binary(V)),
     [encode_fs_val(Prefix, Val) | Vars0].
 
--define(DEFAULT_EXPANDABLE_MACROS
-       ,kz_json:from_list([{<<"{caller_id_name}">>, <<"${caller_id_name}">>}
-                          ,{<<"{caller_id_number}">>, <<"${caller_id_number}">>}
-                          ,{<<"{account_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Account-ID}">>}
-                          ,{<<"{reseller_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Reseller-ID}">>}
-                          ,{<<"{billing_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Billing-ID}">>}
-                          ])).
--define(EXPANDABLE_MACROS, kapps_config:get_json(?APP_NAME, <<"expandable_macros">>, ?DEFAULT_EXPANDABLE_MACROS)).
+-define(DEFAULT_EXPANDABLE_MACROS,
+    kz_json:from_list([
+        {<<"{caller_id_name}">>, <<"${caller_id_name}">>},
+        {<<"{caller_id_number}">>, <<"${caller_id_number}">>},
+        {<<"{account_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Account-ID}">>},
+        {<<"{reseller_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Reseller-ID}">>},
+        {<<"{billing_id}">>, <<"${" ?CHANNEL_VAR_PREFIX "Billing-ID}">>}
+    ])
+).
+-define(EXPANDABLE_MACROS,
+    kapps_config:get_json(?APP_NAME, <<"expandable_macros">>, ?DEFAULT_EXPANDABLE_MACROS)
+).
 
 -spec maybe_expand_macro(kz_term:ne_binary()) -> kz_term:ne_binary().
 maybe_expand_macro(HeaderValue) ->
@@ -731,13 +787,13 @@ kazoo_var_to_fs_var_fold(<<"Force-Fax">>, Direction, Acc) ->
     Val = <<"t38_gateway ", Direction/binary>>,
     [encode_fs_val("execute_on_answer", Val) | Acc];
 kazoo_var_to_fs_var_fold(<<"Channel-Actions">>, Actions, Acc) ->
-    [Actions |Acc];
+    [Actions | Acc];
 kazoo_var_to_fs_var_fold(K, V, Acc) ->
     case lists:keyfind(K, 1, ?SPECIAL_CHANNEL_VARS) of
         'false' ->
             Prefix = [?CHANNEL_VAR_PREFIX, kz_term:to_list(K)],
             [encode_fs_val(Prefix, V) | Acc];
-        {_, <<"group_confirm_file">>=Prefix} ->
+        {_, <<"group_confirm_file">> = Prefix} ->
             Val = ecallmgr_util:media_path(V, 'extant', get('callid'), kz_json:new()),
             [encode_fs_val(Prefix, Val) | Acc];
         {_, Prefix} ->
@@ -783,12 +839,13 @@ get_channel_params(Props) when is_list(Props) ->
     [get_channel_params_fold(K, V) || {K, V} <- Props];
 get_channel_params(JObj) ->
     get_channel_params(
-      kz_json:to_proplist(
-        kz_json:get_value(<<"Custom-Channel-Vars">>, JObj, kz_json:new())
-       )).
+        kz_json:to_proplist(
+            kz_json:get_value(<<"Custom-Channel-Vars">>, JObj, kz_json:new())
+        )
+    ).
 
 -spec get_channel_params_fold(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {kz_term:ne_binary(), kz_term:ne_binary()}.
+    {kz_term:ne_binary(), kz_term:ne_binary()}.
 get_channel_params_fold(Key, Val) ->
     case lists:keyfind(Key, 1, ?SPECIAL_CHANNEL_VARS) of
         'false' ->
@@ -798,7 +855,7 @@ get_channel_params_fold(Key, Val) ->
     end.
 
 -spec get_custom_sip_headers(kz_json:object() | kz_term:proplist()) -> kz_json:json_proplist().
-get_custom_sip_headers([_|_]=Props) ->
+get_custom_sip_headers([_ | _] = Props) ->
     [normalize_custom_sip_header_name(P) || P <- props:filter(fun is_custom_sip_header/1, Props)];
 get_custom_sip_headers(JObj) ->
     kz_json:to_proplist(kz_json:get_value(<<"Custom-SIP-Headers">>, JObj, kz_json:new())).
@@ -811,7 +868,8 @@ normalize_custom_sip_header_name(A) -> A.
 is_custom_sip_header({<<"variable_sip_h_X-", _/binary>>, _}) -> 'true';
 is_custom_sip_header(_) -> 'false'.
 
--spec arrange_acl_node({kz_term:ne_binary(), kz_json:object()}, orddict:orddict()) -> orddict:orddict().
+-spec arrange_acl_node({kz_term:ne_binary(), kz_json:object()}, orddict:orddict()) ->
+    orddict:orddict().
 arrange_acl_node({_, JObj}, Dict) ->
     AclList = kz_json:get_value(<<"network-list-name">>, JObj),
     Type = kz_json:get_value(<<"type">>, JObj),
@@ -841,23 +899,28 @@ context(JObj, Props) ->
 %%%-----------------------------------------------------------------------------
 %% XML record creators and helpers
 %%%-----------------------------------------------------------------------------
--spec acl_node_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_term:api_integers()) -> kz_types:xml_el() | kz_types:xml_els().
+-spec acl_node_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_term:api_integers()) ->
+    kz_types:xml_el() | kz_types:xml_els().
 acl_node_el(Type, CIDRs, Ports) when is_list(CIDRs) ->
     [acl_node_el(Type, CIDR, Ports) || CIDR <- CIDRs];
 acl_node_el(Type, CIDR, 'undefined') ->
-    #xmlElement{name='node'
-               ,attributes=[xml_attrib('type', Type)
-                           ,xml_attrib('cidr', CIDR)
-                           ]
-               };
+    #xmlElement{
+        name = 'node',
+        attributes = [
+            xml_attrib('type', Type),
+            xml_attrib('cidr', CIDR)
+        ]
+    };
 acl_node_el(Type, CIDR, Ports) ->
     BinPorts = kz_binary:join([kz_term:to_binary(P) || P <- Ports], <<",">>),
-    #xmlElement{name='node'
-               ,attributes=[xml_attrib('type', Type)
-                           ,xml_attrib('cidr', CIDR)
-                           ,xml_attrib('ports', BinPorts)
-                           ]
-               }.
+    #xmlElement{
+        name = 'node',
+        attributes = [
+            xml_attrib('type', Type),
+            xml_attrib('cidr', CIDR),
+            xml_attrib('ports', BinPorts)
+        ]
+    }.
 
 -spec acl_list_el(kz_types:xml_attrib_value()) -> kz_types:xml_el().
 acl_list_el(Name) ->
@@ -867,109 +930,142 @@ acl_list_el(Name) ->
 acl_list_el(Name, Default) ->
     acl_list_el(Name, Default, []).
 
--spec acl_list_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_types:xml_els()) -> kz_types:xml_el().
+-spec acl_list_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_types:xml_els()) ->
+    kz_types:xml_el().
 acl_list_el(Name, Default, Children) ->
-    #xmlElement{name='list'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('default', Default)
-                           ]
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'list',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('default', Default)
+        ],
+        content = Children
+    }.
 
 -spec network_list_el(kz_types:xml_els()) -> kz_types:xml_el().
 network_list_el(ListsEls) ->
-    #xmlElement{name='network-lists', content=ListsEls}.
+    #xmlElement{name = 'network-lists', content = ListsEls}.
 
--spec config_el(kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el() | kz_types:xml_els().
+-spec config_el(kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el() | kz_types:xml_els().
 config_el(Name, Content) ->
-    config_el(Name, <<"configuration ", (kz_term:to_binary(Name))/binary, " built by kazoo">>, Content).
+    config_el(
+        Name, <<"configuration ", (kz_term:to_binary(Name))/binary, " built by kazoo">>, Content
+    ).
 
--spec config_el(kz_term:ne_binary(), kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el() | kz_types:xml_els().
-config_el(Name, Desc, #xmlElement{}=Content) ->
+-spec config_el(kz_term:ne_binary(), kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el() | kz_types:xml_els().
+config_el(Name, Desc, #xmlElement{} = Content) ->
     config_el(Name, Desc, [Content]);
 config_el(Name, Desc, Content) ->
-    #xmlElement{name='configuration'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('description', Desc)
-                           ]
-               ,content=Content
-               }.
+    #xmlElement{
+        name = 'configuration',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('description', Desc)
+        ],
+        content = Content
+    }.
 
--spec channel_el(kz_term:api_binary(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el() | kz_types:xml_els().
-channel_el('undefined', Content) -> Content;
+-spec channel_el(kz_term:api_binary(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el() | kz_types:xml_els().
+channel_el('undefined', Content) ->
+    Content;
 channel_el(UUID, Content) ->
-    channel_el(UUID, <<"channel ", (kz_term:to_binary(UUID))/binary, " tracked by kazoo">>, Content).
+    channel_el(
+        UUID, <<"channel ", (kz_term:to_binary(UUID))/binary, " tracked by kazoo">>, Content
+    ).
 
--spec channel_el(kz_term:ne_binary(), kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el().
-channel_el(UUID, Desc, #xmlElement{}=Content) ->
+-spec channel_el(kz_term:ne_binary(), kz_term:ne_binary(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el().
+channel_el(UUID, Desc, #xmlElement{} = Content) ->
     channel_el(UUID, Desc, [Content]);
 channel_el(UUID, Desc, Content) ->
-    #xmlElement{name='channel'
-               ,attributes=[xml_attrib('uuid', UUID)
-                           ,xml_attrib('description', Desc)
-                           ]
-               ,content=Content
-               }.
+    #xmlElement{
+        name = 'channel',
+        attributes = [
+            xml_attrib('uuid', UUID),
+            xml_attrib('description', Desc)
+        ],
+        content = Content
+    }.
 
--spec section_el(kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el().
-section_el(Name, #xmlElement{}=Content) ->
+-spec section_el(kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el().
+section_el(Name, #xmlElement{} = Content) ->
     section_el(Name, [Content]);
 section_el(Name, Content) ->
-    #xmlElement{name='section'
-               ,attributes=[xml_attrib('name', Name)]
-               ,content=Content
-               }.
+    #xmlElement{
+        name = 'section',
+        attributes = [xml_attrib('name', Name)],
+        content = Content
+    }.
 
--spec section_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el().
-section_el(Name, Desc, #xmlElement{}=Content) ->
+-spec section_el(
+    kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()
+) -> kz_types:xml_el().
+section_el(Name, Desc, #xmlElement{} = Content) ->
     section_el(Name, Desc, [Content]);
 section_el(Name, Desc, Content) ->
-    #xmlElement{name='section'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('description', Desc)
-                           ]
-               ,content=Content
-               }.
+    #xmlElement{
+        name = 'section',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('description', Desc)
+        ],
+        content = Content
+    }.
 
--spec domain_el(kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el().
+-spec domain_el(kz_types:xml_attrib_value(), kz_types:xml_el() | kz_types:xml_els()) ->
+    kz_types:xml_el().
 domain_el(Name, Child) when not is_list(Child) ->
     domain_el(Name, [Child]);
 domain_el(Name, Children) ->
-    #xmlElement{name='domain'
-               ,attributes=[xml_attrib('name', Name)]
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'domain',
+        attributes = [xml_attrib('name', Name)],
+        content = Children
+    }.
 
--spec user_el(kz_types:xml_attrib_value() | kz_term:proplist(), kz_types:xml_els()) -> kz_types:xml_el().
+-spec user_el(kz_types:xml_attrib_value() | kz_term:proplist(), kz_types:xml_els()) ->
+    kz_types:xml_el().
 user_el(Id, Children) when not is_list(Id) ->
     user_el(user_el_default_props(Id), Children);
 user_el(Props, Children) ->
-    #xmlElement{name='user'
-               ,attributes=[xml_attrib(K, V)
-                            || {K, V} <- props:unique(
-                                           props:filter_undefined(Props)
-                                          )
-                           ]
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'user',
+        attributes = [
+            xml_attrib(K, V)
+         || {K, V} <- props:unique(
+                props:filter_undefined(Props)
+            )
+        ],
+        content = Children
+    }.
 
--spec user_el_props(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_integer()) -> kz_term:proplist().
+-spec user_el_props(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_integer()) ->
+    kz_term:proplist().
 user_el_props(Number, Username, 'undefined') ->
-    [{'number-alias', Number}
-    ,{'cacheable', kapps_config:get_integer(?APP_NAME, <<"user_cache_time_in_ms">>
-                                           ,?DEFAULT_USER_CACHE_TIME_IN_MS
-                                           )
-     }
-     | user_el_default_props(Username)
+    [
+        {'number-alias', Number},
+        {'cacheable',
+            kapps_config:get_integer(
+                ?APP_NAME,
+                <<"user_cache_time_in_ms">>,
+                ?DEFAULT_USER_CACHE_TIME_IN_MS
+            )}
+        | user_el_default_props(Username)
     ];
 user_el_props(Number, Username, Expires) when Expires < 1 ->
-    [{'number-alias', Number}
-     | user_el_default_props(Username)
+    [
+        {'number-alias', Number}
+        | user_el_default_props(Username)
     ];
 user_el_props(Number, Username, Expires) ->
-    [{'number-alias', Number}
-    ,{'cacheable', Expires}
-     | user_el_default_props(Username)
+    [
+        {'number-alias', Number},
+        {'cacheable', Expires}
+        | user_el_default_props(Username)
     ].
 
 -spec user_el_default_props(kz_types:xml_attrib_value()) -> kz_term:proplist().
@@ -978,41 +1074,51 @@ user_el_default_props(Id) ->
 
 -spec chat_user_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
 chat_user_el(Name, Commands) ->
-    #xmlElement{name='user'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('commands', Commands)
-                           ]
-               }.
+    #xmlElement{
+        name = 'user',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('commands', Commands)
+        ]
+    }.
 
 -spec params_el(kz_types:xml_els()) -> kz_types:xml_el().
 params_el(Children) ->
-    #xmlElement{name='params'
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'params',
+        content = Children
+    }.
 
 -spec param_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
 param_el(<<"moh-sound">> = Name, MediaName) ->
     Value = ecallmgr_util:media_path(MediaName, kz_util:get_callid(), kz_json:new()),
-    #xmlElement{name='param'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('value', Value)
-                           ]
-               };
+    #xmlElement{
+        name = 'param',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('value', Value)
+        ]
+    };
 param_el(<<"max-members-sound">> = Name, MediaName) ->
     Value = ecallmgr_util:media_path(MediaName, kz_util:get_callid(), kz_json:new()),
-    #xmlElement{name='param'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('value', Value)
-                           ]
-               };
+    #xmlElement{
+        name = 'param',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('value', Value)
+        ]
+    };
 param_el(Name, Value) ->
-    #xmlElement{name='param'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('value', Value)
-                           ]
-               }.
+    #xmlElement{
+        name = 'param',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('value', Value)
+        ]
+    }.
 
--spec maybe_param_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el() | 'undefined'.
+-spec maybe_param_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) ->
+    kz_types:xml_el() | 'undefined'.
 maybe_param_el(Name, Value) ->
     case kz_term:is_empty(Value) of
         'true' -> 'undefined';
@@ -1020,265 +1126,349 @@ maybe_param_el(Name, Value) ->
     end.
 
 profile_el(Name, Children) ->
-    #xmlElement{name='profile'
-               ,content=Children
-               ,attributes=[xml_attrib('name', Name)]
-               }.
+    #xmlElement{
+        name = 'profile',
+        content = Children,
+        attributes = [xml_attrib('name', Name)]
+    }.
 
 profiles_el(Children) ->
-    #xmlElement{name='profiles'
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'profiles',
+        content = Children
+    }.
 
 group_el(Name, Children) ->
-    #xmlElement{name='group'
-               ,content=Children
-               ,attributes=[xml_attrib('name', Name)]
-               }.
+    #xmlElement{
+        name = 'group',
+        content = Children,
+        attributes = [xml_attrib('name', Name)]
+    }.
 
 control_el(Action, Digits) ->
-    #xmlElement{name='control'
-               ,attributes=[xml_attrib('action', Action)
-                           ,xml_attrib('digits', Digits)
-                           ]
-               }.
+    #xmlElement{
+        name = 'control',
+        attributes = [
+            xml_attrib('action', Action),
+            xml_attrib('digits', Digits)
+        ]
+    }.
 
-control_el(Action, Digits, 'undefined') -> control_el(Action, Digits);
+control_el(Action, Digits, 'undefined') ->
+    control_el(Action, Digits);
 control_el(Action, Digits, Data) ->
-    #xmlElement{name='control'
-               ,attributes=[xml_attrib('action', Action)
-                           ,xml_attrib('digits', Digits)
-                           ,xml_attrib('data', Data)
-                           ]
-               }.
+    #xmlElement{
+        name = 'control',
+        attributes = [
+            xml_attrib('action', Action),
+            xml_attrib('digits', Digits),
+            xml_attrib('data', Data)
+        ]
+    }.
 
 advertise_el(Rooms) ->
-    #xmlElement{name='advertise'
-               ,content=Rooms
-               }.
+    #xmlElement{
+        name = 'advertise',
+        content = Rooms
+    }.
 
 caller_controls_el(Groups) ->
-    #xmlElement{name='caller-controls'
-               ,content=Groups
-               }.
+    #xmlElement{
+        name = 'caller-controls',
+        content = Groups
+    }.
 
 chat_permissions_el(Profiles) ->
-    #xmlElement{name='chat-permissions'
-               ,content=Profiles
-               }.
+    #xmlElement{
+        name = 'chat-permissions',
+        content = Profiles
+    }.
 
 -spec variables_el(kz_types:xml_els()) -> kz_types:xml_el().
 variables_el(Children) ->
-    #xmlElement{name='variables'
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'variables',
+        content = Children
+    }.
 
 -spec variable_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
 variable_el(Name, Value) ->
-    #xmlElement{name='variable'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('value', Value)
-                           ]
-               }.
+    #xmlElement{
+        name = 'variable',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('value', Value)
+        ]
+    }.
 
 -spec registration_headers_el(kz_types:xml_els()) -> kz_types:xml_el().
 registration_headers_el(Children) ->
-    #xmlElement{name='registration-headers'
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'registration-headers',
+        content = Children
+    }.
 
 -spec header_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
 header_el(Name, Value) ->
-    #xmlElement{name='header'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('value', Value)
-                           ]
-               }.
+    #xmlElement{
+        name = 'header',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('value', Value)
+        ]
+    }.
 
 -spec context_el(kz_types:xml_attrib_value(), kz_types:xml_els()) -> kz_types:xml_el().
 context_el(Name, Children) ->
-    #xmlElement{name='context'
-               ,attributes=[xml_attrib('name', Name)]
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'context',
+        attributes = [xml_attrib('name', Name)],
+        content = Children
+    }.
 
 -spec extension_el(kz_types:xml_els()) -> kz_types:xml_el().
 extension_el(Children) ->
-    #xmlElement{name='extension'
-               ,content=Children
-               }.
+    #xmlElement{
+        name = 'extension',
+        content = Children
+    }.
 
--spec extension_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value() | 'undefined', kz_types:xml_els()) -> kz_types:xml_el().
+-spec extension_el(
+    kz_types:xml_attrib_value(), kz_types:xml_attrib_value() | 'undefined', kz_types:xml_els()
+) -> kz_types:xml_el().
 extension_el(Name, 'undefined', Children) ->
-    #xmlElement{name='extension'
-               ,attributes=[xml_attrib('name', Name)]
-               ,content=[Child || Child <- Children, Child =/= 'undefined']
-               };
+    #xmlElement{
+        name = 'extension',
+        attributes = [xml_attrib('name', Name)],
+        content = [Child || Child <- Children, Child =/= 'undefined']
+    };
 extension_el(Name, Continue, Children) ->
-    #xmlElement{name='extension'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('continue', kz_term:is_true(Continue))
-                           ]
-               ,content=[Child || Child <- Children, Child =/= 'undefined']
-               }.
+    #xmlElement{
+        name = 'extension',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('continue', kz_term:is_true(Continue))
+        ],
+        content = [Child || Child <- Children, Child =/= 'undefined']
+    }.
 
 -spec condition_el(kz_types:xml_el() | kz_types:xml_els() | 'undefined') -> kz_types:xml_el().
 condition_el(Child) when not is_list(Child) ->
     condition_el([Child]);
 condition_el(Children) ->
-    #xmlElement{name='condition'
-               ,content=[Child || Child <- Children, Child =/= 'undefined']
-               }.
+    #xmlElement{
+        name = 'condition',
+        content = [Child || Child <- Children, Child =/= 'undefined']
+    }.
 
--spec condition_el(kz_types:xml_el() | kz_types:xml_els() | 'undefined', kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
+-spec condition_el(
+    kz_types:xml_el() | kz_types:xml_els() | 'undefined',
+    kz_types:xml_attrib_value(),
+    kz_types:xml_attrib_value()
+) -> kz_types:xml_el().
 condition_el(Child, Field, Expression) when not is_list(Child) ->
     condition_el([Child], Field, Expression);
 condition_el(Children, Field, Expression) ->
-    #xmlElement{name='condition'
-               ,content=[Child || Child <- Children, Child =/= 'undefined']
-               ,attributes=[xml_attrib('field', Field)
-                           ,xml_attrib('expression', Expression)
-                           ]
-               }.
+    #xmlElement{
+        name = 'condition',
+        content = [Child || Child <- Children, Child =/= 'undefined'],
+        attributes = [
+            xml_attrib('field', Field),
+            xml_attrib('expression', Expression)
+        ]
+    }.
 
 -spec action_el(kz_types:xml_attrib_value()) -> kz_types:xml_el().
 action_el(App) ->
-    #xmlElement{name='action'
-               ,attributes=[xml_attrib('application', App)]
-               }.
+    #xmlElement{
+        name = 'action',
+        attributes = [xml_attrib('application', App)]
+    }.
 
 -spec action_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value()) -> kz_types:xml_el().
 action_el(App, Data) ->
-    #xmlElement{name='action'
-               ,attributes=[xml_attrib('application', App)
-                           ,xml_attrib('data', Data)
-                           ]
-               }.
+    #xmlElement{
+        name = 'action',
+        attributes = [
+            xml_attrib('application', App),
+            xml_attrib('data', Data)
+        ]
+    }.
 
--spec action_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), boolean()) -> kz_types:xml_el().
+-spec action_el(kz_types:xml_attrib_value(), kz_types:xml_attrib_value(), boolean()) ->
+    kz_types:xml_el().
 action_el(App, Data, Inline) ->
-    #xmlElement{name='action'
-               ,attributes=[xml_attrib('application', App)
-                           ,xml_attrib('data', Data)
-                           ,xml_attrib('inline', kz_term:to_binary(Inline))
-                           ]
-               }.
+    #xmlElement{
+        name = 'action',
+        attributes = [
+            xml_attrib('application', App),
+            xml_attrib('data', Data),
+            xml_attrib('inline', kz_term:to_binary(Inline))
+        ]
+    }.
 
 -spec result_el(kz_types:xml_attrib_value()) -> kz_types:xml_el().
 result_el(Status) ->
-    #xmlElement{name='result'
-               ,attributes=[xml_attrib('status', Status)]
-               }.
+    #xmlElement{
+        name = 'result',
+        attributes = [xml_attrib('status', Status)]
+    }.
 
 room_el(Name, Status) ->
-    #xmlElement{name='room'
-               ,attributes=[xml_attrib('name', Name)
-                           ,xml_attrib('status', Status)
-                           ]
-               }.
+    #xmlElement{
+        name = 'room',
+        attributes = [
+            xml_attrib('name', Name),
+            xml_attrib('status', Status)
+        ]
+    }.
 
 -spec prepend_child(kz_types:xml_el(), kz_types:xml_el() | kz_types:xml_els()) -> kz_types:xml_el().
-prepend_child(#xmlElement{}=El, Children) when is_list(Children) ->
-    lists:foldl(fun(C, #xmlElement{content=Contents}=E) ->
-                        E#xmlElement{content=[C|Contents]}
-                end, El, Children);
-prepend_child(#xmlElement{content=Contents}=El, Child) ->
-    El#xmlElement{content=[Child|Contents]}.
+prepend_child(#xmlElement{} = El, Children) when is_list(Children) ->
+    lists:foldl(
+        fun(C, #xmlElement{content = Contents} = E) ->
+            E#xmlElement{content = [C | Contents]}
+        end,
+        El,
+        Children
+    );
+prepend_child(#xmlElement{content = Contents} = El, Child) ->
+    El#xmlElement{content = [Child | Contents]}.
 
 -spec xml_attrib(kz_types:xml_attrib_name(), kz_types:xml_attrib_value()) -> kz_types:xml_attrib().
 xml_attrib(Name, Value) when is_atom(Name) ->
-    #xmlAttribute{name=Name, value=kz_term:to_list(Value)}.
+    #xmlAttribute{name = Name, value = kz_term:to_list(Value)}.
 
 sofia_profiles_el(JObj) ->
-    Content = lists:foldl(fun(Key, Xml) ->
-                                  Profile = kz_json:get_value(Key, JObj),
-                                  [#xmlElement{name='profile'
-                                              ,attributes=[xml_attrib('name', Key)]
-                                              ,content=sofia_profile_el(Profile)
-                                              }
-                                   | Xml
-                                  ]
-                          end, [], kz_json:get_keys(JObj)),
-    #xmlElement{name='profiles', content=Content}.
+    Content = lists:foldl(
+        fun(Key, Xml) ->
+            Profile = kz_json:get_value(Key, JObj),
+            [
+                #xmlElement{
+                    name = 'profile',
+                    attributes = [xml_attrib('name', Key)],
+                    content = sofia_profile_el(Profile)
+                }
+                | Xml
+            ]
+        end,
+        [],
+        kz_json:get_keys(JObj)
+    ),
+    #xmlElement{name = 'profiles', content = Content}.
 
 sofia_profile_el(JObj) ->
     Settings = kz_json:get_value(<<"Settings">>, JObj, kz_json:new()),
     Gateways = kz_json:get_value(<<"Gateways">>, JObj, kz_json:new()),
-    [#xmlElement{name='settings'
-                ,content=sofia_settings_el(Settings)
-                }
-    ,#xmlElement{name='gateways'
-                ,content=sofia_gateways_el(Gateways)
-                }
+    [
+        #xmlElement{
+            name = 'settings',
+            content = sofia_settings_el(Settings)
+        },
+        #xmlElement{
+            name = 'gateways',
+            content = sofia_gateways_el(Gateways)
+        }
     ].
 
 sofia_settings_el(JObj) ->
-    lists:foldl(fun(Key, Xml) ->
-                        Value = kz_json:get_value(Key, JObj),
-                        Name = kz_term:to_lower_binary(Key),
-                        [#xmlElement{name='param'
-                                    ,attributes=[xml_attrib('name', Name)
-                                                ,xml_attrib('value', Value)
-                                                ]
-                                    }
-                         | Xml
-                        ]
-                end, [], kz_json:get_keys(JObj)).
+    lists:foldl(
+        fun(Key, Xml) ->
+            Value = kz_json:get_value(Key, JObj),
+            Name = kz_term:to_lower_binary(Key),
+            [
+                #xmlElement{
+                    name = 'param',
+                    attributes = [
+                        xml_attrib('name', Name),
+                        xml_attrib('value', Value)
+                    ]
+                }
+                | Xml
+            ]
+        end,
+        [],
+        kz_json:get_keys(JObj)
+    ).
 
 sofia_gateways_el(JObj) ->
-    lists:foldl(fun(Key, Xml) ->
-                        Gateway = kz_json:get_value(Key, JObj),
-                        [#xmlElement{name='gateway'
-                                    ,attributes=[xml_attrib('name', Key)]
-                                    ,content=sofia_gateway_el(Gateway)
-                                    }
-                         | Xml
-                        ]
-                end, [], kz_json:get_keys(JObj)).
+    lists:foldl(
+        fun(Key, Xml) ->
+            Gateway = kz_json:get_value(Key, JObj),
+            [
+                #xmlElement{
+                    name = 'gateway',
+                    attributes = [xml_attrib('name', Key)],
+                    content = sofia_gateway_el(Gateway)
+                }
+                | Xml
+            ]
+        end,
+        [],
+        kz_json:get_keys(JObj)
+    ).
 
 sofia_gateway_el(JObj) ->
-    lists:foldl(fun(<<"Variables">>, Xml) ->
-                        Variables = kz_json:get_value(<<"Variables">>, JObj),
-                        [#xmlElement{name='variables'
-                                    ,content=sofia_gateway_vars_el(Variables)
-                                    }
-                         | Xml
-                        ];
-                   (Key, Xml) ->
-                        Value = kz_json:get_value(Key, JObj),
-                        Name = kz_term:to_lower_binary(Key),
-                        [#xmlElement{name='param'
-                                    ,attributes=[xml_attrib('name', Name)
-                                                ,xml_attrib('value', Value)
-                                                ]
-                                    }
-                         | Xml
+    lists:foldl(
+        fun
+            (<<"Variables">>, Xml) ->
+                Variables = kz_json:get_value(<<"Variables">>, JObj),
+                [
+                    #xmlElement{
+                        name = 'variables',
+                        content = sofia_gateway_vars_el(Variables)
+                    }
+                    | Xml
+                ];
+            (Key, Xml) ->
+                Value = kz_json:get_value(Key, JObj),
+                Name = kz_term:to_lower_binary(Key),
+                [
+                    #xmlElement{
+                        name = 'param',
+                        attributes = [
+                            xml_attrib('name', Name),
+                            xml_attrib('value', Value)
                         ]
-                end, [], kz_json:get_keys(JObj)).
+                    }
+                    | Xml
+                ]
+        end,
+        [],
+        kz_json:get_keys(JObj)
+    ).
 
 sofia_gateway_vars_el(JObj) ->
-    lists:foldl(fun(Key, Xml) ->
-                        Value = kz_json:get_value(Key, JObj),
-                        [#xmlElement{name='variable'
-                                    ,attributes=[xml_attrib('name', Key)
-                                                ,xml_attrib('value', Value)
-                                                ,xml_attrib('direction', "inbound")
-                                                ]
-                                    }
-                         | Xml
-                        ]
-                end, [], kz_json:get_keys(JObj)).
+    lists:foldl(
+        fun(Key, Xml) ->
+            Value = kz_json:get_value(Key, JObj),
+            [
+                #xmlElement{
+                    name = 'variable',
+                    attributes = [
+                        xml_attrib('name', Key),
+                        xml_attrib('value', Value),
+                        xml_attrib('direction', "inbound")
+                    ]
+                }
+                | Xml
+            ]
+        end,
+        [],
+        kz_json:get_keys(JObj)
+    ).
 
 -spec sofia_gateways_xml_to_json(kz_types:xml_el() | kz_types:xml_els()) -> kz_json:object().
 sofia_gateways_xml_to_json(Xml) ->
-    lists:foldl(fun sofia_gateway_xml_to_json/2
-               ,kz_json:new()
-               ,get_sofia_gateways_el(Xml)
-               ).
+    lists:foldl(
+        fun sofia_gateway_xml_to_json/2,
+        kz_json:new(),
+        get_sofia_gateways_el(Xml)
+    ).
 
 get_sofia_gateways_el(Xml) ->
     case xmerl_xpath:string("/gateways/gateway", Xml) of
-        #xmlElement{}=Gateways -> [Gateways];
+        #xmlElement{} = Gateways -> [Gateways];
         Else -> Else
     end.
 
@@ -1286,23 +1476,25 @@ sofia_gateway_xml_to_json(Xml, JObj) ->
     Id = kz_xml:get_value("/gateway/name/text()", Xml),
     InboundVars = xmerl_xpath:string("/gateway/inbound-variables/*", Xml),
     OutboundVars = xmerl_xpath:string("/gateway/outbound-variables/*", Xml),
-    Props = [{<<"Username">>, kz_xml:get_value("/gateway/username/text()", Xml)}
-            ,{<<"Password">>, kz_xml:get_value("/gateway/password/text()", Xml)}
-            ,{<<"Realm">>, kz_xml:get_value("/gateway/realm/text()", Xml)}
-            ,{<<"Proxy">>, kz_xml:get_value("/gateway/proxy/text()", Xml)}
-            ,{<<"From-Domain">>, kz_xml:get_value("/gateway/from/text()", Xml)}
-            ,{<<"Expire-Seconds">>, kz_xml:get_value("/gateway/expires/text()", Xml)}
-            ,{<<"Inbound-Variables">>, sofia_gateway_vars_xml_to_json(InboundVars, kz_json:new())}
-            ,{<<"Outbound-Variables">>, sofia_gateway_vars_xml_to_json(OutboundVars, kz_json:new())}
-            ],
+    Props = [
+        {<<"Username">>, kz_xml:get_value("/gateway/username/text()", Xml)},
+        {<<"Password">>, kz_xml:get_value("/gateway/password/text()", Xml)},
+        {<<"Realm">>, kz_xml:get_value("/gateway/realm/text()", Xml)},
+        {<<"Proxy">>, kz_xml:get_value("/gateway/proxy/text()", Xml)},
+        {<<"From-Domain">>, kz_xml:get_value("/gateway/from/text()", Xml)},
+        {<<"Expire-Seconds">>, kz_xml:get_value("/gateway/expires/text()", Xml)},
+        {<<"Inbound-Variables">>, sofia_gateway_vars_xml_to_json(InboundVars, kz_json:new())},
+        {<<"Outbound-Variables">>, sofia_gateway_vars_xml_to_json(OutboundVars, kz_json:new())}
+    ],
     kz_json:set_value(Id, kz_json:from_list(Props), JObj).
 
--spec sofia_gateway_vars_xml_to_json(kz_types:xml_el() | kz_types:xml_els(), kz_json:object()) -> kz_json:object().
-sofia_gateway_vars_xml_to_json(#xmlElement{}=Xml, JObj) ->
+-spec sofia_gateway_vars_xml_to_json(kz_types:xml_el() | kz_types:xml_els(), kz_json:object()) ->
+    kz_json:object().
+sofia_gateway_vars_xml_to_json(#xmlElement{} = Xml, JObj) ->
     sofia_gateway_vars_xml_to_json([Xml], JObj);
 sofia_gateway_vars_xml_to_json([], JObj) ->
     JObj;
-sofia_gateway_vars_xml_to_json([Var|Vars], JObj) ->
+sofia_gateway_vars_xml_to_json([Var | Vars], JObj) ->
     Key = kz_xml:get_value("/variable/@name", Var),
     Value = kz_xml:get_value("/variable/@value", Var),
     sofia_gateway_vars_xml_to_json(Vars, kz_json:set_value(Key, Value, JObj)).
@@ -1319,12 +1511,14 @@ event_filters_xml(Headers) ->
     event_filters_el(EventFiltersEls).
 
 event_filter_el(Header) ->
-    #xmlElement{name='header'
-               ,attributes=[xml_attrib('name', Header)]
-               }.
+    #xmlElement{
+        name = 'header',
+        attributes = [xml_attrib('name', Header)]
+    }.
 
 event_filters_el(Filters) ->
-    #xmlElement{name='event-filter'
-               ,content=Filters
-               ,attributes=[xml_attrib('type', <<"whitelist">>)]
-               }.
+    #xmlElement{
+        name = 'event-filter',
+        content = Filters,
+        attributes = [xml_attrib('type', <<"whitelist">>)]
+    }.

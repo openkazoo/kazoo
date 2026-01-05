@@ -14,17 +14,17 @@
 -define(SERVICES_PVT_TREE, <<"pvt_tree">>).
 -define(SERVICES_PVT_TREE_PREVIOUSLY, <<"pvt_previous_tree">>).
 
--define(KZ_SERVICE_MASTER_ACCOUNT_BOOKKEEPER
-       ,kapps_config:get_atom(<<"services">>, <<"master_account_bookkeeper">>, 'kz_bookkeeper_local')
-       ).
+-define(KZ_SERVICE_MASTER_ACCOUNT_BOOKKEEPER,
+    kapps_config:get_atom(<<"services">>, <<"master_account_bookkeeper">>, 'kz_bookkeeper_local')
+).
 
--define(KZ_SERVICE_STORE_MASTER_AUDIT
-       ,kapps_config:get_is_true(<<"services">>, <<"should_save_master_audit_logs">>, 'false')
-       ).
+-define(KZ_SERVICE_STORE_MASTER_AUDIT,
+    kapps_config:get_is_true(<<"services">>, <<"should_save_master_audit_logs">>, 'false')
+).
 
--define(KZ_SERVICE_ENFORCE_GOOD_STANDING
-       ,kapps_config:get_is_true(<<"services">>, <<"enforce_good_standing">>, 'false')
-       ).
+-define(KZ_SERVICE_ENFORCE_GOOD_STANDING,
+    kapps_config:get_is_true(<<"services">>, <<"enforce_good_standing">>, 'false')
+).
 
 -define(TOPUP_CONFIG, <<"topup">>).
 

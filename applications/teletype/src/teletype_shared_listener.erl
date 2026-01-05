@@ -8,15 +8,16 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,handle_message/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    handle_message/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("teletype.hrl").
 
@@ -25,14 +26,12 @@
 -record(state, {}).
 -type state() :: #state{}.
 
--define(RESPONDERS, [{{?MODULE, 'handle_message'}
-                     ,[{<<"notification">>, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_message'}, [{<<"notification">>, <<"*">>}]}]).
 
--define(BINDINGS, [{'notifications', ?FEDERATE_BINDING(?NOTIFY_CONFIG_CAT)}
-                  ,{'self', []}
-                  ]).
+-define(BINDINGS, [
+    {'notifications', ?FEDERATE_BINDING(?NOTIFY_CONFIG_CAT)},
+    {'self', []}
+]).
 -define(QUEUE_NAME, <<"teletype_shared_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -47,16 +46,18 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
-                           ,?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks

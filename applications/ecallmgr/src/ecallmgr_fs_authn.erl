@@ -9,26 +9,29 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1
-        ,start_link/2
-        ]).
+-export([
+    start_link/1,
+    start_link/2
+]).
 -export([handle_directory_lookup/3]).
 -export([lookup_user/4]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -define(SERVER, ?MODULE).
 
 -include("ecallmgr.hrl").
 
--record(state, {node :: atom()
-               ,options = [] :: kz_term:proplist()
-               }).
+-record(state, {
+    node :: atom(),
+    options = [] :: kz_term:proplist()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -61,9 +64,10 @@ init([Node, Options]) ->
     kz_util:put_callid(Node),
     lager:info("starting new fs authn listener for ~s", [Node]),
     gen_server:cast(self(), 'bind_to_directory'),
-    {'ok', #state{node=Node
-                 ,options=Options
-                 }}.
+    {'ok', #state{
+        node = Node,
+        options = Options
+    }}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -78,9 +82,10 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast('bind_to_directory', #state{node=Node}=State) ->
+handle_cast('bind_to_directory', #state{node = Node} = State) ->
     case freeswitch:bind(Node, 'directory') of
-        'ok' -> {'noreply', State};
+        'ok' ->
+            {'noreply', State};
         {'error', Reason} ->
             lager:critical("unable to establish directory bindings: ~p", [Reason]),
             {'stop', Reason, State}
@@ -94,39 +99,47 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'fetch', 'directory', <<"domain">>, <<"name">>, _Value, Id, ['undefined' | Props]}
-           ,#state{node=Node}=State
-           ) ->
+handle_info(
+    {'fetch', 'directory', <<"domain">>, <<"name">>, _Value, Id, ['undefined' | Props]},
+    #state{node = Node} = State
+) ->
     _ = kz_util:spawn(fun handle_directory_lookup/3, [Id, Props, Node]),
     {'noreply', State};
-handle_info({'fetch', 'directory', <<"domain">>, <<"name">>, _Value, Id, [?NE_BINARY | Props]}
-           ,#state{node=Node}=State
-           ) ->
+handle_info(
+    {'fetch', 'directory', <<"domain">>, <<"name">>, _Value, Id, [?NE_BINARY | Props]},
+    #state{node = Node} = State
+) ->
     _ = kz_util:spawn(fun handle_directory_lookup/3, [Id, Props, Node]),
     {'noreply', State};
-handle_info({'fetch', _Section, _Something, _Key, _Value, Id, ['undefined' | _Props]}
-           ,#state{node=Node}=State
-           ) ->
+handle_info(
+    {'fetch', _Section, _Something, _Key, _Value, Id, ['undefined' | _Props]},
+    #state{node = Node} = State
+) ->
     kz_util:spawn(
-      fun() ->
-              lager:debug("sending empty reply for request (~s) for ~s ~s from ~s"
-                         ,[Id, _Section, _Something, Node]
-                         ),
-              {'ok', Resp} = ecallmgr_fs_xml:empty_response(),
-              freeswitch:fetch_reply(Node, Id, 'directory', Resp)
-      end),
+        fun() ->
+            lager:debug(
+                "sending empty reply for request (~s) for ~s ~s from ~s",
+                [Id, _Section, _Something, Node]
+            ),
+            {'ok', Resp} = ecallmgr_fs_xml:empty_response(),
+            freeswitch:fetch_reply(Node, Id, 'directory', Resp)
+        end
+    ),
     {'noreply', State};
-handle_info({'fetch', _Section, _Something, _Key, _Value, Id, [?NE_BINARY | _Props]}
-           ,#state{node=Node}=State
-           ) ->
+handle_info(
+    {'fetch', _Section, _Something, _Key, _Value, Id, [?NE_BINARY | _Props]},
+    #state{node = Node} = State
+) ->
     kz_util:spawn(
-      fun() ->
-              lager:debug("sending empty reply for request (~s) for ~s ~s from ~s"
-                         ,[Id, _Section, _Something, Node]
-                         ),
-              {'ok', Resp} = ecallmgr_fs_xml:empty_response(),
-              freeswitch:fetch_reply(Node, Id, 'directory', Resp)
-      end),
+        fun() ->
+            lager:debug(
+                "sending empty reply for request (~s) for ~s ~s from ~s",
+                [Id, _Section, _Something, Node]
+            ),
+            {'ok', Resp} = ecallmgr_fs_xml:empty_response(),
+            freeswitch:fetch_reply(Node, Id, 'directory', Resp)
+        end
+    ),
     {'noreply', State};
 handle_info({'EXIT', _, 'noconnection'}, State) ->
     {'stop', {'shutdown', 'noconnection'}, State};
@@ -145,7 +158,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{node=Node}) ->
+terminate(_Reason, #state{node = Node}) ->
     lager:info("authn listener for ~s terminating: ~p", [Node, _Reason]).
 
 %%------------------------------------------------------------------------------
@@ -164,7 +177,8 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_directory_lookup(kz_term:ne_binary(), kz_term:proplist(), atom()) -> fs_handlecall_ret().
+-spec handle_directory_lookup(kz_term:ne_binary(), kz_term:proplist(), atom()) ->
+    fs_handlecall_ret().
 handle_directory_lookup(Id, Props, Node) ->
     kz_util:put_callid(Id),
     lager:debug("received fetch request (~s) user directory from ~s", [Id, Node]),
@@ -175,19 +189,23 @@ handle_directory_lookup(Id, Props, Node) ->
         _Other -> directory_not_found(Node, Id)
     end.
 
--spec maybe_sip_auth_response(kz_term:ne_binary(), kz_term:proplist(), atom()) -> fs_handlecall_ret().
+-spec maybe_sip_auth_response(kz_term:ne_binary(), kz_term:proplist(), atom()) ->
+    fs_handlecall_ret().
 maybe_sip_auth_response(Id, Props, Node) ->
     case kz_term:is_not_empty(props:get_value(<<"sip_auth_response">>, Props)) of
-        'false' -> maybe_kamailio_association(Id, Props, Node);
+        'false' ->
+            maybe_kamailio_association(Id, Props, Node);
         'true' ->
             lager:debug("attempting to get device password to verify SIP auth response"),
             lookup_user(Node, Id, <<"password">>, Props)
     end.
 
--spec maybe_kamailio_association(kz_term:ne_binary(), kz_term:proplist(), atom()) -> fs_handlecall_ret().
+-spec maybe_kamailio_association(kz_term:ne_binary(), kz_term:proplist(), atom()) ->
+    fs_handlecall_ret().
 maybe_kamailio_association(Id, Props, Node) ->
-    case kz_term:is_not_empty(kzd_freeswitch:authorizing_id(Props))
-        andalso kz_term:is_not_empty(kzd_freeswitch:authorizing_type(Props))
+    case
+        kz_term:is_not_empty(kzd_freeswitch:authorizing_id(Props)) andalso
+            kz_term:is_not_empty(kzd_freeswitch:authorizing_type(Props))
     of
         'true' -> kamailio_association(Id, Props, Node);
         'false' -> directory_not_found(Node, Id)
@@ -200,14 +218,15 @@ kamailio_association(Id, Props, Node) ->
     Username = props:get_value(<<"user">>, Props, props:get_value(<<"Auth-User">>, Props)),
     Action = props:get_value(<<"action">>, Props, <<"sip_auth">>),
     CCVs = [{Key, Value} || {<<"X-ecallmgr_", Key/binary>>, Value} <- Props],
-    JObj = kz_json:from_list_recursive([{<<"Auth-Method">>, <<"password">>}
-                                       ,{<<"Auth-Password">>, Password}
-                                       ,{<<"Auth-Action">>, Action}
-                                       ,{<<"Domain-Name">>, Realm}
-                                       ,{<<"User-ID">>, Username}
-                                       ,{<<"Custom-Channel-Vars">>, CCVs}
-                                       ,{<<"Expires">>, 0}
-                                       ]),
+    JObj = kz_json:from_list_recursive([
+        {<<"Auth-Method">>, <<"password">>},
+        {<<"Auth-Password">>, Password},
+        {<<"Auth-Action">>, Action},
+        {<<"Domain-Name">>, Realm},
+        {<<"User-ID">>, Username},
+        {<<"Custom-Channel-Vars">>, CCVs},
+        {<<"Expires">>, 0}
+    ]),
     lager:debug("building authn resp for ~s@~s from kamailio headers", [Username, Realm]),
     {'ok', Xml} = ecallmgr_fs_xml:authn_resp_xml(JObj),
     lager:debug("sending authn XML to ~w: ~s", [Node, Xml]),
@@ -219,14 +238,17 @@ directory_not_found(Node, Id) ->
     lager:debug("sending authn not found XML to ~w", [Node]),
     freeswitch:fetch_reply(Node, Id, 'directory', iolist_to_binary(Xml)).
 
--spec lookup_user(atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> fs_handlecall_ret().
+-spec lookup_user(atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    fs_handlecall_ret().
 lookup_user(Node, Id, Method, Props) ->
     Domain = props:get_value(<<"domain">>, Props),
     {'ok', Xml} =
         case get_auth_realm(Props) of
-            AuthRealm=?NE_BINARY ->
-                [Realm|_] = binary:split(AuthRealm, [<<":">>, <<";">>]),
-                Username = props:get_value(<<"user">>, Props, props:get_value(<<"Auth-User">>, Props)),
+            AuthRealm = ?NE_BINARY ->
+                [Realm | _] = binary:split(AuthRealm, [<<":">>, <<";">>]),
+                Username = props:get_value(
+                    <<"user">>, Props, props:get_value(<<"Auth-User">>, Props)
+                ),
                 ReqResp = maybe_query_registrar(Realm, Username, Node, Id, Method, Props),
                 handle_lookup_resp(Method, Domain, Username, ReqResp);
             _R ->
@@ -239,16 +261,21 @@ lookup_user(Node, Id, Method, Props) ->
 
 -spec get_auth_realm(kz_term:proplist()) -> kz_term:ne_binary().
 get_auth_realm(Props) ->
-    case props:get_first_defined([<<"sip_auth_realm">>
-                                 ,<<"domain">>
-                                 ]
-                                ,Props
-                                )
+    case
+        props:get_first_defined(
+            [
+                <<"sip_auth_realm">>,
+                <<"domain">>
+            ],
+            Props
+        )
     of
-        'undefined' -> get_auth_uri_realm(Props);
+        'undefined' ->
+            get_auth_uri_realm(Props);
         Realm ->
-            case kz_network_utils:is_ipv4(Realm)
-                orelse kz_network_utils:is_ipv6(Realm)
+            case
+                kz_network_utils:is_ipv4(Realm) orelse
+                    kz_network_utils:is_ipv6(Realm)
             of
                 'true' -> get_auth_uri_realm(Props);
                 'false' -> kz_term:to_lower_binary(Realm)
@@ -259,73 +286,98 @@ get_auth_realm(Props) ->
 get_auth_uri_realm(Props) ->
     AuthURI = props:get_value(<<"sip_auth_uri">>, Props, <<>>),
     case binary:split(AuthURI, <<"@">>) of
-        [_, Realm] -> kz_term:to_lower_binary(Realm);
+        [_, Realm] ->
+            kz_term:to_lower_binary(Realm);
         _Else ->
-            props:get_first_defined([<<"Auth-Realm">>
-                                    ,<<"sip_request_host">>
-                                    ,<<"sip_to_host">>
-                                    ]
-                                   ,Props
-                                   )
+            props:get_first_defined(
+                [
+                    <<"Auth-Realm">>,
+                    <<"sip_request_host">>,
+                    <<"sip_to_host">>
+                ],
+                Props
+            )
     end.
 
--spec handle_lookup_resp(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
-                        ,{'ok', kz_json:object()} | {'error', _}) ->
-          {'ok', _}.
+-spec handle_lookup_resp(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    {'ok', kz_json:object()} | {'error', _}
+) ->
+    {'ok', _}.
 handle_lookup_resp(<<"reverse-lookup">>, Realm, Username, {'ok', JObj}) ->
-    Props = [{<<"Domain-Name">>, Realm}
-            ,{<<"User-ID">>, Username}
-            ],
+    Props = [
+        {<<"Domain-Name">>, Realm},
+        {<<"User-ID">>, Username}
+    ],
     lager:debug("building reverse authn resp for ~s@~s", [Username, Realm]),
     ecallmgr_fs_xml:reverse_authn_resp_xml(kz_json:set_values(Props, JObj));
 handle_lookup_resp(_, Realm, Username, {'ok', JObj}) ->
-    Props = [{<<"Domain-Name">>, Realm}
-            ,{<<"User-ID">>, Username}
-            ,{<<"Expires">>, 0}
-            ],
+    Props = [
+        {<<"Domain-Name">>, Realm},
+        {<<"User-ID">>, Username},
+        {<<"Expires">>, 0}
+    ],
     lager:debug("building authn resp for ~s@~s", [Username, Realm]),
     ecallmgr_fs_xml:authn_resp_xml(kz_json:set_values(Props, JObj));
 handle_lookup_resp(_, _, _, {'error', _R}) ->
     lager:debug("authn request lookup failed: ~p", [_R]),
     ecallmgr_fs_xml:not_found().
 
--spec maybe_query_registrar(kz_term:ne_binary(), kz_term:ne_binary(), atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec maybe_query_registrar(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    atom(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 maybe_query_registrar(Realm, Username, Node, Id, Method, Props) ->
     case kz_cache:peek_local(?ECALLMGR_AUTH_CACHE, ?CREDS_KEY(Realm, Username)) of
-        {'ok', _}=Ok -> Ok;
+        {'ok', _} = Ok -> Ok;
         {'error', 'not_found'} -> query_registrar(Realm, Username, Node, Id, Method, Props)
     end.
 
--spec query_registrar(kz_term:ne_binary(), kz_term:ne_binary(), atom(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec query_registrar(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    atom(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 query_registrar(Realm, Username, Node, Id, Method, Props) ->
     lager:debug("looking up credentials of ~s@~s for a ~s", [Username, Realm, Method]),
-    Req = [{<<"Msg-ID">>, Id}
-          ,{<<"To">>, ecallmgr_util:get_sip_to(Props)}
-          ,{<<"From">>, ecallmgr_util:get_sip_from(Props)}
-          ,{<<"Orig-IP">>, ecallmgr_util:get_orig_ip(Props)}
-          ,{<<"Orig-Port">>, ecallmgr_util:get_orig_port(Props)}
-          ,{<<"Method">>, Method}
-          ,{<<"Auth-User">>, Username}
-          ,{<<"Auth-Realm">>, Realm}
-          ,{<<"Expires">>, props:get_value(<<"expires">>, Props)}
-          ,{<<"Auth-Nonce">>, props:get_value(<<"sip_auth_nonce">>, Props)}
-          ,{<<"Auth-Response">>, props:get_value(<<"sip_auth_response">>, Props)}
-          ,{<<"Custom-SIP-Headers">>, kz_json:from_list(ecallmgr_util:custom_sip_headers(Props))}
-          ,{<<"User-Agent">>, props:get_value(<<"sip_user_agent">>, Props)}
-          ,{<<"Media-Server">>, kz_term:to_binary(Node)}
-          ,{<<"Call-ID">>, props:get_value(<<"sip_call_id">>, Props, Id)}
-           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-          ],
-    ReqResp = kz_amqp_worker:call(props:filter_undefined(Req)
-                                 ,fun kapi_authn:publish_req/1
-                                 ,fun kapi_authn:resp_v/1
-                                 ),
+    Req = [
+        {<<"Msg-ID">>, Id},
+        {<<"To">>, ecallmgr_util:get_sip_to(Props)},
+        {<<"From">>, ecallmgr_util:get_sip_from(Props)},
+        {<<"Orig-IP">>, ecallmgr_util:get_orig_ip(Props)},
+        {<<"Orig-Port">>, ecallmgr_util:get_orig_port(Props)},
+        {<<"Method">>, Method},
+        {<<"Auth-User">>, Username},
+        {<<"Auth-Realm">>, Realm},
+        {<<"Expires">>, props:get_value(<<"expires">>, Props)},
+        {<<"Auth-Nonce">>, props:get_value(<<"sip_auth_nonce">>, Props)},
+        {<<"Auth-Response">>, props:get_value(<<"sip_auth_response">>, Props)},
+        {<<"Custom-SIP-Headers">>, kz_json:from_list(ecallmgr_util:custom_sip_headers(Props))},
+        {<<"User-Agent">>, props:get_value(<<"sip_user_agent">>, Props)},
+        {<<"Media-Server">>, kz_term:to_binary(Node)},
+        {<<"Call-ID">>, props:get_value(<<"sip_call_id">>, Props, Id)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    ReqResp = kz_amqp_worker:call(
+        props:filter_undefined(Req),
+        fun kapi_authn:publish_req/1,
+        fun kapi_authn:resp_v/1
+    ),
     case ReqResp of
-        {'error', _}=E -> E;
+        {'error', _} = E -> E;
         {'ok', JObj} -> maybe_defered_error(Realm, Username, JObj)
     end.
 
@@ -334,24 +386,33 @@ query_registrar(Realm, Username, Node, Id, Method, Props) ->
 %% to wait for conferences, etc.  Since Kamailio does not honor
 %% Defer-Response we can use that flag on registrar errors
 %% to queue in Kazoo but still advance Kamailio, just need to check here.
--spec maybe_defered_error(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> {'ok', kz_json:object()} | {'error', 'timeout'}.
+-spec maybe_defered_error(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    {'ok', kz_json:object()} | {'error', 'timeout'}.
 maybe_defered_error(Realm, Username, JObj) ->
     case kapi_authn:resp_v(JObj) of
-        'false' -> {'error', 'timeout'};
+        'false' ->
+            {'error', 'timeout'};
         'true' ->
             AccountId = kz_json:get_value([<<"Custom-Channel-Vars">>, <<"Account-ID">>], JObj),
             AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
-            AuthorizingId = kz_json:get_value([<<"Custom-Channel-Vars">>, <<"Authorizing-ID">>], JObj),
-            OwnerIdProp = case kz_json:get_value([<<"Custom-Channel-Vars">>, <<"Owner-ID">>], JObj) of
-                              'undefined' -> [];
-                              OwnerId -> [{'db', AccountDb, OwnerId}]
-                          end,
-            CacheProps = [{'origin', [{'db', AccountDb, AuthorizingId}
-                                     ,{'db', AccountDb, AccountId}
-                                      | OwnerIdProp
-                                     ]}
-                         ],
-            kz_cache:store_local(?ECALLMGR_AUTH_CACHE, ?CREDS_KEY(Realm, Username), JObj, CacheProps),
+            AuthorizingId = kz_json:get_value(
+                [<<"Custom-Channel-Vars">>, <<"Authorizing-ID">>], JObj
+            ),
+            OwnerIdProp =
+                case kz_json:get_value([<<"Custom-Channel-Vars">>, <<"Owner-ID">>], JObj) of
+                    'undefined' -> [];
+                    OwnerId -> [{'db', AccountDb, OwnerId}]
+                end,
+            CacheProps = [
+                {'origin', [
+                    {'db', AccountDb, AuthorizingId},
+                    {'db', AccountDb, AccountId}
+                    | OwnerIdProp
+                ]}
+            ],
+            kz_cache:store_local(
+                ?ECALLMGR_AUTH_CACHE, ?CREDS_KEY(Realm, Username), JObj, CacheProps
+            ),
             {'ok', JObj}
     end.
 
@@ -364,7 +425,8 @@ validate_token(Id, Props, Node) ->
 
 -type validate_token_result() :: {'ok', kz_json:object()} | {'error', any()}.
 
--spec validate_token(kz_term:ne_binary(), kz_term:proplist(), atom(), validate_token_result()) -> fs_handlecall_ret().
+-spec validate_token(kz_term:ne_binary(), kz_term:proplist(), atom(), validate_token_result()) ->
+    fs_handlecall_ret().
 validate_token(Id, _Props, Node, {'error', Error}) ->
     lager:warning("invalid token : ~s", [Error]),
     directory_not_found(Node, Id);
@@ -373,7 +435,13 @@ validate_token(Id, Props, Node, {'ok', Claims}) ->
     OwnerId = kz_json:get_ne_binary_value(<<"owner_id">>, Claims),
     token_authentication_reply(Id, Props, Node, OwnerId, AccountId).
 
--spec token_authentication_reply(kz_term:ne_binary(), kz_term:proplist(), atom(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> fs_handlecall_ret().
+-spec token_authentication_reply(
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    atom(),
+    kz_term:api_ne_binary(),
+    kz_term:api_ne_binary()
+) -> fs_handlecall_ret().
 token_authentication_reply(Id, _Props, Node, 'undefined', _AccountId) ->
     directory_not_found(Node, Id);
 token_authentication_reply(Id, _Props, Node, _EndpointId, 'undefined') ->
@@ -387,7 +455,8 @@ token_authentication_reply(Id, Props, Node, EndpointId, AccountId) ->
             directory_not_found(Node, Id)
     end.
 
--spec token_authentication_reply(kz_term:ne_binary(), kz_term:proplist(), atom(), kz_json:object()) -> fs_handlecall_ret().
+-spec token_authentication_reply(kz_term:ne_binary(), kz_term:proplist(), atom(), kz_json:object()) ->
+    fs_handlecall_ret().
 token_authentication_reply(Id, Props, Node, Endpoint) ->
     Password = kz_binary:rand_hex(12),
     Realm = props:get_value(<<"domain">>, Props),
@@ -395,21 +464,23 @@ token_authentication_reply(Id, Props, Node, Endpoint) ->
     Action = props:get_value(<<"action">>, Props, <<"sip_auth">>),
     AccountId = kzd_endpoint:account_id(Endpoint),
     PresenceId = presence_id(AccountId, Endpoint),
-    CCVs = [{<<"Account-ID">>, AccountId}
-           ,{<<"Authorizing-ID">>, kzd_endpoint:id(Endpoint)}
-           ,{<<"Authorizing-Type">>, kzd_endpoint:type(Endpoint)}
-           ,{<<"Owner-ID">>, kzd_endpoint:id(Endpoint)}
-           ,{<<"Realm">>, kzd_accounts:fetch_realm(AccountId)}
-           ,{<<"Presence-ID">>, PresenceId}
-           ],
-    JObj = kz_json:from_list([{<<"Auth-Method">>, <<"password">>}
-                             ,{<<"Auth-Password">>, Password}
-                             ,{<<"Auth-Action">>, Action}
-                             ,{<<"Domain-Name">>, Realm}
-                             ,{<<"User-ID">>, Username}
-                             ,{<<"Custom-Channel-Vars">>, kz_json:from_list(CCVs)}
-                             ,{<<"Expires">>, 0}
-                             ]),
+    CCVs = [
+        {<<"Account-ID">>, AccountId},
+        {<<"Authorizing-ID">>, kzd_endpoint:id(Endpoint)},
+        {<<"Authorizing-Type">>, kzd_endpoint:type(Endpoint)},
+        {<<"Owner-ID">>, kzd_endpoint:id(Endpoint)},
+        {<<"Realm">>, kzd_accounts:fetch_realm(AccountId)},
+        {<<"Presence-ID">>, PresenceId}
+    ],
+    JObj = kz_json:from_list([
+        {<<"Auth-Method">>, <<"password">>},
+        {<<"Auth-Password">>, Password},
+        {<<"Auth-Action">>, Action},
+        {<<"Domain-Name">>, Realm},
+        {<<"User-ID">>, Username},
+        {<<"Custom-Channel-Vars">>, kz_json:from_list(CCVs)},
+        {<<"Expires">>, 0}
+    ]),
     lager:debug("building authn resp for ~s@~s from token headers", [Username, Realm]),
     {'ok', Xml} = ecallmgr_fs_xml:authn_resp_xml(JObj),
     lager:debug("sending authn XML to ~w: ~s", [Node, Xml]),

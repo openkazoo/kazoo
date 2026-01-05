@@ -8,17 +8,19 @@
 
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_config/2
-        ]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    start_link/0,
+    handle_config/2
+]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("webhooks.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -28,18 +30,17 @@
 -record(state, {}).
 -type state() :: #state{}.
 
--define(BINDINGS, [{'conf', [{'action', <<"*">>}
-                            ,{'db', ?KZ_WEBHOOKS_DB}
-                            ,{'type', <<"webhook">>}
-                            ,{'id', <<"*">>}
-                            ,'federate'
-                            ]}
-                  ]).
+-define(BINDINGS, [
+    {'conf', [
+        {'action', <<"*">>},
+        {'db', ?KZ_WEBHOOKS_DB},
+        {'type', <<"webhook">>},
+        {'id', <<"*">>},
+        'federate'
+    ]}
+]).
 
--define(RESPONDERS, [{{?MODULE, 'handle_config'}
-                     ,[{<<"configuration">>, <<"*">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_config'}, [{<<"configuration">>, <<"*">>}]}]).
 
 %%%=============================================================================
 %%% API
@@ -51,20 +52,23 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS}
+        ],
+        []
+    ).
 
 -spec handle_config(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_config(JObj, Props) ->
     'true' = kapi_conf:doc_update_v(JObj),
-    handle_config(JObj
-                 ,props:get_value('server', Props)
-                 ,kz_api:event_name(JObj)
-                 ).
+    handle_config(
+        JObj,
+        props:get_value('server', Props),
+        kz_api:event_name(JObj)
+    ).
 
 -spec handle_config(kz_json:object(), pid(), kz_term:ne_binary()) -> 'ok'.
 handle_config(JObj, Srv, ?DOC_CREATED) ->
@@ -74,12 +78,13 @@ handle_config(JObj, Srv, ?DOC_CREATED) ->
     end;
 handle_config(JObj, Srv, ?DOC_EDITED) ->
     case kapi_conf:get_id(JObj) of
-        'undefined' -> find_and_update_hook(JObj, Srv);
+        'undefined' ->
+            find_and_update_hook(JObj, Srv);
         HookId ->
             {'ok', Hook} = kz_datamgr:open_doc(?KZ_WEBHOOKS_DB, HookId),
-            case (not kapi_conf:get_is_soft_deleted(JObj))
-                andalso kzd_webhook:is_enabled(Hook)
-
+            case
+                (not kapi_conf:get_is_soft_deleted(JObj)) andalso
+                    kzd_webhook:is_enabled(Hook)
             of
                 'true' ->
                     gen_listener:cast(Srv, {'update_hook', webhooks_util:jobj_to_rec(Hook)});
@@ -90,12 +95,14 @@ handle_config(JObj, Srv, ?DOC_EDITED) ->
     end;
 handle_config(JObj, Srv, ?DOC_DELETED) ->
     case kapi_conf:get_doc(JObj) of
-        'undefined' -> find_and_remove_hook(JObj, Srv);
+        'undefined' ->
+            find_and_remove_hook(JObj, Srv);
         Hook ->
             gen_listener:cast(Srv, {'remove_hook', webhooks_util:jobj_to_rec(Hook)}),
-            webhooks_disabler:flush_failures(kapi_conf:get_account_id(JObj)
-                                            ,kz_doc:id(JObj)
-                                            )
+            webhooks_disabler:flush_failures(
+                kapi_conf:get_account_id(JObj),
+                kz_doc:id(JObj)
+            )
     end.
 
 -spec find_and_add_hook(kz_json:object(), pid()) -> 'ok'.
@@ -121,12 +128,13 @@ find_and_remove_hook(JObj, Srv) ->
     gen_listener:cast(Srv, {'remove_hook', webhooks_util:hook_id(JObj)}).
 
 -spec find_hook(kz_json:object()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 find_hook(JObj) ->
-    kz_datamgr:open_cache_doc(?KZ_WEBHOOKS_DB
-                             ,kapi_conf:get_id(JObj)
-                             ).
+    kz_datamgr:open_cache_doc(
+        ?KZ_WEBHOOKS_DB,
+        kapi_conf:get_id(JObj)
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -154,15 +162,15 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'add_hook', #webhook{id=_Id}=Hook}, State) ->
+handle_cast({'add_hook', #webhook{id = _Id} = Hook}, State) ->
     lager:debug("adding hook ~s", [_Id]),
     ets:insert_new(webhooks_util:table_id(), Hook),
     {'noreply', State};
-handle_cast({'update_hook', #webhook{id=_Id}=Hook}, State) ->
+handle_cast({'update_hook', #webhook{id = _Id} = Hook}, State) ->
     lager:debug("updating hook ~s", [_Id]),
     _ = ets:insert(webhooks_util:table_id(), Hook),
     {'noreply', State};
-handle_cast({'remove_hook', #webhook{id=Id}}, State) ->
+handle_cast({'remove_hook', #webhook{id = Id}}, State) ->
     handle_cast({'remove_hook', Id}, State);
 handle_cast({'remove_hook', <<_/binary>> = Id}, State) ->
     lager:debug("removing hook ~s", [Id]),
@@ -188,11 +196,12 @@ handle_info({'ETS-TRANSFER', _TblId, _From, _Data}, State) ->
     lager:info("write access to table '~p' available", [_TblId]),
     Self = self(),
     _ = kz_util:spawn(
-          fun() ->
-                  kz_util:put_callid(?MODULE),
-                  webhooks_util:load_hooks(Self),
-                  webhooks_util:init_webhooks()
-          end),
+        fun() ->
+            kz_util:put_callid(?MODULE),
+            webhooks_util:load_hooks(Self),
+            webhooks_util:init_webhooks()
+        end
+    ),
     {'noreply', State};
 handle_info(_Info, State) ->
     lager:debug("unhandled msg: ~p", [_Info]),

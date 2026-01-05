@@ -5,16 +5,17 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_multi_factor).
 
--export([init/0
-        ,authorize/1, authorize/2, authorize/3
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,validate/1, validate/2, validate/3
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    authorize/1, authorize/2, authorize/3,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    validate/1, validate/2, validate/3,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -49,30 +50,41 @@ init() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec authorize(cb_context:context()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize(Context) ->
-    authorize_system_multi_factor(Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)).
+    authorize_system_multi_factor(
+        Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)
+    ).
 
 -spec authorize(cb_context:context(), path_token()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize(Context, _) ->
-    authorize_system_multi_factor(Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)).
+    authorize_system_multi_factor(
+        Context, cb_context:req_nouns(Context), cb_context:req_verb(Context)
+    ).
 
 -spec authorize(cb_context:context(), path_token(), path_token()) -> 'true'.
 authorize(_Context, _, _) -> 'true'.
 
 -spec authorize_system_multi_factor(cb_context:context(), req_nouns(), http_method()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
-authorize_system_multi_factor(_, [{<<"multi_factor">>, []}], ?HTTP_GET) -> 'true';
-authorize_system_multi_factor(C, [{<<"multi_factor">>, []}], ?HTTP_PUT) -> cb_context:is_superduper_admin(C);
-authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_GET) -> cb_context:is_superduper_admin(C);
-authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_POST) -> cb_context:is_superduper_admin(C);
-authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_PATCH) -> cb_context:is_superduper_admin(C);
-authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], _) -> {'stop', cb_context:add_system_error('forbidden', C)};
-authorize_system_multi_factor(_, _, _) -> 'true'.
+    boolean()
+    | {'stop', cb_context:context()}.
+authorize_system_multi_factor(_, [{<<"multi_factor">>, []}], ?HTTP_GET) ->
+    'true';
+authorize_system_multi_factor(C, [{<<"multi_factor">>, []}], ?HTTP_PUT) ->
+    cb_context:is_superduper_admin(C);
+authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_GET) ->
+    cb_context:is_superduper_admin(C);
+authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_POST) ->
+    cb_context:is_superduper_admin(C);
+authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], ?HTTP_PATCH) ->
+    cb_context:is_superduper_admin(C);
+authorize_system_multi_factor(C, [{<<"multi_factor">>, _}], _) ->
+    {'stop', cb_context:add_system_error('forbidden', C)};
+authorize_system_multi_factor(_, _, _) ->
+    'true'.
 
 %%------------------------------------------------------------------------------
 %% @doc Given the path tokens related to this module, what HTTP methods are
@@ -128,14 +140,19 @@ validate(Context) ->
 
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
 validate(Context, ?ATTEMPTS) ->
-    Options = [{'mapper', crossbar_view:map_value_fun()}
-              ,{'range_keymap', <<"multi_factor">>}
-              ],
+    Options = [
+        {'mapper', crossbar_view:map_value_fun()},
+        {'range_keymap', <<"multi_factor">>}
+    ],
     crossbar_view:load_modb(Context, ?CB_LIST_ATTEMPT_LOG, Options);
 validate(Context, ConfigId) ->
     case cb_context:req_nouns(Context) of
         [{<<"multi_factor">>, _}] ->
-            validate_multi_factor_config(cb_context:set_account_db(Context, ?KZ_AUTH_DB), ConfigId, cb_context:req_verb(Context));
+            validate_multi_factor_config(
+                cb_context:set_account_db(Context, ?KZ_AUTH_DB),
+                ConfigId,
+                cb_context:req_verb(Context)
+            );
         _ ->
             validate_multi_factor_config(Context, ConfigId, cb_context:req_verb(Context))
     end.
@@ -144,7 +161,8 @@ validate(Context, ConfigId) ->
 validate(Context, ?ATTEMPTS, AttemptId) ->
     read_attempt_log(AttemptId, Context).
 
--spec validate_multi_factor(cb_context:context(), req_nouns(), http_method()) -> cb_context:context().
+-spec validate_multi_factor(cb_context:context(), req_nouns(), http_method()) ->
+    cb_context:context().
 validate_multi_factor(Context, [{<<"multi_factor">>, _}], ?HTTP_GET) ->
     system_summary(Context);
 validate_multi_factor(Context, [{<<"multi_factor">>, _}], ?HTTP_PUT) ->
@@ -154,7 +172,8 @@ validate_multi_factor(Context, _, ?HTTP_GET) ->
 validate_multi_factor(Context, _, ?HTTP_PUT) ->
     create(Context).
 
--spec validate_multi_factor_config(cb_context:context(), path_token(), http_method()) -> cb_context:context().
+-spec validate_multi_factor_config(cb_context:context(), path_token(), http_method()) ->
+    cb_context:context().
 validate_multi_factor_config(Context, ConfigId, ?HTTP_GET) ->
     read(ConfigId, Context);
 validate_multi_factor_config(Context, ConfigId, ?HTTP_POST) ->
@@ -231,9 +250,13 @@ update(Id, Context) ->
 %%------------------------------------------------------------------------------
 -spec read_attempt_log(kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
 read_attempt_log(?MATCH_MODB_PREFIX(YYYY, MM, _) = AttemptId, Context) ->
-    Year  = kz_term:to_integer(YYYY),
+    Year = kz_term:to_integer(YYYY),
     Month = kz_term:to_integer(MM),
-    crossbar_doc:load(AttemptId, cb_context:set_account_modb(Context, Year, Month), ?TYPE_CHECK_OPTION(?ATTEMPTS_TYPE)).
+    crossbar_doc:load(
+        AttemptId,
+        cb_context:set_account_modb(Context, Year, Month),
+        ?TYPE_CHECK_OPTION(?ATTEMPTS_TYPE)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Update-merge an existing menu document with the data provided, if it is
@@ -251,31 +274,34 @@ validate_patch(Id, Context) ->
 %%------------------------------------------------------------------------------
 -spec summary(cb_context:context()) -> cb_context:context().
 summary(Context) ->
-    Options = [{'startkey', [<<"multi_factor">>]}
-              ,{'endkey', [<<"multi_factor">>, kz_json:new()]}
-              ,{'unchunkable', 'true'}
-              ,{'mapper', crossbar_view:map_value_fun()}
-              ],
+    Options = [
+        {'startkey', [<<"multi_factor">>]},
+        {'endkey', [<<"multi_factor">>, kz_json:new()]},
+        {'unchunkable', 'true'},
+        {'mapper', crossbar_view:map_value_fun()}
+    ],
     C1 = crossbar_view:load(Context, <<"auth/providers_by_type">>, Options),
     C2 = system_summary(Context),
     cb_context:set_resp_data(C1, merge_summary(cb_context:resp_data(C1), cb_context:resp_data(C2))).
 
 system_summary(Context) ->
-    Options = [{'startkey', [<<"multi_factor">>]}
-              ,{'endkey', [<<"multi_factor">>, kz_json:new()]}
-              ,{'mapper', crossbar_view:map_value_fun()}
-              ,{'databases', [?KZ_AUTH_DB]}
-              ,{'unchunkable', 'true'}
-              ],
+    Options = [
+        {'startkey', [<<"multi_factor">>]},
+        {'endkey', [<<"multi_factor">>, kz_json:new()]},
+        {'mapper', crossbar_view:map_value_fun()},
+        {'databases', [?KZ_AUTH_DB]},
+        {'unchunkable', 'true'}
+    ],
     crossbar_view:load(Context, <<"providers/list_by_type">>, Options).
 
 -spec merge_summary(kz_json:objects(), kz_json:objects()) -> kz_json:object().
 merge_summary(Configured, Available) ->
     kz_json:from_list(
-      [{<<"configured">>, Configured}
-      ,{<<"multi_factor_providers">>, Available}
-      ]
-     ).
+        [
+            {<<"configured">>, Configured},
+            {<<"multi_factor_providers">>, Available}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc

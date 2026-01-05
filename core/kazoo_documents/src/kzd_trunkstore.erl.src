@@ -9,19 +9,31 @@
 -export([account/1, account/2, set_account/2]).
 -export([account_auth_realm/1, account_auth_realm/2, set_account_auth_realm/2]).
 -export([account_caller_id/1, account_caller_id/2, set_account_caller_id/2]).
--export([account_caller_id_cid_name/1, account_caller_id_cid_name/2, set_account_caller_id_cid_name/2]).
--export([account_caller_id_cid_number/1, account_caller_id_cid_number/2, set_account_caller_id_cid_number/2]).
+-export([
+    account_caller_id_cid_name/1, account_caller_id_cid_name/2, set_account_caller_id_cid_name/2
+]).
+-export([
+    account_caller_id_cid_number/1, account_caller_id_cid_number/2,
+    set_account_caller_id_cid_number/2
+]).
 -export([account_credits/1, account_credits/2, set_account_credits/2]).
 -export([account_credits_prepay/1, account_credits_prepay/2, set_account_credits_prepay/2]).
--export([account_emergency_caller_id/1, account_emergency_caller_id/2, set_account_emergency_caller_id/2]).
--export([account_emergency_caller_id_cid_name/1, account_emergency_caller_id_cid_name/2, set_account_emergency_caller_id_cid_name/2]).
--export([account_emergency_caller_id_cid_number/1, account_emergency_caller_id_cid_number/2, set_account_emergency_caller_id_cid_number/2]).
+-export([
+    account_emergency_caller_id/1, account_emergency_caller_id/2, set_account_emergency_caller_id/2
+]).
+-export([
+    account_emergency_caller_id_cid_name/1, account_emergency_caller_id_cid_name/2,
+    set_account_emergency_caller_id_cid_name/2
+]).
+-export([
+    account_emergency_caller_id_cid_number/1, account_emergency_caller_id_cid_number/2,
+    set_account_emergency_caller_id_cid_number/2
+]).
 -export([account_trunks/1, account_trunks/2, set_account_trunks/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
 -export([name/1, name/2, set_name/2]).
 -export([servers/1, servers/2, set_servers/2]).
 -export([type/1, type/2, set_type/2]).
-
 
 -include("kz_documents.hrl").
 
@@ -80,7 +92,9 @@ account_caller_id_cid_name(Doc, Default) ->
 
 -spec set_account_caller_id_cid_name(doc(), kz_term:ne_binary()) -> doc().
 set_account_caller_id_cid_name(Doc, AccountCallerIdCidName) ->
-    kz_json:set_value([<<"account">>, <<"caller_id">>, <<"cid_name">>], AccountCallerIdCidName, Doc).
+    kz_json:set_value(
+        [<<"account">>, <<"caller_id">>, <<"cid_name">>], AccountCallerIdCidName, Doc
+    ).
 
 -spec account_caller_id_cid_number(doc()) -> kz_term:api_ne_binary().
 account_caller_id_cid_number(Doc) ->
@@ -92,7 +106,9 @@ account_caller_id_cid_number(Doc, Default) ->
 
 -spec set_account_caller_id_cid_number(doc(), kz_term:ne_binary()) -> doc().
 set_account_caller_id_cid_number(Doc, AccountCallerIdCidNumber) ->
-    kz_json:set_value([<<"account">>, <<"caller_id">>, <<"cid_number">>], AccountCallerIdCidNumber, Doc).
+    kz_json:set_value(
+        [<<"account">>, <<"caller_id">>, <<"cid_number">>], AccountCallerIdCidNumber, Doc
+    ).
 
 -spec account_credits(doc()) -> kz_term:api_object().
 account_credits(Doc) ->
@@ -136,11 +152,17 @@ account_emergency_caller_id_cid_name(Doc) ->
 
 -spec account_emergency_caller_id_cid_name(doc(), Default) -> kz_term:ne_binary() | Default.
 account_emergency_caller_id_cid_name(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"account">>, <<"emergency_caller_id">>, <<"cid_name">>], Doc, Default).
+    kz_json:get_ne_binary_value(
+        [<<"account">>, <<"emergency_caller_id">>, <<"cid_name">>], Doc, Default
+    ).
 
 -spec set_account_emergency_caller_id_cid_name(doc(), kz_term:ne_binary()) -> doc().
 set_account_emergency_caller_id_cid_name(Doc, AccountEmergencyCallerIdCidName) ->
-    kz_json:set_value([<<"account">>, <<"emergency_caller_id">>, <<"cid_name">>], AccountEmergencyCallerIdCidName, Doc).
+    kz_json:set_value(
+        [<<"account">>, <<"emergency_caller_id">>, <<"cid_name">>],
+        AccountEmergencyCallerIdCidName,
+        Doc
+    ).
 
 -spec account_emergency_caller_id_cid_number(doc()) -> kz_term:api_ne_binary().
 account_emergency_caller_id_cid_number(Doc) ->
@@ -148,11 +170,17 @@ account_emergency_caller_id_cid_number(Doc) ->
 
 -spec account_emergency_caller_id_cid_number(doc(), Default) -> kz_term:ne_binary() | Default.
 account_emergency_caller_id_cid_number(Doc, Default) ->
-    kz_json:get_ne_binary_value([<<"account">>, <<"emergency_caller_id">>, <<"cid_number">>], Doc, Default).
+    kz_json:get_ne_binary_value(
+        [<<"account">>, <<"emergency_caller_id">>, <<"cid_number">>], Doc, Default
+    ).
 
 -spec set_account_emergency_caller_id_cid_number(doc(), kz_term:ne_binary()) -> doc().
 set_account_emergency_caller_id_cid_number(Doc, AccountEmergencyCallerIdCidNumber) ->
-    kz_json:set_value([<<"account">>, <<"emergency_caller_id">>, <<"cid_number">>], AccountEmergencyCallerIdCidNumber, Doc).
+    kz_json:set_value(
+        [<<"account">>, <<"emergency_caller_id">>, <<"cid_number">>],
+        AccountEmergencyCallerIdCidNumber,
+        Doc
+    ).
 
 -spec account_trunks(doc()) -> kz_term:api_integer().
 account_trunks(Doc) ->

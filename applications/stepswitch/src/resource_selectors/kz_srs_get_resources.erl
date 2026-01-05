@@ -9,24 +9,34 @@
 
 -include("stepswitch.hrl").
 
--spec handle_req(stepswitch_resources:resources(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_term:ne_binary(), kz_term:proplist()) ->
-          stepswitch_resources:resources().
+-spec handle_req(
+    stepswitch_resources:resources(),
+    kz_term:ne_binary(),
+    kapi_offnet_resource:req(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) ->
+    stepswitch_resources:resources().
 handle_req(Resources, _Number, OffnetJObj, _DB, _Params) ->
-    NewResources = case kapi_offnet_resource:hunt_account_id(OffnetJObj) of
-                       'undefined' -> get_resources('undefined');
-                       HuntAccount ->
-                           AccountId = kapi_offnet_resource:account_id(OffnetJObj),
-                           maybe_get_local_resources(HuntAccount, AccountId)
-                   end,
+    NewResources =
+        case kapi_offnet_resource:hunt_account_id(OffnetJObj) of
+            'undefined' ->
+                get_resources('undefined');
+            HuntAccount ->
+                AccountId = kapi_offnet_resource:account_id(OffnetJObj),
+                maybe_get_local_resources(HuntAccount, AccountId)
+        end,
     Resources ++ NewResources.
 
--spec maybe_get_local_resources(kz_term:ne_binary(), kz_term:ne_binary()) -> stepswitch_resources:resources().
+-spec maybe_get_local_resources(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    stepswitch_resources:resources().
 maybe_get_local_resources(HuntAccount, AccountId) ->
     case kzd_accounts:is_in_account_hierarchy(HuntAccount, AccountId, 'true') of
         'false' ->
-            lager:info("account ~s attempted to use local resources of ~s, but it is not allowed"
-                      ,[AccountId, HuntAccount]
-                      ),
+            lager:info(
+                "account ~s attempted to use local resources of ~s, but it is not allowed",
+                [AccountId, HuntAccount]
+            ),
             [];
         'true' ->
             lager:info("account ~s is using the local resources of ~s", [AccountId, HuntAccount]),

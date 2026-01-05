@@ -11,7 +11,6 @@
 -export([data/1, data/2, set_data/2]).
 -export([module/1, module/2, set_module/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

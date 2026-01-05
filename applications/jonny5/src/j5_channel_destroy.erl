@@ -53,8 +53,10 @@ reseller_reconcile_cdr(AccountId, Request) ->
                 ResellerId ->
                     reconcile_cdr(Request, j5_limits:get(ResellerId))
             end;
-        AccountId -> lager:debug("account id ~s is its reseller", [AccountId]);
-        ResellerId -> reconcile_cdr(Request, j5_limits:get(ResellerId))
+        AccountId ->
+            lager:debug("account id ~s is its reseller", [AccountId]);
+        ResellerId ->
+            reconcile_cdr(Request, j5_limits:get(ResellerId))
     end.
 
 %%------------------------------------------------------------------------------

@@ -5,16 +5,18 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_cb_users).
 
--export([create/3
-        ,fetch/3
-        ,delete/3
-        ]).
+-export([
+    create/3,
+    fetch/3,
+    delete/3
+]).
 
 -export([user_doc/0]).
 
--export([seq/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    cleanup/0
+]).
 
 -spec create(pqc_cb_api:state(), kz_term:ne_binary(), kzd_users:doc()) -> pqc_cb_api:response().
 create(API, AccountId, User) ->
@@ -22,34 +24,37 @@ create(API, AccountId, User) ->
     RequestHeaders = pqc_cb_api:request_headers(API),
     RequestEnvelope = pqc_cb_api:create_envelope(User),
 
-    pqc_cb_api:make_request([#{'response_codes' => [201]}]
-                           ,fun kz_http:put/3
-                           ,URL
-                           ,RequestHeaders
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        [#{'response_codes' => [201]}],
+        fun kz_http:put/3,
+        URL,
+        RequestHeaders,
+        kz_json:encode(RequestEnvelope)
+    ).
 
 -spec fetch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
 fetch(API, AccountId, UserId) ->
     URL = user_url(AccountId, UserId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    pqc_cb_api:make_request([#{'response_codes' => [200]}]
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        [#{'response_codes' => [200]}],
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 -spec delete(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
 delete(API, AccountId, <<UserId/binary>>) ->
     URL = user_url(AccountId, UserId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    pqc_cb_api:make_request([#{'response_codes' => [200]}]
-                           ,fun kz_http:delete/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        [#{'response_codes' => [200]}],
+        fun kz_http:delete/2,
+        URL,
+        RequestHeaders
+    ).
 
 users_url(AccountId) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "users"], "/").
@@ -60,11 +65,12 @@ user_url(AccountId, UserId) ->
 -spec user_doc() -> kzd_users:doc().
 user_doc() ->
     kz_json:exec_first(
-      [{fun kzd_users:set_first_name/2, kz_binary:rand_hex(5)}
-      ,{fun kzd_users:set_last_name/2, kz_binary:rand_hex(5)}
-      ]
-     ,kzd_users:new()
-     ).
+        [
+            {fun kzd_users:set_first_name/2, kz_binary:rand_hex(5)},
+            {fun kzd_users:set_last_name/2, kz_binary:rand_hex(5)}
+        ],
+        kzd_users:new()
+    ).
 
 -spec seq() -> 'ok'.
 seq() ->
@@ -93,12 +99,14 @@ seq() ->
 
 init() ->
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_users', 'cb_accounts']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_users', 'cb_accounts']
+    ],
     lager:info("INIT FINISHED").
 
 -spec initial_state() -> pqc_kazoo_model:model().

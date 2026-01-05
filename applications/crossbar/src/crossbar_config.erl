@@ -6,11 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_config).
 
--export([autoload_modules/0, autoload_modules/1
-        ,set_autoload_modules/1, set_default_autoload_modules/1
+-export([
+    autoload_modules/0, autoload_modules/1,
+    set_autoload_modules/1,
+    set_default_autoload_modules/1,
 
-        ,flush/0
-        ]).
+    flush/0
+]).
 
 -include("crossbar.hrl").
 
@@ -31,8 +33,9 @@ remove_versioned_modules(Modules) ->
     lists:usort(lists:map(fun remove_module_version/1, Modules)).
 
 -spec remove_module_version(binary() | atom()) -> binary().
-remove_module_version(Module)
-  when is_atom(Module) ->
+remove_module_version(Module) when
+    is_atom(Module)
+->
     remove_module_version(kz_term:to_binary(Module));
 remove_module_version(Module) ->
     maybe_remove_module_version(lists:reverse(binary_to_list(Module))).
@@ -49,6 +52,7 @@ maybe_remove_module_version(Module) ->
 set_autoload_modules(Modules) ->
     kapps_config:set(?CONFIG_CAT, <<"autoload_modules">>, Modules).
 
--spec set_default_autoload_modules(kz_term:ne_binaries() | kz_term:atoms()) -> {'ok', kz_json:object()}.
+-spec set_default_autoload_modules(kz_term:ne_binaries() | kz_term:atoms()) ->
+    {'ok', kz_json:object()}.
 set_default_autoload_modules(Modules) ->
     kapps_config:set_default(?CONFIG_CAT, <<"autoload_modules">>, Modules).

@@ -10,7 +10,6 @@
 -export([name/1, name/2, set_name/2]).
 -export([temporal_rules/1, temporal_rules/2, set_temporal_rules/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

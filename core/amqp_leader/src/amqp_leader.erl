@@ -9,7 +9,7 @@
 
 -export([start_link/6]).
 
-
--spec start_link(atom(), kz_term:atoms(), list(), atom(), list(), list()) -> kz_types:startlink_ret().
+-spec start_link(atom(), kz_term:atoms(), list(), atom(), list(), list()) ->
+    kz_types:startlink_ret().
 start_link(Name, Nodes, Opts, Module, [], []) ->
     amqp_leader_sup:start_leader(Name, Nodes, Opts, Module, [], []).

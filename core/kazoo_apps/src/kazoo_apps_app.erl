@@ -12,7 +12,6 @@
 -export([start/2, stop/1]).
 -export([start/0]).
 
-
 -spec start() -> {'ok', kz_term:atoms()}.
 start() ->
     _ = io:setopts('user', [{'encoding', 'unicode'}]),

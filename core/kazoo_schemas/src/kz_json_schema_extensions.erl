@@ -9,18 +9,27 @@
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
--define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R), <<"invalid reference '", R/binary, "' to attachments">>).
--define(INVALID_STORAGE_CONNECTION_REFERENCE(R), <<"invalid reference '", R/binary, "' to connections">>).
+-define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R),
+    <<"invalid reference '", R/binary, "' to attachments">>
+).
+-define(INVALID_STORAGE_CONNECTION_REFERENCE(R),
+    <<"invalid reference '", R/binary, "' to connections">>
+).
 
--spec extra_validator(jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()) -> jesse_state:state().
+-spec extra_validator(
+    jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()
+) -> jesse_state:state().
 extra_validator(Value, State, Options) ->
-    Routines = [fun stability_level/3
-               ,fun extended_validation/3
-               ,fun extended_regexp/3
-               ],
+    Routines = [
+        fun stability_level/3,
+        fun extended_validation/3,
+        fun extended_regexp/3
+    ],
     lists:foldl(fun(Fun, AccState) -> Fun(Value, AccState, Options) end, State, Routines).
 
--spec extended_regexp(jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()) -> jesse_state:state().
+-spec extended_regexp(
+    jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()
+) -> jesse_state:state().
 extended_regexp(Value, State, _Options) ->
     Schema = jesse_state:get_current_schema(State),
     case kz_json:is_true(<<"kazoo-regexp">>, Schema, 'false') of
@@ -32,13 +41,15 @@ extended_regexp(Value, State, _Options) ->
 regexp_validation(Value, State) ->
     case re:compile(Value) of
         {'error', _Reason} ->
-            ErrMsg = <<"invalid regular expression: '", Value/binary,"'">>,
+            ErrMsg = <<"invalid regular expression: '", Value/binary, "'">>,
             jesse_error:handle_data_invalid({'external_error', ErrMsg}, Value, State);
         _ ->
             State
     end.
 
--spec extended_validation(jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()) -> jesse_state:state().
+-spec extended_validation(
+    jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()
+) -> jesse_state:state().
 extended_validation(Value, State, _Options) ->
     Schema = jesse_state:get_current_schema(State),
     case kz_json:is_true(<<"kazoo-validation">>, Schema, 'false') of
@@ -63,15 +74,22 @@ extra_validation(<<"metaflow.data">>, Value, State) ->
     Module = jesse_json_path:path(lists:reverse([<<"module">> | Path]), JObj, 'undefined'),
     lager:debug("validating metaflow action '~s' with data ~p", [Module, Value]),
     validate_module_data(<<"metaflows.", Module/binary>>, Value, State);
-
 extra_validation(<<"metaflow.module">>, Value, State) ->
     lager:debug("validating metaflow action '~s'", [Value]),
     Schema = <<"metaflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
-                 Schema -> State1;
-                 _OtherSchema -> jesse_error:handle_data_invalid({'external_error', <<"unable to find metaflow schema for module ", Value/binary>>}, Value, State)
-             end,
+    State2 =
+        case jesse_state:get_current_schema_id(State1) of
+            Schema ->
+                State1;
+            _OtherSchema ->
+                jesse_error:handle_data_invalid(
+                    {'external_error',
+                        <<"unable to find metaflow schema for module ", Value/binary>>},
+                    Value,
+                    State
+                )
+        end,
     jesse_state:undo_resolve_ref(State2, State);
 extra_validation(<<"callflows.action.data">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
@@ -84,10 +102,18 @@ extra_validation(<<"callflows.action.data">>, Value, State) ->
 extra_validation(<<"callflows.action.module">>, Value, State) ->
     Schema = <<"callflows.", Value/binary>>,
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
-                 Schema -> State1;
-                 _OtherSchema -> jesse_error:handle_data_invalid({'external_error', <<"unable to find callflow schema for module ", Value/binary>>}, Value, State)
-             end,
+    State2 =
+        case jesse_state:get_current_schema_id(State1) of
+            Schema ->
+                State1;
+            _OtherSchema ->
+                jesse_error:handle_data_invalid(
+                    {'external_error',
+                        <<"unable to find callflow schema for module ", Value/binary>>},
+                    Value,
+                    State
+                )
+        end,
     jesse_state:undo_resolve_ref(State2, State);
 extra_validation(<<"webhooks.uri">>, URL, State) ->
     url_validation(URL, State);
@@ -115,21 +141,27 @@ extra_validation(<<"storage.plan.database.document.connection">>, Value, State) 
     JObj = jesse_state:get_current_value(State),
     Keys = kz_json:get_keys(<<"connections">>, JObj),
     case lists:member(Value, Keys) of
-        'true' -> State;
-        'false' -> jesse_error:handle_data_invalid({'external_error' ,?INVALID_STORAGE_CONNECTION_REFERENCE(Value)}
-                                                  ,Value
-                                                  ,State
-                                                  )
+        'true' ->
+            State;
+        'false' ->
+            jesse_error:handle_data_invalid(
+                {'external_error', ?INVALID_STORAGE_CONNECTION_REFERENCE(Value)},
+                Value,
+                State
+            )
     end;
 extra_validation(<<"storage.plan.database.attachment.handler">>, Value, State) ->
     JObj = jesse_state:get_current_value(State),
     Keys = kz_json:get_keys(<<"attachments">>, JObj),
     case lists:member(Value, Keys) of
-        'true' -> State;
-        'false' -> jesse_error:handle_data_invalid({'external_error', ?INVALID_STORAGE_ATTACHMENT_REFERENCE(Value)}
-                                                  ,Value
-                                                  ,State
-                                                  )
+        'true' ->
+            State;
+        'false' ->
+            jesse_error:handle_data_invalid(
+                {'external_error', ?INVALID_STORAGE_ATTACHMENT_REFERENCE(Value)},
+                Value,
+                State
+            )
     end;
 extra_validation(<<"storage.attachment.google_drive.oauth_doc_id">>, Value, State) ->
     validate_attachment_oauth_doc_id(Value, State);
@@ -145,12 +177,14 @@ extra_validation(_Key, _Value, State) ->
 
 validate_module_data(Schema, Value, State) ->
     State1 = jesse_state:resolve_ref(State, Schema),
-    State2 = case jesse_state:get_current_schema_id(State1) of
-                 Schema ->
-                     SchemaObj = jesse_state:get_current_schema(State1),
-                     jesse_schema_validator:validate_with_state(SchemaObj, Value, State1);
-                 _OtherSchema -> State1
-             end,
+    State2 =
+        case jesse_state:get_current_schema_id(State1) of
+            Schema ->
+                SchemaObj = jesse_state:get_current_schema(State1),
+                jesse_schema_validator:validate_with_state(SchemaObj, Value, State1);
+            _OtherSchema ->
+                State1
+        end,
     jesse_state:undo_resolve_ref(State2, State).
 
 validate_attachment_oauth_doc_id(Value, State) ->
@@ -171,7 +205,9 @@ validate_attachment_oauth_doc_id(Value, State) ->
             jesse_error:handle_data_invalid({'external_error', ErrorMsg}, Value, State)
     end.
 
--spec stability_level(jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()) -> jesse_state:state().
+-spec stability_level(
+    jesse:json_term(), jesse_state:state(), kz_json_schema:extra_validator_options()
+) -> jesse_state:state().
 stability_level(Value, State, Options) ->
     Schema = jesse_state:get_current_schema(State),
     SystemSL = props:get_ne_binary_value('stability_level', Options),
@@ -179,9 +215,11 @@ stability_level(Value, State, Options) ->
     maybe_check_param_stability_level(SystemSL, ParamSL, Value, State).
 
 maybe_check_param_stability_level('undefined', _ParamSL, _Value, State) ->
-    State; %% SystemSL is undefined, skip checking
+    %% SystemSL is undefined, skip checking
+    State;
 maybe_check_param_stability_level(_SystemSL, 'undefined', _Value, State) ->
-    State; %% ParamSL is undefined, skip checking
+    %% ParamSL is undefined, skip checking
+    State;
 maybe_check_param_stability_level(SystemSL, ParamSL, Value, State) ->
     SystemSLInt = stability_level_to_int(SystemSL),
     ParamSLInt = stability_level_to_int(ParamSL),
@@ -189,10 +227,9 @@ maybe_check_param_stability_level(SystemSL, ParamSL, Value, State) ->
         'valid' ->
             State;
         'invalid' ->
-            ErrorMsg = <<"Disallowed parameter, it has lower stability level ("
-                        ,ParamSL/binary, ") than system's stability level ("
-                        ,SystemSL/binary, ")"
-                       >>,
+            ErrorMsg =
+                <<"Disallowed parameter, it has lower stability level (", ParamSL/binary,
+                    ") than system's stability level (", SystemSL/binary, ")">>,
             lager:debug("~s", [ErrorMsg]),
             jesse_error:handle_data_invalid({'external_error', ErrorMsg}, Value, State)
     end.
@@ -213,9 +250,9 @@ url_validation(URL, State) ->
         'false' -> url_error(URL, State)
     end.
 
-storage_url_validation(<<"http", _/binary>>=URL, State) ->
+storage_url_validation(<<"http", _/binary>> = URL, State) ->
     url_validation(URL, State);
-storage_url_validation(<<"ftp", _/binary>>=URL, State) ->
+storage_url_validation(<<"ftp", _/binary>> = URL, State) ->
     case is_valid_ftp_url(URL) of
         'true' -> State;
         'false' -> url_error(URL, State)
@@ -224,11 +261,13 @@ storage_url_validation(URL, State) ->
     url_error(URL, State).
 
 is_valid_client_url({Scheme, Host, _Path, _QueryString, _Fragment}) ->
-    lists:all(fun is_valid_url_part/1
-             ,[{fun is_valid_scheme/1, Scheme}
-              ,{fun is_valid_host/1, Host}
-              ]
-             );
+    lists:all(
+        fun is_valid_url_part/1,
+        [
+            {fun is_valid_scheme/1, Scheme},
+            {fun is_valid_host/1, Host}
+        ]
+    );
 is_valid_client_url(<<URL/binary>>) ->
     is_valid_client_url(kz_http_util:urlsplit(URL)).
 
@@ -239,14 +278,16 @@ is_valid_scheme(<<"http">>) -> 'true';
 is_valid_scheme(<<"https">>) -> 'true';
 is_valid_scheme(_) -> 'false'.
 
-is_valid_ftp_url({'ok',{'ftp', _UserPass, Host, _Port, _FullPath, _Query}}) ->
+is_valid_ftp_url({'ok', {'ftp', _UserPass, Host, _Port, _FullPath, _Query}}) ->
     is_valid_host(kz_term:to_binary(Host));
-is_valid_ftp_url({'ok',{'ftps', UserPass, Host, _Port, _FullPath, _Query}}) ->
-    lists:all(fun is_valid_url_part/1
-             ,[{fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")}
-              ,{fun is_valid_host/1, kz_term:to_binary(Host)}
-              ]
-             );
+is_valid_ftp_url({'ok', {'ftps', UserPass, Host, _Port, _FullPath, _Query}}) ->
+    lists:all(
+        fun is_valid_url_part/1,
+        [
+            {fun is_valid_ftp_userpass/1, string:tokens(UserPass, ":")},
+            {fun is_valid_host/1, kz_term:to_binary(Host)}
+        ]
+    );
 is_valid_ftp_url(<<URL/binary>>) ->
     is_valid_ftp_url(http_uri:parse(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->
@@ -271,12 +312,15 @@ is_valid_host(Host, 'false') ->
 
 url_error(URL, State) ->
     lager:info("client URL '~s' not valid", [URL]),
-    UpdatedState = jesse_error:handle_data_invalid({'external_error', <<"invalid client URL">>}, URL, State),
+    UpdatedState = jesse_error:handle_data_invalid(
+        {'external_error', <<"invalid client URL">>}, URL, State
+    ),
     lager:info("~p", [UpdatedState]),
     UpdatedState.
 
 -spec is_valid_host_value(kz_term:ne_binary(), boolean(), kz_term:api_ne_binaries()) -> boolean().
-is_valid_host_value(_Host, _IsIp, 'undefined') -> 'true';
+is_valid_host_value(_Host, _IsIp, 'undefined') ->
+    'true';
 is_valid_host_value(Host, IsIp, Blacklist) ->
     not lists:any(fun(B) -> is_host_blacklisted(Host, IsIp, B) end, Blacklist).
 
@@ -285,9 +329,11 @@ is_host_blacklisted(Host, _IsIp, Host) ->
     'true';
 is_host_blacklisted(Host, 'true', CIDR) ->
     case kz_network_utils:verify_cidr(Host, CIDR) of
-        'false' -> 'false';
+        'false' ->
+            'false';
         'true' ->
             lager:debug("host ~s is part of CIDR ~s", [Host, CIDR]),
             'true'
     end;
-is_host_blacklisted(_Host, 'false', _Hostname) -> 'false'.
+is_host_blacklisted(_Host, 'false', _Hostname) ->
+    'false'.

@@ -12,14 +12,15 @@
 -define(IMAGE_MIME_PREFIX, <<"image/">>).
 -define(OPENXML_MIME_PREFIX, "application/vnd.openxmlformats-officedocument.").
 -define(OPENOFFICE_MIME_PREFIX, "application/vnd.oasis.opendocument.").
--define(OPENOFFICE_COMPATIBLE(CT)
-       ,(CT =:= <<"application/msword">>
-             orelse CT =:= <<"application/vnd.ms-excel">>
-             orelse CT =:= <<"application/vnd.ms-powerpoint">>
-        )).
+-define(OPENOFFICE_COMPATIBLE(CT),
+    (CT =:= <<"application/msword">> orelse
+        CT =:= <<"application/vnd.ms-excel">> orelse
+        CT =:= <<"application/vnd.ms-powerpoint">>)
+).
 
--define(TMP_DIR
-       ,kapps_config:get_binary(?CONFIG_CAT, <<"file_cache_path">>, <<"/tmp/">>)).
+-define(TMP_DIR,
+    kapps_config:get_binary(?CONFIG_CAT, <<"file_cache_path">>, <<"/tmp/">>)
+).
 
 -define(KZ_CONVERT_HRL, 'true').
 -endif.

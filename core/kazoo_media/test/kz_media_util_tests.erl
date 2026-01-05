@@ -9,16 +9,25 @@
 -include_lib("eunit/include/eunit.hrl").
 
 get_prompt_test_() ->
-    Tests = [{"untouched tone_stream", [<<"tone_stream://%(250,250,480,620);loops=25">>], <<"tone_stream://%(250,250,480,620);loops=25">>}
-            ,{"untouched tone_stream with lang", [<<"tone_stream://%(250,250,480,620);loops=25">>, <<"en-us">>], <<"tone_stream://%(250,250,480,620);loops=25">>}
-            ,{"untouched tone_stream with lang and account", [<<"tone_stream://%(250,250,480,620);loops=25">>, <<"en-us">>, kz_binary:rand_hex(16)], <<"tone_stream://%(250,250,480,620);loops=25">>}
+    Tests = [
+        {"untouched tone_stream", [<<"tone_stream://%(250,250,480,620);loops=25">>],
+            <<"tone_stream://%(250,250,480,620);loops=25">>},
+        {"untouched tone_stream with lang",
+            [<<"tone_stream://%(250,250,480,620);loops=25">>, <<"en-us">>],
+            <<"tone_stream://%(250,250,480,620);loops=25">>},
+        {"untouched tone_stream with lang and account",
+            [<<"tone_stream://%(250,250,480,620);loops=25">>, <<"en-us">>, kz_binary:rand_hex(16)],
+            <<"tone_stream://%(250,250,480,620);loops=25">>},
 
-            ,{"untouched prompt", [<<"prompt://system_media/vm-full/en-us">>], <<"prompt://system_media/vm-full/en-us">>}
-            ,{"full prompt path", [<<"vm-full">>], <<"prompt://system_media/vm-full/en-us">>}
-            ,{"full prompt path with lang", [<<"vm-full">>, <<"mk-bs">>], <<"prompt://system_media/vm-full/mk-bs">>}
-            ],
+        {"untouched prompt", [<<"prompt://system_media/vm-full/en-us">>],
+            <<"prompt://system_media/vm-full/en-us">>},
+        {"full prompt path", [<<"vm-full">>], <<"prompt://system_media/vm-full/en-us">>},
+        {"full prompt path with lang", [<<"vm-full">>, <<"mk-bs">>],
+            <<"prompt://system_media/vm-full/mk-bs">>}
+    ],
 
-    [{Description, ?_assertEqual(Expected, apply_get_prompt(Args))}
+    [
+        {Description, ?_assertEqual(Expected, apply_get_prompt(Args))}
      || {Description, Args, Expected} <- Tests
     ].
 

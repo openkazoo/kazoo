@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([system/1, system/2, set_system/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

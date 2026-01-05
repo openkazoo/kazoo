@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(hangups_util).
 
--export([meter_name/1, meter_name/2
-        ,meter_prefix/0
-        ,is_hangup_meter/1, is_hangup_meter/2, is_hangup_meter/3
-        ,meter_account_id/1
-        ,meter_hangup_cause/1
-        ]).
+-export([
+    meter_name/1, meter_name/2,
+    meter_prefix/0,
+    is_hangup_meter/1, is_hangup_meter/2, is_hangup_meter/3,
+    meter_account_id/1,
+    meter_hangup_cause/1
+]).
 
 -include("hangups.hrl").
 
@@ -20,8 +21,7 @@
 
 -spec meter_name(kz_term:ne_binary()) -> kz_term:ne_binary().
 meter_name(<<"*">>) -> <<"*">>;
-meter_name(HangupCause) ->
-    <<?METER_PREFIX_LIST, ".", HangupCause/binary>>.
+meter_name(HangupCause) -> <<?METER_PREFIX_LIST, ".", HangupCause/binary>>.
 
 -spec meter_name(kz_term:ne_binary(), kz_term:api_binary()) -> kz_term:ne_binary().
 meter_name(HangupCause, 'undefined') ->

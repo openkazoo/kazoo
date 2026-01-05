@@ -16,9 +16,10 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('frontier_init')
-                  ,?WORKER('frontier_shared_listener')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('frontier_init'),
+    ?WORKER('frontier_shared_listener')
+]).
 
 %%==============================================================================
 %% API functions

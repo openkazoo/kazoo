@@ -39,9 +39,17 @@
 
 -type announcements_pids() :: #{kz_term:ne_binary() => pid()}.
 
--type fsm_state_name() :: 'wait' | 'sync' | 'ready' | 'ringing' |
-                          'ringing_callback' | 'awaiting_callback' |
-                          'answered' | 'wrapup' | 'paused' | 'outbound'.
+-type fsm_state_name() ::
+    'wait'
+    | 'sync'
+    | 'ready'
+    | 'ringing'
+    | 'ringing_callback'
+    | 'awaiting_callback'
+    | 'answered'
+    | 'wrapup'
+    | 'paused'
+    | 'outbound'.
 
 %% Check for cleanup every 5 minutes
 -define(CLEANUP_PERIOD, kapps_config:get_integer(?CONFIG_CAT, <<"cleanup_period_ms">>, 360000)).
@@ -57,9 +65,9 @@
 
 -define(PRINT(Str), ?PRINT(Str, [])).
 -define(PRINT(Fmt, Args), begin
-                              lager:info(Fmt, Args),
-                              io:format(Fmt++"\n", Args)
-                          end).
+    lager:info(Fmt, Args),
+    io:format(Fmt ++ "\n", Args)
+end).
 
 -define(ACDC_HRL, 'true').
 -endif.

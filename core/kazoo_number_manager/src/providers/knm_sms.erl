@@ -12,11 +12,11 @@
 
 -export([save/1]).
 -export([delete/1]).
--export([available/1
-        ,available/3
-        ]).
+-export([
+    available/1,
+    available/3
+]).
 -export([settings/1]).
-
 
 -include("knm.hrl").
 
@@ -41,12 +41,12 @@ save(PN) ->
 delete(PN) ->
     knm_im:delete(?IM_TYPE, PN).
 
-
 -spec available(knm_phone_number:knm_phone_number()) -> boolean().
 available(PN) ->
     knm_im:available(?IM_TYPE, PN).
 
--spec available(kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> boolean().
+-spec available(kz_term:ne_binary() | module(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+    boolean().
 available(Carrier, State, AccountId) ->
     knm_im:available(?IM_TYPE, Carrier, State, AccountId).
 

@@ -8,24 +8,26 @@
 -behaviour(gen_server).
 
 -export([start_link/1, start_link/2]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {node = 'undefined' :: atom()
-               ,options = [] :: kz_term:proplist()
-               ,switch_url :: kz_term:api_binary()
-               ,switch_uri :: kz_term:api_binary()
-               ,switch_info = 'false' :: boolean()
-               }).
+-record(state, {
+    node = 'undefined' :: atom(),
+    options = [] :: kz_term:proplist(),
+    switch_url :: kz_term:api_binary(),
+    switch_uri :: kz_term:api_binary(),
+    switch_info = 'false' :: boolean()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -59,7 +61,7 @@ init([Node, Options]) ->
     lager:info("starting new fs route listener for ~s", [Node]),
     gen_server:cast(self(), 'bind_to_dialplan'),
     gen_server:cast(self(), 'bind_to_chatplan'),
-    {'ok', #state{node=Node, options=Options}}.
+    {'ok', #state{node = Node, options = Options}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -74,16 +76,18 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast('bind_to_dialplan', #state{node=Node}=State) ->
+handle_cast('bind_to_dialplan', #state{node = Node} = State) ->
     case freeswitch:bind(Node, 'dialplan') of
-        'ok' -> {'noreply', State};
+        'ok' ->
+            {'noreply', State};
         {'error', Reason} ->
             lager:critical("unable to establish dialplan route bindings: ~p", [Reason]),
             {'stop', Reason, State}
     end;
-handle_cast('bind_to_chatplan', #state{node=Node}=State) ->
+handle_cast('bind_to_chatplan', #state{node = Node} = State) ->
     case freeswitch:bind(Node, 'chatplan') of
-        'ok' -> {'noreply', State};
+        'ok' ->
+            {'noreply', State};
         {'error', Reason} ->
             lager:critical("unable to establish chatplan route bindings: ~p", [Reason]),
             {'stop', Reason, State}
@@ -98,9 +102,10 @@ handle_cast(_Msg, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 
-handle_info({'fetch', Section, Tag, Key, Value, FSId, FSData}
-           ,#state{node=Node, switch_info='false'}=State
-           ) ->
+handle_info(
+    {'fetch', Section, Tag, Key, Value, FSId, FSData},
+    #state{node = Node, switch_info = 'false'} = State
+) ->
     try ecallmgr_fs_node:sip_url(Node) of
         'undefined' ->
             lager:debug("no sip url available yet for ~s, rejecting route request", [Node]),
@@ -108,30 +113,36 @@ handle_info({'fetch', Section, Tag, Key, Value, FSId, FSData}
         SwitchURL ->
             [_, SwitchURIHost] = binary:split(SwitchURL, <<"@">>),
             SwitchURI = <<"sip:", SwitchURIHost/binary>>,
-            handle_info({'fetch', Section, Tag, Key, Value, FSId, FSData}
-                       ,State#state{switch_uri=SwitchURI
-                                   ,switch_url=SwitchURL
-                                   ,switch_info='true'
-                                   }
-                       )
+            handle_info(
+                {'fetch', Section, Tag, Key, Value, FSId, FSData},
+                State#state{
+                    switch_uri = SwitchURI,
+                    switch_url = SwitchURL,
+                    switch_info = 'true'
+                }
+            )
     catch
         _E:_R ->
             lager:warning("failed to include switch_url/uri for node ~s : ~p : ~p", [Node, _E, _R]),
             {'noreply', State}
     end;
-handle_info({'fetch', Section, _Tag, _Key, _Value, FSId, [CallId | FSData]}
-           ,#state{node=Node
-                  ,switch_info='true'
-                  ,switch_uri=SwitchURI
-                  ,switch_url=SwitchURL
-                  }=State
-           ) ->
+handle_info(
+    {'fetch', Section, _Tag, _Key, _Value, FSId, [CallId | FSData]},
+    #state{
+        node = Node,
+        switch_info = 'true',
+        switch_uri = SwitchURI,
+        switch_url = SwitchURL
+    } = State
+) ->
     lager:info("fetch request ~s started", [FSId]),
-    Props = props:filter_undefined([{<<"Switch-URL">>, SwitchURL}
-                                   ,{<<"Switch-URI">>, SwitchURI}
-                                   ,{<<"Switch-Nodename">>, kz_term:to_binary(Node)}
-                                   ])
-        ++ FSData,
+    Props =
+        props:filter_undefined([
+            {<<"Switch-URL">>, SwitchURL},
+            {<<"Switch-URI">>, SwitchURI},
+            {<<"Switch-Nodename">>, kz_term:to_binary(Node)}
+        ]) ++
+            FSData,
     kz_util:spawn(fun handle_fetch/5, [Section, FSId, CallId, Props, Node]),
     {'noreply', State};
 handle_info({'EXIT', _, 'noconnection'}, State) ->
@@ -142,7 +153,9 @@ handle_info(_Other, State) ->
     lager:debug("unhandled msg: ~p", [_Other]),
     {'noreply', State}.
 
--spec handle_fetch(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kzd_freeswitch:data(), atom()) -> 'ok'.
+-spec handle_fetch(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kzd_freeswitch:data(), atom()
+) -> 'ok'.
 handle_fetch(Section, FSId, CallId, FSData, Node) ->
     EventName = props:get_value(<<"Event-Name">>, FSData),
     SubClass = props:get_value(<<"Event-Subclass">>, FSData),
@@ -156,14 +169,14 @@ handle_fetch(Section, FSId, CallId, FSData, Node) ->
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to
-                                                % terminate. It should be the opposite of `Module:init/1' and do any
+% terminate. It should be the opposite of `Module:init/1' and do any
 %% necessary cleaning up. When it returns, the `gen_server' terminates
 %% with Reason. The return value is ignored.
 %%
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{node=Node}) ->
+terminate(_Reason, #state{node = Node}) ->
     lager:info("route listener for ~s terminating: ~p", [Node, _Reason]).
 
 %%------------------------------------------------------------------------------

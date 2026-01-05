@@ -5,10 +5,11 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_nodes_bindings).
 
--export([bind/1, bind/2, bind/3
-        ,unbind/1, unbind/2, unbind/3
-        ,request/1
-        ]).
+-export([
+    bind/1, bind/2, bind/3,
+    unbind/1, unbind/2, unbind/3,
+    request/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
@@ -28,11 +29,11 @@ bind(App, Module) ->
     bind(App, Module, ?DEFAULT_FUNCTION).
 
 -spec bind(atom(), atom(), atom()) -> bind_result().
-bind(App, Module, Function)
-  when is_atom(App)
-       andalso is_atom(Module)
-       andalso is_atom(Function)
-       ->
+bind(App, Module, Function) when
+    is_atom(App) andalso
+        is_atom(Module) andalso
+        is_atom(Function)
+->
     Binding = routing_key(App),
     case erlang:function_exported(Module, Function, ?CALLBACK_ARITY) of
         'true' ->
@@ -50,11 +51,11 @@ unbind(App, Module) ->
     unbind(App, Module, ?DEFAULT_FUNCTION).
 
 -spec unbind(atom(), atom(), atom()) -> kazoo_bindings:unbind_result().
-unbind(App, Module, Function)
-  when is_atom(App)
-       andalso is_atom(Module)
-       andalso is_atom(Function)
-       ->
+unbind(App, Module, Function) when
+    is_atom(App) andalso
+        is_atom(Module) andalso
+        is_atom(Function)
+->
     Binding = routing_key(App),
     case erlang:function_exported(Module, Function, ?CALLBACK_ARITY) of
         'true' ->

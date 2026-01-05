@@ -6,15 +6,16 @@
 -module(kz_media_proxy_handler).
 -behaviour(cowboy_handler).
 
--export([init/2
-        ,terminate/3
-        ]).
+-export([
+    init/2,
+    terminate/3
+]).
 
 -include("kazoo_media.hrl").
 
--define(STATE(Metadata, MediaBinary)
-       ,{Metadata, MediaBinary}
-       ).
+-define(STATE(Metadata, MediaBinary),
+    {Metadata, MediaBinary}
+).
 -type state() :: ?STATE(kz_json:object(), binary()).
 -type stream_type() :: 'single' | 'continuous'.
 
@@ -82,9 +83,10 @@ handle(Req0, ?STATE(Meta, Bin)) ->
 
     {'ok', Req1, 'ok'}.
 
-start_stream(Req, Meta, Bin, ContentType)
-  when ContentType =:= <<"audio/mpeg">>
-       orelse ContentType =:= <<"audio/mp3">> ->
+start_stream(Req, Meta, Bin, ContentType) when
+    ContentType =:= <<"audio/mpeg">> orelse
+        ContentType =:= <<"audio/mp3">>
+->
     Size = byte_size(Bin),
     ChunkSize = min(Size, ?CHUNKSIZE),
     MediaName = kz_json:get_binary_value(<<"media_name">>, Meta, <<>>),
@@ -92,10 +94,11 @@ start_stream(Req, Meta, Bin, ContentType)
 
     lager:debug("media: ~s content-type: ~s size: ~b", [MediaName, ContentType, Size]),
 
-    Req1 = cowboy_req:stream_reply(200
-                                  ,kz_media_proxy_util:resp_headers(ChunkSize, ContentType, MediaName, Url)
-                                  ,Req
-                                  ),
+    Req1 = cowboy_req:stream_reply(
+        200,
+        kz_media_proxy_util:resp_headers(ChunkSize, ContentType, MediaName, Url),
+        Req
+    ),
 
     ShoutHeader = kz_media_proxy_util:get_shout_header(MediaName, Url),
 
@@ -105,9 +108,10 @@ start_stream(Req, Meta, Bin, ContentType) ->
     Size = byte_size(Bin),
     ChunkSize = min(Size, ?CHUNKSIZE),
 
-    lager:debug("media: ~s content-type: ~s size: ~b"
-               ,[kz_json:get_binary_value(<<"media_name">>, Meta, <<>>), ContentType, Size]
-               ),
+    lager:debug(
+        "media: ~s content-type: ~s size: ~b",
+        [kz_json:get_binary_value(<<"media_name">>, Meta, <<>>), ContentType, Size]
+    ),
     Req1 = cowboy_req:stream_reply(200, kz_media_proxy_util:resp_headers(ContentType), Req),
     kz_media_proxy_util:stream_body(Req1, ChunkSize, Bin, 'undefined', 'false'),
     Req1.

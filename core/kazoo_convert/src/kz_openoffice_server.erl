@@ -9,18 +9,20 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0
-        ,add/2
-        ]).
+-export([
+    start_link/0,
+    add/2
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include_lib("kazoo_convert/include/kz_convert.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -32,9 +34,10 @@
 -define(TIMEOUT_DEQUEUE, 'dequeue').
 -define(TIMEOUT_CANCEL, 'cancel_job').
 
--record(state, {queue = queue:new() :: queue:queue()
-               ,timer_ref ::  reference()
-               }).
+-record(state, {
+    queue = queue:new() :: queue:queue(),
+    timer_ref :: reference()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -49,7 +52,6 @@
 start_link() ->
     gen_server:start_link(?SERVER, ?MODULE, [], []).
 
-
 %%------------------------------------------------------------------------------
 %% @doc convert an openoffice document, respecting the one document at a time
 %% constraint.
@@ -58,7 +60,8 @@ start_link() ->
 %% serialization mechanism for conversions from openoffice formats.
 %% @end
 %%------------------------------------------------------------------------------
--spec add(kz_term:ne_binary(), map()) -> {'ok', kz_term:ne_binary()}|{'error', kz_term:ne_binary()}.
+-spec add(kz_term:ne_binary(), map()) ->
+    {'ok', kz_term:ne_binary()} | {'error', kz_term:ne_binary()}.
 add(Source, Options) ->
     gen_server:call(?MODULE, {'add', Source, Options}).
 
@@ -70,24 +73,25 @@ add(Source, Options) ->
 %% @doc Initializes the server.
 %% @end
 %%------------------------------------------------------------------------------
--spec init(list()) -> {'ok', state()} |
-          {'stop', any()}.
+-spec init(list()) ->
+    {'ok', state()}
+    | {'stop', any()}.
 init([]) ->
     {'ok', #state{
-              'timer_ref' = start_timer(?TIMEOUT_DEQUEUE)
-             }}.
+        'timer_ref' = start_timer(?TIMEOUT_DEQUEUE)
+    }}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call({atom(), {'file', kz_term:ne_binary()}, map()}, kz_term:pid_ref(), state()) ->
-          kz_types:handle_call_ret_state(state()).
+    kz_types:handle_call_ret_state(state()).
 handle_call('stop', _From, #state{} = State) ->
     {'stop', 'normal', 'ok', State};
-handle_call({'add', Content, Options}, From, #state{queue=Queue}=State) ->
+handle_call({'add', Content, Options}, From, #state{queue = Queue} = State) ->
     DropTimerRef = start_timer(?TIMEOUT_CANCEL),
-    {'noreply', State#state{queue=queue:in({DropTimerRef, From, Content, Options}, Queue)}}.
+    {'noreply', State#state{queue = queue:in({DropTimerRef, From, Content, Options}, Queue)}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling cast messages.
@@ -102,20 +106,21 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'timeout', TRef, ?TIMEOUT_DEQUEUE}, #state{queue=Queue, timer_ref=TRef}=State) ->
+handle_info({'timeout', TRef, ?TIMEOUT_DEQUEUE}, #state{queue = Queue, timer_ref = TRef} = State) ->
     case queue:out(Queue) of
         {'empty', _} ->
-            {'noreply', State#state{timer_ref=start_timer(?TIMEOUT_DEQUEUE)}};
+            {'noreply', State#state{timer_ref = start_timer(?TIMEOUT_DEQUEUE)}};
         {{'value', {DropTimerRef, From, Content, Options}}, NewQueue} ->
             _ = erlang:cancel_timer(DropTimerRef),
             gen_server:reply(From, kz_fax_converter:do_openoffice_to_pdf(Content, Options)),
-            {'noreply', State#state{timer_ref=start_timer(?TIMEOUT_DEQUEUE), queue=NewQueue}}
+            {'noreply', State#state{timer_ref = start_timer(?TIMEOUT_DEQUEUE), queue = NewQueue}}
     end;
-handle_info({'timeout', DropTimerRef, ?TIMEOUT_CANCEL}, #state{queue=Queue}=State) ->
-    Fun = fun({TimerRef, _, _, _}) when DropTimerRef =:= TimerRef -> false;
-             (_) -> true
-          end,
-    {'noreply', State#state{queue=queue:filter(Fun, Queue)}};
+handle_info({'timeout', DropTimerRef, ?TIMEOUT_CANCEL}, #state{queue = Queue} = State) ->
+    Fun = fun
+        ({TimerRef, _, _, _}) when DropTimerRef =:= TimerRef -> false;
+        (_) -> true
+    end,
+    {'noreply', State#state{queue = queue:filter(Fun, Queue)}};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),
     {'noreply', State, 'hibernate'}.
@@ -129,7 +134,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{timer_ref=TimerRef}) ->
+terminate(_Reason, #state{timer_ref = TimerRef}) ->
     _ = stop_timer(TimerRef),
     lager:debug("openoffice_server going down: ~p", [_Reason]).
 
@@ -154,7 +159,6 @@ start_timer(?TIMEOUT_DEQUEUE) ->
     erlang:start_timer(?TIMEOUT_LIFETIME, self(), ?TIMEOUT_DEQUEUE);
 start_timer(?TIMEOUT_CANCEL) ->
     erlang:start_timer(?TIMEOUT_CANCEL_JOB, self(), ?TIMEOUT_CANCEL).
-
 
 -spec stop_timer(reference()) -> integer() | boolean() | 'ok'.
 stop_timer(Ref) ->

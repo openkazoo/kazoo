@@ -16,8 +16,9 @@ move(UUID, ONode, NNode) ->
     OriginalNode = kz_term:to_atom(ONode),
     NewNode = kz_term:to_atom(NNode),
 
-    'true' = ecallmgr_fs_nodes:has_capability(OriginalNode, <<"channel_move">>)
-        andalso ecallmgr_fs_nodes:has_capability(NewNode, <<"channel_move">>),
+    'true' =
+        ecallmgr_fs_nodes:has_capability(OriginalNode, <<"channel_move">>) andalso
+            ecallmgr_fs_nodes:has_capability(NewNode, <<"channel_move">>),
     lager:debug("both servers support channel_move, continuing"),
 
     ecallmgr_fs_channel:set_node(NewNode, UUID),
@@ -34,8 +35,8 @@ move(UUID, ONode, NNode) ->
 
 %% listens for the event from FS with the XML
 -spec wait_for_teardown(kz_term:ne_binary(), atom()) ->
-          {'ok', kzd_freeswitch:data()} |
-          {'error', 'timeout'}.
+    {'ok', kzd_freeswitch:data()}
+    | {'error', 'timeout'}.
 wait_for_teardown(UUID, OriginalNode) ->
     receive
         ?CHANNEL_MOVE_RELEASED_MSG(OriginalNode, UUID, Evt) ->
@@ -45,13 +46,15 @@ wait_for_teardown(UUID, OriginalNode) ->
             lager:debug("recv move_released for node ~s, expecting ~s", [_Node, OriginalNode]),
             wait_for_teardown(UUID, OriginalNode)
     after 5 * ?MILLISECONDS_IN_SECOND ->
-            {'error', 'timeout'}
+        {'error', 'timeout'}
     end.
 
 -spec rebuild_channel(kz_term:ne_binary(), atom(), kz_term:proplist()) -> boolean().
 rebuild_channel(UUID, NewNode, Evt) ->
     catch gproc:reg({'p', 'l', ?CHANNEL_MOVE_REG(NewNode, UUID)}),
-    lager:debug("waiting for message with metadata for channel ~s so we can move it to ~s", [UUID, NewNode]),
+    lager:debug("waiting for message with metadata for channel ~s so we can move it to ~s", [
+        UUID, NewNode
+    ]),
     resume(UUID, NewNode, Evt),
     wait_for_completion(UUID, NewNode).
 
@@ -59,12 +62,16 @@ rebuild_channel(UUID, NewNode, Evt) ->
 resume(UUID, NewNode, Evt) ->
     Meta = fix_metadata(props:get_value(<<"metadata">>, Evt)),
 
-    freeswitch:sendevent_custom(NewNode, ?CHANNEL_MOVE_REQUEST_EVENT
-                               ,[{"profile_name", kz_term:to_list(?DEFAULT_FS_PROFILE)}
-                                ,{"channel_id", kz_term:to_list(UUID)}
-                                ,{"metadata", kz_term:to_list(Meta)}
-                                ,{"technology", kz_term:to_list(props:get_value(<<"technology">>, Evt, <<"sofia">>))}
-                                ]),
+    freeswitch:sendevent_custom(
+        NewNode,
+        ?CHANNEL_MOVE_REQUEST_EVENT,
+        [
+            {"profile_name", kz_term:to_list(?DEFAULT_FS_PROFILE)},
+            {"channel_id", kz_term:to_list(UUID)},
+            {"metadata", kz_term:to_list(Meta)},
+            {"technology", kz_term:to_list(props:get_value(<<"technology">>, Evt, <<"sofia">>))}
+        ]
+    ),
     lager:debug("sent channel_move::move_request with metadata to ~s for ~s", [NewNode, UUID]).
 
 %% We receive un-escaped < and > in the SIP URIs in this data
@@ -75,16 +82,22 @@ resume(UUID, NewNode, Evt) ->
 %% and its corresponding '>' to %3C and %3E as they should be
 -spec fix_metadata(kz_term:ne_binary()) -> kz_term:ne_binary().
 fix_metadata(Meta) ->
-    Replacements = [{<<"<sip:">>, <<"%3Csip:">>}
-                   ,{<<"><sip">>, <<"%3E<sip">>}
-                   ,{<<">;">>, <<"%3E;">>} % this is especially nice :)
-                    %% until such time as FS sets these properly
-                   ,{<<"<dialplan></dialplan>">>, <<"<dialplan>XML</dialplan>">>}
-                   ,{<<"<context>default</context>">>, <<"<context>context_2</context>">>}
-                   ],
-    lists:foldl(fun({S, R}, MetaAcc) ->
-                        iolist_to_binary(re:replace(MetaAcc, S, R, ['global']))
-                end, Meta, Replacements).
+    Replacements = [
+        {<<"<sip:">>, <<"%3Csip:">>},
+        {<<"><sip">>, <<"%3E<sip">>},
+        % this is especially nice :)
+        {<<">;">>, <<"%3E;">>},
+        %% until such time as FS sets these properly
+        {<<"<dialplan></dialplan>">>, <<"<dialplan>XML</dialplan>">>},
+        {<<"<context>default</context>">>, <<"<context>context_2</context>">>}
+    ],
+    lists:foldl(
+        fun({S, R}, MetaAcc) ->
+            iolist_to_binary(re:replace(MetaAcc, S, R, ['global']))
+        end,
+        Meta,
+        Replacements
+    ).
 
 -spec wait_for_completion(kz_term:ne_binary(), atom()) -> boolean().
 wait_for_completion(UUID, NewNode) ->
@@ -98,17 +111,21 @@ wait_for_completion(UUID, NewNode) ->
             lager:debug("recv move_complete from unexpected node ~s: ~s", [_Node, _UUID]),
             wait_for_completion(UUID, NewNode)
     after 5 * ?MILLISECONDS_IN_SECOND ->
-            lager:debug("timed out waiting for move to complete"),
-            'false'
+        lager:debug("timed out waiting for move to complete"),
+        'false'
     end.
 
 -spec teardown_sbd(kz_term:ne_binary(), atom()) -> 'ok'.
 teardown_sbd(UUID, OriginalNode) ->
     catch gproc:reg({'p', 'l', ?CHANNEL_MOVE_REG(OriginalNode, UUID)}),
 
-    freeswitch:sendevent_custom(OriginalNode, ?CHANNEL_MOVE_REQUEST_EVENT
-                               ,[{"profile_name", kz_term:to_list(?DEFAULT_FS_PROFILE)}
-                                ,{"channel_id", kz_term:to_list(UUID)}
-                                ,{"technology", ?DEFAULT_FS_TECHNOLOGY}
-                                ]),
+    freeswitch:sendevent_custom(
+        OriginalNode,
+        ?CHANNEL_MOVE_REQUEST_EVENT,
+        [
+            {"profile_name", kz_term:to_list(?DEFAULT_FS_PROFILE)},
+            {"channel_id", kz_term:to_list(UUID)},
+            {"technology", ?DEFAULT_FS_TECHNOLOGY}
+        ]
+    ),
     lager:debug("sent channel_move::move_request to ~s for ~s", [OriginalNode, UUID]).

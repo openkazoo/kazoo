@@ -68,7 +68,7 @@ update_prepend(Number) ->
     case kz_term:is_empty(Prepend) of
         'true' ->
             knm_providers:deactivate_feature(Number, ?KEY);
-        'false' when NotChanged  ->
+        'false' when NotChanged ->
             Number;
         'false' ->
             case kz_json:is_true(?PREPEND_ENABLED, Prepend) of

@@ -13,8 +13,14 @@
 -export([register/2]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("acdc.hrl").
 
@@ -53,7 +59,7 @@ register(Call, RecordingJObj) ->
 init([]) ->
     process_flag('trap_exit', 'true'),
     TabId = ets:new('map', []),
-    {'ok', #state{table_id=TabId}}.
+    {'ok', #state{table_id = TabId}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages
@@ -61,14 +67,15 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call({'register', Call, RecordingJObj}, _From, #state{table_id=TabId}=State) ->
+handle_call({'register', Call, RecordingJObj}, _From, #state{table_id = TabId} = State) ->
     case ets:lookup(TabId, kapps_call:call_id(Call)) of
         [] ->
             {'ok', Pid} = acdc_recordings_sup:new(Call, RecordingJObj),
             link(Pid),
             ets:insert(TabId, {kapps_call:call_id(Call), Pid}),
             Pid;
-        [{_, Pid}] -> Pid
+        [{_, Pid}] ->
+            Pid
     end,
     {'reply', Pid, State};
 handle_call(_Request, _From, State) ->
@@ -90,7 +97,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'EXIT', Pid, _Reason}, #state{table_id=TabId}=State) ->
+handle_info({'EXIT', Pid, _Reason}, #state{table_id = TabId} = State) ->
     ets:match_delete(TabId, {'$1', Pid}),
     {'noreply', State};
 handle_info(_Info, State) ->

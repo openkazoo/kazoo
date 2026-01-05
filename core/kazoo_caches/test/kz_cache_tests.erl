@@ -8,34 +8,28 @@
 -define(BASE_TIMEOUT_MS, 50).
 
 cache_test_() ->
-    {'timeout'
-    ,10
-    ,{'spawn'
-     ,{'setup'
-      ,fun init/0
-      ,fun cleanup/1
-      ,fun(_CachePid) ->
-               [{"wait for key exists", fun wait_for_key_local_existing/0}
-               ,{"wait for key appears", fun wait_for_key_local_mid_stream/0}
-               ,{"wait for key timeout", fun wait_for_key_local_timeout/0}
-               ,{"wait for stampede key exists", fun wait_for_stampede_key_existing/0}
-               ,{"key peek", fun peek_local/0}
-               ,{"key erase", fun key_erase/0}
-               ,{"cache flush", fun cache_flush/0}
-               ,{"fetch keys", fun fetch_keys/0}
-               ,{"filter keys", fun filter_keys/0}
-               ,{"filter/erase keys", fun filter_erase_keys/0}
-               ,{"callbacks", fun callbacks/0}
-               ,{"key timeout is flushed", fun key_timeout_is_flushed/0}
-               ,{"bump key timeout", fun bump_key_timeout/0}
-               ,{"cache key for process", fun cache_key_for_process/0}
-               ,{"count keys", fun count_keys/0}
-               ,{"count keys and values", fun count_keys_values/0}
-               ]
-       end
-      }
-     }
-    }.
+    {'timeout', 10,
+        {'spawn',
+            {'setup', fun init/0, fun cleanup/1, fun(_CachePid) ->
+                [
+                    {"wait for key exists", fun wait_for_key_local_existing/0},
+                    {"wait for key appears", fun wait_for_key_local_mid_stream/0},
+                    {"wait for key timeout", fun wait_for_key_local_timeout/0},
+                    {"wait for stampede key exists", fun wait_for_stampede_key_existing/0},
+                    {"key peek", fun peek_local/0},
+                    {"key erase", fun key_erase/0},
+                    {"cache flush", fun cache_flush/0},
+                    {"fetch keys", fun fetch_keys/0},
+                    {"filter keys", fun filter_keys/0},
+                    {"filter/erase keys", fun filter_erase_keys/0},
+                    {"callbacks", fun callbacks/0},
+                    {"key timeout is flushed", fun key_timeout_is_flushed/0},
+                    {"bump key timeout", fun bump_key_timeout/0},
+                    {"cache key for process", fun cache_key_for_process/0},
+                    {"count keys", fun count_keys/0},
+                    {"count keys and values", fun count_keys_values/0}
+                ]
+            end}}}.
 
 init() ->
     application:ensure_all_started('kazoo_bindings'),
@@ -46,7 +40,7 @@ cleanup(CachePid) ->
     kz_cache:stop_local(CachePid).
 
 wait_for_key_local_existing() ->
-    Timeout = rand:uniform(?BASE_TIMEOUT_MS)+?BASE_TIMEOUT_MS,
+    Timeout = rand:uniform(?BASE_TIMEOUT_MS) + ?BASE_TIMEOUT_MS,
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
@@ -57,7 +51,7 @@ wait_for_key_local_existing() ->
     ?assertEqual({'ok', Value}, kz_cache:wait_for_key_local(?MODULE, Key, Timeout)).
 
 wait_for_stampede_key_existing() ->
-    Timeout = rand:uniform(?BASE_TIMEOUT_MS)+?BASE_TIMEOUT_MS,
+    Timeout = rand:uniform(?BASE_TIMEOUT_MS) + ?BASE_TIMEOUT_MS,
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
@@ -65,7 +59,7 @@ wait_for_stampede_key_existing() ->
     ?assertEqual({'ok', Value}, kz_cache:wait_for_stampede_local(?MODULE, Key, Timeout)).
 
 wait_for_key_local_mid_stream() ->
-    Timeout = rand:uniform(?BASE_TIMEOUT_MS)+?BASE_TIMEOUT_MS,
+    Timeout = rand:uniform(?BASE_TIMEOUT_MS) + ?BASE_TIMEOUT_MS,
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
@@ -93,7 +87,8 @@ key_timeout_is_flushed() ->
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
-    TimeoutS = 1, % 1s
+    % 1s
+    TimeoutS = 1,
     HalfTimeoutMs = TimeoutS * ?MILLISECONDS_IN_SECOND div 2,
 
     kz_cache:store_local(?MODULE, Key, Value, [{'expires', TimeoutS}]),
@@ -109,21 +104,26 @@ bump_key_timeout() ->
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
-    TimeoutS = 1, % 1s
+    % 1s
+    TimeoutS = 1,
     HalfTimeoutMs = TimeoutS * ?MILLISECONDS_IN_SECOND div 2,
     kz_cache:store_local(?MODULE, Key, Value, [{'expires', TimeoutS}]),
     ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, Key)),
 
     timer:sleep(HalfTimeoutMs),
-    ?assertEqual({'ok', Value}, kz_cache:fetch_local(?MODULE, Key)), % bump timestamp
+    % bump timestamp
+    ?assertEqual({'ok', Value}, kz_cache:fetch_local(?MODULE, Key)),
 
     timer:sleep(HalfTimeoutMs),
-    ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, Key)), % now half-way to new timeout
+    % now half-way to new timeout
+    ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, Key)),
 
     timer:sleep(HalfTimeoutMs - ?BASE_TIMEOUT_MS),
-    ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, Key)), % now just before new timeout
+    % now just before new timeout
+    ?assertEqual({'ok', Value}, kz_cache:peek_local(?MODULE, Key)),
 
-    timer:sleep(?BASE_TIMEOUT_MS * 2), % other side of the new timeout
+    % other side of the new timeout
+    timer:sleep(?BASE_TIMEOUT_MS * 2),
     ?assertEqual({'error', 'not_found'}, kz_cache:peek_local(?MODULE, Key)).
 
 cache_key_for_process() ->
@@ -140,15 +140,17 @@ cache_key_for_process() ->
     Pid ! 'exit',
     receive
         {'DOWN', Ref, 'process', Pid, 'normal'} ->
-            timer:sleep(10), % let DOWN propagate
+            % let DOWN propagate
+            timer:sleep(10),
             ?assertEqual({'error', 'not_found'}, kz_cache:fetch_local(?MODULE, Key))
     after 1000 ->
-            exit('timeout')
+        exit('timeout')
     end.
 
 cache_key_for_process(Key, Value) ->
     receive
-        'exit' -> 'ok';
+        'exit' ->
+            'ok';
         {Parent, 'cache_key'} ->
             kz_cache:store_local(?MODULE, Key, Value, [{'monitor', [self()]}]),
             Parent ! 'cached',
@@ -196,22 +198,25 @@ fetch_keys() ->
 
 filter_keys() ->
     kz_cache:flush_local(?MODULE),
-    _ = [kz_cache:store_local(?MODULE, X, X) || X <- lists:seq(1,10)],
+    _ = [kz_cache:store_local(?MODULE, X, X) || X <- lists:seq(1, 10)],
 
-    Vs = [{X, X} || X <- lists:seq(6,10)],
+    Vs = [{X, X} || X <- lists:seq(6, 10)],
     Filtered = lists:sort(kz_cache:filter_local(?MODULE, fun(K, _V) -> K > 5 end)),
 
     ?assertEqual(Vs, Filtered).
 
 filter_erase_keys() ->
     kz_cache:flush_local(?MODULE),
-    _ = [kz_cache:store_local(?MODULE, X, X) || X <- lists:seq(1,10)],
+    _ = [kz_cache:store_local(?MODULE, X, X) || X <- lists:seq(1, 10)],
 
     Erased = kz_cache:filter_erase_local(?MODULE, fun(K, _V) -> K > 5 end),
 
     ?assertEqual(5, Erased),
-    [?assertEqual({'ok', X}, kz_cache:peek_local(?MODULE, X)) || X <- lists:seq(1,5)],
-    [?assertEqual({'error', 'not_found'}, kz_cache:peek_local(?MODULE, X)) || X <- lists:seq(6,10)].
+    [?assertEqual({'ok', X}, kz_cache:peek_local(?MODULE, X)) || X <- lists:seq(1, 5)],
+    [
+        ?assertEqual({'error', 'not_found'}, kz_cache:peek_local(?MODULE, X))
+     || X <- lists:seq(6, 10)
+    ].
 
 callbacks() ->
     Key = kz_binary:rand_hex(5),
@@ -219,35 +224,38 @@ callbacks() ->
 
     store_callback(Key, Value),
     kz_cache:erase_local(?MODULE, Key),
-    ?assertEqual({Key, Value, 'erase'}
-                ,receive_callback()
-                ),
+    ?assertEqual(
+        {Key, Value, 'erase'},
+        receive_callback()
+    ),
 
     store_callback(Key, Value),
     kz_cache:flush_local(?MODULE),
-    ?assertEqual({Key, Value, 'flush'}
-                ,receive_callback()
-                ),
+    ?assertEqual(
+        {Key, Value, 'flush'},
+        receive_callback()
+    ),
 
     store_callback(Key, Value),
-    ?assertEqual({Key, Value, 'expire'}
-                ,receive_callback()
-                ).
+    ?assertEqual(
+        {Key, Value, 'expire'},
+        receive_callback()
+    ).
 
 store_callback(Key, Value) ->
     Self = self(),
-    kz_cache:store_local(?MODULE, Key, Value, [{'callback', fun(K, V, Reason) ->
-                                                                    Self ! {'callback', K, V, Reason}
-                                                            end
-                                               }
-                                              ,{'expires', 1}
-                                              ]).
+    kz_cache:store_local(?MODULE, Key, Value, [
+        {'callback', fun(K, V, Reason) ->
+            Self ! {'callback', K, V, Reason}
+        end},
+        {'expires', 1}
+    ]).
 
 receive_callback() ->
     receive
         {'callback', Key, Value, Reason} -> {Key, Value, Reason}
     after 2000 ->
-            {'error', 'timeout'}
+        {'error', 'timeout'}
     end.
 
 writer_job(Key, Value, Timeout) ->
@@ -255,7 +263,7 @@ writer_job(Key, Value, Timeout) ->
     kz_cache:store_local(?MODULE, Key, Value).
 
 count_keys() ->
-    KVs = [{Key, kz_binary:rand_hex(4)} || Key <- lists:seq(1,6)],
+    KVs = [{Key, kz_binary:rand_hex(4)} || Key <- lists:seq(1, 6)],
     [kz_cache:store_local(?MODULE, Key, Value) || {Key, Value} <- KVs],
 
     ?assertEqual(3, kz_cache:count_local(?MODULE, '$1', {'>', '$1', 3}, 'undefined', 'undefined')),
@@ -264,7 +272,7 @@ count_keys() ->
     ?assertEqual(0, kz_cache:count_local(?MODULE, 10)).
 
 count_keys_values() ->
-    KVs = [{Key, Key*2} || Key <- lists:seq(1,6)],
+    KVs = [{Key, Key * 2} || Key <- lists:seq(1, 6)],
     [kz_cache:store_local(?MODULE, Key, Value) || {Key, Value} <- KVs],
 
     ?assertEqual(1, kz_cache:count_local(?MODULE, '$1', {'>', '$1', 3}, 8, 'undefined')),

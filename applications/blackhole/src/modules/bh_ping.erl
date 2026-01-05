@@ -9,11 +9,12 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_ping).
 
--export([init/0
-        ,validate/2
-        ,ping/2
-        ,authorize/2
-        ]).
+-export([
+    init/0,
+    validate/2,
+    ping/2,
+    authorize/2
+]).
 
 -include("blackhole.hrl").
 

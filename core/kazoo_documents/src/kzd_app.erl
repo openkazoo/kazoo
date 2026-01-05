@@ -23,9 +23,12 @@
 -export([name/1, name/2, set_name/2]).
 -export([phase/1, phase/2, set_phase/2]).
 -export([price/1, price/2, set_price/2]).
--export([is_published/1, is_published/2, set_is_published/2
-        ,publish/1, unpublish/1
-        ]).
+-export([
+    is_published/1, is_published/2,
+    set_is_published/2,
+    publish/1,
+    unpublish/1
+]).
 -export([screenshots/1, screenshots/2, set_screenshots/2]).
 -export([source_url/1, source_url/2, set_source_url/2]).
 -export([tags/1, tags/2, set_tags/2]).
@@ -285,7 +288,8 @@ extends(Doc, Default) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:api_binary(), kz_term:api_binary()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec fetch(kz_term:api_binary(), kz_term:api_binary()) ->
+    {'ok', kz_json:object()} | {'error', any()}.
 fetch('undefined', _) ->
     {'error', 'account_id_undefined'};
 fetch(_, 'undefined') ->

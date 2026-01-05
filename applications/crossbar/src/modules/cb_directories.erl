@@ -6,17 +6,18 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_directories).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,content_types_provided/2
-        ,to_pdf/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    content_types_provided/2,
+    to_pdf/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -39,7 +40,9 @@
 init() ->
     _ = crossbar_bindings:bind(<<"*.allowed_methods.directories">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.directories">>, ?MODULE, 'resource_exists'),
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.directories">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.directories">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"*.to_pdf.get.directories">>, ?MODULE, 'to_pdf'),
     _ = crossbar_bindings:bind(<<"*.validate.directories">>, ?MODULE, 'validate'),
     _ = crossbar_bindings:bind(<<"*.execute.put.directories">>, ?MODULE, 'put'),
@@ -100,7 +103,8 @@ content_types_provided(Context, _Id) ->
 to_pdf({Req, Context}) ->
     Nouns = cb_context:req_nouns(Context),
     case props:get_value(<<"directories">>, Nouns, []) of
-        [] -> {Req, Context};
+        [] ->
+            {Req, Context};
         [Id] ->
             Context1 = read(Id, Context),
             case cb_context:resp_status(Context1) of
@@ -176,7 +180,8 @@ validate_directories(Context, ?HTTP_PUT) ->
 %% @doc Create a new instance with the data provided, if it is valid
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_directory(cb_context:context(), kz_term:ne_binary(), path_token()) -> cb_context:context().
+-spec validate_directory(cb_context:context(), kz_term:ne_binary(), path_token()) ->
+    cb_context:context().
 validate_directory(Context, Id, ?HTTP_GET) ->
     read(Id, Context);
 validate_directory(Context, Id, ?HTTP_POST) ->
@@ -216,14 +221,16 @@ pdf_props(Context) ->
 
     Directory = kz_json:to_proplist(kz_json:delete_key(<<"users">>, RespData)),
     Users =
-        pdf_users(AccountId
-                 ,props:get_binary_value(<<"sort_by">>, Directory, <<"last_name">>)
-                 ,kz_json:get_value(<<"users">>, RespData, [])
-                 ),
+        pdf_users(
+            AccountId,
+            props:get_binary_value(<<"sort_by">>, Directory, <<"last_name">>),
+            kz_json:get_value(<<"users">>, RespData, [])
+        ),
 
-    [{<<"type">>, <<"directory">>}
-    ,{<<"users">>, Users}
-    ,{<<"directory">>, Directory}
+    [
+        {<<"type">>, <<"directory">>},
+        {<<"users">>, Users},
+        {<<"directory">>, Directory}
     ].
 
 %%------------------------------------------------------------------------------
@@ -239,13 +246,14 @@ pdf_users(AccountId, SortBy, Users) ->
 pdf_users(_AccountDb, SortBy, [], Acc) ->
     Users = [{props:get_value([<<"user">>, SortBy], U), U} || U <- Acc],
     [U || {_SortCriterion, U} <- lists:keysort(1, Users)];
-pdf_users(AccountDb, SortBy, [JObj|Users], Acc) ->
+pdf_users(AccountDb, SortBy, [JObj | Users], Acc) ->
     UserId = kz_json:get_value(<<"user_id">>, JObj),
     CallflowId = kz_json:get_value(<<"callflow_id">>, JObj),
-    Props = [{<<"user">>, pdf_user(AccountDb, UserId)}
-            ,{<<"callflow">>, pdf_callflow(AccountDb, CallflowId)}
-            ],
-    pdf_users(AccountDb, SortBy, Users, [Props|Acc]).
+    Props = [
+        {<<"user">>, pdf_user(AccountDb, UserId)},
+        {<<"callflow">>, pdf_callflow(AccountDb, CallflowId)}
+    ],
+    pdf_users(AccountDb, SortBy, Users, [Props | Acc]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -294,24 +302,28 @@ read(Id, Context) ->
     case cb_context:resp_status(Context1) of
         'success' ->
             load_directory_users(Id, Context1);
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec load_directory_users(kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
 load_directory_users(Id, Context) ->
-    Context1 = crossbar_doc:load_view(?CB_USERS_LIST
-                                     ,[{'startkey', [Id]}
-                                      ,{'endkey', [Id, kz_json:new()]}
-                                      ]
-                                     ,Context
-                                     ,fun normalize_users_results/2
-                                     ),
+    Context1 = crossbar_doc:load_view(
+        ?CB_USERS_LIST,
+        [
+            {'startkey', [Id]},
+            {'endkey', [Id, kz_json:new()]}
+        ],
+        Context,
+        fun normalize_users_results/2
+    ),
     case cb_context:resp_status(Context1) of
         'success' ->
             Users = cb_context:resp_data(Context1),
             Directory = cb_context:resp_data(Context),
             cb_context:set_resp_data(Context, kz_json:set_value(<<"users">>, Users, Directory));
-        _Status -> Context
+        _Status ->
+            Context
     end.
 
 %%------------------------------------------------------------------------------
@@ -339,9 +351,10 @@ validate_patch(DocId, Context) ->
 %%------------------------------------------------------------------------------
 -spec on_successful_validation(kz_term:api_binary(), cb_context:context()) -> cb_context:context().
 on_successful_validation('undefined', Context) ->
-    cb_context:set_doc(Context
-                      ,kz_doc:set_type(cb_context:doc(Context), <<"directory">>)
-                      );
+    cb_context:set_doc(
+        Context,
+        kz_doc:set_type(cb_context:doc(Context), <<"directory">>)
+    );
 on_successful_validation(DocId, Context) ->
     crossbar_doc:load_merge(DocId, Context, ?TYPE_CHECK_OPTION(<<"directory">>)).
 
@@ -360,12 +373,14 @@ summary(Context) ->
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].
 
 -spec normalize_users_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_users_results(JObj, Acc) ->
-    [kz_json:from_list([{<<"user_id">>, kz_doc:id(JObj)}
-                       ,{<<"callflow_id">>, kz_json:get_ne_binary_value(<<"value">>, JObj)}
-                       ])
-     | Acc
+    [
+        kz_json:from_list([
+            {<<"user_id">>, kz_doc:id(JObj)},
+            {<<"callflow_id">>, kz_json:get_ne_binary_value(<<"value">>, JObj)}
+        ])
+        | Acc
     ].

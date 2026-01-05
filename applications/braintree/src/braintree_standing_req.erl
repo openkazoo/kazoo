@@ -9,12 +9,12 @@
 
 -include("braintree.hrl").
 
--record(request, {account_id :: kz_term:ne_binary()
-                 ,request_jobj :: kz_json:object()
-                 ,customer :: braintree_customer:customer()
-                 ,card :: bt_card()
-                 }
-       ).
+-record(request, {
+    account_id :: kz_term:ne_binary(),
+    request_jobj :: kz_json:object(),
+    customer :: braintree_customer:customer(),
+    card :: bt_card()
+}).
 
 -type request() :: #request{}.
 
@@ -31,25 +31,28 @@ handle_req(JObj, _Props) ->
         'false' ->
             lager:debug("skipping service standing check for another bookkeeper");
         'true' ->
-            Request = #request{account_id = AccountId
-                              ,request_jobj = JObj
-                              },
-            Routines = [fun find_braintree_customer/1
-                       ,fun find_payment_token/1
-                       ,fun check_card_expiration/1
-                       ,fun check_subscriptions/1
-                       ],
+            Request = #request{
+                account_id = AccountId,
+                request_jobj = JObj
+            },
+            Routines = [
+                fun find_braintree_customer/1,
+                fun find_payment_token/1,
+                fun check_card_expiration/1,
+                fun check_subscriptions/1
+            ],
             check_braintree(Request, Routines)
     end.
 
 -spec check_braintree(request(), any()) -> 'ok'.
 check_braintree(Request, []) ->
     reply_good_standing(Request);
-check_braintree(Request, [Routine|Routines]) ->
+check_braintree(Request, [Routine | Routines]) ->
     case Routine(Request) of
         {'ok', UpdatedRequest} ->
             check_braintree(UpdatedRequest, Routines);
-        _Else -> 'ok'
+        _Else ->
+            'ok'
     end.
 
 -spec find_braintree_customer(request()) -> routine_return().
@@ -87,9 +90,10 @@ check_card_expiration(#request{card = Card} = Request) ->
             lager:debug("default payment token has not expired"),
             {'ok', Request};
         'true' ->
-            lager:debug("default payment token has expired: ~p"
-                       ,[calendar:gregorian_seconds_to_datetime(Expiration)]
-                       ),
+            lager:debug(
+                "default payment token has expired: ~p",
+                [calendar:gregorian_seconds_to_datetime(Expiration)]
+            ),
             reply_expired_payment_token(Request)
     end.
 
@@ -111,9 +115,10 @@ check_subscriptions(#request{customer = Customer} = Request) ->
 %%------------------------------------------------------------------------------
 -spec reply_good_standing(request()) -> 'ok'.
 reply_good_standing(Request) ->
-    Reply = [{<<"Status">>, kzd_services:status_good()}
-            ,{<<"Message">>, <<"Credit card on file and all active subscriptions valid">>}
-            ],
+    Reply = [
+        {<<"Status">>, kzd_services:status_good()},
+        {<<"Message">>, <<"Credit card on file and all active subscriptions valid">>}
+    ],
     reply(Request, Reply).
 
 %%------------------------------------------------------------------------------
@@ -122,10 +127,11 @@ reply_good_standing(Request) ->
 %%------------------------------------------------------------------------------
 -spec reply_missing_payment_token(request()) -> 'ok'.
 reply_missing_payment_token(Request) ->
-    Reply = [{<<"Status">>, <<"error">>}
-            ,{<<"Message">>, <<"There is no credit card on file for this account">>}
-            ,{<<"Reason">>, <<"no_payment_token">>}
-            ],
+    Reply = [
+        {<<"Status">>, <<"error">>},
+        {<<"Message">>, <<"There is no credit card on file for this account">>},
+        {<<"Reason">>, <<"no_payment_token">>}
+    ],
     reply(Request, Reply).
 
 %%------------------------------------------------------------------------------
@@ -134,10 +140,11 @@ reply_missing_payment_token(Request) ->
 %%------------------------------------------------------------------------------
 -spec reply_expired_payment_token(request()) -> 'ok'.
 reply_expired_payment_token(Request) ->
-    Reply = [{<<"Status">>, <<"error">>}
-            ,{<<"Message">>, <<"The credit card on file has expired">>}
-            ,{<<"Reason">>, <<"no_payment_token">>}
-            ],
+    Reply = [
+        {<<"Status">>, <<"error">>},
+        {<<"Message">>, <<"The credit card on file has expired">>},
+        {<<"Reason">>, <<"no_payment_token">>}
+    ],
     reply(Request, Reply).
 
 %%------------------------------------------------------------------------------
@@ -146,10 +153,12 @@ reply_expired_payment_token(Request) ->
 %%------------------------------------------------------------------------------
 -spec reply_past_due(request()) -> 'ok'.
 reply_past_due(Request) ->
-    Reply = [{<<"Status">>, <<"error">>}
-            ,{<<"Message">>, <<"Your account is delinquent, please contact your sales representative.">>}
-            ,{<<"Reason">>, <<"delinquent">>}
-            ],
+    Reply = [
+        {<<"Status">>, <<"error">>},
+        {<<"Message">>,
+            <<"Your account is delinquent, please contact your sales representative.">>},
+        {<<"Reason">>, <<"delinquent">>}
+    ],
     reply(Request, Reply).
 
 %%------------------------------------------------------------------------------
@@ -157,16 +166,18 @@ reply_past_due(Request) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec reply(request(), kz_term:proplist()) -> 'ok'.
-reply(#request{request_jobj=JObj}, Reply) ->
+reply(#request{request_jobj = JObj}, Reply) ->
     MessageId = kz_json:get_value(<<"Msg-ID">>, JObj),
     Response = kz_json:from_list(
-                 [{<<"Msg-ID">>, MessageId}
-                  | Reply
-                 ] ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                ),
+        [
+            {<<"Msg-ID">>, MessageId}
+            | Reply
+        ] ++ kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ),
     RespQ = kz_json:get_value(<<"Server-ID">>, JObj),
-    kz_amqp_worker:cast(Response
-                       ,fun(P) ->
-                                kapi_bookkeepers:publish_standing_resp(RespQ, P)
-                        end
-                       ).
+    kz_amqp_worker:cast(
+        Response,
+        fun(P) ->
+            kapi_bookkeepers:publish_standing_resp(RespQ, P)
+        end
+    ).

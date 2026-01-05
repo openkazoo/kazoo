@@ -1,8 +1,19 @@
-{application,kazoo_proper,
-             [{applications,[cowboy,cowlib,crypto,eunit,goldrush,gun,
-                             kernel,lager,proper,ranch,stdlib
-                             ]},
-              {description,"Kazoo Proper - Proper Statem and FSM testing"},
-              {vsn,"4.0.0"},
-              {modules,[]},
-              {registered,[]}]}.
+{application, kazoo_proper, [
+    {applications, [
+        cowboy,
+        cowlib,
+        crypto,
+        eunit,
+        goldrush,
+        gun,
+        kernel,
+        lager,
+        proper,
+        ranch,
+        stdlib
+    ]},
+    {description, "Kazoo Proper - Proper Statem and FSM testing"},
+    {vsn, "4.0.0"},
+    {modules, []},
+    {registered, []}
+]}.

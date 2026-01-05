@@ -10,7 +10,6 @@
 -export([numbers/1, numbers/2, set_numbers/2]).
 -export([resource_id/1, resource_id/2, set_resource_id/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

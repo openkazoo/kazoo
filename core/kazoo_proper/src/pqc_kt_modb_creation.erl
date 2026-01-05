@@ -5,9 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_kt_modb_creation).
 
--export([seq/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    cleanup/0
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -15,9 +16,10 @@
 
 -spec seq() -> 'ok'.
 seq() ->
-    API = pqc_cb_api:init_api(['crossbar']
-                             ,['cb_accounts']
-                             ),
+    API = pqc_cb_api:init_api(
+        ['crossbar'],
+        ['cb_accounts']
+    ),
     AccountId = create_account(API),
 
     {Year, Month, Day} = erlang:date(),
@@ -30,7 +32,7 @@ seq() ->
     %% create all MODBs in the first time unit
     _ = kapps_config:set_default(<<"tasks.modb_creation">>, <<"create_in_parallel">>, 1000),
 
-    {NextYear, NextMonth, _} = kz_date:normalize({Year, Month+1, 1}),
+    {NextYear, NextMonth, _} = kz_date:normalize({Year, Month + 1, 1}),
     NextMODB = kz_util:format_account_id(AccountId, NextYear, NextMonth),
 
     'false' = check_for_creation(NextMODB, 0),

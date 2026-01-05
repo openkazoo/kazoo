@@ -11,18 +11,23 @@
 -export([start_link/0, stop/0, gen_rsa/2, max_jobs/1]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -define(SERVER, ?MODULE).
 -define(DEFAULT_MAXJOBS, 4).
 
--record(state, {port, requests=[], queue = queue:new(), limit}).
+-record(state, {port, requests = [], queue = queue:new(), limit}).
 
 -type state() :: #state{}.
 -type gen_rsa() :: {gen_rsa, integer(), integer()}.
 -type job() :: {integer(), kz_term:pid_ref(), gen_rsa()}.
-
 
 -include("kazoo_auth.hrl").
 
@@ -43,17 +48,24 @@ gen_rsa(Bits, E) when is_integer(Bits), Bits > 0, E band 1 =:= 1 ->
     gen_server:call(?SERVER, {gen_rsa, Bits, E}, infinity).
 
 -spec max_jobs(integer()) -> 'ok'.
-max_jobs(Limit) when is_integer(Limit)
-                     andalso Limit > 0 ->
+max_jobs(Limit) when
+    is_integer(Limit) andalso
+        Limit > 0
+->
     gen_server:call(?SERVER, {set_limit, Limit}, infinity).
 
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    Limit = case application:get_env(kazoo_auth, max_jobs) of
-                undefined -> ?DEFAULT_MAXJOBS;
-                {ok, Int} when is_integer(Int)
-                               andalso Int > 0 -> Int
-            end,
+    Limit =
+        case application:get_env(kazoo_auth, max_jobs) of
+            undefined ->
+                ?DEFAULT_MAXJOBS;
+            {ok, Int} when
+                is_integer(Int) andalso
+                    Int > 0
+            ->
+                Int
+        end,
     gen_server:start_link({local, ?SERVER}, ?MODULE, Limit, []).
 
 %%%=============================================================================
@@ -65,8 +77,10 @@ start_link() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec init(integer()) -> {'ok', state()}.
-init(Limit) when is_integer(Limit)
-                 andalso Limit > 0 ->
+init(Limit) when
+    is_integer(Limit) andalso
+        Limit > 0
+->
     Port = kz_auth_rsa_drv:open(),
     {ok, #state{port = Port}}.
 
@@ -79,9 +93,10 @@ handle_call({gen_rsa, _Bits, _E} = Req, From, #state{} = State) ->
     NewState0 = add_to_queue(Job, State),
     NewState1 = process_queue(NewState0),
     {noreply, NewState1};
-handle_call({set_limit, Limit}, _From, #state{} = State)
-  when is_integer(Limit)
-       andalso Limit > 0 ->
+handle_call({set_limit, Limit}, _From, #state{} = State) when
+    is_integer(Limit) andalso
+        Limit > 0
+->
     NewState = State#state{limit = Limit},
     {reply, 'ok', NewState};
 handle_call(_Request, _From, State) ->
@@ -98,7 +113,8 @@ handle_info({Port, Ref, Data}, #state{port = Port, requests = Reqs} = State) ->
             gen_server:reply(From, {ok, Data}),
             NewState = process_queue(State#state{requests = NewRequests}),
             {noreply, NewState};
-        false -> {noreply, State}
+        false ->
+            {noreply, State}
     end;
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -118,25 +134,30 @@ add_to_queue(Job, #state{queue = Queue} = State) ->
 
 -spec process_queue(state()) -> state().
 process_queue(#state{requests = Reqs, queue = Q, limit = Limit} = State) ->
-    case Reqs =:= []
-        orelse length(Reqs) > Limit
+    case
+        Reqs =:= [] orelse
+            length(Reqs) > Limit
     of
         true ->
             case queue:out(Q) of
                 {{value, Job}, NewQ} ->
                     NewState = State#state{queue = NewQ},
                     start_job(Job, NewState);
-                {empty, Q} -> State
+                {empty, Q} ->
+                    State
             end;
-        false -> State
+        false ->
+            State
     end.
 
 -spec start_job(job(), state()) -> state().
-start_job({Ref, From, {gen_rsa, Bits, E}},
-          #state{port = Port, requests = Requests} = State) ->
+start_job(
+    {Ref, From, {gen_rsa, Bits, E}},
+    #state{port = Port, requests = Requests} = State
+) ->
     case kz_auth_rsa_drv:gen_rsa(Port, Ref, Bits, E) of
         ok ->
-            NewRequests = [{Ref, From}|Requests],
+            NewRequests = [{Ref, From} | Requests],
             State#state{requests = NewRequests};
         {error, _ErrNo} = Reply ->
             gen_server:reply(From, Reply),

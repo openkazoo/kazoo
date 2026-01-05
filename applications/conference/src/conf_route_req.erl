@@ -11,7 +11,9 @@
 
 -define(DEFAULT_ROUTE_WIN_TIMEOUT, 3000).
 -define(ROUTE_WIN_TIMEOUT_KEY, <<"route_win_timeout">>).
--define(ROUTE_WIN_TIMEOUT, kapps_config:get_integer(?CONFIG_CAT, ?ROUTE_WIN_TIMEOUT_KEY, ?DEFAULT_ROUTE_WIN_TIMEOUT)).
+-define(ROUTE_WIN_TIMEOUT,
+    kapps_config:get_integer(?CONFIG_CAT, ?ROUTE_WIN_TIMEOUT_KEY, ?DEFAULT_ROUTE_WIN_TIMEOUT)
+).
 
 -spec handle_req(kz_json:object(), kz_term:proplist()) -> 'ok'.
 handle_req(JObj, _Props) ->
@@ -22,7 +24,8 @@ handle_req(JObj, _Props) ->
     case kapps_call:request_user(Call) of
         <<"conference">> ->
             maybe_send_route_response(JObj, Call);
-        _Else -> 'ok'
+        _Else ->
+            'ok'
     end.
 
 -spec maybe_send_route_response(kz_json:object(), kapps_call:call()) -> 'ok'.
@@ -30,31 +33,36 @@ maybe_send_route_response(JObj, Call) ->
     case find_conference(Call) of
         {'ok', Conference} ->
             send_route_response(JObj, Call, Conference);
-        {'error', _} -> 'ok'
+        {'error', _} ->
+            'ok'
     end.
 
 -spec send_route_response(kz_json:object(), kapps_call:call(), kapps_conference:conference()) ->
-          'ok'.
+    'ok'.
 send_route_response(JObj, Call, Conference) ->
     lager:info("conference knows how to route the call! sending park response"),
-    CCVs = kz_json:set_values([{<<"Account-ID">>, kapps_conference:account_id(Conference)}]
-                             ,kapps_call:custom_channel_vars(Call)
-                             ),
-    Resp = props:filter_undefined([{?KEY_MSG_ID, kz_api:msg_id(JObj)}
-                                  ,{?KEY_MSG_REPLY_ID, kapps_call:call_id_direct(Call)}
-                                  ,{<<"Routes">>, []}
-                                  ,{<<"Method">>, <<"park">>}
-                                  ,{<<"Custom-Channel-Vars">>, CCVs}
-                                  ,{<<"Custom-Application-Vars">>, kapps_call:custom_application_vars(Call)}
-                                   | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                                  ]),
+    CCVs = kz_json:set_values(
+        [{<<"Account-ID">>, kapps_conference:account_id(Conference)}],
+        kapps_call:custom_channel_vars(Call)
+    ),
+    Resp = props:filter_undefined([
+        {?KEY_MSG_ID, kz_api:msg_id(JObj)},
+        {?KEY_MSG_REPLY_ID, kapps_call:call_id_direct(Call)},
+        {<<"Routes">>, []},
+        {<<"Method">>, <<"park">>},
+        {<<"Custom-Channel-Vars">>, CCVs},
+        {<<"Custom-Application-Vars">>, kapps_call:custom_application_vars(Call)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ]),
     ServerId = kz_api:server_id(JObj),
     Publisher = fun(P) -> kapi_route:publish_resp(ServerId, P) end,
-    case kz_amqp_worker:call(Resp
-                            ,Publisher
-                            ,fun kapi_route:win_v/1
-                            ,?ROUTE_WIN_TIMEOUT
-                            )
+    case
+        kz_amqp_worker:call(
+            Resp,
+            Publisher,
+            fun kapi_route:win_v/1,
+            ?ROUTE_WIN_TIMEOUT
+        )
     of
         {'ok', RouteWin} ->
             lager:info("conference has received a route win"),
@@ -68,16 +76,18 @@ start_participant(Call, Conference) ->
     case conf_participant_sup:start_participant(Call) of
         {'ok', Participant} ->
             join_local(Call, Conference, Participant);
-        _Else -> kapps_call_command:hangup(Call)
+        _Else ->
+            kapps_call_command:hangup(Call)
     end.
 
 -spec join_local(kapps_call:call(), kapps_conference:conference(), kz_types:server_ref()) -> 'ok'.
 join_local(Call, Conference, Participant) ->
     IsModerator = kz_term:is_true(kapps_call:custom_sip_header(<<"X-Conf-Flags-Moderator">>, Call)),
-    Routines = [{fun kapps_conference:set_moderator/2, IsModerator}
-               ,{fun kapps_conference:set_application_version/2, ?APP_VERSION}
-               ,{fun kapps_conference:set_application_name/2, ?APP_NAME}
-               ],
+    Routines = [
+        {fun kapps_conference:set_moderator/2, IsModerator},
+        {fun kapps_conference:set_application_version/2, ?APP_VERSION},
+        {fun kapps_conference:set_application_name/2, ?APP_NAME}
+    ],
     C = kapps_conference:update(Routines, Conference),
     conf_participant:set_conference(C, Participant),
     maybe_set_name_pronounced(Call, Participant),
@@ -90,22 +100,26 @@ maybe_set_name_pronounced(Call, Participant) ->
     MediaId = kapps_call:custom_sip_header(<<"X-Conf-Values-Pronounced-Name-Media-ID">>, Call),
     maybe_set_name_pronounced(AccountId, MediaId, Participant).
 
--spec maybe_set_name_pronounced(kz_json:api_json_term(), kz_json:api_json_term(), kz_types:server_ref()) -> 'ok'.
-maybe_set_name_pronounced('undefined', _, _) -> 'ok';
-maybe_set_name_pronounced(_, 'undefined', _) -> 'ok';
+-spec maybe_set_name_pronounced(
+    kz_json:api_json_term(), kz_json:api_json_term(), kz_types:server_ref()
+) -> 'ok'.
+maybe_set_name_pronounced('undefined', _, _) ->
+    'ok';
+maybe_set_name_pronounced(_, 'undefined', _) ->
+    'ok';
 maybe_set_name_pronounced(AccountId, MediaId, Participant) ->
     conf_participant:set_name_pronounced({'undefined', AccountId, MediaId}, Participant).
 
 -spec find_conference(kapps_call:call()) ->
-          {'error', 'realm_unknown'} |
-          kz_datamgr:data_error() |
-          {'ok', kapps_conference:conference()}.
+    {'error', 'realm_unknown'}
+    | kz_datamgr:data_error()
+    | {'ok', kapps_conference:conference()}.
 find_conference(Call) ->
     find_conference(Call, find_account_db(Call)).
 
 -spec find_conference(kapps_call:call(), kz_term:api_ne_binary()) ->
-          {'error', 'realm_unknown'} |
-          {'ok', kapps_conference:conference()}.
+    {'error', 'realm_unknown'}
+    | {'ok', kapps_conference:conference()}.
 find_conference(_Call, 'undefined') ->
     {'error', 'realm_unknown'};
 find_conference(Call, AccountDb) ->
@@ -114,10 +128,11 @@ find_conference(Call, AccountDb) ->
         {'ok', JObj} ->
             <<"conference">> = kz_doc:type(JObj),
             {'ok', kapps_conference:from_conference_doc(JObj)};
-        {'error', _R}=Error ->
-            lager:info("unable to find conference ~s in account db ~s: ~p"
-                      ,[ConferenceId, AccountDb, _R]
-                      ),
+        {'error', _R} = Error ->
+            lager:info(
+                "unable to find conference ~s in account db ~s: ~p",
+                [ConferenceId, AccountDb, _R]
+            ),
             Error
     end.
 
@@ -128,12 +143,13 @@ find_account_db(Call) ->
         {'ok', AccountDb} ->
             lager:debug("found account db by realm ~s: ~s", [Realm, AccountDb]),
             AccountDb;
-        {'multiples', [AccountDb|_]} ->
+        {'multiples', [AccountDb | _]} ->
             lager:debug("found account db by realm ~s: ~s", [Realm, AccountDb]),
             AccountDb;
         {'error', _R} ->
-            lager:debug("unable to find account for realm ~s: ~p"
-                       ,[Realm, _R]
-                       ),
+            lager:debug(
+                "unable to find account for realm ~s: ~p",
+                [Realm, _R]
+            ),
             'undefined'
     end.

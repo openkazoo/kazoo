@@ -8,15 +8,12 @@
 
 %% behaviour: tasks_provider
 
--export([init/0
-        ]).
+-export([init/0]).
 
 %% Triggerables
--export([cleanup/1
-        ]).
+-export([cleanup/1]).
 
 -include("tasks.hrl").
-
 
 %%%=============================================================================
 %%% API
@@ -36,7 +33,8 @@ init() ->
 cleanup(?KZ_WEBHOOKS_DB) ->
     lager:debug("checking ~s for abandoned accounts", [?KZ_WEBHOOKS_DB]),
     cleanup_orphaned_hooks();
-cleanup(_SystemDb) -> 'ok'.
+cleanup(_SystemDb) ->
+    'ok'.
 
 %%%=============================================================================
 %%% Internal functions
@@ -48,37 +46,40 @@ cleanup(_SystemDb) -> 'ok'.
 %%------------------------------------------------------------------------------
 -spec cleanup_orphaned_hooks() -> 'ok'.
 cleanup_orphaned_hooks() ->
-    case kz_datamgr:get_results(?KZ_WEBHOOKS_DB
-                               ,<<"webhooks/accounts_listing">>
-                               ,['group']
-                               )
+    case
+        kz_datamgr:get_results(
+            ?KZ_WEBHOOKS_DB,
+            <<"webhooks/accounts_listing">>,
+            ['group']
+        )
     of
         {'ok', []} -> lager:debug("no hooks configured");
         {'ok', Accounts} -> cleanup_orphaned_hooks(Accounts);
-        {'error', _E} ->
-            lager:debug("failed to lookup accounts in ~s: ~p", [?KZ_WEBHOOKS_DB, _E])
+        {'error', _E} -> lager:debug("failed to lookup accounts in ~s: ~p", [?KZ_WEBHOOKS_DB, _E])
     end.
 
 -spec cleanup_orphaned_hooks(kz_json:objects()) -> 'ok'.
 cleanup_orphaned_hooks(Accounts) ->
-    _Rm = [begin
-               delete_account_webhooks(AccountId),
-               timer:sleep(5 * ?MILLISECONDS_IN_SECOND)
-           end
-           || Account <- Accounts,
-              begin
-                  AccountId = kz_json:get_value(<<"key">>, Account),
-                  not kz_datamgr:db_exists(kz_util:format_account_id(AccountId, 'encoded'))
-              end
-          ],
-    _Rm =/= []
-        andalso lager:debug("removed ~p accounts' webhooks", [length(_Rm)]),
+    _Rm = [
+        begin
+            delete_account_webhooks(AccountId),
+            timer:sleep(5 * ?MILLISECONDS_IN_SECOND)
+        end
+     || Account <- Accounts,
+        begin
+            AccountId = kz_json:get_value(<<"key">>, Account),
+            not kz_datamgr:db_exists(kz_util:format_account_id(AccountId, 'encoded'))
+        end
+    ],
+    _Rm =/= [] andalso
+        lager:debug("removed ~p accounts' webhooks", [length(_Rm)]),
     'ok'.
 
 -spec delete_account_webhooks(kz_term:ne_binary()) -> 'ok'.
 delete_account_webhooks(AccountId) ->
     case fetch_account_hooks(AccountId) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'error', _E} ->
             lager:debug("failed to fetch webhooks for account ~s: ~p", [AccountId, _E]);
         {'ok', ViewJObjs} ->
@@ -88,20 +89,24 @@ delete_account_webhooks(AccountId) ->
 
 -spec fetch_account_hooks(kz_term:ne_binary()) -> kazoo_data:get_results_return().
 fetch_account_hooks(AccountId) ->
-    kz_datamgr:get_results(?KZ_WEBHOOKS_DB
-                          ,<<"webhooks/accounts_listing">>
-                          ,[{'key', AccountId}
-                           ,{'reduce', 'false'}
-                           ,'include_docs'
-                           ]
-                          ).
+    kz_datamgr:get_results(
+        ?KZ_WEBHOOKS_DB,
+        <<"webhooks/accounts_listing">>,
+        [
+            {'key', AccountId},
+            {'reduce', 'false'},
+            'include_docs'
+        ]
+    ).
 
 -spec delete_account_hooks(kz_json:objects()) -> any().
 delete_account_hooks(ViewJObjs) ->
-    kz_datamgr:del_docs(?KZ_WEBHOOKS_DB
-                       ,[kz_json:get_value(<<"doc">>, ViewJObj)
-                         || ViewJObj <- ViewJObjs
-                        ]
-                       ).
+    kz_datamgr:del_docs(
+        ?KZ_WEBHOOKS_DB,
+        [
+            kz_json:get_value(<<"doc">>, ViewJObj)
+         || ViewJObj <- ViewJObjs
+        ]
+    ).
 
 %%% End of Module.

@@ -9,25 +9,27 @@
 
 -export([is_ready/0]).
 -export([start_link/1]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("amqp_leader.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {self = self()          :: pid()
-               ,name                   :: atom()
-               ,pending = []           :: [{pid(), any()}]
-               ,has_queue = 'false'    :: boolean()
-               ,is_consuming = 'false' :: boolean()
-               }).
+-record(state, {
+    self = self() :: pid(),
+    name :: atom(),
+    pending = [] :: [{pid(), any()}],
+    has_queue = 'false' :: boolean(),
+    is_consuming = 'false' :: boolean()
+}).
 
 -type state() :: #state{}.
 
@@ -49,7 +51,9 @@
 -spec is_ready() -> 'true'.
 is_ready() ->
     {'registered_name', Name} = erlang:process_info(self(), 'registered_name'),
-    Sup = element(2, hd([X || X <- supervisor:which_children('amqp_leader_sup'), element(1, X) =:= Name])),
+    Sup = element(
+        2, hd([X || X <- supervisor:which_children('amqp_leader_sup'), element(1, X) =:= Name])
+    ),
     Pid = element(2, hd([X || X <- supervisor:which_children(Sup), element(1, X) =:= ?MODULE])),
     Ref = make_ref(),
     gen_listener:cast(Pid, {'is_ready', self(), Ref}),
@@ -61,13 +65,21 @@ is_ready() ->
 %%------------------------------------------------------------------------------
 -spec start_link(atom() | pid()) -> kz_types:startlink_ret().
 start_link(Name) ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS(Name)}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME(Name)}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                      %%,{basic_qos, 1}                % only needed if prefetch controls
-                                     ], [Name]).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS(Name)},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME(Name)},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+            %%,{basic_qos, 1}                % only needed if prefetch controls
+        ],
+        [Name]
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -136,7 +148,8 @@ handle_event(JObj, #state{name = Name}) ->
     kz_util:put_callid(kapi_leader:queue(Name, node())),
     NodeBin = kz_term:to_binary(node()),
     case kz_json:get_value(<<"Node">>, JObj) of
-        NodeBin -> 'ok';
+        NodeBin ->
+            'ok';
         _ ->
             Msg = erlang:binary_to_term(kz_binary:from_hex(kz_json:get_value(<<"Message">>, JObj))),
             Name ! Msg
@@ -175,10 +188,9 @@ code_change(_OldVsn, State, _Extra) ->
 recv_ready(Ref) ->
     receive
         {Ref, 'ready'} -> ready_when_node_is_up()
-    after
-        1 * ?MILLISECONDS_IN_SECOND ->
-            lager:debug("listener not ready yet"),
-            recv_ready(Ref)
+    after 1 * ?MILLISECONDS_IN_SECOND ->
+        lager:debug("listener not ready yet"),
+        recv_ready(Ref)
     end.
 
 -spec ready_when_node_is_up() -> 'true'.
@@ -193,15 +205,18 @@ ready_when_node_is_up() ->
     end.
 
 -spec maybe_ready(state()) -> state().
-maybe_ready(#state{pending = Pids
-                  ,has_queue = 'true'
-                  ,is_consuming = 'true'
-                  } = State) ->
+maybe_ready(
+    #state{
+        pending = Pids,
+        has_queue = 'true',
+        is_consuming = 'true'
+    } = State
+) ->
     _ = [gen_server:reply(Pid, 'ready') || Pid <- Pids],
     State#state{pending = []};
-maybe_ready(#state{has_queue='true'}=State) ->
+maybe_ready(#state{has_queue = 'true'} = State) ->
     lager:debug("not consuming"),
     State;
-maybe_ready(#state{has_queue='false'}=State) ->
+maybe_ready(#state{has_queue = 'false'} = State) ->
     lager:debug("no queue"),
     State.

@@ -30,14 +30,9 @@ decode_email_test() ->
 
     ?assertEqual(2, length(Body)),
 
-    [{PTType, PTSubType
-     ,_PTHeaders, _PTParameters
-     ,PTBody
-     }
-    ,{PDFType, PDFSubType
-     ,_PDFHeaders, _PDFParameters
-     ,PDFBody
-     }
+    [
+        {PTType, PTSubType, _PTHeaders, _PTParameters, PTBody},
+        {PDFType, PDFSubType, _PDFHeaders, _PDFParameters, PDFBody}
     ] = Body,
 
     ?assertEqual(<<"text">>, PTType),
@@ -49,22 +44,39 @@ decode_email_test() ->
     ?assertEqual(PDF, PDFBody).
 
 create_email(Attachment, Boundary) ->
-    Email = ["From: ", ?FROM, "\r\n"
-            ,"Date: ", ?DATE, "\r\n"
-            ,"Subject: ", ?SUBJECT, "\r\n"
-            ,"Content-type: multipart/mixed; boundary=\"", Boundary, "\"\r\n"
-            ,"\r\n"
-            ,"--", Boundary, "\r\n"
-            ,"Content-Type: text/plain; charset=utf-8\r\n"
-            ,"Content-Disposition: inline\r\n"
-            ,"\r\n"
-            ,?TEXT, "\r\n"
-            ,"--", Boundary, "\r\n"
-            ,"Content-Type: application/pdf; charset=utf-8\r\n"
-            ,"Content-Disposition: attachment; filename=\"pdf.pdf\"\r\n"
-            ,"Content-Transfer-Encoding: base64\r\n"
-            ,"\r\n"
-            ,Attachment, "\r\n\r\n"
-            ,"--", Boundary, "--\r\n"
-            ],
+    Email = [
+        "From: ",
+        ?FROM,
+        "\r\n",
+        "Date: ",
+        ?DATE,
+        "\r\n",
+        "Subject: ",
+        ?SUBJECT,
+        "\r\n",
+        "Content-type: multipart/mixed; boundary=\"",
+        Boundary,
+        "\"\r\n",
+        "\r\n",
+        "--",
+        Boundary,
+        "\r\n",
+        "Content-Type: text/plain; charset=utf-8\r\n",
+        "Content-Disposition: inline\r\n",
+        "\r\n",
+        ?TEXT,
+        "\r\n",
+        "--",
+        Boundary,
+        "\r\n",
+        "Content-Type: application/pdf; charset=utf-8\r\n",
+        "Content-Disposition: attachment; filename=\"pdf.pdf\"\r\n",
+        "Content-Transfer-Encoding: base64\r\n",
+        "\r\n",
+        Attachment,
+        "\r\n\r\n",
+        "--",
+        Boundary,
+        "--\r\n"
+    ],
     iolist_to_binary(Email).

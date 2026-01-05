@@ -8,13 +8,17 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_init).
 
--export([start_link/0
-        ,start_mod/1, stop_mod/1
-        ]).
+-export([
+    start_link/0,
+    start_mod/1,
+    stop_mod/1
+]).
 
 -include("crossbar.hrl").
 
--define(USE_COMPRESSION, kapps_config:get_is_true(?CONFIG_CAT, <<"compress_response_body">>, 'true')).
+-define(USE_COMPRESSION,
+    kapps_config:get_is_true(?CONFIG_CAT, <<"compress_response_body">>, 'true')
+).
 
 -spec crossbar_routes() -> cowboy_router:routes().
 crossbar_routes() -> [{'_', paths_list()}].
@@ -33,9 +37,9 @@ api_version_constraint() ->
     {'version', fun api_version_constraint/2}.
 
 -spec api_version_constraint('forward', kz_term:ne_binary()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', 'not_a_version'}.
-api_version_constraint('forward', <<"v", ApiVersion/binary>>=Vsn) ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', 'not_a_version'}.
+api_version_constraint('forward', <<"v", ApiVersion/binary>> = Vsn) ->
     try kz_term:to_integer(ApiVersion) of
         Int ->
             lager:debug("routing to version ~b", [Int]),
@@ -128,7 +132,8 @@ stop_mod(CBMod) when not is_atom(CBMod) ->
 stop_mod(CBMod) ->
     crossbar_bindings:flush_mod(CBMod),
     case erlang:function_exported(CBMod, 'stop', 0) of
-        'true' -> do_stop_mod(CBMod);
+        'true' ->
+            do_stop_mod(CBMod);
         'false' ->
             lager:debug("failed to stop ~s (trying other versions)", [CBMod]),
             maybe_stop_mod_versions(?VERSION_SUPPORTED, CBMod)
@@ -170,27 +175,32 @@ stop_mod_version(Version, Mod) ->
 -spec maybe_start_plaintext(cowboy_router:dispatch_rules(), inet:ip_address()) -> 'ok'.
 maybe_start_plaintext(Dispatch, IP) ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"use_plaintext">>, 'true') of
-        'false' -> lager:info("plaintext api support not enabled");
+        'false' ->
+            lager:info("plaintext api support not enabled");
         'true' ->
             Port = kapps_config:get_integer(?CONFIG_CAT, <<"port">>, 8000),
-            ReqTimeout = kapps_config:get_integer(?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND),
+            ReqTimeout = kapps_config:get_integer(
+                ?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND
+            ),
             Workers = kapps_config:get_integer(?CONFIG_CAT, <<"workers">>, 100),
 
             %% Name, NbAcceptors, Transport, TransOpts, Protocol, ProtoOpts
             try
                 lager:info("trying to bind to address ~s port ~b", [inet:ntoa(IP), Port]),
-                cowboy:start_clear('api_resource'
-                                  ,[{'ip', IP}
-                                   ,{'port', Port}
-                                   ,{'num_acceptors', Workers}
-                                   ]
-                                  ,#{'env' => #{'dispatch' => Dispatch
-                                               }
-                                    ,'stream_handlers' => maybe_add_compression_handler()
-                                    ,'shutdown_timeout' => ReqTimeout
-                                    ,'idle_timeout' => 120 * ?MILLISECONDS_IN_SECOND
-                                    }
-                                  )
+                cowboy:start_clear(
+                    'api_resource',
+                    [
+                        {'ip', IP},
+                        {'port', Port},
+                        {'num_acceptors', Workers}
+                    ],
+                    #{
+                        'env' => #{'dispatch' => Dispatch},
+                        'stream_handlers' => maybe_add_compression_handler(),
+                        'shutdown_timeout' => ReqTimeout,
+                        'idle_timeout' => 120 * ?MILLISECONDS_IN_SECOND
+                    }
+                )
             of
                 {'ok', _} ->
                     lager:info("started plaintext API server");
@@ -216,34 +226,43 @@ start_ssl(Dispatch, IP) ->
             lager:debug("trying to start SSL API server"),
             _SslStarted = ssl:start(),
             lager:debug("starting SSL : ~p", [_SslStarted]),
-            ReqTimeout = kapps_config:get_integer(?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND),
+            ReqTimeout = kapps_config:get_integer(
+                ?CONFIG_CAT, <<"request_timeout_ms">>, 10 * ?MILLISECONDS_IN_SECOND
+            ),
             Workers = kapps_config:get_integer(?CONFIG_CAT, <<"ssl_workers">>, 100),
 
             try
-                lager:info("trying to bind SSL API server to address ~s port ~b"
-                          ,[inet:ntoa(IP)
-                           ,props:get_value('port', SSLOpts)
-                           ]
-                          ),
-                cowboy:start_tls('api_resource_ssl'
-                                ,[{'ip', IP}
-                                 ,{'num_acceptors', Workers}
-                                  | SSLOpts
-                                 ]
-                                ,#{'env' => #{'dispatch' => Dispatch
-                                             }
-                                  ,'stream_handlers' => maybe_add_compression_handler()
-                                  ,'shutdown_timeout' => ReqTimeout
-                                  ,'idle_timeout' => 120 * ?MILLISECONDS_IN_SECOND
-                                  }
-                                )
+                lager:info(
+                    "trying to bind SSL API server to address ~s port ~b",
+                    [
+                        inet:ntoa(IP),
+                        props:get_value('port', SSLOpts)
+                    ]
+                ),
+                cowboy:start_tls(
+                    'api_resource_ssl',
+                    [
+                        {'ip', IP},
+                        {'num_acceptors', Workers}
+                        | SSLOpts
+                    ],
+                    #{
+                        'env' => #{'dispatch' => Dispatch},
+                        'stream_handlers' => maybe_add_compression_handler(),
+                        'shutdown_timeout' => ReqTimeout,
+                        'idle_timeout' => 120 * ?MILLISECONDS_IN_SECOND
+                    }
+                )
             of
                 {'ok', _} ->
-                    lager:info("started SSL API server on port ~b", [props:get_value('port', SSLOpts)]);
+                    lager:info("started SSL API server on port ~b", [
+                        props:get_value('port', SSLOpts)
+                    ]);
                 {'error', {'already_started', _P}} ->
-                    lager:info("already started SSL API server on port ~b at ~p"
-                              ,[props:get_value('port', SSLOpts), _P]
-                              )
+                    lager:info(
+                        "already started SSL API server on port ~b at ~p",
+                        [props:get_value('port', SSLOpts), _P]
+                    )
             catch
                 'throw':{'invalid_file', _File} ->
                     lager:info("SSL disabled: failed to find ~s", [_File]);
@@ -265,27 +284,40 @@ ssl_opts(RootDir) ->
 
 -spec base_ssl_opts(list()) -> kz_term:proplist().
 base_ssl_opts(RootDir) ->
-    [{'port', kapps_config:get_integer(?CONFIG_CAT, <<"ssl_port">>, 8443)}
-    ,{'certfile', find_file(kapps_config:get_string(?CONFIG_CAT
-                                                   ,<<"ssl_cert">>
-                                                   ,filename:join([RootDir, <<"priv/ssl/crossbar.crt">>])
-                                                   ), RootDir)}
-    ,{'keyfile', find_file(kapps_config:get_string(?CONFIG_CAT
-                                                  ,<<"ssl_key">>
-                                                  ,filename:join([RootDir, <<"priv/ssl/crossbar.key">>])
-                                                  ), RootDir)}
-    ,{'password', kapps_config:get_string(?CONFIG_CAT, <<"ssl_password">>, <<>>)}
+    [
+        {'port', kapps_config:get_integer(?CONFIG_CAT, <<"ssl_port">>, 8443)},
+        {'certfile',
+            find_file(
+                kapps_config:get_string(
+                    ?CONFIG_CAT,
+                    <<"ssl_cert">>,
+                    filename:join([RootDir, <<"priv/ssl/crossbar.crt">>])
+                ),
+                RootDir
+            )},
+        {'keyfile',
+            find_file(
+                kapps_config:get_string(
+                    ?CONFIG_CAT,
+                    <<"ssl_key">>,
+                    filename:join([RootDir, <<"priv/ssl/crossbar.key">>])
+                ),
+                RootDir
+            )},
+        {'password', kapps_config:get_string(?CONFIG_CAT, <<"ssl_password">>, <<>>)}
     ].
 
 -spec find_file(list(), list()) -> list().
 find_file(File, Root) ->
     case filelib:is_file(File) of
-        'true' -> File;
+        'true' ->
+            File;
         'false' ->
             FromRoot = filename:join([Root, File]),
             lager:info("failed to find file at ~s, trying ~s", [File, FromRoot]),
             case filelib:is_file(FromRoot) of
-                'true' -> FromRoot;
+                'true' ->
+                    FromRoot;
                 'false' ->
                     lager:info("failed to find file at ~s", [FromRoot]),
                     throw({'invalid_file', File})

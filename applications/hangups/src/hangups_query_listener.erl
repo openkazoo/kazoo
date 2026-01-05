@@ -7,19 +7,21 @@
 -module(hangups_query_listener).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_query/2
-        ,meter_resp/1
-        ]).
+-export([
+    start_link/0,
+    handle_query/2,
+    meter_resp/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("hangups.hrl").
 -include_lib("folsom/include/folsom.hrl").
@@ -29,10 +31,7 @@
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{{?MODULE, 'handle_query'}
-                     ,[{<<"hangups">>, <<"query_req">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{{?MODULE, 'handle_query'}, [{<<"hangups">>, <<"query_req">>}]}]).
 -define(BINDINGS, [{'hangups', []}]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
@@ -48,12 +47,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 -spec handle_query(kz_json:object(), kz_term:proplist()) -> any().
 handle_query(JObj, _Props) ->
@@ -73,28 +77,32 @@ handle_query(JObj, N, 'false') ->
 
 -spec meter_resp(kz_term:ne_binary()) -> kz_term:proplist().
 meter_resp(<<"*">>) ->
-    [{<<"meters">>, [kz_json:from_list(meter_resp(Name))
-                     || {Name, _Info} <- folsom_metrics:get_metrics_info()
-                    ]
-     }
+    [
+        {<<"meters">>, [
+            kz_json:from_list(meter_resp(Name))
+         || {Name, _Info} <- folsom_metrics:get_metrics_info()
+        ]}
     ];
 meter_resp(N) ->
     meter_resp(N, folsom_metrics_meter:get_values(N)).
 
 -spec meter_resp(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:proplist().
-meter_resp(_, []) -> [];
-meter_resp(N, [_|_]=Values) ->
-    Vs = [{kz_term:to_binary(K), V}
-          || {K, V} <- Values,
-             K =/= 'acceleration'
-         ],
+meter_resp(_, []) ->
+    [];
+meter_resp(N, [_ | _] = Values) ->
+    Vs = [
+        {kz_term:to_binary(K), V}
+     || {K, V} <- Values,
+        K =/= 'acceleration'
+    ],
     props:filter_undefined(
-      [{<<"hangup_cause">>, hangups_util:meter_hangup_cause(N)}
-      ,{<<"account_id">>, hangups_util:meter_account_id(N)}
-       | get_accel(props:get_value('acceleration', Values))
-      ]
-      ++ Vs
-     ).
+        [
+            {<<"hangup_cause">>, hangups_util:meter_hangup_cause(N)},
+            {<<"account_id">>, hangups_util:meter_account_id(N)}
+            | get_accel(props:get_value('acceleration', Values))
+        ] ++
+            Vs
+    ).
 
 -spec publish_resp(kz_json:object(), kz_term:proplist()) -> 'ok'.
 publish_resp(JObj, Resp) ->
@@ -102,21 +110,24 @@ publish_resp(JObj, Resp) ->
     MsgId = kz_api:msg_id(JObj),
 
     PublishFun = fun(API) ->
-                         publish_to(Queue, API)
-                 end,
-    kz_amqp_worker:cast([{<<"Msg-ID">>, MsgId} | Resp]
-                       ,PublishFun
-                       ).
+        publish_to(Queue, API)
+    end,
+    kz_amqp_worker:cast(
+        [{<<"Msg-ID">>, MsgId} | Resp],
+        PublishFun
+    ).
 
 -spec publish_to(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 publish_to(Queue, API) ->
-    kapi_hangups:publish_query_resp(Queue
-                                   ,kz_api:default_headers(?APP_NAME, ?APP_VERSION) ++ API
-                                   ).
+    kapi_hangups:publish_query_resp(
+        Queue,
+        kz_api:default_headers(?APP_NAME, ?APP_VERSION) ++ API
+    ).
 
 -spec get_accel(kz_term:proplist()) -> kz_term:proplist().
 get_accel(AccelVs) ->
-    [{kz_term:to_binary(K), V}
+    [
+        {kz_term:to_binary(K), V}
      || {K, V} <- AccelVs
     ].
 
@@ -146,9 +157,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'created_queue',_QueueName}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

@@ -16,34 +16,37 @@
 -define(SETTINGS_KEY, '$_App_Settings').
 
 -define(DEFAULT_DEFAULTS, []).
--define(SECTION_DEFAULTS, [{'amqp', [{'uri', "amqp://guest:guest@localhost:5672"}
-                                    ,{'use_federation', 'false'}
-                                    ]
-                           }
-                          ,{'bigcouch', [{'ip', "localhost"}
-                                        ,{'port', 5984}
-                                        ,{'username', ""}
-                                        ,{'password', ""}
-                                        ,{'admin_port', 5986}
-                                        ,{'cookie', 'monster'}
-                                        ,{'compact_automatically', 'true'}
-                                        ]
-                           }
-                          ,{'ecallmgr', [{'cookie', 'change_me'}]}
-                          ,{'log', [{'syslog', 'info'}
-                                   ,{'console', 'notice'}
-                                   ,{'file', 'error'}
-                                   ]}
-                          ,{'kazoo_apps', [{'cookie', 'change_me'}]}
-                          ]).
+-define(SECTION_DEFAULTS, [
+    {'amqp', [
+        {'uri', "amqp://guest:guest@localhost:5672"},
+        {'use_federation', 'false'}
+    ]},
+    {'bigcouch', [
+        {'ip', "localhost"},
+        {'port', 5984},
+        {'username', ""},
+        {'password', ""},
+        {'admin_port', 5986},
+        {'cookie', 'monster'},
+        {'compact_automatically', 'true'}
+    ]},
+    {'ecallmgr', [{'cookie', 'change_me'}]},
+    {'log', [
+        {'syslog', 'info'},
+        {'console', 'notice'},
+        {'file', 'error'}
+    ]},
+    {'kazoo_apps', [{'cookie', 'change_me'}]}
+]).
 
--type section() :: 'amqp' |
-                   'bigcouch' |
-                   'ecallmgr' |
-                   'log' |
-                   'kazoo_apps' |
-                   'zone' |
-                   'data'.
+-type section() ::
+    'amqp'
+    | 'bigcouch'
+    | 'ecallmgr'
+    | 'log'
+    | 'kazoo_apps'
+    | 'zone'
+    | 'data'.
 
 -define(KAZOO_CONFIG_HRL, 'true').
 -endif.

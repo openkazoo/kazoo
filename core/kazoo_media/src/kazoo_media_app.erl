@@ -19,7 +19,9 @@
 -spec start(application:start_type(), any()) -> kz_types:startapp_ret().
 start(_Type, _Args) ->
     Ret = kazoo_media_sup:start_link(),
-    kapps_maintenance:bind_and_register_views('kazoo_media', 'kazoo_media_maintenance', 'register_views'),
+    kapps_maintenance:bind_and_register_views(
+        'kazoo_media', 'kazoo_media_maintenance', 'register_views'
+    ),
     kapps_maintenance:bind('migrate', 'kazoo_media_maintenance', 'migrate'),
     kazoo_media_maintenance:refresh(),
     Ret.

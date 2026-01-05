@@ -6,20 +6,24 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_cb_accounts).
 
--export([create_account/2, create_account/3
-        ,update_account/3
-        ,delete_account/2
-        ,cleanup/0, cleanup_accounts/1, cleanup_accounts/2
+-export([
+    create_account/2, create_account/3,
+    update_account/3,
+    delete_account/2,
+    cleanup/0,
+    cleanup_accounts/1, cleanup_accounts/2,
 
-        ,command/2
-        ,symbolic_account_id/2
+    command/2,
+    symbolic_account_id/2,
 
-        ,next_state/3
-        ,postcondition/3
+    next_state/3,
+    postcondition/3,
 
-         %% kapps_maintenance:check_release callback
-        ,seq/0, seq_44832/0, seq_kzoo_54/0
-        ]).
+    %% kapps_maintenance:check_release callback
+    seq/0,
+    seq_44832/0,
+    seq_kzoo_54/0
+]).
 
 -export([account_url/1]).
 
@@ -29,56 +33,64 @@
 
 -define(ACCOUNT_NAMES, [<<?MODULE_STRING>>]).
 
--type account_id() :: {'call', 'pqc_kazoo_model', 'account_id_by_name', [pqc_cb_api:state() | proper_types:type()]} |
-                      kz_term:ne_binary().
+-type account_id() ::
+    {'call', 'pqc_kazoo_model', 'account_id_by_name', [pqc_cb_api:state() | proper_types:type()]}
+    | kz_term:ne_binary().
 
 -spec command(pqc_kazoo_model:model(), kz_term:ne_binary() | proper_types:type()) ->
-          {'call', ?MODULE, 'create_account', [pqc_cb_api:state() | proper_types:term()]}.
+    {'call', ?MODULE, 'create_account', [pqc_cb_api:state() | proper_types:term()]}.
 command(Model, Name) ->
     {'call', ?MODULE, 'create_account', [pqc_kazoo_model:api(Model), Name]}.
 
 -spec symbolic_account_id(pqc_kazoo_model:model(), kz_term:ne_binary() | proper_types:type()) ->
-          account_id().
+    account_id().
 symbolic_account_id(Model, Name) ->
     {'call', 'pqc_kazoo_model', 'account_id_by_name', [Model, Name]}.
 
--spec create_account(pqc_cb_api:state(), kz_json:object() | kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec create_account(pqc_cb_api:state(), kz_json:object() | kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 create_account(API, NewAccount) ->
     create_account(API, NewAccount, pqc_cb_api:auth_account_id(API)).
 
--spec create_account(pqc_cb_api:state(), kz_json:object() | kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec create_account(
+    pqc_cb_api:state(), kz_json:object() | kz_term:ne_binary(), kz_term:ne_binary()
+) -> pqc_cb_api:response().
 create_account(API, <<NewAccountName/binary>>, AuthAccountId) ->
     RequestData = kz_json:from_list([{<<"name">>, NewAccountName}]),
     create_account(API, RequestData, AuthAccountId);
 create_account(API, RequestData, AuthAccountId) ->
     RequestEnvelope = pqc_cb_api:create_envelope(RequestData),
 
-    Resp = pqc_cb_api:make_request([201, 500]
-                                  ,fun kz_http:put/3
-                                  ,account_url(AuthAccountId)
-                                  ,pqc_cb_api:request_headers(API)
-                                  ,kz_json:encode(RequestEnvelope)
-                                  ),
-    is_binary(Resp)
-        andalso allow_number_additions(pqc_cb_response:account_id(Resp)),
+    Resp = pqc_cb_api:make_request(
+        [201, 500],
+        fun kz_http:put/3,
+        account_url(AuthAccountId),
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(RequestEnvelope)
+    ),
+    is_binary(Resp) andalso
+        allow_number_additions(pqc_cb_response:account_id(Resp)),
     Resp.
 
--spec update_account(pqc_cb_api:state(), kz_term:ne_binary(), kz_json:object()) -> pqc_cb_api:response().
+-spec update_account(pqc_cb_api:state(), kz_term:ne_binary(), kz_json:object()) ->
+    pqc_cb_api:response().
 update_account(API, AccountId, ReqData) ->
     RequestEnvelope = pqc_cb_api:create_envelope(ReqData),
 
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:post/3
-                           ,account_url(AccountId)
-                           ,pqc_cb_api:request_headers(API)
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:post/3,
+        account_url(AccountId),
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(RequestEnvelope)
+    ).
 
 -spec allow_number_additions(kz_term:ne_binary()) -> 'ok'.
 allow_number_additions(AccountId) ->
-    {'ok', _Account} = kzd_accounts:update(AccountId
-                                          ,[{kzd_accounts:path_allow_number_additions(), 'true'}]
-                                          ),
+    {'ok', _Account} = kzd_accounts:update(
+        AccountId,
+        [{kzd_accounts:path_allow_number_additions(), 'true'}]
+    ),
     ?INFO("updated ~s (~s) to allow number additions", [AccountId, kz_doc:revision(_Account)]).
 
 -spec delete_account(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
@@ -100,64 +112,76 @@ cleanup_accounts(API, AccountNames) ->
 
 -spec cleanup_account(pqc_cb_api:state(), kz_term:ne_binary()) -> 'ok'.
 cleanup_account(API, AccountName) ->
-    _Attempt = try pqc_cb_search:search_account_by_name(API, AccountName) of
-                   ?FAILED_RESPONSE ->
-                       ?ERROR("failed to search for account by name ~s~n", [AccountName]);
-                   APIResp ->
-                       Data = pqc_cb_response:data(APIResp),
-                       case kz_json:get_ne_binary_value([1, <<"id">>], Data) of
-                           'undefined' ->
-                               check_accounts_db(AccountName);
-                           AccountId -> delete_account(API, AccountId)
-                       end
-               catch
-                   'throw':{'error', 'socket_closed_remotely'} ->
-                       ?ERROR("broke the SUT cleaning up account ~s (~p)~n", [AccountName, API])
-               end,
-    timer:sleep(1000).% was needed to stop overwhelming the socket, at least locally
+    _Attempt =
+        try pqc_cb_search:search_account_by_name(API, AccountName) of
+            ?FAILED_RESPONSE ->
+                ?ERROR("failed to search for account by name ~s~n", [AccountName]);
+            APIResp ->
+                Data = pqc_cb_response:data(APIResp),
+                case kz_json:get_ne_binary_value([1, <<"id">>], Data) of
+                    'undefined' ->
+                        check_accounts_db(AccountName);
+                    AccountId ->
+                        delete_account(API, AccountId)
+                end
+        catch
+            'throw':{'error', 'socket_closed_remotely'} ->
+                ?ERROR("broke the SUT cleaning up account ~s (~p)~n", [AccountName, API])
+        end,
+    % was needed to stop overwhelming the socket, at least locally
+    timer:sleep(1000).
 
 check_accounts_db(Name) ->
     AccountName = kzd_accounts:normalize_name(Name),
     ViewOptions = [{'key', AccountName}],
     case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_name">>, ViewOptions) of
-        {'ok', []} -> 'ok';
-        {'error', _E} -> ?ERROR("failed to list by name: ~p", [_E]);
+        {'ok', []} ->
+            'ok';
+        {'error', _E} ->
+            ?ERROR("failed to list by name: ~p", [_E]);
         {'ok', JObjs} ->
             ?INFO("deleting from ~s: ~p~n", [?KZ_ACCOUNTS_DB, JObjs]),
             kz_datamgr:del_docs(?KZ_ACCOUNTS_DB, JObjs)
     end.
 
 -spec account_url(account_id() | map()) -> string().
-account_url(#{}=API) ->
+account_url(#{} = API) ->
     account_url(pqc_cb_api:auth_account_id(API));
 account_url(AccountId) ->
     string:join([pqc_cb_api:v2_base_url(), "accounts", kz_term:to_list(AccountId)], "/").
 
 -spec next_state(pqc_kazoo_model:model(), any(), any()) -> pqc_kazoo_model:model().
-next_state(Model
-          ,APIResp
-          ,{'call', ?MODULE, 'create_account', [_API, Name]}
-          ) ->
-    pqc_util:transition_if(Model
-                          ,[{fun pqc_kazoo_model:is_account_missing/2, [Name]}
-                           ,{fun pqc_kazoo_model:add_account/3, [Name, APIResp]}
-                           ]).
+next_state(
+    Model,
+    APIResp,
+    {'call', ?MODULE, 'create_account', [_API, Name]}
+) ->
+    pqc_util:transition_if(
+        Model,
+        [
+            {fun pqc_kazoo_model:is_account_missing/2, [Name]},
+            {fun pqc_kazoo_model:add_account/3, [Name, APIResp]}
+        ]
+    ).
 
 -spec postcondition(pqc_kazoo_model:model(), any(), any()) -> boolean().
-postcondition(Model
-             ,{'call', _, 'create_account', [_API, Name]}
-             ,APIResult
-             ) ->
+postcondition(
+    Model,
+    {'call', _, 'create_account', [_API, Name]},
+    APIResult
+) ->
     case pqc_kazoo_model:account_id_by_name(Model, Name) of
         'undefined' ->
-            ?INFO("no account by the name of ~s, should be an account id in ~s"
-                 ,[Name, APIResult]
-                 ),
+            ?INFO(
+                "no account by the name of ~s, should be an account id in ~s",
+                [Name, APIResult]
+            ),
             'undefined' =/= pqc_cb_response:account_id(APIResult);
         _AccountId ->
-            ?INFO("account ~s (~s) found, API should be an error: ~s"
-                 ,[Name, _AccountId, APIResult]
-                 ),
+            ?INFO(
+                "account ~s (~s) found, API should be an error: ~s",
+                [Name, _AccountId, APIResult]
+            ),
             500 =:= pqc_cb_response:error_code(APIResult)
     end.
 
@@ -180,15 +204,17 @@ seq_44832() ->
 
     RequestData = kz_json:set_value(<<"enabled">>, 'false', AccountJObj),
 
-    lists:foreach(fun(N) ->
-                          %% This will crash if we get back the 409 error, which is not expected
-                          <<_Update/binary>> = update_account(API, AccountId, RequestData),
-                          ?INFO("update ~p results in revision ~s"
-                               ,[N, kz_json:get_value(<<"revision">>, kz_json:decode(_Update))]
-                               )
-                  end
-                 ,lists:seq(1, 4)
-                 ),
+    lists:foreach(
+        fun(N) ->
+            %% This will crash if we get back the 409 error, which is not expected
+            <<_Update/binary>> = update_account(API, AccountId, RequestData),
+            ?INFO(
+                "update ~p results in revision ~s",
+                [N, kz_json:get_value(<<"revision">>, kz_json:decode(_Update))]
+            )
+        end,
+        lists:seq(1, 4)
+    ),
 
     _ = cleanup(API),
     ?INFO("finished double-POST check").
@@ -197,10 +223,10 @@ seq_44832() ->
 seq_kzoo_54() ->
     API = pqc_cb_api:init_api(['crossbar'], ['cb_accounts']),
 
-    AccountReq = kz_json:from_list([{<<"name">>, <<?MODULE_STRING>>}
-                                   ,{<<"realm">>, <<?MODULE_STRING>>}
-                                   ]
-                                  ),
+    AccountReq = kz_json:from_list([
+        {<<"name">>, <<?MODULE_STRING>>},
+        {<<"realm">>, <<?MODULE_STRING>>}
+    ]),
 
     CustomAccountResp = create_account(API, AccountReq),
     lager:info("created custom account ~s", [CustomAccountResp]),
@@ -238,7 +264,7 @@ enable_and_delete_topup() ->
 
     AccountJObj = kz_json:get_value(<<"data">>, kz_json:decode(AccountResp)),
     AccountId = kz_json:get_binary_value(<<"id">>, AccountJObj),
-    TopupConfig = kz_json:from_list([{<<"threshold">>,10},{<<"amount">>,50}]),
+    TopupConfig = kz_json:from_list([{<<"threshold">>, 10}, {<<"amount">>, 50}]),
     RequestData = kz_json:set_value(<<"topup">>, TopupConfig, AccountJObj),
     RequestEnvelope = pqc_cb_api:create_envelope(RequestData),
 
@@ -261,10 +287,10 @@ enable_and_delete_topup() ->
 seq_kzoo_61() ->
     API = pqc_cb_api:init_api(['crossbar'], ['cb_accounts']),
 
-    AccountReq = kz_json:from_list([{<<"name">>, <<?MODULE_STRING>>}
-                                   ,{<<"realm">>, <<?MODULE_STRING>>}
-                                   ]
-                                  ),
+    AccountReq = kz_json:from_list([
+        {<<"name">>, <<?MODULE_STRING>>},
+        {<<"realm">>, <<?MODULE_STRING>>}
+    ]),
     AccountResp = create_account(API, AccountReq),
 
     lager:info("created account ~s", [AccountResp]),
@@ -273,19 +299,21 @@ seq_kzoo_61() ->
     {'ok', AccountSchema} = kz_json_schema:load(<<"accounts">>),
     Required = kz_json:get_list_value(<<"required">>, AccountSchema, []),
 
-    Fields = [<<"billing_mode">>
-             ,{<<"created">>, fun erlang:is_integer/1}
-             ,{<<"enabled">>, 'true'}
-             ,{<<"is_reseller">>, fun kz_term:is_boolean/1}
-             ,{<<"realm">>, <<?MODULE_STRING>>}
-             ,{<<"reseller_id">>, pqc_cb_api:auth_account_id(API)}
-             ,{<<"superduper_admin">>, 'false'}
-             ,{<<"wnm_allow_additions">>, fun kz_term:is_boolean/1}
-              | Required
-             ],
-    'true' = lists:all(fun(Field) -> response_has_field(Field, AccountJObj) end
-                      ,Fields
-                      ),
+    Fields = [
+        <<"billing_mode">>,
+        {<<"created">>, fun erlang:is_integer/1},
+        {<<"enabled">>, 'true'},
+        {<<"is_reseller">>, fun kz_term:is_boolean/1},
+        {<<"realm">>, <<?MODULE_STRING>>},
+        {<<"reseller_id">>, pqc_cb_api:auth_account_id(API)},
+        {<<"superduper_admin">>, 'false'},
+        {<<"wnm_allow_additions">>, fun kz_term:is_boolean/1}
+        | Required
+    ],
+    'true' = lists:all(
+        fun(Field) -> response_has_field(Field, AccountJObj) end,
+        Fields
+    ),
     _ = cleanup(API),
     lager:info("FINISHED EXPECTED FIELDS").
 
@@ -302,14 +330,16 @@ cleanup(API) ->
     _ = cleanup_accounts(API, ?ACCOUNT_NAMES),
     _ = pqc_cb_api:cleanup(API).
 
--spec topup_request(pqc_cb_api:state(), kz_term:ne_binary(), kz_json:object()) -> pqc_cb_api:response().
+-spec topup_request(pqc_cb_api:state(), kz_term:ne_binary(), kz_json:object()) ->
+    pqc_cb_api:response().
 topup_request(API, AccountId, RequestEnvelope) ->
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:post/3
-                           ,account_url(AccountId)
-                           ,pqc_cb_api:request_headers(API)
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:post/3,
+        account_url(AccountId),
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(RequestEnvelope)
+    ).
 
 -spec cleanup() -> 'ok'.
 cleanup() ->

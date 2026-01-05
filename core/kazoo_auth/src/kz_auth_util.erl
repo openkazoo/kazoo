@@ -19,7 +19,8 @@
 get_json_from_url(Url) ->
     get_json_from_url(Url, []).
 
--spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
+-spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) ->
+    {'ok', kz_json:object()} | {'error', any()}.
 get_json_from_url(Url, ReqHeaders) ->
     case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
         {'ok', 200, _RespHeaders, Body} ->
@@ -36,46 +37,59 @@ get_json_from_url(Url, ReqHeaders) ->
             {'error', Else}
     end.
 
--spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary() ) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 fetch_access_code(AppId, AuthorizationCode) ->
     fetch_access_code(AppId, AuthorizationCode, <<"postmessage">>).
 
-
 -spec fetch_access_code(kz_term:ne_binary() | map(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
-fetch_access_code(AppId, AuthorizationCode, RedirectUri)
-  when is_binary(AppId) ->
-    lager:debug("getting auth-app ~p",[AppId]),
+    {'ok', kz_json:object()}
+    | {'error', any()}.
+fetch_access_code(AppId, AuthorizationCode, RedirectUri) when
+    is_binary(AppId)
+->
+    lager:debug("getting auth-app ~p", [AppId]),
     case kz_auth_apps:get_auth_app(AppId, app_and_provider) of
         #{} = Map -> fetch_access_code(Map, AuthorizationCode, RedirectUri);
         Error -> Error
     end;
-fetch_access_code(#{auth_app := #{name := ClientId
-                                 ,pvt_secret := Secret
-                                 }
-                   ,auth_provider := #{access_code_url := URL}
-                   }, AuthorizationCode, RedirectUri) ->
+fetch_access_code(
+    #{
+        auth_app := #{
+            name := ClientId,
+            pvt_secret := Secret
+        },
+        auth_provider := #{access_code_url := URL}
+    },
+    AuthorizationCode,
+    RedirectUri
+) ->
     Headers = [{"Content-Type", "application/x-www-form-urlencoded"}],
 
-    Fields = [{"client_id", ClientId}
-             ,{"redirect_uri", RedirectUri}
-             ,{"client_secret", Secret}
-             ,{"grant_type", "authorization_code"}
-             ,{"code", AuthorizationCode}
-             ],
-    Body = string:join(lists:append(lists:map(fun({K,V}) -> [string:join([K, kz_term:to_list(V)], "=") ] end, Fields)),"&"),
+    Fields = [
+        {"client_id", ClientId},
+        {"redirect_uri", RedirectUri},
+        {"client_secret", Secret},
+        {"grant_type", "authorization_code"},
+        {"code", AuthorizationCode}
+    ],
+    Body = string:join(
+        lists:append(
+            lists:map(fun({K, V}) -> [string:join([K, kz_term:to_list(V)], "=")] end, Fields)
+        ),
+        "&"
+    ),
     lager:debug("POST ~s: ~s", [URL, Body]),
-    case kz_http:post(kz_term:to_list(URL), Headers, Body, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
+    case
+        kz_http:post(kz_term:to_list(URL), Headers, Body, [{'ssl', [{'versions', ['tlsv1.2']}]}])
+    of
         {'ok', 200, _RespHeaders, RespJSON} ->
             {'ok', kz_json:decode(RespJSON)};
         Else ->
             lager:error("~p", [Else]),
             {'error', Else}
     end.
-
 
 %%==============================================================================
 %% Internal functions
@@ -86,10 +100,11 @@ fetch_access_code(#{auth_app := #{name := ClientId
 %% @end
 %%------------------------------------------------------------------------------
 -spec run(map(), list()) -> {'ok' | 'error', map()}.
-run(Token, []) -> {'ok', Token};
+run(Token, []) ->
+    {'ok', Token};
 run(Token, [Fun | Routines]) ->
     try Fun(Token) of
-        #{error := _Err}=Error -> {'error', Error};
+        #{error := _Err} = Error -> {'error', Error};
         {'ok', NewToken} -> run(NewToken, Routines);
         {'done', NewToken} -> {'ok', NewToken};
         {'error', Error} -> {'error', Token#{error => Error}};

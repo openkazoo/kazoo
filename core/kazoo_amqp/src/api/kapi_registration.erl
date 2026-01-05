@@ -7,26 +7,34 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_registration).
 
--export([success/1, success_v/1
-        ,query_req/1, query_req_v/1
-        ,query_resp/1, query_resp_v/1
-        ,query_err/1, query_err_v/1
-        ,flush/1, flush_v/1
-        ,sync/1, sync_v/1
-        ]).
+-export([
+    success/1,
+    success_v/1,
+    query_req/1,
+    query_req_v/1,
+    query_resp/1,
+    query_resp_v/1,
+    query_err/1,
+    query_err_v/1,
+    flush/1,
+    flush_v/1,
+    sync/1,
+    sync_v/1
+]).
 
 -export([bind_q/2, unbind_q/2]).
 -export([declare_exchanges/0]).
 
 -export([success_keys/0]).
 
--export([publish_success/1, publish_success/2
-        ,publish_query_req/1, publish_query_req/2
-        ,publish_query_resp/2, publish_query_resp/3
-        ,publish_query_err/2, publish_query_err/3
-        ,publish_flush/1, publish_flush/2
-        ,publish_sync/1, publish_sync/2
-        ]).
+-export([
+    publish_success/1, publish_success/2,
+    publish_query_req/1, publish_query_req/2,
+    publish_query_resp/2, publish_query_resp/3,
+    publish_query_err/2, publish_query_err/3,
+    publish_flush/1, publish_flush/2,
+    publish_sync/1, publish_sync/2
+]).
 
 -include("kz_amqp_util.hrl").
 
@@ -34,86 +42,120 @@
 -define(KEY_REG_QUERY, <<"registration.query">>).
 
 %% Registration Success
--define(REG_SUCCESS_HEADERS, [<<"Event-Timestamp">>, <<"Contact">>
-                             ,<<"Expires">>, <<"Username">>
-                             ,<<"Realm">>
-                             ]).
--define(OPTIONAL_REG_SUCCESS_HEADERS, [<<"Status">>, <<"User-Agent">>
-                                      ,?KEY_API_CALL_ID, <<"Profile-Name">>
-                                      ,<<"Presence-Hosts">>
-                                      ,?KEY_API_ACCOUNT_ID, <<"Account-DB">>
-                                      ,<<"From-User">>, <<"From-Host">>
-                                      ,<<"To-User">>, <<"To-Host">>
-                                      ,<<"RPid">>, <<"Authorizing-ID">>
-                                      ,<<"FreeSWITCH-Hostname">>
-                                      ,<<"FreeSWITCH-Nodename">>
-                                      ,<<"Network-IP">>, <<"Network-Port">>
-                                      ,<<"Suppress-Unregister-Notify">>
-                                      ,<<"Register-Overwrite-Notify">>
-                                      ,<<"Original-Contact">>
-                                      ,<<"Registrar-Node">>
-                                      ,<<"Proxy-Path">>, <<"AOR">>, <<"RUID">>
-                                      ,<<"Proxy-Protocol">>, <<"Proxy-IP">>, <<"Proxy-Port">>
-                                      ,<<"Source-IP">>, <<"Source-Port">>
-                                      ,<<"First-Registration">>
-                                      ,<<"Custom-Channel-Vars">>
-                                      ]).
--define(REG_SUCCESS_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                            ,{<<"Event-Name">>, <<"reg_success">>}
-                            ]).
+-define(REG_SUCCESS_HEADERS, [
+    <<"Event-Timestamp">>,
+    <<"Contact">>,
+    <<"Expires">>,
+    <<"Username">>,
+    <<"Realm">>
+]).
+-define(OPTIONAL_REG_SUCCESS_HEADERS, [
+    <<"Status">>,
+    <<"User-Agent">>,
+    ?KEY_API_CALL_ID,
+    <<"Profile-Name">>,
+    <<"Presence-Hosts">>,
+    ?KEY_API_ACCOUNT_ID,
+    <<"Account-DB">>,
+    <<"From-User">>,
+    <<"From-Host">>,
+    <<"To-User">>,
+    <<"To-Host">>,
+    <<"RPid">>,
+    <<"Authorizing-ID">>,
+    <<"FreeSWITCH-Hostname">>,
+    <<"FreeSWITCH-Nodename">>,
+    <<"Network-IP">>,
+    <<"Network-Port">>,
+    <<"Suppress-Unregister-Notify">>,
+    <<"Register-Overwrite-Notify">>,
+    <<"Original-Contact">>,
+    <<"Registrar-Node">>,
+    <<"Proxy-Path">>,
+    <<"AOR">>,
+    <<"RUID">>,
+    <<"Proxy-Protocol">>,
+    <<"Proxy-IP">>,
+    <<"Proxy-Port">>,
+    <<"Source-IP">>,
+    <<"Source-Port">>,
+    <<"First-Registration">>,
+    <<"Custom-Channel-Vars">>
+]).
+-define(REG_SUCCESS_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_success">>}
+]).
 -define(REG_SUCCESS_TYPES, []).
 
 %% Registration Flush
 -define(REG_FLUSH_HEADERS, [<<"Realm">>]).
 -define(OPTIONAL_REG_FLUSH_HEADERS, [<<"Username">>]).
--define(REG_FLUSH_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                          ,{<<"Event-Name">>, <<"reg_flush">>}
-                          ]).
+-define(REG_FLUSH_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_flush">>}
+]).
 -define(REG_FLUSH_TYPES, []).
 
 %% Query Registrations
 -define(REG_QUERY_HEADERS, []).
 -define(OPTIONAL_REG_QUERY_FIELDS, [<<"Bridge-RURI">>]).
--define(OPTIONAL_REG_QUERY_HEADERS, [<<"Username">>, <<"Realm">>
-                                    ,<<"Count-Only">>, <<"Fields">>
-                                    ]).
--define(REG_QUERY_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                          ,{<<"Event-Name">>, <<"reg_query">>}
-                          ]).
--define(REG_QUERY_TYPES, [{<<"Fields">>, fun(Fs) when is_list(Fs) ->
-                                                 Allowed = ?OPTIONAL_REG_SUCCESS_HEADERS ++
-                                                     ?REG_SUCCESS_HEADERS ++
-                                                     ?OPTIONAL_REG_QUERY_FIELDS,
-                                                 lists:foldl(fun(F, 'true') -> lists:member(F, Allowed);
-                                                                (_, 'false') -> 'false'
-                                                             end, 'true', Fs);
-                                            (_) -> 'false'
-                                         end}
-                         ,{<<"Count-Only">>, fun(N) -> kz_term:to_boolean(N) end}
-                         ]).
+-define(OPTIONAL_REG_QUERY_HEADERS, [
+    <<"Username">>,
+    <<"Realm">>,
+    <<"Count-Only">>,
+    <<"Fields">>
+]).
+-define(REG_QUERY_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_query">>}
+]).
+-define(REG_QUERY_TYPES, [
+    {<<"Fields">>, fun
+        (Fs) when is_list(Fs) ->
+            Allowed =
+                ?OPTIONAL_REG_SUCCESS_HEADERS ++
+                    ?REG_SUCCESS_HEADERS ++
+                    ?OPTIONAL_REG_QUERY_FIELDS,
+            lists:foldl(
+                fun
+                    (F, 'true') -> lists:member(F, Allowed);
+                    (_, 'false') -> 'false'
+                end,
+                'true',
+                Fs
+            );
+        (_) ->
+            'false'
+    end},
+    {<<"Count-Only">>, fun(N) -> kz_term:to_boolean(N) end}
+]).
 
 %% Registration Query Response
 -define(REG_QUERY_RESP_HEADERS, []).
 -define(OPTIONAL_REG_QUERY_RESP_HEADERS, [<<"Registrar-Age">>, <<"Count">>, <<"Fields">>]).
--define(REG_QUERY_RESP_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                               ,{<<"Event-Name">>, <<"reg_query_resp">>}
-                               ]).
+-define(REG_QUERY_RESP_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_query_resp">>}
+]).
 -define(REG_QUERY_RESP_TYPES, []).
 
 %% Registration Query Error
 -define(REG_QUERY_ERR_HEADERS, []).
 -define(OPTIONAL_REG_QUERY_ERR_HEADERS, [<<"Registrar-Age">>]).
--define(REG_QUERY_ERR_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                              ,{<<"Event-Name">>, <<"reg_query_error">>}
-                              ]).
+-define(REG_QUERY_ERR_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_query_error">>}
+]).
 -define(REG_QUERY_ERR_TYPES, []).
 
 %% Registration Sync
 -define(REG_SYNC_HEADERS, []).
 -define(OPTIONAL_REG_SYNC_HEADERS, []).
--define(REG_SYNC_VALUES, [{<<"Event-Category">>, <<"directory">>}
-                         ,{<<"Event-Name">>, <<"reg_sync">>}
-                         ]).
+-define(REG_SYNC_VALUES, [
+    {<<"Event-Category">>, <<"directory">>},
+    {<<"Event-Name">>, <<"reg_sync">>}
+]).
 -define(REG_SYNC_TYPES, []).
 -define(REG_SYNC_RK, <<"registration.sync">>).
 
@@ -123,19 +165,21 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec success(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 success(Prop) when is_list(Prop) ->
     case success_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?REG_SUCCESS_HEADERS, ?OPTIONAL_REG_SUCCESS_HEADERS);
         'false' -> {'error', "Proplist failed validation for reg_success"}
     end;
-success(JObj) -> success(kz_json:to_proplist(JObj)).
+success(JObj) ->
+    success(kz_json:to_proplist(JObj)).
 
 -spec success_v(kz_term:api_terms()) -> boolean().
 success_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_SUCCESS_HEADERS, ?REG_SUCCESS_VALUES, ?REG_SUCCESS_TYPES);
-success_v(JObj) -> success_v(kz_json:to_proplist(JObj)).
+success_v(JObj) ->
+    success_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Registration Success.
@@ -143,35 +187,38 @@ success_v(JObj) -> success_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec flush(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 flush(Prop) when is_list(Prop) ->
     case flush_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?REG_FLUSH_HEADERS, ?OPTIONAL_REG_FLUSH_HEADERS);
         'false' -> {'error', "Proplist failed validation for reg_flush"}
     end;
-flush(JObj) -> flush(kz_json:to_proplist(JObj)).
+flush(JObj) ->
+    flush(kz_json:to_proplist(JObj)).
 
 -spec flush_v(kz_term:api_terms()) -> boolean().
 flush_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_FLUSH_HEADERS, ?REG_FLUSH_VALUES, ?REG_FLUSH_TYPES);
-flush_v(JObj) -> flush_v(kz_json:to_proplist(JObj)).
-
+flush_v(JObj) ->
+    flush_v(kz_json:to_proplist(JObj)).
 
 -spec sync(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 sync(Prop) when is_list(Prop) ->
     case sync_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?REG_SYNC_HEADERS, ?OPTIONAL_REG_SYNC_HEADERS);
         'false' -> {'error', "Proplist failed validation for reg_sync"}
     end;
-sync(JObj) -> sync(kz_json:to_proplist(JObj)).
+sync(JObj) ->
+    sync(kz_json:to_proplist(JObj)).
 
 -spec sync_v(kz_term:api_terms()) -> boolean().
 sync_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_SYNC_HEADERS, ?REG_SYNC_VALUES, ?REG_SYNC_TYPES);
-sync_v(JObj) -> sync_v(kz_json:to_proplist(JObj)).
+sync_v(JObj) ->
+    sync_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Registration Query.
@@ -179,19 +226,21 @@ sync_v(JObj) -> sync_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec query_req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 query_req(Prop) when is_list(Prop) ->
     case query_req_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?REG_QUERY_HEADERS, ?OPTIONAL_REG_QUERY_HEADERS);
         'false' -> {'error', "Proplist failed validation for reg_query"}
     end;
-query_req(JObj) -> query_req(kz_json:to_proplist(JObj)).
+query_req(JObj) ->
+    query_req(kz_json:to_proplist(JObj)).
 
 -spec query_req_v(kz_term:api_terms()) -> boolean().
 query_req_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_QUERY_HEADERS, ?REG_QUERY_VALUES, ?REG_QUERY_TYPES);
-query_req_v(JObj) -> query_req_v(kz_json:to_proplist(JObj)).
+query_req_v(JObj) ->
+    query_req_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Registration Query Response.
@@ -199,19 +248,23 @@ query_req_v(JObj) -> query_req_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec query_resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 query_resp(Prop) when is_list(Prop) ->
     case query_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?REG_QUERY_RESP_HEADERS, ?OPTIONAL_REG_QUERY_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for reg_query_resp"}
+        'true' ->
+            kz_api:build_message(Prop, ?REG_QUERY_RESP_HEADERS, ?OPTIONAL_REG_QUERY_RESP_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for reg_query_resp"}
     end;
-query_resp(JObj) -> query_resp(kz_json:to_proplist(JObj)).
+query_resp(JObj) ->
+    query_resp(kz_json:to_proplist(JObj)).
 
 -spec query_resp_v(kz_term:api_terms()) -> boolean().
 query_resp_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_QUERY_RESP_HEADERS, ?REG_QUERY_RESP_VALUES, ?REG_QUERY_RESP_TYPES);
-query_resp_v(JObj) -> query_resp_v(kz_json:to_proplist(JObj)).
+query_resp_v(JObj) ->
+    query_resp_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Registration Query Response.
@@ -219,19 +272,23 @@ query_resp_v(JObj) -> query_resp_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec query_err(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 query_err(Prop) when is_list(Prop) ->
     case query_err_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?REG_QUERY_ERR_HEADERS, ?OPTIONAL_REG_QUERY_ERR_HEADERS);
-        'false' -> {'error', "Proplist failed validation for reg_query_err"}
+        'true' ->
+            kz_api:build_message(Prop, ?REG_QUERY_ERR_HEADERS, ?OPTIONAL_REG_QUERY_ERR_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for reg_query_err"}
     end;
-query_err(JObj) -> query_err(kz_json:to_proplist(JObj)).
+query_err(JObj) ->
+    query_err(kz_json:to_proplist(JObj)).
 
 -spec query_err_v(kz_term:api_terms()) -> boolean().
 query_err_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?REG_QUERY_ERR_HEADERS, ?REG_QUERY_ERR_VALUES, ?REG_QUERY_ERR_TYPES);
-query_err_v(JObj) -> query_err_v(kz_json:to_proplist(JObj)).
+query_err_v(JObj) ->
+    query_err_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Setup and tear down bindings for authn `gen_listeners'.
@@ -244,18 +301,20 @@ bind_q(Q, Props) ->
 bind_q(Q, 'undefined', Props) ->
     _ = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
     kz_amqp_util:bind_q_to_registrar(Q, get_query_binding(Props));
-bind_q(Q, ['reg_success'|T], Props) ->
+bind_q(Q, ['reg_success' | T], Props) ->
     _ = kz_amqp_util:bind_q_to_registrar(Q, get_success_binding(Props)),
     bind_q(Q, T, Props);
-bind_q(Q, ['reg_query'|T], Props) ->
+bind_q(Q, ['reg_query' | T], Props) ->
     _ = kz_amqp_util:bind_q_to_registrar(Q, get_query_binding(Props)),
     bind_q(Q, T, Props);
-bind_q(Q, ['reg_flush'|T], Props) ->
+bind_q(Q, ['reg_flush' | T], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
     _ = kz_amqp_util:bind_q_to_registrar(Q, get_flush_routing(Realm)),
     bind_q(Q, T, Props);
-bind_q(Q, [_|T], Props) -> bind_q(Q, T, Props);
-bind_q(_, [], _) -> 'ok'.
+bind_q(Q, [_ | T], Props) ->
+    bind_q(Q, T, Props);
+bind_q(_, [], _) ->
+    'ok'.
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Q, Props) ->
@@ -264,18 +323,20 @@ unbind_q(Q, Props) ->
 unbind_q(Q, 'undefined', Props) ->
     _ = kz_amqp_util:unbind_q_from_registrar(Q, get_success_binding(Props)),
     kz_amqp_util:unbind_q_from_registrar(Q, get_query_binding(Props));
-unbind_q(Q, ['reg_success'|T], Props) ->
+unbind_q(Q, ['reg_success' | T], Props) ->
     _ = kz_amqp_util:unbind_q_from_registrar(Q, get_success_binding(Props)),
     unbind_q(Q, T, Props);
-unbind_q(Q, ['reg_query'|T], Props) ->
+unbind_q(Q, ['reg_query' | T], Props) ->
     _ = kz_amqp_util:unbind_q_from_registrar(Q, get_query_binding(Props)),
     unbind_q(Q, T, Props);
-unbind_q(Q, ['reg_flush'|T], Props) ->
+unbind_q(Q, ['reg_flush' | T], Props) ->
     Realm = props:get_value('realm', Props, <<"*">>),
     _ = kz_amqp_util:unbind_q_from_registrar(Q, get_flush_routing(Realm)),
     unbind_q(Q, T, Props);
-unbind_q(Q, [_|T], Props) -> unbind_q(Q, T, Props);
-unbind_q(_, [], _) -> 'ok'.
+unbind_q(Q, [_ | T], Props) ->
+    unbind_q(Q, T, Props);
+unbind_q(_, [], _) ->
+    'ok'.
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.
@@ -369,7 +430,9 @@ get_success_routing(JObj) ->
 
 -spec get_success_routing(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
 get_success_routing(Realm, User) ->
-    list_to_binary([?KEY_REG_SUCCESS, ".", kz_amqp_util:encode(Realm), ".", kz_amqp_util:encode(User)]).
+    list_to_binary([
+        ?KEY_REG_SUCCESS, ".", kz_amqp_util:encode(Realm), ".", kz_amqp_util:encode(User)
+    ]).
 
 -spec get_query_routing(kz_term:api_terms()) -> kz_term:ne_binary().
 get_query_routing(Prop) when is_list(Prop) ->
@@ -395,26 +458,30 @@ get_query_routing(Realm, User) ->
 %% @end
 %%------------------------------------------------------------------------------
 get_success_binding(Props) ->
-    User = case props:get_value('user', Props) of
-               'undefined' -> ".*";
-               U -> [".", kz_amqp_util:encode(U)]
-           end,
-    Realm = case props:get_value('realm', Props) of
-                'undefined' -> ".*";
-                R -> [".", kz_amqp_util:encode(R)]
-            end,
+    User =
+        case props:get_value('user', Props) of
+            'undefined' -> ".*";
+            U -> [".", kz_amqp_util:encode(U)]
+        end,
+    Realm =
+        case props:get_value('realm', Props) of
+            'undefined' -> ".*";
+            R -> [".", kz_amqp_util:encode(R)]
+        end,
 
     iolist_to_binary([?KEY_REG_SUCCESS, Realm, User]).
 
 get_query_binding(Props) ->
-    User = case props:get_value('user', Props) of
-               'undefined' -> ".*";
-               U -> [".", kz_amqp_util:encode(U)]
-           end,
-    Realm = case props:get_value('realm', Props) of
-                'undefined' -> ".*";
-                R -> [".", kz_amqp_util:encode(R)]
-            end,
+    User =
+        case props:get_value('user', Props) of
+            'undefined' -> ".*";
+            U -> [".", kz_amqp_util:encode(U)]
+        end,
+    Realm =
+        case props:get_value('realm', Props) of
+            'undefined' -> ".*";
+            R -> [".", kz_amqp_util:encode(R)]
+        end,
 
     iolist_to_binary([?KEY_REG_QUERY, Realm, User]).
 

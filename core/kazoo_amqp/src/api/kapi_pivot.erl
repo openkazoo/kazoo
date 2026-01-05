@@ -8,58 +8,68 @@
 
 -include("kz_amqp_util.hrl").
 
--export([req/1, req_v/1
-        ,bind_q/2
-        ,unbind_q/2
-        ,declare_exchanges/0
-        ,publish_req/1, publish_req/2
-        ]).
+-export([
+    req/1,
+    req_v/1,
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
+    publish_req/1, publish_req/2
+]).
 
+-export([
+    failed/1,
+    failed_v/1,
+    processing/1,
+    processing_v/1,
 
--export([failed/1, failed_v/1
-        ,processing/1, processing_v/1
-
-        ,publish_failed/2
-        ,publish_processing/2
-        ]).
+    publish_failed/2,
+    publish_processing/2
+]).
 
 -define(KEY_PIVOT_REQ, <<"pivot.req">>).
 
 -define(PIVOT_REQ_HEADERS, [<<"Call">>, <<"Voice-URI">>]).
--define(OPTIONAL_PIVOT_REQ_HEADERS, [<<"CDR-URI">>
-                                    ,<<"Debug">>
-                                    ,<<"HTTP-Method">>
-                                    ,<<"Request-Body-Format">>
-                                    ,<<"Request-Format">>
-                                    ,<<"Request-Timeout">>
-                                    ]).
--define(PIVOT_REQ_VALUES, [{<<"Event-Category">>,<<"dialplan">>}
-                          ,{<<"Event-Name">>, <<"pivot_req">>}
-                          ]).
--define(PIVOT_REQ_TYPES, [{<<"Call">>, fun kz_json:is_json_object/1}
-                         ,{<<"CDR-URI">>, fun erlang:is_binary/1}
-                         ,{<<"Debug">>, fun kz_term:is_boolean/1}
-                         ,{<<"Request-Body-Format">>, fun erlang:is_binary/1}
-                         ,{<<"Request-Format">>, fun erlang:is_binary/1}
-                         ,{<<"Request-Timeout">>, fun erlang:is_integer/1}
-                         ]).
+-define(OPTIONAL_PIVOT_REQ_HEADERS, [
+    <<"CDR-URI">>,
+    <<"Debug">>,
+    <<"HTTP-Method">>,
+    <<"Request-Body-Format">>,
+    <<"Request-Format">>,
+    <<"Request-Timeout">>
+]).
+-define(PIVOT_REQ_VALUES, [
+    {<<"Event-Category">>, <<"dialplan">>},
+    {<<"Event-Name">>, <<"pivot_req">>}
+]).
+-define(PIVOT_REQ_TYPES, [
+    {<<"Call">>, fun kz_json:is_json_object/1},
+    {<<"CDR-URI">>, fun erlang:is_binary/1},
+    {<<"Debug">>, fun kz_term:is_boolean/1},
+    {<<"Request-Body-Format">>, fun erlang:is_binary/1},
+    {<<"Request-Format">>, fun erlang:is_binary/1},
+    {<<"Request-Timeout">>, fun erlang:is_integer/1}
+]).
 
 -define(PIVOT_FAILED_HEADERS, [<<"Call-ID">>]).
 -define(OPTIONAL_PIVOT_FAILED_HEADERS, []).
--define(PIVOT_FAILED_VALUES, [{<<"Event-Category">>,<<"pivot">>}
-                             ,{<<"Event-Name">>, <<"failed">>}
-                             ]).
+-define(PIVOT_FAILED_VALUES, [
+    {<<"Event-Category">>, <<"pivot">>},
+    {<<"Event-Name">>, <<"failed">>}
+]).
 -define(PIVOT_FAILED_TYPES, []).
 
 -define(PIVOT_PROCESSING_HEADERS, [<<"Call-ID">>]).
 -define(OPTIONAL_PIVOT_PROCESSING_HEADERS, []).
--define(PIVOT_PROCESSING_VALUES, [{<<"Event-Category">>,<<"pivot">>}
-                                 ,{<<"Event-Name">>, <<"processing">>}
-                                 ]).
+-define(PIVOT_PROCESSING_VALUES, [
+    {<<"Event-Category">>, <<"pivot">>},
+    {<<"Event-Name">>, <<"processing">>}
+]).
 -define(PIVOT_PROCESSING_TYPES, []).
 
--spec req(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec req(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 req(Prop) when is_list(Prop) ->
     case req_v(Prop) of
         'false' -> {'error', "Proplist failed validation for pivot_req"};
@@ -74,8 +84,9 @@ req_v(Prop) when is_list(Prop) ->
 req_v(JObj) ->
     req_v(kz_json:to_proplist(JObj)).
 
--spec failed(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec failed(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 failed(Prop) when is_list(Prop) ->
     case failed_v(Prop) of
         'false' -> {'error', "Proplist failed validation for pivot_failed"};
@@ -90,19 +101,26 @@ failed_v(Prop) when is_list(Prop) ->
 failed_v(JObj) ->
     failed_v(kz_json:to_proplist(JObj)).
 
--spec processing(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec processing(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 processing(Prop) when is_list(Prop) ->
     case processing_v(Prop) of
-        'false' -> {'error', "Proplist processing validation for pivot_processing"};
-        'true' -> kz_api:build_message(Prop, ?PIVOT_PROCESSING_HEADERS, ?OPTIONAL_PIVOT_PROCESSING_HEADERS)
+        'false' ->
+            {'error', "Proplist processing validation for pivot_processing"};
+        'true' ->
+            kz_api:build_message(
+                Prop, ?PIVOT_PROCESSING_HEADERS, ?OPTIONAL_PIVOT_PROCESSING_HEADERS
+            )
     end;
 processing(JObj) ->
     processing(kz_json:to_proplist(JObj)).
 
 -spec processing_v(kz_term:api_terms()) -> boolean().
 processing_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?PIVOT_PROCESSING_HEADERS, ?PIVOT_PROCESSING_VALUES, ?PIVOT_PROCESSING_TYPES);
+    kz_api:validate(
+        Prop, ?PIVOT_PROCESSING_HEADERS, ?PIVOT_PROCESSING_VALUES, ?PIVOT_PROCESSING_TYPES
+    );
 processing_v(JObj) ->
     processing_v(kz_json:to_proplist(JObj)).
 

@@ -6,16 +6,17 @@
 %%%-----------------------------------------------------------------------------
 -module(acdc_stats_util).
 
--export([wait_time/2
-        ,pause_time/2
-        ,caller_id_name/2
-        ,caller_id_number/2
-        ,queue_id/2
+-export([
+    wait_time/2,
+    pause_time/2,
+    caller_id_name/2,
+    caller_id_number/2,
+    queue_id/2,
 
-        ,get_query_limit/1
-        ,apply_query_window_wiggle_room/2
-        ,db_name/1
-        ]).
+    get_query_limit/1,
+    apply_query_window_wiggle_room/2,
+    db_name/1
+]).
 
 -include("acdc.hrl").
 -include("acdc_stats.hrl").
@@ -31,7 +32,8 @@ pause_time(<<"paused">>, JObj) ->
         <<"infinity">> -> 'infinity';
         Timeout -> kz_term:to_integer(Timeout)
     end;
-pause_time(_, _JObj) -> 'undefined'.
+pause_time(_, _JObj) ->
+    'undefined'.
 
 -spec caller_id_name(any(), kz_json:object()) -> kz_term:api_ne_binary().
 caller_id_name(_, JObj) ->

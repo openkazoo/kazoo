@@ -40,7 +40,6 @@
 -export([require_moderator/1, require_moderator/2, set_require_moderator/2]).
 -export([wait_for_moderator/1, wait_for_moderator/2, set_wait_for_moderator/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

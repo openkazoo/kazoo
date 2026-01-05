@@ -7,11 +7,12 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_about).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,validate/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    validate/1
+]).
 
 -include("crossbar.hrl").
 
@@ -67,10 +68,12 @@ validate(Context) ->
 -spec display_version(cb_context:context()) -> cb_context:context().
 display_version(Context) ->
     JObj = kz_json:from_list(
-             [{<<"version">>, kz_util:kazoo_version()}
-             ,{<<"used_memory">>, erlang:memory('total')}
-             ,{<<"processes">>, erlang:system_info('process_count')}
-             ,{<<"ports">>, length(erlang:ports())}
-             ,{<<"erlang_version">>, kz_term:to_binary(erlang:system_info('otp_release'))}
-             ]),
+        [
+            {<<"version">>, kz_util:kazoo_version()},
+            {<<"used_memory">>, erlang:memory('total')},
+            {<<"processes">>, erlang:system_info('process_count')},
+            {<<"ports">>, length(erlang:ports())},
+            {<<"erlang_version">>, kz_term:to_binary(erlang:system_info('otp_release'))}
+        ]
+    ),
     crossbar_util:response(JObj, Context).

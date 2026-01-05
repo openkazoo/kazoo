@@ -8,14 +8,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("pivot.hrl").
 
@@ -25,13 +26,11 @@
 -type state() :: #state{}.
 
 %% By convention, we put the options here in macros, but not required.
--define(BINDINGS, [{'self', []}
-                  ,{'pivot', []}
-                  ]).
--define(RESPONDERS, [{{'pivot_handlers', 'handle_pivot_req'}
-                     ,[{<<"dialplan">>, <<"pivot_req">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'self', []},
+    {'pivot', []}
+]).
+-define(RESPONDERS, [{{'pivot_handlers', 'handle_pivot_req'}, [{<<"dialplan">>, <<"pivot_req">>}]}]).
 -define(QUEUE_NAME, <<"pivot_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -46,12 +45,20 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -70,7 +77,7 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) ->
-          {'reply', {'error', 'not_implemented'}, state()}.
+    {'reply', {'error', 'not_implemented'}, state()}.
 handle_call(_Request, _From, State) ->
     {'reply', {'error', 'not_implemented'}, State}.
 
@@ -78,8 +85,9 @@ handle_call(_Request, _From, State) ->
 %% @doc Handling cast messages.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_cast(any(), state()) -> {'noreply', state()} |
-          {'noreply', state(), 'hibernate'}.
+-spec handle_cast(any(), state()) ->
+    {'noreply', state()}
+    | {'noreply', state(), 'hibernate'}.
 handle_cast({'gen_listener', {'created_queue', _QueueNAme}}, State) ->
     {'noreply', State, 'hibernate'};
 handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->

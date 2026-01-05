@@ -9,12 +9,13 @@
 -module(pqc_cb_websockets).
 
 %% API functions
--export([available/1
+-export([
+    available/1,
 
-         %% Account operations
-        ,summary/2
-        ,details/3
-        ]).
+    %% Account operations
+    summary/2,
+    details/3
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -23,33 +24,37 @@ available(API) ->
     URL = base_websockets_url(),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    pqc_cb_api:make_request(200
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        200,
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 -spec summary(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
 summary(API, AccountId) ->
     WebsocketsURL = websockets_url(AccountId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    pqc_cb_api:make_request(200
-                           ,fun kz_http:get/2
-                           ,WebsocketsURL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        200,
+        fun kz_http:get/2,
+        WebsocketsURL,
+        RequestHeaders
+    ).
 
--spec details(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec details(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 details(API, AccountId, WebsocketId) ->
     URL = websocket_url(AccountId, WebsocketId),
     RequestHeaders = pqc_cb_api:request_headers(API),
 
-    pqc_cb_api:make_request(200
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        200,
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 -spec base_websockets_url() -> string().
 base_websockets_url() ->
@@ -61,4 +66,6 @@ websockets_url(AccountId) ->
 
 -spec websocket_url(kz_term:ne_binary(), kz_term:ne_binary()) -> string().
 websocket_url(AccountId, WebsocketId) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "websockets", kz_term:to_list(WebsocketId)], "/").
+    string:join(
+        [pqc_cb_accounts:account_url(AccountId), "websockets", kz_term:to_list(WebsocketId)], "/"
+    ).

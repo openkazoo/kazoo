@@ -30,7 +30,6 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
     'ok'.
 
-
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     _ = kapi_call:declare_exchanges(),

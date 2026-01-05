@@ -10,31 +10,31 @@
 
 -export([start_link/1, start_link/2]).
 -export([handle_originate_req/2]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {node :: atom()
-               ,options :: kz_term:proplist()
-               }).
+-record(state, {
+    node :: atom(),
+    options :: kz_term:proplist()
+}).
 -type state() :: #state{}.
 
--define(BINDINGS, [{'resource', [{'restrict_to', ['originate']}]}
-                  ,{'self', []}
-                  ]).
--define(RESPONDERS, [{{?MODULE, 'handle_originate_req'}
-                     ,[{<<"resource">>, <<"originate_req">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'resource', [{'restrict_to', ['originate']}]},
+    {'self', []}
+]).
+-define(RESPONDERS, [{{?MODULE, 'handle_originate_req'}, [{<<"resource">>, <<"originate_req">>}]}]).
 -define(QUEUE_NAME, <<"ecallmgr_fs_resource">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -53,14 +53,17 @@ start_link(Node) -> start_link(Node, []).
 
 -spec start_link(atom(), kz_term:proplist()) -> kz_types:startlink_ret().
 start_link(Node, Options) ->
-    gen_listener:start_link(?SERVER
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ,{'queue_name', ?QUEUE_NAME}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            ],
-                            [Node, Options]).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        [Node, Options]
+    ).
 
 -spec handle_originate_req(kz_json:object(), kz_term:proplist()) -> kz_types:sup_startchild_ret().
 handle_originate_req(JObj, Props) ->
@@ -82,7 +85,7 @@ init([Node, Options]) ->
     process_flag('trap_exit', 'true'),
     kz_util:put_callid(Node),
     lager:info("starting new fs resource listener for ~s", [Node]),
-    {'ok', #state{node=Node, options=Options}}.
+    {'ok', #state{node = Node, options = Options}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -106,7 +109,7 @@ handle_cast(_Msg, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 handle_info({'update_options', NewOptions}, State) ->
-    {'noreply', State#state{options=NewOptions}, 'hibernate'};
+    {'noreply', State#state{options = NewOptions}, 'hibernate'};
 handle_info({'EXIT', _, 'noconnection'}, State) ->
     {stop, {'shutdown', 'noconnection'}, State};
 handle_info({'EXIT', _, Reason}, State) ->
@@ -119,7 +122,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), state()) -> gen_listener:handle_event_return().
-handle_event(_JObj, #state{node=Node}) ->
+handle_event(_JObj, #state{node = Node}) ->
     {'reply', [{'node', Node}]}.
 
 %%------------------------------------------------------------------------------
@@ -131,7 +134,7 @@ handle_event(_JObj, #state{node=Node}) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{node=Node}) ->
+terminate(_Reason, #state{node = Node}) ->
     lager:info("resource listener for ~s terminating: ~p", [Node, _Reason]).
 
 %%------------------------------------------------------------------------------

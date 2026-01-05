@@ -6,32 +6,34 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_fax).
 
--export([new/0
-        ,type/0
-        ,owner_id/1, owner_id/2
-        ,faxbox_id/1, faxbox_id/2
-        ,timezone/1, timezone/2
-        ,retries/1, retries/2
-        ,attempts/1, attempts/2
-        ,from_number/1, from_number/2
-        ,from_name/1, from_name/2
-        ,to_number/1, to_number/2
-        ,to_name/1, to_name/2
-        ,identity_number/1, identity_number/2
-        ,identity_name/1, identity_name/2
-        ,subject/1, subject/2
-        ,folder/1, folder/2
-        ,document/1, document/2
-        ,document_url/1
-        ,notifications/1
-        ,rx_result/1, tx_result/1, result/1
-        ,job_node/1, job_node/2
-        ,job_status/1, job_status/2
-        ,size/1, size/2
-        ,pages/1, pages/2
-        ,retry_after/1, retry_after/2
-        ]
-       ).
+-export([
+    new/0,
+    type/0,
+    owner_id/1, owner_id/2,
+    faxbox_id/1, faxbox_id/2,
+    timezone/1, timezone/2,
+    retries/1, retries/2,
+    attempts/1, attempts/2,
+    from_number/1, from_number/2,
+    from_name/1, from_name/2,
+    to_number/1, to_number/2,
+    to_name/1, to_name/2,
+    identity_number/1, identity_number/2,
+    identity_name/1, identity_name/2,
+    subject/1, subject/2,
+    folder/1, folder/2,
+    document/1, document/2,
+    document_url/1,
+    notifications/1,
+    rx_result/1,
+    tx_result/1,
+    result/1,
+    job_node/1, job_node/2,
+    job_status/1, job_status/2,
+    size/1, size/2,
+    pages/1, pages/2,
+    retry_after/1, retry_after/2
+]).
 
 -include("kz_documents.hrl").
 

@@ -37,52 +37,62 @@ start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 -spec find_file_server(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', pid()} |
-          {'error', 'no_file_server'}.
+    {'ok', pid()}
+    | {'error', 'no_file_server'}.
 find_file_server(Id, Doc, Attachment) ->
     Name = [Id, Doc, Attachment],
-    case [P||{N,P,_,_} <- supervisor:which_children(?SERVER), N =:= Name, is_pid(P)] of
+    case [P || {N, P, _, _} <- supervisor:which_children(?SERVER), N =:= Name, is_pid(P)] of
         [] -> {'error', 'no_file_server'};
         [P] -> {'ok', P}
     end.
 
 -spec start_file_server(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', pid()} |
-          {'error', any()}.
+    {'ok', pid()}
+    | {'error', any()}.
 start_file_server(Id, Doc, Attachment) ->
     Name = [Id, Doc, Attachment],
     start_file_server(Id, Doc, Attachment, Name).
 start_file_server(Id, Doc, Attachment, Name) ->
-    ChildSpec = ?WORKER_NAME_ARGS_TYPE(Name, 'kz_media_file_cache', [Id, Doc, Attachment], 'temporary'),
+    ChildSpec = ?WORKER_NAME_ARGS_TYPE(
+        Name, 'kz_media_file_cache', [Id, Doc, Attachment], 'temporary'
+    ),
     case supervisor:start_child(?SERVER, ChildSpec) of
-        {'ok', _Pid}=OK -> OK;
-        {'error', {'already_started', Pid}} -> {'ok', Pid};
+        {'ok', _Pid} = OK ->
+            OK;
+        {'error', {'already_started', Pid}} ->
+            {'ok', Pid};
         {'error', 'already_present'} ->
-            _ = supervisor:delete_child(?SERVER, Name), %% FIXME: this didn't kill the child
+            %% FIXME: this didn't kill the child
+            _ = supervisor:delete_child(?SERVER, Name),
             start_file_server(Id, Doc, Attachment, Name);
-        {'error', _}=E -> E
+        {'error', _} = E ->
+            E
     end.
 
--spec find_tts_server(any()) -> {'ok', pid()} |
-          {'error', 'no_file_server'}.
+-spec find_tts_server(any()) ->
+    {'ok', pid()}
+    | {'error', 'no_file_server'}.
 find_tts_server(Id) ->
-    case [P||{N,P,_,_} <- supervisor:which_children(?SERVER), N =:= Id, is_pid(P)] of
+    case [P || {N, P, _, _} <- supervisor:which_children(?SERVER), N =:= Id, is_pid(P)] of
         [] -> {'error', 'no_file_server'};
         [P] -> {'ok', P}
     end.
 
 -spec find_tts_server(kz_term:ne_binary(), kz_json:object()) ->
-          {'ok', pid()} |
-          {'error', any()}.
+    {'ok', pid()}
+    | {'error', any()}.
 find_tts_server(Id, JObj) ->
     ChildSpec = ?WORKER_NAME_ARGS_TYPE(Id, 'kz_media_tts_cache', [Id, JObj], 'temporary'),
     case supervisor:start_child(?SERVER, ChildSpec) of
-        {'ok', _Pid}=OK -> OK;
-        {'error', {'already_started', Pid}} -> {'ok', Pid};
+        {'ok', _Pid} = OK ->
+            OK;
+        {'error', {'already_started', Pid}} ->
+            {'ok', Pid};
         {'error', 'already_present'} ->
             _ = supervisor:delete_child(?SERVER, Id),
             find_tts_server(Id, JObj);
-        {'error', _}=E -> E
+        {'error', _} = E ->
+            E
     end.
 
 %%%=============================================================================

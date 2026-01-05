@@ -9,6 +9,5 @@
 -define(APP_NAME, <<"kapps_im_command">>).
 -define(APP_VERSION, <<"4.0.0">>).
 
-
 -define(KAPPS_IM_COMMAND_HRL, 'true').
 -endif.

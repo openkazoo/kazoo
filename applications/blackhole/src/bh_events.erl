@@ -5,14 +5,15 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_events).
 
--export([init/0
-        ,event/3
-        ,validate/2
-        ,subscribe/2
-        ,unsubscribe/2
-        ,close/1
-        ,authorize/2
-        ]).
+-export([
+    init/0,
+    event/3,
+    validate/2,
+    subscribe/2,
+    unsubscribe/2,
+    close/1,
+    authorize/2
+]).
 
 -include("blackhole.hrl").
 
@@ -34,10 +35,11 @@ authorize(Context, Payload) ->
     Binding = kz_json:get_value([<<"data">>, <<"binding">>], Payload),
     [Key | Keys] = binary:split(Binding, <<".">>, ['global']),
     Event = <<"blackhole.events.authorize.", Key/binary>>,
-    Map = #{account_id => AccountId
-           ,key => Key
-           ,keys => Keys
-           },
+    Map = #{
+        account_id => AccountId,
+        key => Key,
+        keys => Keys
+    },
     Res = blackhole_bindings:fold(Event, [Context, Map]),
     validate_result(Context, Res).
 
@@ -48,10 +50,12 @@ validate(Context, Payload) ->
         Keys -> validate_data(Context, Payload, Keys)
     end.
 
--spec validate_data(bh_context:context(), kz_json:object(), kz_term:ne_binaries()) -> bh_context:context().
+-spec validate_data(bh_context:context(), kz_json:object(), kz_term:ne_binaries()) ->
+    bh_context:context().
 validate_data(Context, Payload, Keys) ->
     case ?SUBSCRIBE_KEYS -- Keys of
-        [] -> validate_subscription(Context, Payload);
+        [] ->
+            validate_subscription(Context, Payload);
         Missing ->
             Error = <<"missing required keys : ", (kz_binary:join(Missing))/binary>>,
             bh_context:add_error(Context, Error)
@@ -63,22 +67,26 @@ validate_subscription(Context, Payload) ->
     Binding = kz_json:get_value([<<"data">>, <<"binding">>], Payload),
     [Key | Keys] = binary:split(Binding, <<".">>, ['global']),
     Event = <<"blackhole.events.validate.", Key/binary>>,
-    Map = #{account_id => AccountId
-           ,key => Key
-           ,keys => Keys
-           },
+    Map = #{
+        account_id => AccountId,
+        key => Key,
+        keys => Keys
+    },
     Res = blackhole_bindings:map(Event, [Context, Map]),
     validate_result(Context, Res).
 
 -spec validate_result(bh_context:context(), kz_term:ne_binaries()) -> bh_context:context().
-validate_result(Context, []) -> Context;
+validate_result(Context, []) ->
+    Context;
 validate_result(Context, Res) ->
     case blackhole_bindings:failed(Res) of
-        [Ctx | _] -> Ctx;
-        [] -> case blackhole_bindings:succeeded(Res) of
-                  [] -> Context;
-                  [Ctx | _] -> Ctx
-              end
+        [Ctx | _] ->
+            Ctx;
+        [] ->
+            case blackhole_bindings:succeeded(Res) of
+                [] -> Context;
+                [Ctx | _] -> Ctx
+            end
     end.
 
 -spec subscribe(bh_context:context(), kz_json:object()) -> bh_context:context().
@@ -87,10 +95,11 @@ subscribe(Context, Payload) ->
     Binding = kz_json:get_value([<<"data">>, <<"binding">>], Payload),
     [Key | Keys] = binary:split(Binding, <<".">>, ['global']),
     Event = <<"blackhole.events.bindings.", Key/binary>>,
-    Map = #{account_id => AccountId
-           ,key => Key
-           ,keys => Keys
-           },
+    Map = #{
+        account_id => AccountId,
+        key => Key,
+        keys => Keys
+    },
     MapResults = blackhole_bindings:map(Event, [Context, Map]),
     case blackhole_bindings:succeeded(MapResults) of
         [] -> bh_context:add_error(Context, <<"no available subscriptions to requested binding">>);
@@ -103,10 +112,11 @@ unsubscribe(Context, Payload) ->
     Binding = kz_json:get_value([<<"data">>, <<"binding">>], Payload),
     [Key | Keys] = binary:split(Binding, <<".">>, ['global']),
     Event = <<"blackhole.events.bindings.", Key/binary>>,
-    Map = #{account_id => AccountId
-           ,key => Key
-           ,keys => Keys
-           },
+    Map = #{
+        account_id => AccountId,
+        key => Key,
+        keys => Keys
+    },
     MapResults = blackhole_bindings:map(Event, [Context, Map]),
     case blackhole_bindings:succeeded(MapResults) of
         [] -> bh_context:add_error(Context, <<"no available subscriptions to requested binding">>);
@@ -118,24 +128,27 @@ event(Binding, RK, EventJObj) ->
     kz_util:put_callid(EventJObj),
     Name = kz_api:event_name(EventJObj),
     NormJObj = kz_json:normalize_jobj(
-                 kz_api:public_fields(EventJObj)
-                ),
+        kz_api:public_fields(EventJObj)
+    ),
     blackhole_data_emitter:event(Binding, RK, Name, NormJObj).
 
 add_event_bindings(Context, BindingResults) ->
     case lists:foldl(fun add_event_bindings_fold/2, {Context, []}, BindingResults) of
-        {Ctx, []} -> Ctx;
+        {Ctx, []} ->
+            Ctx;
         {Ctx, _Subscribed} ->
             Data = kz_json:from_list([{<<"subscribed">>, bh_context:client_bindings(Ctx)}]),
             bh_context:set_resp_data(Ctx, Data)
     end.
 
-add_event_bindings_fold(#{requested := ClientBinding
-                         ,subscribed := AMQPBindings
-                         ,listeners := Listeners
-                         }
-                       ,{Context, Subs}
-                       ) ->
+add_event_bindings_fold(
+    #{
+        requested := ClientBinding,
+        subscribed := AMQPBindings,
+        listeners := Listeners
+    },
+    {Context, Subs}
+) ->
     SessionBindings = bh_context:bindings(Context),
 
     Subscribe = [{ClientBinding, AMQPBinding} || AMQPBinding <- AMQPBindings] -- SessionBindings,
@@ -150,34 +163,39 @@ add_event_bindings_fold(#{requested := ClientBinding
 bh_binding(Context, {ClientBinding, AMQPBinding}) ->
     SessionPid = bh_context:websocket_pid(Context),
     SessionId = bh_context:websocket_session_id(Context),
-    Binding =  #{subscribed_key => ClientBinding
-                ,subscription_key => AMQPBinding
-                ,session_pid => SessionPid
-                ,session_id => SessionId
-                },
+    Binding = #{
+        subscribed_key => ClientBinding,
+        subscription_key => AMQPBinding,
+        session_pid => SessionPid,
+        session_id => SessionId
+    },
     BHBinding = <<"blackhole.event.", AMQPBinding/binary>>,
     blackhole_bindings:bind(BHBinding, ?MODULE, 'event', Binding).
 
--spec remove_event_bindings(bh_context:context(), [map(),...]) -> bh_context:context().
+-spec remove_event_bindings(bh_context:context(), [map(), ...]) -> bh_context:context().
 remove_event_bindings(Context, BindingResults) ->
-    {Ctx, UnSubscribed} = lists:foldl(fun remove_event_bindings_fold/2
-                                     ,{Context, []}
-                                     ,BindingResults
-                                     ),
+    {Ctx, UnSubscribed} = lists:foldl(
+        fun remove_event_bindings_fold/2,
+        {Context, []},
+        BindingResults
+    ),
 
-    Data = kz_json:from_list([{<<"unsubscribed">>, UnSubscribed}
-                             ,{<<"subscribed">>, bh_context:client_bindings(Ctx)}
-                             ]),
+    Data = kz_json:from_list([
+        {<<"unsubscribed">>, UnSubscribed},
+        {<<"subscribed">>, bh_context:client_bindings(Ctx)}
+    ]),
     bh_context:set_resp_data(Ctx, Data).
 
 -spec remove_event_bindings_fold(map(), {bh_context:context(), kz_term:ne_binaries()}) ->
-          {bh_context:context(), kz_term:ne_binaries()}.
-remove_event_bindings_fold(#{requested := ClientBinding
-                            ,subscribed := AMQPBindings
-                            ,listeners := Listeners
-                            }
-                          ,{Context, Subs}
-                          ) ->
+    {bh_context:context(), kz_term:ne_binaries()}.
+remove_event_bindings_fold(
+    #{
+        requested := ClientBinding,
+        subscribed := AMQPBindings,
+        listeners := Listeners
+    },
+    {Context, Subs}
+) ->
     SessionBindings = bh_context:bindings(Context),
     Removed = [{ClientBinding, AMQPBinding} || AMQPBinding <- AMQPBindings],
 
@@ -191,11 +209,12 @@ bh_unbind(Context, {ClientBinding, AMQPBinding}) ->
     BHBinding = <<"blackhole.event.", AMQPBinding/binary>>,
     SessionPid = bh_context:websocket_pid(Context),
     SessionId = bh_context:websocket_session_id(Context),
-    Binding =  #{subscribed_key => ClientBinding
-                ,subscription_key => AMQPBinding
-                ,session_pid => SessionPid
-                ,session_id => SessionId
-                },
+    Binding = #{
+        subscribed_key => ClientBinding,
+        subscription_key => AMQPBinding,
+        session_pid => SessionPid,
+        session_id => SessionId
+    },
     blackhole_bindings:unbind(BHBinding, ?MODULE, 'event', Binding).
 
 -spec close(bh_context:context()) -> bh_context:context().
@@ -204,7 +223,8 @@ close(Context) ->
     blackhole_listener:remove_bindings(Listeners),
     Bindings = bh_context:bindings(Context),
     lists:foreach(fun(B) -> bh_unbind(Context, B) end, Bindings),
-    Routines = [{fun bh_context:remove_listeners/2, Listeners}
-               ,{fun bh_context:remove_bindings/2, Bindings}
-               ],
+    Routines = [
+        {fun bh_context:remove_listeners/2, Listeners},
+        {fun bh_context:remove_bindings/2, Bindings}
+    ],
     bh_context:setters(Context, Routines).

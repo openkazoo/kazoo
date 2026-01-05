@@ -7,14 +7,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("braintree.hrl").
 
@@ -23,25 +24,17 @@
 -record(state, {}).
 -type state() :: #state{}.
 
--define(BINDINGS, [{'bookkeepers', []}
-                  ,{'self', []}
-                  ]).
--define(RESPONDERS, [{'braintree_collect_recurring_req'
-                     ,[{<<"bookkeepers">>, <<"collect_recurring_req">>}]
-                     }
-                    ,{'braintree_sale'
-                     ,[{<<"bookkeepers">>, <<"sale_req">>}]
-                     }
-                    ,{'braintree_refund'
-                     ,[{<<"bookkeepers">>, <<"refund_req">>}]
-                     }
-                    ,{'braintree_update_req'
-                     ,[{<<"bookkeepers">>, <<"update_req">>}]
-                     }
-                    ,{'braintree_standing_req'
-                     ,[{<<"bookkeepers">>, <<"standing_req">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'bookkeepers', []},
+    {'self', []}
+]).
+-define(RESPONDERS, [
+    {'braintree_collect_recurring_req', [{<<"bookkeepers">>, <<"collect_recurring_req">>}]},
+    {'braintree_sale', [{<<"bookkeepers">>, <<"sale_req">>}]},
+    {'braintree_refund', [{<<"bookkeepers">>, <<"refund_req">>}]},
+    {'braintree_update_req', [{<<"bookkeepers">>, <<"update_req">>}]},
+    {'braintree_standing_req', [{<<"bookkeepers">>, <<"standing_req">>}]}
+]).
 -define(QUEUE_NAME, <<"braintree_shared_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -56,12 +49,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks

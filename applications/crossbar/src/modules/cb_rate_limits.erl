@@ -10,14 +10,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_rate_limits).
 
--export([init/0
-        ,allowed_methods/0
-        ,authorize/1
-        ,resource_exists/0
-        ,validate/1
-        ,post/1
-        ,delete/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    authorize/1,
+    resource_exists/0,
+    validate/1,
+    post/1,
+    delete/1
+]).
 
 -include("crossbar.hrl").
 
@@ -52,12 +53,13 @@ allowed_methods() ->
 -spec authorize(cb_context:context()) -> boolean().
 authorize(Context) ->
     case thing_type_id(Context) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         _ ->
             {'ok', MasterAccount} = kapps_util:get_master_account_id(),
             AuthAccountId = cb_context:auth_account_id(Context),
-            AuthAccountId =:= MasterAccount
-                orelse kz_services_reseller:is_reseller(AuthAccountId)
+            AuthAccountId =:= MasterAccount orelse
+                kz_services_reseller:is_reseller(AuthAccountId)
     end.
 
 -type thing_type() :: kz_term:ne_binary().
@@ -123,14 +125,19 @@ validate_rate_limits(Context, ?HTTP_DELETE) ->
 validate_post_rate_limits(Context) ->
     case thing_type(Context) of
         <<"accounts">> ->
-            cb_context:validate_request_data(<<"account_rate_limits">>, Context, fun validate_set_rate_limits/1);
+            cb_context:validate_request_data(
+                <<"account_rate_limits">>, Context, fun validate_set_rate_limits/1
+            );
         <<"devices">> ->
-            cb_context:validate_request_data(<<"device_rate_limits">>, Context, fun validate_set_rate_limits/1);
+            cb_context:validate_request_data(
+                <<"device_rate_limits">>, Context, fun validate_set_rate_limits/1
+            );
         _Else ->
             crossbar_util:response_faulty_request(Context)
     end.
 
--spec get_rate_limits_id_for_thing(cb_context:context(), kz_term:ne_binary()) -> kz_term:api_binaries().
+-spec get_rate_limits_id_for_thing(cb_context:context(), kz_term:ne_binary()) ->
+    kz_term:api_binaries().
 get_rate_limits_id_for_thing(Context, ThingId) ->
     ViewOpt = [{'key', ThingId}],
     case kz_datamgr:get_results(cb_context:account_db(Context), ?LISTING_BY_OWNER, ViewOpt) of
@@ -150,51 +157,64 @@ validate_get_rate_limits(Context, 'undefined') ->
     crossbar_util:response_faulty_request(Context);
 validate_get_rate_limits(Context, ThingId) ->
     case get_rate_limits_id_for_thing(Context, ThingId) of
-        'undefined' -> crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
-        [] -> crossbar_doc:handle_json_success(kz_json:new(), Context);
-        [RateLimitsId] -> crossbar_doc:load(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
+        'undefined' ->
+            crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
+        [] ->
+            crossbar_doc:handle_json_success(kz_json:new(), Context);
+        [RateLimitsId] ->
+            crossbar_doc:load(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
         RateLimitsIds ->
-            lager:error("Found more than one result, please check ids(from db ~s): ~p"
-                       ,[cb_context:account_db(Context), RateLimitsIds]
-                       ),
+            lager:error(
+                "Found more than one result, please check ids(from db ~s): ~p",
+                [cb_context:account_db(Context), RateLimitsIds]
+            ),
             crossbar_util:response('fatal', <<"data collection error">>, 503, Context)
     end.
 
--spec validate_delete_rate_limits(cb_context:context(), kz_term:api_binary()) -> cb_context:context().
+-spec validate_delete_rate_limits(cb_context:context(), kz_term:api_binary()) ->
+    cb_context:context().
 validate_delete_rate_limits(Context, 'undefined') ->
     crossbar_util:response_faulty_request(Context);
 validate_delete_rate_limits(Context, ThingId) ->
     case get_rate_limits_id_for_thing(Context, ThingId) of
-        'undefined' -> crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
-        [] -> crossbar_doc:handle_json_success(kz_json:new(), Context);
-        [RateLimitsId] -> crossbar_doc:load(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
+        'undefined' ->
+            crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
+        [] ->
+            crossbar_doc:handle_json_success(kz_json:new(), Context);
+        [RateLimitsId] ->
+            crossbar_doc:load(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
         RateLimitsIds ->
-            lager:error("Found more than one result, please check ids(from db ~s): ~p"
-                       ,[cb_context:account_db(Context), RateLimitsIds]
-                       ),
+            lager:error(
+                "Found more than one result, please check ids(from db ~s): ~p",
+                [cb_context:account_db(Context), RateLimitsIds]
+            ),
             crossbar_util:response('fatal', <<"data collection error">>, 503, Context)
     end.
 
 -spec validate_set_rate_limits(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 validate_set_rate_limits(Context) ->
     lager:debug("rate limits data is valid, setting on thing"),
     validate_set_rate_limits(Context, thing_id(Context)).
 
 -spec validate_set_rate_limits(cb_context:context(), kz_term:api_binary()) ->
-          cb_context:context().
+    cb_context:context().
 validate_set_rate_limits(Context, 'undefined') ->
     lager:debug("no thing found"),
     crossbar_util:response_faulty_request(Context);
 validate_set_rate_limits(Context, ThingId) ->
     case get_rate_limits_id_for_thing(Context, ThingId) of
-        'undefined' -> crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
-        [] -> Context;
-        [RateLimitsId] -> crossbar_doc:load_merge(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
+        'undefined' ->
+            crossbar_util:response('fatal', <<"data collection error">>, 503, Context);
+        [] ->
+            Context;
+        [RateLimitsId] ->
+            crossbar_doc:load_merge(RateLimitsId, Context, ?TYPE_CHECK_OPTION(<<"rate_limits">>));
         RateLimitsIds ->
-            lager:error("Found more than one result, please check ids(from db ~s): ~p"
-                       ,[cb_context:account_db(Context), RateLimitsIds]
-                       ),
+            lager:error(
+                "Found more than one result, please check ids(from db ~s): ~p",
+                [cb_context:account_db(Context), RateLimitsIds]
+            ),
             crossbar_util:response('fatal', <<"data collection error">>, 503, Context)
     end.
 
@@ -204,11 +224,12 @@ set_pvt_fields(Context) ->
     {'ok', JObj} = kz_datamgr:open_cache_doc(cb_context:account_db(Context), ThingId),
     ThingType = kz_doc:type(JObj),
 
-    Props = [{<<"pvt_type">>, <<"rate_limits">>}
-            ,{<<"pvt_owner_id">>, ThingId}
-            ,{<<"pvt_owner_type">>, ThingType}
-            ,{<<"pvt_queryname">>, query_name(ThingType, JObj)}
-            ],
+    Props = [
+        {<<"pvt_type">>, <<"rate_limits">>},
+        {<<"pvt_owner_id">>, ThingId},
+        {<<"pvt_owner_type">>, ThingType},
+        {<<"pvt_queryname">>, query_name(ThingType, JObj)}
+    ],
     cb_context:set_doc(Context, kz_json:set_values(Props, cb_context:doc(Context))).
 
 -spec query_name(kz_term:ne_binary(), kz_json:object()) -> kz_term:api_binary().

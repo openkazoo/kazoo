@@ -21,5 +21,6 @@ start_link() ->
             kz_datamgr:suppress_change_notice(),
             kazoo_media_maintenance:fix_media_names(),
             'ignore';
-        'false' -> 'ignore'
+        'false' ->
+            'ignore'
     end.

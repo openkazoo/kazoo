@@ -52,20 +52,25 @@ record_caller(Data, Call, Url) ->
     _ = set_recording_url(Data, Call, Url, MediaName),
 
     lager:info("recording caller starting"),
-    _ = kapps_call_command:b_record(MediaName
-                                   ,?ANY_DIGIT
-                                   ,kzc_recording:get_timelimit(Data)
-                                   ,Call
-                                   ),
+    _ = kapps_call_command:b_record(
+        MediaName,
+        ?ANY_DIGIT,
+        kzc_recording:get_timelimit(Data),
+        Call
+    ),
     lager:debug("recording caller ended").
 
--spec set_recording_url(kz_json:object(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()) -> any().
+-spec set_recording_url(
+    kz_json:object(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> any().
 set_recording_url(Data, Call, Url, MediaName) ->
     lager:debug("store to ~s to ~s", [MediaName, Url]),
 
-    kapps_call:set_custom_channel_vars([{<<"Media-Name">>, MediaName}
-                                       ,{<<"Media-Transfer-Method">>, kz_json:get_value(<<"method">>, Data, <<"put">>)}
-                                       ,{<<"Media-Transfer-Destination">>, Url}
-                                       ]
-                                      ,Call
-                                      ).
+    kapps_call:set_custom_channel_vars(
+        [
+            {<<"Media-Name">>, MediaName},
+            {<<"Media-Transfer-Method">>, kz_json:get_value(<<"method">>, Data, <<"put">>)},
+            {<<"Media-Transfer-Destination">>, Url}
+        ],
+        Call
+    ).

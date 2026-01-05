@@ -14,49 +14,64 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_money).
 
--export([credit/1, credit_v/1
-        ,debit/1, debit_v/1
-        ,balance_req/1, balance_req_v/1
-        ,balance_resp/1, balance_resp_v/1
-        ,bind_q/2, unbind_q/2
-        ,declare_exchanges/0
-        ,publish_credit/1, publish_credit/2
-        ,publish_debit/1, publish_debit/2
-        ,publish_balance_req/1, publish_balance_req/2
-        ,publish_balance_resp/2, publish_balance_resp/3
-        ]).
+-export([
+    credit/1,
+    credit_v/1,
+    debit/1,
+    debit_v/1,
+    balance_req/1,
+    balance_req_v/1,
+    balance_resp/1,
+    balance_resp_v/1,
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
+    publish_credit/1, publish_credit/2,
+    publish_debit/1, publish_debit/2,
+    publish_balance_req/1, publish_balance_req/2,
+    publish_balance_resp/2, publish_balance_resp/3
+]).
 
 -include_lib("kz_amqp_util.hrl").
 
 -define(CREDIT_HEADERS, [<<"Account-ID">>, <<"Amount">>, <<"Transaction-ID">>]).
 -define(OPTIONAL_CREDIT_HEADERS, []).
--define(CREDIT_VALUES, [{<<"Event-Category">>, <<"transaction">>}
-                       ,{<<"Event-Name">>, <<"credit">>}
-                       ]).
+-define(CREDIT_VALUES, [
+    {<<"Event-Category">>, <<"transaction">>},
+    {<<"Event-Name">>, <<"credit">>}
+]).
 -define(CREDIT_TYPES, []).
 
 -define(DEBIT_HEADERS, [<<"Account-ID">>, <<"Amount">>, <<"Transaction-ID">>]).
 -define(OPTIONAL_DEBIT_HEADERS, []).
--define(DEBIT_VALUES, [{<<"Event-Category">>, <<"transaction">>}
-                      ,{<<"Event-Name">>, <<"debit">>}
-                      ]).
+-define(DEBIT_VALUES, [
+    {<<"Event-Category">>, <<"transaction">>},
+    {<<"Event-Name">>, <<"debit">>}
+]).
 -define(DEBIT_TYPES, []).
 
 -define(BALANCE_REQ_HEADERS, [<<"Account-ID">>]).
 -define(OPTIONAL_BALANCE_REQ_HEADERS, []).
--define(BALANCE_REQ_VALUES, [{<<"Event-Category">>, <<"transaction">>}
-                            ,{<<"Event-Name">>, <<"balance_req">>}
-                            ]).
+-define(BALANCE_REQ_VALUES, [
+    {<<"Event-Category">>, <<"transaction">>},
+    {<<"Event-Name">>, <<"balance_req">>}
+]).
 -define(BALANCE_REQ_TYPES, []).
 
 -define(BALANCE_RESP_HEADERS, [<<"Account-ID">>]).
--define(OPTIONAL_BALANCE_RESP_HEADERS, [<<"Two-Way">>, <<"Inbound">>, <<"Prepay">>
-                                       ,<<"Max-Two-Way">>, <<"Max-Inbound">>
-                                       ,<<"Trunks">>, <<"Node">>
-                                       ]).
--define(BALANCE_RESP_VALUES, [{<<"Event-Category">>, <<"transaction">>}
-                             ,{<<"Event-Name">>, <<"balance_resp">>}
-                             ]).
+-define(OPTIONAL_BALANCE_RESP_HEADERS, [
+    <<"Two-Way">>,
+    <<"Inbound">>,
+    <<"Prepay">>,
+    <<"Max-Two-Way">>,
+    <<"Max-Inbound">>,
+    <<"Trunks">>,
+    <<"Node">>
+]).
+-define(BALANCE_RESP_VALUES, [
+    {<<"Event-Category">>, <<"transaction">>},
+    {<<"Event-Name">>, <<"balance_resp">>}
+]).
 -define(BALANCE_RESP_TYPES, []).
 
 %%------------------------------------------------------------------------------
@@ -158,11 +173,13 @@ declare_exchanges() ->
     kz_amqp_util:configuration_exchange().
 
 routing_key(Props) ->
-    list_to_binary([<<"transaction.">>
-                   ,props:get_value('type', Props, <<"*">>) %% credit/debit/balance/other
-                   ,<<".">>
-                   ,props:get_value('account_id', Props, <<"*">>)
-                   ]).
+    list_to_binary([
+        <<"transaction.">>,
+        %% credit/debit/balance/other
+        props:get_value('type', Props, <<"*">>),
+        <<".">>,
+        props:get_value('account_id', Props, <<"*">>)
+    ]).
 
 -spec publish_credit(kz_term:api_terms()) -> 'ok'.
 publish_credit(Req) ->

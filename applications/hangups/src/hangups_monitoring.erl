@@ -11,18 +11,20 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0
-        ,check_stats/0
-        ]).
+-export([
+    start_link/0,
+    check_stats/0
+]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("hangups.hrl").
 
@@ -30,8 +32,7 @@
 
 -define(STAT_CHECK_MSG, 'stat_check').
 
--record(state, {stat_timer_ref :: reference()
-               }).
+-record(state, {stat_timer_ref :: reference()}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -57,7 +58,7 @@ start_link() ->
 -spec init([]) -> {'ok', state()}.
 init([]) ->
     kz_util:put_callid(?MODULE),
-    {'ok', #state{stat_timer_ref=start_timer()}}.
+    {'ok', #state{stat_timer_ref = start_timer()}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -83,7 +84,7 @@ handle_cast(_Msg, State) ->
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 handle_info(?STAT_CHECK_MSG, State) ->
     _P = kz_util:spawn(fun check_stats/0),
-    {'noreply', State#state{stat_timer_ref=start_timer()}, 'hibernate'};
+    {'noreply', State#state{stat_timer_ref = start_timer()}, 'hibernate'};
 handle_info(_Info, State) ->
     lager:debug("unhandled msg: ~p", [_Info]),
     {'noreply', State}.
@@ -97,7 +98,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{stat_timer_ref=Ref}) ->
+terminate(_Reason, #state{stat_timer_ref = Ref}) ->
     _ = erlang:cancel_timer(Ref),
     lager:debug("hangups_monitor going down: ~p", [_Reason]).
 
@@ -138,42 +139,50 @@ check_stats(HC) ->
 -spec maybe_alert(kz_term:ne_binary(), list()) -> 'ok'.
 maybe_alert(HangupCause, Stats) ->
     case metrics_exceeded(HangupCause, Stats) of
-        [] -> 'ok';
+        [] ->
+            'ok';
         _MetricsExceeded ->
-            lager:info("hangup cause ~s exceeded thresholds in metrics ~p"
-                      ,[HangupCause, _MetricsExceeded]
-                      ),
+            lager:info(
+                "hangup cause ~s exceeded thresholds in metrics ~p",
+                [HangupCause, _MetricsExceeded]
+            ),
             send_alert(HangupCause)
     end.
 
 -spec metrics_exceeded(kz_term:ne_binary(), list()) -> kz_term:atoms().
 metrics_exceeded(HangupCause, Stats) ->
-    [Key || Key <- props:get_keys(Stats),
-            threshold_exceeded(HangupCause, Stats, Key)
+    [
+        Key
+     || Key <- props:get_keys(Stats),
+        threshold_exceeded(HangupCause, Stats, Key)
     ].
 
 -spec threshold_exceeded(kz_term:ne_binary(), list(), atom()) -> boolean().
-threshold_exceeded(_HangupCause, _Stats, 'acceleration') -> 'false';
-threshold_exceeded(_HangupCause, _Stats, 'count') -> 'false';
-threshold_exceeded(_HangupCause, _Stats, 'mean') -> 'false';
+threshold_exceeded(_HangupCause, _Stats, 'acceleration') ->
+    'false';
+threshold_exceeded(_HangupCause, _Stats, 'count') ->
+    'false';
+threshold_exceeded(_HangupCause, _Stats, 'mean') ->
+    'false';
 threshold_exceeded(HangupCause, Stats, Key) ->
     ConfigName = hangups_util:meter_name(HangupCause),
-    Threshold  = kapps_config:get_float(ConfigName, folsom_field(Key), 0.0),
-    Value      = props:get_value(Key, Stats),
+    Threshold = kapps_config:get_float(ConfigName, folsom_field(Key), 0.0),
+    Value = props:get_value(Key, Stats),
     is_threshold_exceeded(Value, Threshold, Key).
 
 -spec is_threshold_exceeded(number(), number(), atom()) -> boolean().
 is_threshold_exceeded(Value, Threshold, Key) ->
-    Threshold > 0.0
-        andalso Value > Threshold * folsom_minutes(Key).
+    Threshold > 0.0 andalso
+        Value > Threshold * folsom_minutes(Key).
 
 -spec send_alert(kz_term:ne_binary()) -> 'ok'.
 send_alert(HangupCause) ->
     Meter = hangups_util:meter_name(HangupCause),
-    kz_notify:detailed_alert("~s alerted past configured threshold"
-                            ,[kz_term:to_lower_binary(HangupCause)]
-                            ,hangups_query_listener:meter_resp(Meter)
-                            ).
+    kz_notify:detailed_alert(
+        "~s alerted past configured threshold",
+        [kz_term:to_lower_binary(HangupCause)],
+        hangups_query_listener:meter_resp(Meter)
+    ).
 
 -spec folsom_minutes(atom()) -> pos_integer().
 folsom_minutes('one') -> 1;

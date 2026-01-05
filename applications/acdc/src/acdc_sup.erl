@@ -18,18 +18,19 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?SUPER('acdc_recordings_sup')
-                  ,?SUPER('acdc_agents_sup')
-                  ,?SUPER('acdc_queues_sup')
-                  ,?SUPER('acdc_stats_sup')
-                  ,?SUPER('acdc_announcements_sup')
-                  ,?SUPER('acdc_queue_manager_diag_sup')
-                  ,?WORKER('acdc_agent_manager')
-                  ,?WORKER('acdc_init')
-                  ,?WORKER('acdc_listener')
-                  ,?WORKER('acdc_recordings_map_srv')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?SUPER('acdc_recordings_sup'),
+    ?SUPER('acdc_agents_sup'),
+    ?SUPER('acdc_queues_sup'),
+    ?SUPER('acdc_stats_sup'),
+    ?SUPER('acdc_announcements_sup'),
+    ?SUPER('acdc_queue_manager_diag_sup'),
+    ?WORKER('acdc_agent_manager'),
+    ?WORKER('acdc_init'),
+    ?WORKER('acdc_listener'),
+    ?WORKER('acdc_recordings_map_srv')
+]).
 
 %%==============================================================================
 %% API functions

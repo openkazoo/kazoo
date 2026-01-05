@@ -38,15 +38,19 @@ handle(Data, Call) ->
     CallerIdNumber = kapps_call:caller_id_number(Call),
     ListId = kz_json:get_ne_binary_value(<<"id">>, Data),
     AccountDb = kapps_call:account_db(Call),
-    lager:debug("comparing caller id ~s with match list ~s entries in ~s", [CallerIdNumber, ListId, AccountDb]),
-    case is_matching_prefix(AccountDb, ListId, CallerIdNumber)
-        orelse is_matching_regexp(AccountDb, ListId, CallerIdNumber)
+    lager:debug("comparing caller id ~s with match list ~s entries in ~s", [
+        CallerIdNumber, ListId, AccountDb
+    ]),
+    case
+        is_matching_prefix(AccountDb, ListId, CallerIdNumber) orelse
+            is_matching_regexp(AccountDb, ListId, CallerIdNumber)
     of
         'true' -> handle_match(Call);
         'false' -> handle_no_match(Call)
     end.
 
--spec is_matching_prefix(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_matching_prefix(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    boolean().
 is_matching_prefix(AccountDb, ListId, Number) ->
     NumberPrefixes = build_keys(Number),
     Keys = [[ListId, X] || X <- NumberPrefixes],
@@ -55,14 +59,16 @@ is_matching_prefix(AccountDb, ListId, Number) ->
         _ -> 'false'
     end.
 
--spec is_matching_regexp(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_matching_regexp(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    boolean().
 is_matching_regexp(AccountDb, ListId, Number) ->
     case kz_datamgr:get_results(AccountDb, <<"lists/regexps_in_list">>, [{'key', ListId}]) of
         {'ok', Regexps} ->
-            Patterns = [kz_json:get_value(<<"value">>, X)
-                        || X <- Regexps,
-                           X =/= null
-                       ],
+            Patterns = [
+                kz_json:get_value(<<"value">>, X)
+             || X <- Regexps,
+                X =/= null
+            ],
             match_regexps(Patterns, Number);
         _ ->
             'false'
@@ -74,7 +80,8 @@ match_regexps([Pattern | Rest], Number) ->
         {'match', _} -> 'true';
         'nomatch' -> match_regexps(Rest, Number)
     end;
-match_regexps([], _Number) -> 'false'.
+match_regexps([], _Number) ->
+    'false'.
 
 %% TODO: this function from hon_util, may be place it somewhere in library?
 -spec build_keys(binary()) -> kz_term:binaries().
@@ -86,7 +93,8 @@ build_keys(<<D:1/binary, Rest/binary>>) ->
 -spec build_keys(binary(), binary(), kz_term:binaries()) -> kz_term:binaries().
 build_keys(<<D:1/binary, Rest/binary>>, Prefix, Acc) ->
     build_keys(Rest, <<Prefix/binary, D/binary>>, [<<Prefix/binary, D/binary>> | Acc]);
-build_keys(<<>>, _, Acc) -> Acc.
+build_keys(<<>>, _, Acc) ->
+    Acc.
 
 %%------------------------------------------------------------------------------
 %% @doc Handle a caller id "match" condition

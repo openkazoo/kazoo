@@ -26,32 +26,36 @@ handle(Data, Call) ->
 handle_webhook(Data, Call) ->
     CallJObj = format_call_data(Call),
     Hook = set_hook(Data, CallJObj),
-    Props = [{<<"Hook">>, Hook}
-            ,{<<"Timestamp">>, kz_time:now_s()}
-            ,{<<"Data">>, CallJObj}
-             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-            ],
+    Props = [
+        {<<"Hook">>, Hook},
+        {<<"Timestamp">>, kz_time:now_s()},
+        {<<"Data">>, CallJObj}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kapps_notify_publisher:cast(Props, fun kapi_notifications:publish_webhook/1).
 
 -spec format_call_data(kapps_call:call()) -> kz_json:object().
 format_call_data(Call) ->
     JObj = kapps_call:to_json(Call),
-    RemoveKeys = [<<"Key-Value-Store">>
-                 ,<<"Control-Queue">>
-                 ,<<"Controller-Queue">>
-                 ,<<"Custom-Channel-Vars">>
-                 ],
+    RemoveKeys = [
+        <<"Key-Value-Store">>,
+        <<"Control-Queue">>,
+        <<"Controller-Queue">>,
+        <<"Custom-Channel-Vars">>
+    ],
     kz_json:normalize_jobj(JObj, RemoveKeys, []).
 
 -spec set_hook(kz_json:object(), kz_json:object()) -> kz_json:object().
 set_hook(Data, CallJObj) ->
     Now = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
     kz_json:from_list(
-      [{<<"_id">>, kz_term:to_binary(Now)}
-      ,{<<"uri">>, kz_json:get_ne_binary_value(<<"uri">>, Data)}
-      ,{<<"hook">>, <<"notifications">>}
-      ,{<<"http_verb">>, kz_json:get_ne_binary_value(<<"http_verb">>, Data)}
-      ,{<<"retries">>, kz_json:get_integer_value(<<"retries">>, Data)}
-      ,{<<"pvt_account_id">>, kz_json:get_ne_binary_value(<<"account_id">>, CallJObj)}
-      ,{<<"custom_data">>, kz_json:get_json_value(<<"custom_data">>, Data)}
-      ]).
+        [
+            {<<"_id">>, kz_term:to_binary(Now)},
+            {<<"uri">>, kz_json:get_ne_binary_value(<<"uri">>, Data)},
+            {<<"hook">>, <<"notifications">>},
+            {<<"http_verb">>, kz_json:get_ne_binary_value(<<"http_verb">>, Data)},
+            {<<"retries">>, kz_json:get_integer_value(<<"retries">>, Data)},
+            {<<"pvt_account_id">>, kz_json:get_ne_binary_value(<<"account_id">>, CallJObj)},
+            {<<"custom_data">>, kz_json:get_json_value(<<"custom_data">>, Data)}
+        ]
+    ).

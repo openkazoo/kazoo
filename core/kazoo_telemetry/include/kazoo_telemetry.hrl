@@ -12,29 +12,29 @@
 -define(TM_LEADER_TICK, 60000).
 -define(TM_RESPONDERS, [<<"waveguide_responder">>]).
 
--define(ANONYMIZE_CLUSTER
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"cluster_id_anonymized">>, 'true', <<"default">>)
-       ).
+-define(ANONYMIZE_CLUSTER,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"cluster_id_anonymized">>, 'true', <<"default">>)
+).
 
--define(INCLUDE_APPS
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_apps">>, 'true', <<"default">>)
-       ).
--define(INCLUDE_DATABASE
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_database">>, 'true', <<"default">>)
-       ).
--define(INCLUDE_FREESWITCH
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_freeswitch">>, 'true', <<"default">>)
-       ).
--define(INCLUDE_KAMAILIO
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_kamailio">>, 'true', <<"default">>)
-       ).
--define(INCLUDE_SERVICES
-       ,kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_services">>, 'true', <<"default">>)
-       ).
+-define(INCLUDE_APPS,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_apps">>, 'true', <<"default">>)
+).
+-define(INCLUDE_DATABASE,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_database">>, 'true', <<"default">>)
+).
+-define(INCLUDE_FREESWITCH,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_freeswitch">>, 'true', <<"default">>)
+).
+-define(INCLUDE_KAMAILIO,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_kamailio">>, 'true', <<"default">>)
+).
+-define(INCLUDE_SERVICES,
+    kapps_config:get_boolean(?TELEMETRY_CAT, <<"include_services">>, 'true', <<"default">>)
+).
 
--define(TM_COLLECTION_INTERVAL
-       ,kapps_config:get_integer(?TELEMETRY_CAT, <<"collection_interval_s">>, 86400, <<"default">>)
-       ).
+-define(TM_COLLECTION_INTERVAL,
+    kapps_config:get_integer(?TELEMETRY_CAT, <<"collection_interval_s">>, 86400, <<"default">>)
+).
 
 -define(KAZOO_TELEMETRY_HRL, 'true').
 -endif.

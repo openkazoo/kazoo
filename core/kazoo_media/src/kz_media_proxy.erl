@@ -6,9 +6,10 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_media_proxy).
 
--export([start_link/0
-        ,stop/0
-        ]).
+-export([
+    start_link/0,
+    stop/0
+]).
 
 -include("kazoo_media.hrl").
 
@@ -16,11 +17,13 @@
 start_link() ->
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
 
-    Dispatch = cowboy_router:compile([{'_', [{<<"/store/[...]">>, [], 'kz_media_store_proxy', []}
-                                            ,{<<"/single/[...]">>, [], 'kz_media_proxy_handler', ['single']}
-                                            ,{<<"/continuous/[...]">>, [], 'kz_media_proxy_handler', ['continuous']}
-                                            ]}
-                                     ]),
+    Dispatch = cowboy_router:compile([
+        {'_', [
+            {<<"/store/[...]">>, [], 'kz_media_store_proxy', []},
+            {<<"/single/[...]">>, [], 'kz_media_proxy_handler', ['single']},
+            {<<"/continuous/[...]">>, [], 'kz_media_proxy_handler', ['continuous']}
+        ]}
+    ]),
 
     DefaultIP = kz_network_utils:default_binding_ip(),
     IP = kapps_config:get_string(?CONFIG_CAT, <<"proxy_ip">>, DefaultIP),
@@ -40,73 +43,86 @@ stop() ->
 -spec maybe_start_plaintext(cowboy_router:dispatch_rules(), inet:ip_address()) -> 'ok'.
 maybe_start_plaintext(Dispatch, IP) ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"use_plaintext">>, 'true') of
-        'false' -> lager:debug("plaintext media proxy support not enabled");
+        'false' ->
+            lager:debug("plaintext media proxy support not enabled");
         'true' ->
             Port = kapps_config:get_integer(?CONFIG_CAT, <<"proxy_port">>, 24517),
             lager:info("trying to bind to address ~s port ~b", [inet:ntoa(IP), Port]),
             Listeners = kapps_config:get_integer(?CONFIG_CAT, <<"proxy_listeners">>, 25),
 
-            {'ok', _Pid} = cowboy:start_clear(?MODULE
-                                             ,[{'ip', IP}
-                                              ,{'port', Port}
-                                              ,{'num_acceptors', Listeners}
-                                              ]
-                                             ,#{'env' => #{'dispatch' => Dispatch}}
-                                             ),
+            {'ok', _Pid} = cowboy:start_clear(
+                ?MODULE,
+                [
+                    {'ip', IP},
+                    {'port', Port},
+                    {'num_acceptors', Listeners}
+                ],
+                #{'env' => #{'dispatch' => Dispatch}}
+            ),
             lager:info("started media proxy(~p) on port ~p", [_Pid, Port])
     end.
 
 -spec maybe_start_ssl(cowboy_router:dispatch_rules(), inet:ip_address()) -> 'ok'.
 maybe_start_ssl(Dispatch, IP) ->
     case kapps_config:get_is_true(?CONFIG_CAT, <<"use_ssl_proxy">>, 'false') of
-        'false' -> lager:debug("ssl media proxy support not enabled");
+        'false' ->
+            lager:debug("ssl media proxy support not enabled");
         'true' ->
             RootDir = code:lib_dir('kazoo_media'),
 
-            SSLCert = kapps_config:get_string(?CONFIG_CAT
-                                             ,<<"ssl_cert">>
-                                             ,filename:join([RootDir, <<"priv/ssl/media_mgr.crt">>])
-                                             ),
-            SSLKey = kapps_config:get_string(?CONFIG_CAT
-                                            ,<<"ssl_key">>
-                                            ,filename:join([RootDir, <<"priv/ssl/media_mgr.key">>])
-                                            ),
+            SSLCert = kapps_config:get_string(
+                ?CONFIG_CAT,
+                <<"ssl_cert">>,
+                filename:join([RootDir, <<"priv/ssl/media_mgr.crt">>])
+            ),
+            SSLKey = kapps_config:get_string(
+                ?CONFIG_CAT,
+                <<"ssl_key">>,
+                filename:join([RootDir, <<"priv/ssl/media_mgr.key">>])
+            ),
 
             SSLPort = kapps_config:get_integer(?CONFIG_CAT, <<"ssl_port">>, 24518),
             SSLPassword = kapps_config:get_string(?CONFIG_CAT, <<"ssl_password">>, <<>>),
 
             Listeners = kapps_config:get_integer(?CONFIG_CAT, <<"proxy_listeners">>, 25),
 
-            lager:info("trying to bind SSL API server to address ~s port ~b", [inet:ntoa(IP), SSLPort]),
+            lager:info("trying to bind SSL API server to address ~s port ~b", [
+                inet:ntoa(IP), SSLPort
+            ]),
 
             try
-                {'ok', _Pid} = cowboy:start_tls('media_mgr_ssl'
-                                               ,[{'ip', IP}
-                                                ,{'port', SSLPort}
-                                                ,{'num_acceptors', Listeners}
-                                                ,{'certfile', find_file(SSLCert, RootDir)}
-                                                ,{'keyfile', find_file(SSLKey, RootDir)}
-                                                ,{'password', SSLPassword}
-                                                ]
-                                               ,#{'env' => #{'dispatch' => Dispatch}
-                                                 }
-                                               ),
+                {'ok', _Pid} = cowboy:start_tls(
+                    'media_mgr_ssl',
+                    [
+                        {'ip', IP},
+                        {'port', SSLPort},
+                        {'num_acceptors', Listeners},
+                        {'certfile', find_file(SSLCert, RootDir)},
+                        {'keyfile', find_file(SSLKey, RootDir)},
+                        {'password', SSLPassword}
+                    ],
+                    #{'env' => #{'dispatch' => Dispatch}}
+                ),
                 lager:info("started ssl media proxy(~p) on port ~p", [_Pid, SSLPort])
             catch
                 'throw':{'invalid_file', _File} ->
-                    lager:info("SSL disabled: failed to find ~s (tried prepending ~s too)", [_File, RootDir])
+                    lager:info("SSL disabled: failed to find ~s (tried prepending ~s too)", [
+                        _File, RootDir
+                    ])
             end
     end.
 
 -spec find_file(string(), string()) -> string().
 find_file(File, Root) ->
     case filelib:is_file(File) of
-        'true' -> File;
+        'true' ->
+            File;
         'false' ->
             FromRoot = filename:join([Root, File]),
             lager:info("failed to find file at ~s, trying ~s", [File, FromRoot]),
             case filelib:is_file(FromRoot) of
-                'true' -> FromRoot;
+                'true' ->
+                    FromRoot;
                 'false' ->
                     lager:info("failed to find file at ~s", [FromRoot]),
                     throw({'invalid_file', File})

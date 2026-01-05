@@ -6,11 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_mfa_auth).
 
--export([authenticate/1
-        ,get_configs/1
-        ,get_system_configs/0
-        ,provider/1, default_provider/0
-        ]).
+-export([
+    authenticate/1,
+    get_configs/1,
+    get_system_configs/0,
+    provider/1,
+    default_provider/0
+]).
 
 -include("kazoo_auth.hrl").
 
@@ -29,11 +31,12 @@ authenticate(Claims) ->
         {'disabled', _Provider} ->
             ErrorMsg = io_lib:format("provider ~s is disabled", [_Provider]),
             {'error', kz_term:to_binary(ErrorMsg)};
-        ?NE_BINARY=Provider ->
+        ?NE_BINARY = Provider ->
             Module = module_name(Provider),
-            lager:debug("performing authentication factor with ~s(~p) provider"
-                       ,[Provider, Module]
-                       ),
+            lager:debug(
+                "performing authentication factor with ~s(~p) provider",
+                [Provider, Module]
+            ),
             Module:authenticate(Claims, kz_json:get_value(<<"settings">>, Configs, kz_json:new()));
         _ ->
             {'error', 'no_provider'}
@@ -43,7 +46,8 @@ authenticate(Claims) ->
 %% @doc Get MFA provider and checks it's enabled or not.
 %% @end
 %%------------------------------------------------------------------------------
--spec provider(kz_term:api_object()) -> kz_term:ne_binary() | {'disabled', kz_term:ne_binary()} | {'error', 'no_provider'}.
+-spec provider(kz_term:api_object()) ->
+    kz_term:ne_binary() | {'disabled', kz_term:ne_binary()} | {'error', 'no_provider'}.
 provider(Configs) ->
     Name = kz_json:get_ne_value(<<"provider_name">>, Configs),
     IsDefined = kz_term:is_not_empty(Name),
@@ -69,20 +73,24 @@ get_configs(JObj) ->
     get_configs(kz_json:recursive_to_proplist(JObj)).
 
 -spec get_account_configs(kz_term:api_binary(), kz_term:api_binary()) -> kz_term:api_object().
-get_account_configs('undefined', _ConfigId) -> get_system_configs();
-get_account_configs(_AccountId, 'undefined') -> get_system_configs();
+get_account_configs('undefined', _ConfigId) ->
+    get_system_configs();
+get_account_configs(_AccountId, 'undefined') ->
+    get_system_configs();
 get_account_configs(AccountId, ConfigId) ->
     AccountDb = kz_util:format_account_db(AccountId),
     case kz_datamgr:open_cache_doc(AccountDb, ConfigId) of
         {'ok', JObj} ->
-            lager:debug("fetched authentication factor config from ~s/~s"
-                       ,[AccountDb, ConfigId]
-                       ),
+            lager:debug(
+                "fetched authentication factor config from ~s/~s",
+                [AccountDb, ConfigId]
+            ),
             kz_json:set_value(<<"from">>, AccountId, JObj);
         {'error', _Reason} ->
-            lager:debug("failed to open authentication factor configuration from ~s/~s : ~p"
-                       ,[AccountDb, ConfigId, _Reason]
-                       ),
+            lager:debug(
+                "failed to open authentication factor configuration from ~s/~s : ~p",
+                [AccountDb, ConfigId, _Reason]
+            ),
             'undefined'
     end.
 
@@ -91,7 +99,8 @@ get_system_configs() ->
     lager:debug("get authentication factor configuration from system config"),
     DefaultProvider = default_provider(),
     case kz_datamgr:open_cache_doc(?KZ_AUTH_DB, DefaultProvider) of
-        {'ok', JObj} -> kz_json:set_value(<<"from">>, <<"system">>, JObj);
+        {'ok', JObj} ->
+            kz_json:set_value(<<"from">>, <<"system">>, JObj);
         {'error', _R} ->
             lager:debug("failed to open default ~s multi factor provider config", [DefaultProvider]),
             'undefined'
@@ -99,7 +108,6 @@ get_system_configs() ->
 
 -spec module_name(kz_term:ne_binary()) -> atom().
 module_name(Provider) -> kz_term:to_atom(<<"kz_mfa_", Provider/binary>>, 'true').
-
 
 %%------------------------------------------------------------------------------
 %% @doc Returns the system's default multi factor provider.

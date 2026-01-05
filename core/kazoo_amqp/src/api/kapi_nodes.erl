@@ -16,23 +16,25 @@
 
 %% Advertise message
 -define(ADVERTISE_HEADERS, [<<"Expires">>]).
--define(OPTIONAL_ADVERTISE_HEADERS, [<<"Channels">>
-                                    ,<<"Conferences">>
-                                    ,<<"Globals">>
-                                    ,<<"Media-Servers">>
-                                    ,<<"Node-Info">>
-                                    ,<<"Ports">>
-                                    ,<<"Processes">>
-                                    ,<<"Registrations">>
-                                    ,<<"Used-Memory">>
-                                    ,<<"Version">>
-                                    ,<<"WhApps">>
-                                    ,<<"Zone">>
-                                    ,<<"md5">>
-                                    ]).
--define(ADVERTISE_VALUES, [{<<"Event-Category">>, <<"nodes">>}
-                          ,{<<"Event-Name">>, <<"advertise">>}
-                          ]).
+-define(OPTIONAL_ADVERTISE_HEADERS, [
+    <<"Channels">>,
+    <<"Conferences">>,
+    <<"Globals">>,
+    <<"Media-Servers">>,
+    <<"Node-Info">>,
+    <<"Ports">>,
+    <<"Processes">>,
+    <<"Registrations">>,
+    <<"Used-Memory">>,
+    <<"Version">>,
+    <<"WhApps">>,
+    <<"Zone">>,
+    <<"md5">>
+]).
+-define(ADVERTISE_VALUES, [
+    {<<"Event-Category">>, <<"nodes">>},
+    {<<"Event-Name">>, <<"advertise">>}
+]).
 -define(ADVERTISE_TYPES, []).
 
 %%------------------------------------------------------------------------------
@@ -40,8 +42,9 @@
 %% Takes proplist, creates JSON string or error.
 %% @end
 %%------------------------------------------------------------------------------
--spec advertise(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec advertise(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 advertise(Prop) when is_list(Prop) ->
     case advertise_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?ADVERTISE_HEADERS, ?OPTIONAL_ADVERTISE_HEADERS);

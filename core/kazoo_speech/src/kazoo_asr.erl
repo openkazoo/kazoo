@@ -5,24 +5,28 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_asr).
 
--export([available/0
-        ,available/1
-        ]).
--export([freeform/1
-        ,freeform/2
-        ,freeform/3
-        ,freeform/4
-        ]).
--export([commands/2
-        ,commands/3
-        ,commands/4
-        ,commands/5
-        ]).
+-export([
+    available/0,
+    available/1
+]).
+-export([
+    freeform/1,
+    freeform/2,
+    freeform/3,
+    freeform/4
+]).
+-export([
+    commands/2,
+    commands/3,
+    commands/4,
+    commands/5
+]).
 -export([accepted_content_types/0]).
 -export([default_provider/0]).
--export([preferred_content_type/0
-        ,preferred_content_type/1
-        ]).
+-export([
+    preferred_content_type/0,
+    preferred_content_type/1
+]).
 
 -include("kazoo_speech.hrl").
 
@@ -41,13 +45,13 @@ available() ->
 
 -spec available(kz_term:ne_binary()) -> boolean().
 available(Provider) ->
-    try (kz_term:to_atom(<<"kazoo_asr_", Provider/binary>>, 'true')):available()
+    try
+        (kz_term:to_atom(<<"kazoo_asr_", Provider/binary>>, 'true')):available()
     catch
         'error':'undef' ->
             lager:error("unknown provider ~s", [Provider]),
             'false'
     end.
-
 
 %%%------------------------------------------------------------------------------
 %%% @doc Return return configured or set the default ASR provider
@@ -67,7 +71,8 @@ preferred_content_type() ->
 
 -spec preferred_content_type(kz_term:ne_binary()) -> kz_term:ne_binary().
 preferred_content_type(Provider) ->
-    try (kz_term:to_atom(<<"kazoo_asr_", Provider/binary>>, 'true')):preferred_content_type()
+    try
+        (kz_term:to_atom(<<"kazoo_asr_", Provider/binary>>, 'true')):preferred_content_type()
     catch
         'error':'undef' ->
             lager:error("unknown provider ~s", [Provider]),
@@ -106,13 +111,19 @@ freeform(Content, ContentType) ->
 freeform(Content, ContentType, Locale) ->
     freeform(Content, ContentType, Locale, []).
 
--spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> asr_resp().
+-spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    asr_resp().
 freeform(Content, ContentType, Locale, Options) ->
     freeform(Content, ContentType, Locale, Options, default_provider()).
 
--spec freeform(binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> asr_resp().
+-spec freeform(
+    binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()
+) -> asr_resp().
 freeform(Content, ContentType, Locale, Options, ASRProvider) ->
-    try (kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true')):freeform(Content, ContentType, Locale, Options)
+    try
+        (kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true')):freeform(
+            Content, ContentType, Locale, Options
+        )
     catch
         'error':'undef' ->
             lager:error("unknown ASR provider ~s", [ASRProvider]),
@@ -131,17 +142,35 @@ commands(Bin, Commands) ->
 commands(Bin, Commands, ContentType) ->
     commands(Bin, Commands, ContentType, default_locale()).
 
--spec commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary()) -> asr_resp().
+-spec commands(
+    kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> asr_resp().
 commands(Bin, Commands, ContentType, Locale) ->
     commands(Bin, Commands, ContentType, Locale, []).
 
--spec commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> asr_resp().
+-spec commands(
+    kz_term:ne_binary(),
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) -> asr_resp().
 commands(Bin, Commands, ContentType, Locale, Options) ->
     commands(Bin, Commands, ContentType, Locale, Options, default_provider()).
 
--spec commands(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> asr_resp().
+-spec commands(
+    kz_term:ne_binary(),
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    kz_term:ne_binary()
+) -> asr_resp().
 commands(Bin, Commands, ContentType, Locale, Options, ASRProvider) ->
-    try (kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true')):commands(Bin, Commands, ContentType, Locale, Options)
+    try
+        (kz_term:to_atom(<<"kazoo_asr_", ASRProvider/binary>>, 'true')):commands(
+            Bin, Commands, ContentType, Locale, Options
+        )
     catch
         'error':'undef' ->
             lager:error("unknown ASR provider ~s", [ASRProvider]),

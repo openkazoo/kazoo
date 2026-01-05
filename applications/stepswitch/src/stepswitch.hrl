@@ -26,26 +26,26 @@
 
 -define(CCV(Key), [<<"Custom-Channel-Vars">>, Key]).
 
--define(DEFAULT_AMQP_EXCHANGE_OPTIONS
-       ,kz_json:from_list([{<<"passive">>, 'true'}])
-       ).
+-define(DEFAULT_AMQP_EXCHANGE_OPTIONS,
+    kz_json:from_list([{<<"passive">>, 'true'}])
+).
 
--define(RULES_HONOR_DIVERSION
-       ,kapps_config:get_is_true(?SS_CONFIG_CAT, <<"cid_rules_honor_diversions">>, 'false')
-       ).
+-define(RULES_HONOR_DIVERSION,
+    kapps_config:get_is_true(?SS_CONFIG_CAT, <<"cid_rules_honor_diversions">>, 'false')
+).
 
 -define(DEFAULT_EMERGENCY_CID_NUMBER,
-        kapps_config:get_ne_binary(?SS_CONFIG_CAT, <<"default_emergency_cid_number">>)
-       ).
+    kapps_config:get_ne_binary(?SS_CONFIG_CAT, <<"default_emergency_cid_number">>)
+).
 
 -define(DEFAULT_USER_AGENT_HDR, <<"Kazoo Stepswitch CNAM">>).
 
--define(HTTP_CONNECT_TIMEOUT_MS
-       ,kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"http_connect_timeout_ms">>, 500)
-       ).
--define(HTTP_USER_AGENT
-       ,kapps_config:get_string(?CNAM_CONFIG_CAT, <<"http_user_agent_header">>, ?DEFAULT_USER_AGENT_HDR)
-       ).
+-define(HTTP_CONNECT_TIMEOUT_MS,
+    kapps_config:get_integer(?CNAM_CONFIG_CAT, <<"http_connect_timeout_ms">>, 500)
+).
+-define(HTTP_USER_AGENT,
+    kapps_config:get_string(?CNAM_CONFIG_CAT, <<"http_user_agent_header">>, ?DEFAULT_USER_AGENT_HDR)
+).
 
 -define(STEPSWITCH_HRL, 'true').
 -endif.

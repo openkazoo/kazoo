@@ -10,18 +10,21 @@
 
 -export([flush/0]).
 -export([flush_data_plans/0]).
--export([flush_docs/0
-        ,flush_docs/1
-        ,flush_docs/2
-        ]).
--export([trace_module/1
-        ,trace_function/1, trace_function/2
-        ,trace_pid/1
-        ,stop_trace/1
-        ]).
--export([open_document/2, open_document/3
-        ,open_document_cached/2, open_document_cached/3
-        ]).
+-export([
+    flush_docs/0,
+    flush_docs/1,
+    flush_docs/2
+]).
+-export([
+    trace_module/1,
+    trace_function/1, trace_function/2,
+    trace_pid/1,
+    stop_trace/1
+]).
+-export([
+    open_document/2, open_document/3,
+    open_document_cached/2, open_document_cached/3
+]).
 
 -export([load_doc_from_file/2]).
 
@@ -64,9 +67,10 @@ trace_function(Function) ->
 
 -spec trace_function(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 trace_function(Module, Function) ->
-    start_trace([{'module', kz_term:to_atom(Module)}
-                ,{'function', kz_term:to_atom(Function)}
-                ]).
+    start_trace([
+        {'module', kz_term:to_atom(Module)},
+        {'function', kz_term:to_atom(Function)}
+    ]).
 
 -spec trace_pid(kz_term:ne_binary()) -> 'ok'.
 trace_pid(Pid) ->
@@ -82,12 +86,12 @@ stop_trace(Ref) ->
     {'ok', Filename} = kz_data_tracing:stop_trace(Ref),
     io:format("trace stopped, see log at ~s~n", [Filename]).
 
-
 -spec open_document(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 open_document(Db, Id) ->
     open_document(Db, Id, 'false').
 
--spec open_document(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | boolean()) -> 'no_return'.
+-spec open_document(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | boolean()) ->
+    'no_return'.
 open_document(Db, Id, PP) ->
     print(kz_datamgr:open_doc(Db, Id), kz_term:is_true(PP)).
 
@@ -95,7 +99,9 @@ open_document(Db, Id, PP) ->
 open_document_cached(Db, Id) ->
     open_document_cached(Db, Id, 'false').
 
--spec open_document_cached(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | boolean()) -> 'no_return'.
+-spec open_document_cached(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | boolean()
+) -> 'no_return'.
 open_document_cached(Db, Id, PP) ->
     print(kz_datamgr:open_cache_doc(Db, Id), kz_term:is_true(PP)).
 
@@ -110,8 +116,8 @@ print({'error', R}, _PP) ->
     'no_return'.
 
 -spec load_doc_from_file(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          data_error().
+    {'ok', kz_json:object()}
+    | data_error().
 load_doc_from_file(Db, _FilePath) when size(Db) == 0 ->
     {'error', 'invalid_db_name'};
 load_doc_from_file(Db, FilePath) ->
@@ -121,7 +127,7 @@ load_doc_from_file(Db, FilePath) ->
         JObj = kz_datamgr:maybe_adapt_multilines(kz_json:decode(Bin)),
         kz_datamgr:maybe_update_doc(Db, JObj)
     catch
-        _Type:{'badmatch',{'error',Reason}} ->
+        _Type:{'badmatch', {'error', Reason}} ->
             lager:debug("bad match: ~p", [Reason]),
             {'error', Reason};
         _Type:Reason ->
@@ -142,9 +148,9 @@ cache_strategy() ->
     io:format("             strategy: ~s~n", [Strategy]),
     print_strategy_details(Strategy).
 
--define(STRATEGY_DETAILS(Mitigate, Async)
-       ,io:format("  stampede mitigation: ~s~n          async store: ~s~n", [Mitigate, Async])
-       ).
+-define(STRATEGY_DETAILS(Mitigate, Async),
+    io:format("  stampede mitigation: ~s~n          async store: ~s~n", [Mitigate, Async])
+).
 
 print_strategy_details('none') ->
     ?STRATEGY_DETAILS('false', 'false');

@@ -12,11 +12,12 @@
 
 -include("acdc.hrl").
 
--define(DEFAULT_ANNOUNCEMENTS_MEDIA, [{<<"you_are_at_position">>, <<"queue-you_are_at_position">>}
-                                     ,{<<"in_the_queue">>, <<"queue-in_the_queue">>}
-                                     ,{<<"increase_in_call_volume">>, <<"queue-increase_in_call_volume">>}
-                                     ,{<<"the_estimated_wait_time_is">>, <<"queue-the_estimated_wait_time_is">>}
-                                     ]).
+-define(DEFAULT_ANNOUNCEMENTS_MEDIA, [
+    {<<"you_are_at_position">>, <<"queue-you_are_at_position">>},
+    {<<"in_the_queue">>, <<"queue-in_the_queue">>},
+    {<<"increase_in_call_volume">>, <<"queue-increase_in_call_volume">>},
+    {<<"the_estimated_wait_time_is">>, <<"queue-the_estimated_wait_time_is">>}
+]).
 
 %%%=============================================================================
 %%% API functions
@@ -51,11 +52,16 @@ init(Manager, Call, Props) ->
 %%------------------------------------------------------------------------------
 -spec get_config(kz_term:proplist()) -> map().
 get_config(Props) ->
-    #{position_announcements_enabled => props:get_is_true(<<"position_announcements_enabled">>, Props, 'false')
-     ,wait_time_announcements_enabled => props:get_is_true(<<"wait_time_announcements_enabled">>, Props, 'false')
-     ,announcements_interval => props:get_integer_value(<<"interval">>, Props, 30)
-     ,announcements_media => announcements_media(Props)
-     }.
+    #{
+        position_announcements_enabled => props:get_is_true(
+            <<"position_announcements_enabled">>, Props, 'false'
+        ),
+        wait_time_announcements_enabled => props:get_is_true(
+            <<"wait_time_announcements_enabled">>, Props, 'false'
+        ),
+        announcements_interval => props:get_integer_value(<<"interval">>, Props, 30),
+        announcements_media => announcements_media(Props)
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Get media file configuration from props
@@ -76,11 +82,12 @@ announcements_media(Props) ->
 %%------------------------------------------------------------------------------
 -spec init_state(pid(), kapps_call:call(), map()) -> map().
 init_state(Manager, Call, Config) ->
-    #{manager => Manager
-     ,call => Call
-     ,config => Config
-     ,last_average_wait_time => 'undefined'
-     }.
+    #{
+        manager => Manager,
+        call => Call,
+        config => Config,
+        last_average_wait_time => 'undefined'
+    }.
 
 %%------------------------------------------------------------------------------
 %% @doc Loop entry point
@@ -95,18 +102,23 @@ loop(State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_announce_position(map()) -> 'no_return'.
-maybe_announce_position(#{config := #{position_announcements_enabled := 'false'}}=State) ->
+maybe_announce_position(#{config := #{position_announcements_enabled := 'false'}} = State) ->
     maybe_announce_wait_time([], State);
-maybe_announce_position(#{manager := Manager
-                         ,call := Call
-                         ,config := Config
-                         }=State) ->
+maybe_announce_position(
+    #{
+        manager := Manager,
+        call := Call,
+        config := Config
+    } = State
+) ->
     Language = kapps_call:language(Call),
     Position = gen_listener:call(Manager, {'queue_position', kapps_call:call_id(Call)}),
 
-    Prompts = [{'prompt', announcements_media_file(<<"you_are_at_position">>, Config), Language, <<"A">>}
-              ,{'say', kz_term:to_binary(Position), <<"number">>}
-              ,{'prompt', announcements_media_file(<<"in_the_queue">>, Config), Language, <<"A">>}],
+    Prompts = [
+        {'prompt', announcements_media_file(<<"you_are_at_position">>, Config), Language, <<"A">>},
+        {'say', kz_term:to_binary(Position), <<"number">>},
+        {'prompt', announcements_media_file(<<"in_the_queue">>, Config), Language, <<"A">>}
+    ],
     maybe_announce_wait_time(Prompts, State).
 
 %%------------------------------------------------------------------------------
@@ -114,27 +126,42 @@ maybe_announce_position(#{manager := Manager
 %% @end
 %%------------------------------------------------------------------------------
 -spec maybe_announce_wait_time(kapps_call_command:audio_macro_prompts(), map()) -> 'no_return'.
-maybe_announce_wait_time(PromptAcc, #{config := #{wait_time_announcements_enabled := 'false'}}=State) ->
+maybe_announce_wait_time(
+    PromptAcc, #{config := #{wait_time_announcements_enabled := 'false'}} = State
+) ->
     play_announcements(PromptAcc, State);
-maybe_announce_wait_time(PromptAcc, #{call := Call
-                                     ,config := Config
-                                     ,last_average_wait_time := LastAverageWaitTime
-                                     }=State) ->
+maybe_announce_wait_time(
+    PromptAcc,
+    #{
+        call := Call,
+        config := Config,
+        last_average_wait_time := LastAverageWaitTime
+    } = State
+) ->
     Language = kapps_call:language(Call),
     AverageWaitTime = get_average_wait_time(Call),
 
-    PromptAcc1 = case LastAverageWaitTime =/= 'undefined'
-                     andalso AverageWaitTime > LastAverageWaitTime
-                 of
-                     'true' ->
-                         PromptAcc ++ [{'prompt', announcements_media_file(<<"increase_in_call_volume">>, Config), Language, <<"A">>}];
-                     'false' ->
-                         PromptAcc
-                 end,
-    PromptAcc2 = PromptAcc1 ++
-        [{'prompt', announcements_media_file(<<"the_estimated_wait_time_is">>, Config), Language, <<"A">>}
-        ,time_prompt(AverageWaitTime, Language)
-        ],
+    PromptAcc1 =
+        case
+            LastAverageWaitTime =/= 'undefined' andalso
+                AverageWaitTime > LastAverageWaitTime
+        of
+            'true' ->
+                PromptAcc ++
+                    [
+                        {'prompt', announcements_media_file(<<"increase_in_call_volume">>, Config),
+                            Language, <<"A">>}
+                    ];
+            'false' ->
+                PromptAcc
+        end,
+    PromptAcc2 =
+        PromptAcc1 ++
+            [
+                {'prompt', announcements_media_file(<<"the_estimated_wait_time_is">>, Config),
+                    Language, <<"A">>},
+                time_prompt(AverageWaitTime, Language)
+            ],
     play_announcements(PromptAcc2, State#{last_average_wait_time := AverageWaitTime}).
 
 %%------------------------------------------------------------------------------
@@ -143,9 +170,13 @@ maybe_announce_wait_time(PromptAcc, #{call := Call
 %% @end
 %%------------------------------------------------------------------------------
 -spec play_announcements(kapps_call_command:audio_macro_prompts(), map()) -> 'no_return'.
-play_announcements(Prompts, #{call := Call
-                             ,config := Config
-                             }=State) ->
+play_announcements(
+    Prompts,
+    #{
+        call := Call,
+        config := Config
+    } = State
+) ->
     kapps_call_command:audio_macro(Prompts, Call),
 
     AnnouncementsInterval = announcements_interval(Config),
@@ -160,14 +191,18 @@ play_announcements(Prompts, #{call := Call
 get_average_wait_time(Call) ->
     QueueId = kapps_call:custom_channel_var(<<"Queue-ID">>, Call),
     Req = props:filter_undefined(
-            [{<<"Account-ID">>, kapps_call:account_id(Call)}
-            ,{<<"Queue-ID">>, QueueId}
-             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-            ]),
-    case kz_amqp_worker:call(Req
-                            ,fun kapi_acdc_stats:publish_average_wait_time_req/1
-                            ,fun kapi_acdc_stats:average_wait_time_resp_v/1
-                            )
+        [
+            {<<"Account-ID">>, kapps_call:account_id(Call)},
+            {<<"Queue-ID">>, QueueId}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
+    case
+        kz_amqp_worker:call(
+            Req,
+            fun kapi_acdc_stats:publish_average_wait_time_req/1,
+            fun kapi_acdc_stats:average_wait_time_resp_v/1
+        )
     of
         {'error', E} ->
             lager:error("failed to receive current calls from AMQP: ~p", [E]),
@@ -180,7 +215,8 @@ get_average_wait_time(Call) ->
 %% @doc Structure for time prompt entries.
 %% @end
 %%------------------------------------------------------------------------------
--spec time_prompt(pos_integer(), binary()) -> {'prompt', kz_term:ne_binary(), binary(), kz_term:ne_binary()}.
+-spec time_prompt(pos_integer(), binary()) ->
+    {'prompt', kz_term:ne_binary(), binary(), kz_term:ne_binary()}.
 time_prompt(Time, Language) ->
     {'prompt', time_prompt2(Time), Language, <<"A">>}.
 

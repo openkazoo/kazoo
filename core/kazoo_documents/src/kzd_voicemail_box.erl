@@ -6,24 +6,26 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_voicemail_box).
 
--export([new/0
-        ,announcement_only/1, announcement_only/2, set_announcement_only/2
-        ,type/0
-        ,notification_emails/1, notification_emails/2
-        ,owner_id/1, owner_id/2
-        ,timezone/1, timezone/2
-        ,skip_instructions/1, skip_instructions/2
-        ,skip_greeting/1, skip_greeting/2
-        ,skip_envelope/1, skip_envelope/2
-        ,pin/1, pin/2
-        ,mailbox_number/1, mailbox_number/2
-        ,pin_required/1, pin_required/2
-        ,check_if_owner/1, check_if_owner/2
-        ,is_setup/1, is_setup/2
+-export([
+    new/0,
+    announcement_only/1, announcement_only/2,
+    set_announcement_only/2,
+    type/0,
+    notification_emails/1, notification_emails/2,
+    owner_id/1, owner_id/2,
+    timezone/1, timezone/2,
+    skip_instructions/1, skip_instructions/2,
+    skip_greeting/1, skip_greeting/2,
+    skip_envelope/1, skip_envelope/2,
+    pin/1, pin/2,
+    mailbox_number/1, mailbox_number/2,
+    pin_required/1, pin_required/2,
+    check_if_owner/1, check_if_owner/2,
+    is_setup/1, is_setup/2,
 
-        ,set_notification_emails/2
-        ,media_extension/1
-        ]).
+    set_notification_emails/2,
+    media_extension/1
+]).
 
 -include("kz_documents.hrl").
 
@@ -49,12 +51,13 @@
 -define(DEFAULT_SEEK_DURATION, 10000).
 
 -define(ACCOUNT_VM_EXTENSION(AccountId),
-        kapps_account_config:get_global(AccountId
-                                       ,<<"callflow">>
-                                       ,[<<"voicemail">>, <<"extension">>]
-                                       ,<<"mp3">>
-                                       )
-       ).
+    kapps_account_config:get_global(
+        AccountId,
+        <<"callflow">>,
+        [<<"voicemail">>, <<"extension">>],
+        <<"mp3">>
+    )
+).
 
 -spec new() -> doc().
 new() ->
@@ -88,7 +91,8 @@ notification_emails(Box, Default) ->
                 Emails when is_list(Emails) -> Emails;
                 _ -> []
             end;
-        Emails -> Emails
+        Emails ->
+            Emails
     end.
 
 -spec set_notification_emails(doc(), kz_term:api_binaries()) -> doc().
@@ -112,8 +116,9 @@ timezone(Box) ->
 -spec timezone(doc(), Default) -> kz_term:ne_binary() | Default.
 timezone(Box, Default) ->
     case kz_json:get_value(?KEY_TIMEZONE, Box) of
-        'undefined'   -> owner_timezone(Box, Default);
-        <<"inherit">> -> owner_timezone(Box, Default);  %% UI-1808
+        'undefined' -> owner_timezone(Box, Default);
+        %% UI-1808
+        <<"inherit">> -> owner_timezone(Box, Default);
         TZ -> TZ
     end.
 

@@ -9,13 +9,14 @@
 -behaviour(gen_server).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("fax.hrl").
 
@@ -38,11 +39,13 @@
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
     case gen_server:start_link(?SERVER, ?MODULE, [], []) of
-        {'error', {'already_started', Pid}}
-          when is_pid(Pid)->
+        {'error', {'already_started', Pid}} when
+            is_pid(Pid)
+        ->
             erlang:link(Pid),
             {'ok', Pid};
-        Other -> Other
+        Other ->
+            Other
     end.
 
 %%%=============================================================================
@@ -80,12 +83,14 @@ handle_cast(_Msg, State) ->
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
 handle_info('timeout', State) ->
-    ViewOptions = ['reduce'
-                  ,'group'
-                  ,{'group_level', 1}
-                  ],
+    ViewOptions = [
+        'reduce',
+        'group',
+        {'group_level', 1}
+    ],
     case kz_datamgr:get_result_keys(?KZ_FAXES_DB, <<"faxes/schedule_accounts">>, ViewOptions) of
-        {'ok', []} -> {'noreply', State, ?POLLING_INTERVAL};
+        {'ok', []} ->
+            {'noreply', State, ?POLLING_INTERVAL};
         {'ok', AccountIds} ->
             _ = distribute_accounts(AccountIds),
             _ = garbage_collect(),
@@ -130,16 +135,19 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec distribute_accounts(kz_term:ne_binaries()) -> kz_term:ne_binaries().
-distribute_accounts([]) -> [];
-distribute_accounts([AccountId|AccountIds]) ->
+distribute_accounts([]) ->
+    [];
+distribute_accounts([AccountId | AccountIds]) ->
     maybe_start_account(fax_jobs:is_running(AccountId), AccountId),
     distribute_accounts(AccountIds).
 
 -spec maybe_start_account(boolean(), kz_term:ne_binary()) -> 'ok'.
-maybe_start_account('true', _AccountId) -> 'ok';
+maybe_start_account('true', _AccountId) ->
+    'ok';
 maybe_start_account('false', AccountId) ->
     lager:debug("sending start fax account jobs for ~s", [AccountId]),
-    Payload = [{<<"Account-ID">>, AccountId}
-               | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-              ],
+    Payload = [
+        {<<"Account-ID">>, AccountId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kz_amqp_worker:cast(Payload, fun kapi_fax:publish_start_account/1).

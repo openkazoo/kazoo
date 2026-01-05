@@ -10,17 +10,19 @@
 -export([add/1]).
 -export([update/1]).
 -export([wait_for_connection/0, wait_for_connection/1, wait_for_connection/2]).
--export([get_server/0, get_server/1
-        ,test_conn/0, test_conn/1
-        ]).
+-export([
+    get_server/0, get_server/1,
+    test_conn/0, test_conn/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_data.hrl").
 
@@ -44,15 +46,14 @@ start_link() ->
     gen_server:start_link({'local', ?SERVER}, ?MODULE, [], []).
 
 -spec update(data_connection()) -> 'ok'.
-update(#data_connection{}=Connection) ->
+update(#data_connection{} = Connection) ->
     gen_server:cast(?SERVER, {'update_connection', Connection}).
 
 -spec add(data_connection()) -> 'ok'.
-add(#data_connection{tag='undefined'}=Connection) ->
-    add(Connection#data_connection{tag='local'});
-add(#data_connection{}=Connection) ->
+add(#data_connection{tag = 'undefined'} = Connection) ->
+    add(Connection#data_connection{tag = 'local'});
+add(#data_connection{} = Connection) ->
     gen_server:cast(?SERVER, {'add_connection', Connection}).
-
 
 -spec wait_for_connection() -> 'ok' | 'no_connection'.
 wait_for_connection() ->
@@ -63,7 +64,8 @@ wait_for_connection(Tag) ->
     wait_for_connection(Tag, 'infinity').
 
 -spec wait_for_connection(any(), timeout()) -> 'ok' | 'no_connection'.
-wait_for_connection(_Tag, 0) -> 'no_connection';
+wait_for_connection(_Tag, 0) ->
+    'no_connection';
 wait_for_connection(Tag, Timeout) ->
     Start = os:timestamp(),
     try test_conn(Tag) of
@@ -73,11 +75,10 @@ wait_for_connection(Tag, Timeout) ->
         {'ok', Info} ->
             lager:info("connected to ~s: ~s", [Tag, kz_json:encode(Info)])
     catch
-        'error':{'badmatch','$end_of_table'} ->
+        'error':{'badmatch', '$end_of_table'} ->
             timer:sleep(rand:uniform(?MILLISECONDS_IN_SECOND) + 100),
             wait_for_connection(Tag, kz_time:decr_timeout(Timeout, Start))
     end.
-
 
 -spec get_server() -> server().
 get_server() ->
@@ -85,15 +86,19 @@ get_server() ->
 
 -spec get_server(term()) -> server().
 get_server(Tag) ->
-    MatchSpec = [{#data_connection{ready = 'true'
-                                  ,app = '$1'
-                                  ,server = '$2'
-                                  ,tag = Tag
-                                  ,_ = '_'
-                                  }
-                 ,[]
-                 ,[{{'$1', '$2'}}]
-                 }],
+    MatchSpec = [
+        {
+            #data_connection{
+                ready = 'true',
+                app = '$1',
+                server = '$2',
+                tag = Tag,
+                _ = '_'
+            },
+            [],
+            [{{'$1', '$2'}}]
+        }
+    ],
     try ets:select(?MODULE, MatchSpec, 1) of
         {[{App, Server}], _} -> {App, Server};
         _ -> 'undefined'
@@ -105,12 +110,14 @@ get_server(Tag) ->
             end
     end.
 
--spec test_conn() -> {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec test_conn() ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 test_conn() -> test_conn('local').
 
--spec test_conn(term()) -> {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec test_conn(term()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 test_conn(Tag) ->
     case get_server(Tag) of
         'undefined' -> {'error', 'server_not_available'};
@@ -129,11 +136,12 @@ test_conn(Tag) ->
 init([]) ->
     process_flag('trap_exit', 'true'),
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
-    _ = ets:new(?MODULE, ['ordered_set'
-                         ,{'read_concurrency', 'true'}
-                         ,{'keypos', #data_connection.id}
-                         ,'named_table'
-                         ]),
+    _ = ets:new(?MODULE, [
+        'ordered_set',
+        {'read_concurrency', 'true'},
+        {'keypos', #data_connection.id},
+        'named_table'
+    ]),
     {'ok', #state{}}.
 
 %%------------------------------------------------------------------------------
@@ -149,11 +157,11 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'add_connection', #data_connection{}=Connection}, State) ->
+handle_cast({'add_connection', #data_connection{} = Connection}, State) ->
     lager:info("adding connection"),
     maybe_start_new_connection(Connection),
     {'noreply', State};
-handle_cast({'update_connection', #data_connection{}=Connection}, State) ->
+handle_cast({'update_connection', #data_connection{} = Connection}, State) ->
     'true' = ets:insert(?MODULE, Connection),
     {'noreply', State};
 handle_cast(_Msg, State) ->

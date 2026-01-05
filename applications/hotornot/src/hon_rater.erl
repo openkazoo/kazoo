@@ -12,9 +12,10 @@
 
 -spec init() -> 'ok'.
 init() ->
-    _ = [kapps_maintenance:refresh(kzd_ratedeck:format_ratedeck_db(Ratedeck))
-         || Ratedeck <- hotornot_config:ratedecks()
-        ],
+    _ = [
+        kapps_maintenance:refresh(kzd_ratedeck:format_ratedeck_db(Ratedeck))
+     || Ratedeck <- hotornot_config:ratedecks()
+    ],
     'ok'.
 
 -spec handle_req(kapi_rate:req(), kz_term:proplist()) -> 'ok'.
@@ -43,10 +44,13 @@ publish_no_rate_found(RateReq) ->
     MsgId = kz_api:msg_id(RateReq),
     ServerId = kz_api:server_id(RateReq),
 
-    Resp = [{<<"Msg-ID">>, MsgId}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
-    lager:debug("publishing empty ~srate resp for ~s(~s)", [maybe_empty_mobile_log(RateReq), ServerId, MsgId]),
+    Resp = [
+        {<<"Msg-ID">>, MsgId}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    lager:debug("publishing empty ~srate resp for ~s(~s)", [
+        maybe_empty_mobile_log(RateReq), ServerId, MsgId
+    ]),
     kz_amqp_worker:cast(Resp, fun(P) -> kapi_rate:publish_resp(ServerId, P) end).
 
 -spec maybe_empty_mobile_log(kapi_rate:req()) -> string().
@@ -57,8 +61,8 @@ maybe_empty_mobile_log(RateReq) ->
     end.
 
 -spec get_rate_data(kapi_rate:req(), kz_term:api_ne_binary()) ->
-          {'ok', kz_term:api_terms()} |
-          {'error', 'no_rate_found'}.
+    {'ok', kz_term:api_terms()}
+    | {'error', 'no_rate_found'}.
 get_rate_data(RateReq, <<"mobile">>) ->
     ToDID = kapi_rate:to_did(RateReq),
     FromDID = kapi_rate:from_did(RateReq),
@@ -83,9 +87,10 @@ get_rate_data(RateReq, _AuthType) ->
             {'error', 'no_rate_found'};
         {'error', _E} ->
             maybe_send_system_alert(RateReq, FromDID, ToDID),
-            lager:debug("rate lookup error for ~s to ~s: ~p"
-                       ,[FromDID, ToDID, _E]
-                       ),
+            lager:debug(
+                "rate lookup error for ~s to ~s: ~p",
+                [FromDID, ToDID, _E]
+            ),
             {'error', 'no_rate_found'};
         {'ok', Rates} ->
             get_rate_data(RateReq, ToDID, FromDID, Rates)
@@ -102,8 +107,8 @@ maybe_send_system_alert(RateReq, FromDID, ToDID) ->
     end.
 
 -spec get_rate_data(kapi_rate:req(), kz_term:ne_binary(), kz_term:api_binary(), kz_json:objects()) ->
-          {'ok', kz_term:api_terms()} |
-          {'error', 'no_rate_found'}.
+    {'ok', kz_term:api_terms()}
+    | {'error', 'no_rate_found'}.
 get_rate_data(RateReq, ToDID, FromDID, Rates) ->
     lager:debug("candidate rates found, filtering"),
     Matching = hon_util:matching_rates(Rates, RateReq),
@@ -119,12 +124,13 @@ get_rate_data_from_matching(RateReq, ToDID, FromDID, Matching) ->
 
 get_rate_data_from_sorted(_RateReq, ToDID, FromDID, []) ->
     kz_notify:system_alert("no rate found after filter/sort for ~s to ~s", [FromDID, ToDID]),
-    lager:debug("no rates left for ~s to ~s after filter",[FromDID, ToDID]),
+    lager:debug("no rates left for ~s to ~s after filter", [FromDID, ToDID]),
     {'error', 'no_rate_found'};
-get_rate_data_from_sorted(RateReq, _ToDID, _FromDID, [Rate|_]) ->
-    lager:debug("using rate ~s for ~s to ~s"
-               ,[kzd_rates:rate_name(Rate), _FromDID, _ToDID]
-               ),
+get_rate_data_from_sorted(RateReq, _ToDID, _FromDID, [Rate | _]) ->
+    lager:debug(
+        "using rate ~s for ~s to ~s",
+        [kzd_rates:rate_name(Rate), _FromDID, _ToDID]
+    ),
     {'ok', rate_resp(Rate, RateReq)}.
 
 -spec maybe_get_rate_discount(kapi_rate:req()) -> kz_term:api_binary().
@@ -132,7 +138,8 @@ maybe_get_rate_discount(RateReq) ->
     maybe_get_rate_discount(RateReq, kapi_rate:account_id(RateReq)).
 
 -spec maybe_get_rate_discount(kapi_rate:req(), kz_term:api_binary()) -> kz_term:api_binary().
-maybe_get_rate_discount(_RateReq, 'undefined') -> 'undefined';
+maybe_get_rate_discount(_RateReq, 'undefined') ->
+    'undefined';
 maybe_get_rate_discount(RateReq, AccountId) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     case kz_datamgr:open_cache_doc(AccountDb, <<"limits">>) of
@@ -156,24 +163,26 @@ rate_resp(Rate, RateReq) ->
     lager:debug("base cost for a call: ~p", [BaseCost]),
     ShouldUpdateCalleeId = should_update_callee_id(RateReq),
 
-    [{<<"Rate">>, kz_term:to_binary(RateCost)}
-    ,{<<"Rate-Increment">>, kzd_rates:rate_increment(Rate, hotornot_config:default_increment())}
-    ,{<<"Rate-Minimum">>, kz_term:to_binary(RateMinimum)}
-    ,{<<"Discount-Percentage">>, maybe_get_rate_discount(RateReq)}
-    ,{<<"Surcharge">>, kz_term:to_binary(RateSurcharge)}
-    ,{<<"Prefix">>, kzd_rates:prefix(Rate)}
-    ,{<<"Rate-Name">>, kzd_rates:rate_name(Rate)}
-    ,{<<"Rate-Description">>, kzd_rates:description(Rate)}
-    ,{<<"Rate-ID">>, kz_doc:id(Rate)}
-    ,{<<"Base-Cost">>, kz_term:to_binary(BaseCost)}
-    ,{<<"Pvt-Cost">>, kz_term:to_binary(PrivateCost)}
-    ,{<<"Rate-NoCharge-Time">>, kzd_rates:rate_nocharge_time(Rate, hotornot_config:default_nocharge())}
-    ,{<<"Msg-ID">>, kz_api:msg_id(RateReq)}
-    ,{<<"Call-ID">>, kz_api:call_id(RateReq)}
-    ,{<<"Update-Callee-ID">>, ShouldUpdateCalleeId}
-    ,{<<"Rate-Version">>, kzd_rates:rate_version(Rate)}
-    ,{<<"Ratedeck-ID">>, kzd_rates:ratedeck_id(Rate)}
-     | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    [
+        {<<"Rate">>, kz_term:to_binary(RateCost)},
+        {<<"Rate-Increment">>, kzd_rates:rate_increment(Rate, hotornot_config:default_increment())},
+        {<<"Rate-Minimum">>, kz_term:to_binary(RateMinimum)},
+        {<<"Discount-Percentage">>, maybe_get_rate_discount(RateReq)},
+        {<<"Surcharge">>, kz_term:to_binary(RateSurcharge)},
+        {<<"Prefix">>, kzd_rates:prefix(Rate)},
+        {<<"Rate-Name">>, kzd_rates:rate_name(Rate)},
+        {<<"Rate-Description">>, kzd_rates:description(Rate)},
+        {<<"Rate-ID">>, kz_doc:id(Rate)},
+        {<<"Base-Cost">>, kz_term:to_binary(BaseCost)},
+        {<<"Pvt-Cost">>, kz_term:to_binary(PrivateCost)},
+        {<<"Rate-NoCharge-Time">>,
+            kzd_rates:rate_nocharge_time(Rate, hotornot_config:default_nocharge())},
+        {<<"Msg-ID">>, kz_api:msg_id(RateReq)},
+        {<<"Call-ID">>, kz_api:call_id(RateReq)},
+        {<<"Update-Callee-ID">>, ShouldUpdateCalleeId},
+        {<<"Rate-Version">>, kzd_rates:rate_version(Rate)},
+        {<<"Ratedeck-ID">>, kzd_rates:ratedeck_id(Rate)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
     ].
 
 -spec should_update_callee_id(kz_term:ne_binary() | kapi_rate:req()) -> boolean().

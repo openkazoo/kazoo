@@ -6,11 +6,12 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_hooks).
 
--export([register/0, register/1, register/2
-        ,deregister/0, deregister/1, deregister/2
-        ,register_rr/0, register_rr/1, register_rr/2
-        ,deregister_rr/0, deregister_rr/1, deregister_rr/2
-        ]).
+-export([
+    register/0, register/1, register/2,
+    deregister/0, deregister/1, deregister/2,
+    register_rr/0, register_rr/1, register_rr/2,
+    deregister_rr/0, deregister_rr/1, deregister_rr/2
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 

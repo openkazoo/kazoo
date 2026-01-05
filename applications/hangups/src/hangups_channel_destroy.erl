@@ -10,9 +10,10 @@
 -include("hangups.hrl").
 
 -export([handle_req/2]).
--export([start_meters/1
-        ,start_meters/2
-        ]).
+-export([
+    start_meters/1,
+    start_meters/2
+]).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -31,16 +32,18 @@ handle_req(JObj, _Props) ->
 alert_about_hangup(HangupCause, JObj) ->
     lager:debug("abnormal call termination: ~s", [HangupCause]),
     AccountId = kz_call_event:account_id(JObj, <<"unknown">>),
-    kz_notify:detailed_alert("~s ~s to ~s (~s) on ~s(~s)"
-                            ,[kz_term:to_lower_binary(HangupCause)
-                             ,find_source(JObj)
-                             ,find_destination(JObj)
-                             ,find_direction(JObj)
-                             ,find_realm(JObj, AccountId)
-                             ,AccountId
-                             ]
-                            ,maybe_add_hangup_specific(HangupCause, JObj)
-                            ),
+    kz_notify:detailed_alert(
+        "~s ~s to ~s (~s) on ~s(~s)",
+        [
+            kz_term:to_lower_binary(HangupCause),
+            find_source(JObj),
+            find_destination(JObj),
+            find_direction(JObj),
+            find_realm(JObj, AccountId),
+            AccountId
+        ],
+        maybe_add_hangup_specific(HangupCause, JObj)
+    ),
     add_to_meters(AccountId, HangupCause).
 
 %%------------------------------------------------------------------------------
@@ -81,7 +84,8 @@ maybe_add_number_info(JObj) ->
 -spec build_account_tree(kz_term:ne_binary()) -> kz_term:proplist().
 build_account_tree(AccountId) ->
     {'ok', AccountDoc} = kzd_accounts:fetch(AccountId),
-    [{AncestorId, ?NE_BINARY=kzd_accounts:fetch_name(AncestorId)}
+    [
+        {AncestorId, ?NE_BINARY = kzd_accounts:fetch_name(AncestorId)}
      || AncestorId <- kzd_accounts:tree(AccountDoc)
     ].
 
@@ -97,7 +101,8 @@ find_realm(JObj, <<_/binary>> = AccountId) ->
                 undefined -> <<"unknown">>;
                 Realm -> Realm
             end;
-        Realm -> Realm
+        Realm ->
+            Realm
     end.
 
 %%------------------------------------------------------------------------------
@@ -107,7 +112,7 @@ find_realm(JObj, <<_/binary>> = AccountId) ->
 -spec find_destination(kz_call_event:doc()) -> kz_term:ne_binary().
 find_destination(JObj) ->
     case catch binary:split(kz_json:get_value(<<"Request">>, JObj), <<"@">>) of
-        [Num|_] -> Num;
+        [Num | _] -> Num;
         _ -> use_to_as_destination(JObj)
     end.
 
@@ -115,8 +120,12 @@ find_destination(JObj) ->
 use_to_as_destination(JObj) ->
     AccountId = kz_call_event:account_id(JObj),
     case catch binary:split(kz_json:get_value(<<"To-Uri">>, JObj), <<"@">>) of
-        [Num|_] -> Num;
-        _ -> kz_json:get_value(<<"Callee-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number(AccountId))
+        [Num | _] ->
+            Num;
+        _ ->
+            kz_json:get_value(
+                <<"Callee-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number(AccountId)
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -127,8 +136,12 @@ use_to_as_destination(JObj) ->
 find_source(JObj) ->
     AccountId = kz_call_event:account_id(JObj),
     case catch binary:split(kz_json:get_value(<<"From-Uri">>, JObj), <<"@">>) of
-        [Num|_] -> Num;
-        _ -> kz_json:get_value(<<"Caller-ID-Number">>, JObj,  kz_privacy:anonymous_caller_id_number(AccountId))
+        [Num | _] ->
+            Num;
+        _ ->
+            kz_json:get_value(
+                <<"Caller-ID-Number">>, JObj, kz_privacy:anonymous_caller_id_number(AccountId)
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -138,7 +151,6 @@ find_source(JObj) ->
 -spec find_direction(kz_call_event:doc()) -> kz_term:ne_binary().
 find_direction(JObj) ->
     kz_call_event:call_direction(JObj, <<"unknown">>).
-
 
 -spec start_meters(kz_term:ne_binary()) -> 'ok'.
 start_meters(HangupCause) ->

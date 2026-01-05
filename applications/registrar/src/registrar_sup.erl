@@ -14,10 +14,11 @@
 -export([start_link/0]).
 -export([init/1]).
 
--define(CHILDREN, [?CACHE(?CACHE_NAME)
-                  ,?WORKER('registrar_init')
-                  ,?SUPER('registrar_shared_listener_sup')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE(?CACHE_NAME),
+    ?WORKER('registrar_init'),
+    ?SUPER('registrar_shared_listener_sup')
+]).
 
 %%==============================================================================
 %% API functions

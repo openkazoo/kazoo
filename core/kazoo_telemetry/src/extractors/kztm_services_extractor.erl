@@ -10,7 +10,7 @@
 
 -behaviour(gen_extractor).
 
--export ([extract/0]).
+-export([extract/0]).
 
 %%------------------------------------------------------------------------------
 %% @doc extract cascaded service items

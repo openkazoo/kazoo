@@ -5,9 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_conference).
 
--export([new/0
-        ,type/0
-        ]).
+-export([
+    new/0,
+    type/0
+]).
 
 -include("kz_documents.hrl").
 

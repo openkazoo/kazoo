@@ -7,14 +7,14 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    init/1
+]).
 
 -include("kazoo_config.hrl").
 
 -define(SERVER, ?MODULE).
-
 
 -define(CHILDREN, [?WORKER('kazoo_config_init')]).
 

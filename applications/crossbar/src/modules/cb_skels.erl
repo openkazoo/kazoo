@@ -7,26 +7,27 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_skels).
 
--export([init/0
-        ,authenticate/1
-        ,authorize/1
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,content_types_provided/1
-        ,content_types_accepted/1
-        ,languages_provided/1
-        ,charsets_provided/1
-        ,encodings_provided/1
-        ,validate/1, validate/2
-        ,billing/1
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ,etag/1
-        ,expires/1
-        ,finish_request/1
-        ]).
+-export([
+    init/0,
+    authenticate/1,
+    authorize/1,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    content_types_provided/1,
+    content_types_accepted/1,
+    languages_provided/1,
+    charsets_provided/1,
+    encodings_provided/1,
+    validate/1, validate/2,
+    billing/1,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2,
+    etag/1,
+    expires/1,
+    finish_request/1
+]).
 
 -include("crossbar.hrl").
 
@@ -46,8 +47,12 @@ init() ->
     _ = crossbar_bindings:bind(<<"*.authorize">>, ?MODULE, 'authorize'),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.skels">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.skels">>, ?MODULE, 'resource_exists'),
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.skels">>, ?MODULE, 'content_types_provided'),
-    _ = crossbar_bindings:bind(<<"*.content_types_accepted.skels">>, ?MODULE, 'content_types_accepted'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.skels">>, ?MODULE, 'content_types_provided'
+    ),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_accepted.skels">>, ?MODULE, 'content_types_accepted'
+    ),
     _ = crossbar_bindings:bind(<<"*.languages_provided.skels">>, ?MODULE, 'languages_provided'),
     _ = crossbar_bindings:bind(<<"*.charsets_provided.skels">>, ?MODULE, 'charsets_provided'),
     _ = crossbar_bindings:bind(<<"*.encodings_provided.skels">>, ?MODULE, 'encodings_provided'),
@@ -322,4 +327,4 @@ on_successful_validation(Id, Context) ->
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].

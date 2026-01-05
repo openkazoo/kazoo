@@ -16,18 +16,20 @@
 -export([handle/2]).
 
 -ifdef(TEST).
--export([weighted_random_sort/1
-        ,resolve_endpoint_ids/2
-        ,get_endpoints/2
-        ]).
+-export([
+    weighted_random_sort/1,
+    resolve_endpoint_ids/2,
+    get_endpoints/2
+]).
 -endif.
 
 -type group_weight() :: 1..100.
 
--type attempt_result() :: 'stop' |
-                          'continue' |
-                          'no_endpoints' |
-                          'fail'.
+-type attempt_result() ::
+    'stop'
+    | 'continue'
+    | 'no_endpoints'
+    | 'fail'.
 
 -type endpoint() :: {kz_term:ne_binary(), kz_json:object()}.
 -type endpoints() :: [endpoint()].
@@ -37,13 +39,20 @@
 
 -type delay() :: non_neg_integer().
 -type timeout_t() :: non_neg_integer().
--type endpoint_intermediate() :: {kz_term:ne_binary()  %% group
-                                 ,kz_term:ne_binary()  %% id
-                                 ,delay()              %% delay
-                                 ,timeout_t()            %% timeout
-                                 ,group_weight()       %% weight
-                                 ,kz_term:api_object() %% member obj
-                                 }.
+%% group
+-type endpoint_intermediate() :: {
+    kz_term:ne_binary(),
+    %% id
+    kz_term:ne_binary(),
+    %% delay
+    delay(),
+    %% timeout
+    timeout_t(),
+    %% weight
+    group_weight(),
+    %% member obj
+    kz_term:api_object()
+}.
 -type endpoint_intermediates() :: [endpoint_intermediate()].
 
 %%------------------------------------------------------------------------------
@@ -60,7 +69,8 @@ handle(Data, Call) ->
 maybe_set_alert(Data, Call) ->
     AlertPath = custom_alert_path(kapps_call:inception(Call)),
     case kz_json:get_ne_binary_value([<<"ringtones">>, AlertPath], Data) of
-        'undefined' -> Call;
+        'undefined' ->
+            Call;
         Alert ->
             lager:debug("setting alert to ~s", [Alert]),
             kapps_call:kvs_store(<<"Override-Ringtone">>, Alert, Call)
@@ -74,27 +84,28 @@ custom_alert_path(_Inception) -> <<"external">>.
 repeat(_Data, Call, 0) ->
     cf_exe:continue(Call);
 repeat(Data, Call, N) ->
-    Next = case get_endpoints(Data, Call) of
-               [] ->
-                   lager:notice("ring group has no endpoints, moving to next callflow element"),
-                   'no_endpoints';
-               Endpoints ->
-                   attempt_endpoints(Endpoints, Data, Call)
-           end,
+    Next =
+        case get_endpoints(Data, Call) of
+            [] ->
+                lager:notice("ring group has no endpoints, moving to next callflow element"),
+                'no_endpoints';
+            Endpoints ->
+                attempt_endpoints(Endpoints, Data, Call)
+        end,
     repeat(Data, Call, N, Next).
 
 -spec repeat(kz_json:object(), kapps_call:call(), pos_integer(), attempt_result()) -> 'ok'.
 repeat(_Data, Call, _N, 'stop') ->
     cf_exe:stop(Call);
 repeat(Data, Call, N, 'continue') ->
-    repeat(Data, Call, N-1);
+    repeat(Data, Call, N - 1);
 repeat(_Data, Call, _N, 'no_endpoints') ->
     cf_exe:continue(Call);
 repeat(_Data, _Call, _N, 'fail') ->
     'ok'.
 
 -spec attempt_endpoints(kz_json:objects(), kz_json:object(), kapps_call:call()) ->
-          'stop' | 'fail' | 'continue'.
+    'stop' | 'fail' | 'continue'.
 attempt_endpoints(Endpoints, Data, Call) ->
     FailOnSingleReject = kz_json:is_true(<<"fail_on_single_reject">>, Data, 'undefined'),
     Timeout = kz_json:get_integer_value(<<"timeout">>, Data, ?DEFAULT_TIMEOUT_S),
@@ -102,43 +113,58 @@ attempt_endpoints(Endpoints, Data, Call) ->
     Ringback = kz_json:get_ne_binary_value(<<"ringback">>, Data),
     IgnoreForward = kz_json:get_binary_boolean(<<"ignore_forward">>, Data, <<"true">>),
 
-    lager:info("attempting ring group of ~b endpoints with strategy ~s", [length(Endpoints), Strategy]),
-    case kapps_call_command:b_bridge(Endpoints, Timeout, Strategy, <<"true">>
-                                    ,kz_media_util:media_path(Ringback, kapps_call:account_id(Call))
-                                    ,'undefined', IgnoreForward, FailOnSingleReject, Call
-                                    )
+    lager:info("attempting ring group of ~b endpoints with strategy ~s", [
+        length(Endpoints), Strategy
+    ]),
+    case
+        kapps_call_command:b_bridge(
+            Endpoints,
+            Timeout,
+            Strategy,
+            <<"true">>,
+            kz_media_util:media_path(Ringback, kapps_call:account_id(Call)),
+            'undefined',
+            IgnoreForward,
+            FailOnSingleReject,
+            Call
+        )
     of
         {'ok', _} ->
             lager:info("completed successful bridge to the ring group - call finished normally"),
             'stop';
-        {'fail', _}=F ->
+        {'fail', _} = F ->
             case cf_util:handle_bridge_failure(F, Call) of
-                'ok' -> lager:debug("bridge failure handled"), 'fail';
-                'not_found' -> 'continue'
+                'ok' ->
+                    lager:debug("bridge failure handled"),
+                    'fail';
+                'not_found' ->
+                    'continue'
             end;
         {'error', 'timeout'} ->
             lager:debug("bridge timed out waiting for someone to answer"),
             'continue';
         {'error', _R} ->
-            lager:info("error bridging to ring group: ~p"
-                      ,[kz_json:get_value(<<"Error-Message">>, _R)]
-                      ),
+            lager:info(
+                "error bridging to ring group: ~p",
+                [kz_json:get_value(<<"Error-Message">>, _R)]
+            ),
             'continue'
     end.
 
 -spec get_endpoints(kz_json:object(), kapps_call:call()) -> kz_json:objects().
 get_endpoints(Data, Call) ->
-    maybe_order_endpoints_by_delay(strategy(Data)
-                                  ,receive_endpoints(start_builders(Data, Call))
-                                  ).
+    maybe_order_endpoints_by_delay(
+        strategy(Data),
+        receive_endpoints(start_builders(Data, Call))
+    ).
 
 -spec maybe_order_endpoints_by_delay(kz_term:ne_binary(), kz_json:objects()) -> kz_json:objects().
 maybe_order_endpoints_by_delay(?DIAL_METHOD_SIMUL, Endpoints) ->
     Key = <<"Endpoint-Delay">>,
     F = fun(AObj, BObj) ->
-                kz_json:get_integer_value(Key, AObj, 0) =<
-                    kz_json:get_integer_value(Key, BObj, 0)
-        end,
+        kz_json:get_integer_value(Key, AObj, 0) =<
+            kz_json:get_integer_value(Key, BObj, 0)
+    end,
     lists:sort(F, Endpoints);
 maybe_order_endpoints_by_delay(_, Endpoints) ->
     Endpoints.
@@ -171,11 +197,13 @@ receive_endpoint_fold({Pid, Ref}, Acc) ->
 -spec start_builders(kz_json:object(), kapps_call:call()) -> kz_term:pid_refs().
 start_builders(Data, Call) ->
     %% resolve_endpoint_ids/2 returns endpoints in member order
-    [start_builder(EndpointId, Member, Call)
+    [
+        start_builder(EndpointId, Member, Call)
      || {EndpointId, Member} <- resolve_endpoint_ids(Data, Call)
     ].
 
--spec start_builder(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) -> {pid(), reference()}.
+-spec start_builder(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
+    {pid(), reference()}.
 start_builder(EndpointId, Member, Call) ->
     kz_util:spawn_monitor(fun builder/4, [EndpointId, Member, Call, self()]).
 
@@ -194,7 +222,8 @@ is_member_active(Member) ->
 resolve_endpoint_ids(Data, Call) ->
     resolve_endpoint_ids(Data, Call, kz_json:get_list_value(<<"endpoints">>, Data)).
 
--spec resolve_endpoint_ids(kz_json:object(), kapps_call:call(), kz_json:api_objects()) -> endpoints().
+-spec resolve_endpoint_ids(kz_json:object(), kapps_call:call(), kz_json:api_objects()) ->
+    endpoints().
 resolve_endpoint_ids(_Data, _Call, 'undefined') ->
     lager:warning("undefined endpoints in the ring group data: ~p", [_Data]),
     [];
@@ -207,90 +236,114 @@ resolve_endpoint_ids(Data, Call, Members) ->
     ResolvedEndpoints = resolve_endpoint_ids(FilteredMembers, [], Data, Call),
     lager:debug("resolved members into endpoints"),
 
-    FilteredEndpoints = [{Weight, {Id, kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Member)}}
-                         || {Type, Id, _Delay, _Timeout, Weight, Member} <- ResolvedEndpoints,
-                            Type =:= <<"device">>,
-                            Id =/= kapps_call:authorizing_id(Call)
-                        ],
+    FilteredEndpoints = [
+        {Weight, {Id, kz_json:set_value(<<"source">>, kz_term:to_binary(?MODULE), Member)}}
+     || {Type, Id, _Delay, _Timeout, Weight, Member} <- ResolvedEndpoints,
+        Type =:= <<"device">>,
+        Id =/= kapps_call:authorizing_id(Call)
+    ],
     lager:debug("filtered out non-devices: ~p", [FilteredMembers]),
     Strategy = strategy(Data),
     order_endpoints(Strategy, FilteredEndpoints).
 
 -spec order_endpoints(kz_term:ne_binary(), weighted_endpoints()) -> endpoints().
-order_endpoints(Method, Endpoints)
-  when Method =:= ?DIAL_METHOD_SIMUL
-       orelse Method =:= ?DIAL_METHOD_SINGLE ->
+order_endpoints(Method, Endpoints) when
+    Method =:= ?DIAL_METHOD_SIMUL orelse
+        Method =:= ?DIAL_METHOD_SINGLE
+->
     [{Id, Endpoint} || {_Weight, {Id, Endpoint}} <- Endpoints];
 order_endpoints(<<"weighted_random">>, Endpoints) ->
     weighted_random_sort(Endpoints).
 
--spec resolve_endpoint_ids(kz_json:objects(), endpoint_intermediates(), kz_json:object(), kapps_call:call()) ->
-          endpoint_intermediates().
+-spec resolve_endpoint_ids(
+    kz_json:objects(), endpoint_intermediates(), kz_json:object(), kapps_call:call()
+) ->
+    endpoint_intermediates().
 resolve_endpoint_ids(Members, EndpointIds, Data, Call) ->
     %% resolve the members in reverse order because `resolve_endpoint_id/1` prepends member
     %% endpoints onto the accumulator
-    lists:foldr(fun(Member, Acc) ->
-                        resolve_endpoint_id(Member, Acc, Data, Call)
-                end
-               ,EndpointIds
-               ,Members
-               ).
+    lists:foldr(
+        fun(Member, Acc) ->
+            resolve_endpoint_id(Member, Acc, Data, Call)
+        end,
+        EndpointIds,
+        Members
+    ).
 
 %% @doc check if there is already an endpoint with the same `EndpointId', `Delay', and
 %% `Timeout' within the given list of `Endpoints'.
 %% @end
--spec is_endpoint_resolved(kz_json:api_binary(), delay(), timeout_t(), endpoint_intermediates() | endpoint_intermediate()) -> boolean().
+-spec is_endpoint_resolved(
+    kz_json:api_binary(), delay(), timeout_t(), endpoint_intermediates() | endpoint_intermediate()
+) -> boolean().
 is_endpoint_resolved(EndpointId, Delay, Timeout, Endpoints) when is_list(Endpoints) ->
     F = fun(Endpoint) -> is_endpoint_resolved(EndpointId, Delay, Timeout, Endpoint) end,
     lists:any(F, Endpoints);
-is_endpoint_resolved(Id, Delay, Timeout, {_EG, Id, Delay, Timeout, _EW, _EM}) -> 'true';
-is_endpoint_resolved(Id, Delay, Timeout, {_EG, Id, Delay, Timeout, _EW}) -> 'true';
-is_endpoint_resolved(_Id, _Delay, _Timeout, _) -> 'false'.
+is_endpoint_resolved(Id, Delay, Timeout, {_EG, Id, Delay, Timeout, _EW, _EM}) ->
+    'true';
+is_endpoint_resolved(Id, Delay, Timeout, {_EG, Id, Delay, Timeout, _EW}) ->
+    'true';
+is_endpoint_resolved(_Id, _Delay, _Timeout, _) ->
+    'false'.
 
--spec resolve_endpoint_id(kz_json:object(), endpoint_intermediates(), kz_json:object(), kapps_call:call()) ->
-          endpoint_intermediates().
+-spec resolve_endpoint_id(
+    kz_json:object(), endpoint_intermediates(), kz_json:object(), kapps_call:call()
+) ->
+    endpoint_intermediates().
 resolve_endpoint_id(Member, EndpointIds, Data, Call) ->
     Id = kz_doc:id(Member),
     Delay = get_member_delay(Member),
     Timeout = get_member_timeout(Member),
     Type = kz_json:get_ne_binary_value(<<"endpoint_type">>, Member, <<"device">>),
     Weight = group_weight(Member, 20),
-    case kz_term:is_empty(Id)
-        orelse is_endpoint_resolved(Id, Delay, Timeout, EndpointIds)
-        orelse Type
+    case
+        kz_term:is_empty(Id) orelse
+            is_endpoint_resolved(Id, Delay, Timeout, EndpointIds) orelse
+            Type
     of
-        'true' -> EndpointIds;
+        'true' ->
+            EndpointIds;
         <<"group">> ->
             lager:info("member ~s is a group, merge the group's members", [Id]),
             GroupMembers = get_group_members(Member, Id, Weight, Data, Call),
             Ids = resolve_endpoint_ids(GroupMembers, EndpointIds, Data, Call),
-            [{Type, Id, Delay, Timeout, 'undefined'}|Ids];
+            [{Type, Id, Delay, Timeout, 'undefined'} | Ids];
         <<"user">> ->
             lager:info("member ~s is a user, get all the user's endpoints", [Id]),
             get_user_endpoint_ids(Member, EndpointIds, Id, Weight, Call);
         <<"device">> ->
             lager:info("resolved device ~s", [Id]),
-            [{Type, Id, Delay, Timeout, Weight, Member}|EndpointIds]
+            [{Type, Id, Delay, Timeout, Weight, Member} | EndpointIds]
     end.
 
--spec get_user_endpoint_ids(kz_json:object(), endpoint_intermediates(), kz_term:ne_binary(), group_weight(), kapps_call:call()) ->
-          endpoint_intermediates().
+-spec get_user_endpoint_ids(
+    kz_json:object(),
+    endpoint_intermediates(),
+    kz_term:ne_binary(),
+    group_weight(),
+    kapps_call:call()
+) ->
+    endpoint_intermediates().
 get_user_endpoint_ids(Member, EndpointIds, Id, GroupWeight, Call) ->
     Delay = get_member_delay(Member),
     Timeout = get_member_timeout(Member),
-    lists:foldr(fun(EndpointId, Acc) ->
-                        case is_endpoint_resolved(EndpointId, Delay, Timeout, Acc) of
-                            'true' -> Acc;
-                            'false' ->
-                                lager:info("resolved user ~s device ~s", [Id, EndpointId]),
-                                [{<<"device">>, EndpointId, Delay, Timeout, GroupWeight, Member} | Acc]
-                        end
-                end
-               ,[{<<"user">>, Id, Delay, Timeout, 'undefined'} | EndpointIds]
-               ,kz_attributes:owned_by(Id, <<"device">>, Call)
-               ).
+    lists:foldr(
+        fun(EndpointId, Acc) ->
+            case is_endpoint_resolved(EndpointId, Delay, Timeout, Acc) of
+                'true' ->
+                    Acc;
+                'false' ->
+                    lager:info("resolved user ~s device ~s", [Id, EndpointId]),
+                    [{<<"device">>, EndpointId, Delay, Timeout, GroupWeight, Member} | Acc]
+            end
+        end,
+        [{<<"user">>, Id, Delay, Timeout, 'undefined'} | EndpointIds],
+        kz_attributes:owned_by(Id, <<"device">>, Call)
+    ).
 
--spec get_group_members(kz_json:object(), kz_term:ne_binary(), group_weight(), kz_json:object(), kapps_call:call()) -> kz_json:objects().
+-spec get_group_members(
+    kz_json:object(), kz_term:ne_binary(), group_weight(), kz_json:object(), kapps_call:call()
+) -> kz_json:objects().
 get_group_members(Member, Id, GroupWeight, Data, Call) ->
     AccountDb = kapps_call:account_db(Call),
     case kz_datamgr:open_cache_doc(AccountDb, Id) of
@@ -301,8 +354,10 @@ get_group_members(Member, Id, GroupWeight, Data, Call) ->
             []
     end.
 
--spec maybe_order_group_members(group_weight(), kz_json:object(), kz_json:object(), kz_json:object()) ->
-          kz_json:objects().
+-spec maybe_order_group_members(
+    group_weight(), kz_json:object(), kz_json:object(), kz_json:object()
+) ->
+    kz_json:objects().
 maybe_order_group_members(Weight, Member, JObj, Data) ->
     case strategy(Data) of
         ?DIAL_METHOD_SINGLE ->
@@ -312,30 +367,34 @@ maybe_order_group_members(Weight, Member, JObj, Data) ->
     end.
 
 -spec unordered_group_members(group_weight(), kz_json:object(), kz_json:object()) ->
-          kz_json:objects().
+    kz_json:objects().
 unordered_group_members(Weight, Member, JObj) ->
     Endpoints = kz_json:get_json_value(<<"endpoints">>, JObj, kz_json:new()),
-    kz_json:foldl(fun(Key, Endpoint, Acc) ->
-                          [create_group_member(Key, Endpoint, Weight, Member) | Acc]
-                  end
-                 ,[]
-                 ,Endpoints
-                 ).
+    kz_json:foldl(
+        fun(Key, Endpoint, Acc) ->
+            [create_group_member(Key, Endpoint, Weight, Member) | Acc]
+        end,
+        [],
+        Endpoints
+    ).
 
 -spec order_group_members(group_weight(), kz_json:object(), kz_json:object()) -> kz_json:objects().
 order_group_members(GroupWeight, Member, JObj) ->
     Endpoints = kz_json:get_json_value(<<"endpoints">>, JObj, kz_json:new()),
     GroupMembers =
-        kz_json:foldl(fun(Key, Endpoint, Acc) ->
-                              order_group_member_fold(Key, Endpoint, Acc, GroupWeight, Member)
-                      end
-                     ,orddict:new()
-                     ,Endpoints
-                     ),
+        kz_json:foldl(
+            fun(Key, Endpoint, Acc) ->
+                order_group_member_fold(Key, Endpoint, Acc, GroupWeight, Member)
+            end,
+            orddict:new(),
+            Endpoints
+        ),
     [V || {_, V} <- orddict:to_list(GroupMembers)].
 
--spec order_group_member_fold(kz_json:path(), kz_json:object(), orddict:orddict(), group_weight(), kz_json:object()) ->
-          orddict:orddict().
+-spec order_group_member_fold(
+    kz_json:path(), kz_json:object(), orddict:orddict(), group_weight(), kz_json:object()
+) ->
+    orddict:orddict().
 order_group_member_fold(Key, Endpoint, Acc, GroupWeight, Member) ->
     case group_weight(Endpoint) of
         'undefined' ->
@@ -347,18 +406,20 @@ order_group_member_fold(Key, Endpoint, Acc, GroupWeight, Member) ->
     end.
 
 -spec create_group_member(kz_term:ne_binary(), kz_json:object(), group_weight(), kz_json:object()) ->
-          kz_json:object().
+    kz_json:object().
 create_group_member(Key, Endpoint, GroupWeight, Member) ->
     DefaultDelay = get_member_delay(Member),
     DefaultTimeout = get_member_timeout(Member),
-    kz_json:set_values([{<<"endpoint_type">>, kz_json:get_ne_binary_value(<<"type">>, Endpoint)}
-                       ,{<<"id">>, Key}
-                       ,{<<"delay">>, kz_json:get_integer_value(<<"delay">>, Endpoint, DefaultDelay)}
-                       ,{<<"timeout">>, kz_json:get_integer_value(<<"timeout">>, Endpoint, DefaultTimeout)}
-                       ,{<<"weight">>, GroupWeight}
-                       ]
-                      ,Member
-                      ).
+    kz_json:set_values(
+        [
+            {<<"endpoint_type">>, kz_json:get_ne_binary_value(<<"type">>, Endpoint)},
+            {<<"id">>, Key},
+            {<<"delay">>, kz_json:get_integer_value(<<"delay">>, Endpoint, DefaultDelay)},
+            {<<"timeout">>, kz_json:get_integer_value(<<"timeout">>, Endpoint, DefaultTimeout)},
+            {<<"weight">>, GroupWeight}
+        ],
+        Member
+    ).
 
 -spec weighted_random_sort(weighted_endpoints()) -> endpoints().
 weighted_random_sort(Endpoints) ->
@@ -377,18 +438,19 @@ weighted_random_sort([], Acc) ->
     Acc.
 
 -spec set_intervals_on_weight(weighted_endpoints(), weighted_endpoints(), integer()) ->
-          weighted_endpoints().
-set_intervals_on_weight([{Weight, _}=E | Tail], Acc, Sum) ->
+    weighted_endpoints().
+set_intervals_on_weight([{Weight, _} = E | Tail], Acc, Sum) ->
     set_intervals_on_weight(Tail, [{Weight + Sum, E} | Acc], Sum + Weight);
 set_intervals_on_weight([], Acc, _Sum) ->
     Acc.
 
 -spec weighted_random_get_element(weighted_endpoints(), integer()) -> weighted_endpoint().
 weighted_random_get_element(List, Pivot) ->
-    {_, {Weight, _}} = case [E || E={X, _} <- List, X =< Pivot] of
-                           [] -> lists:last(List);
-                           L -> hd(L)
-                       end,
+    {_, {Weight, _}} =
+        case [E || E = {X, _} <- List, X =< Pivot] of
+            [] -> lists:last(List);
+            L -> hd(L)
+        end,
     ListFiltered = [E || E = {_, {W, _}} <- List, W =:= Weight],
     lists:nth(random_integer(length(ListFiltered)), ListFiltered).
 

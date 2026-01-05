@@ -6,16 +6,18 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_hooks_util).
 
--export([register/0, register/1, register/2
-        ,deregister/0, deregister/1, deregister/2
-        ,registered/0, registered/1, registered/2
-        ,all_registered/0
-        ]).
--export([register_rr/0, register_rr/1, register_rr/2
-        ,deregister_rr/0, deregister_rr/1, deregister_rr/2
-        ,registered_rr/0, registered_rr/1, registered_rr/2
-        ,all_registered_rr/0
-        ]).
+-export([
+    register/0, register/1, register/2,
+    deregister/0, deregister/1, deregister/2,
+    registered/0, registered/1, registered/2,
+    all_registered/0
+]).
+-export([
+    register_rr/0, register_rr/1, register_rr/2,
+    deregister_rr/0, deregister_rr/1, deregister_rr/2,
+    registered_rr/0, registered_rr/1, registered_rr/2,
+    all_registered_rr/0
+]).
 -export([lookup_account_id/1]).
 -export([handle_call_event/2]).
 
@@ -23,19 +25,25 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include("kz_hooks.hrl").
 
--define(HOOK_REG
-       ,{'p', 'l', 'kz_hook'}).
--define(HOOK_REG(AccountId)
-       ,{'p', 'l', {'kz_hook', AccountId}}).
--define(HOOK_REG(AccountId, EventName)
-       ,{'p', 'l', {'kz_hook', AccountId, EventName}}).
+-define(HOOK_REG,
+    {'p', 'l', 'kz_hook'}
+).
+-define(HOOK_REG(AccountId),
+    {'p', 'l', {'kz_hook', AccountId}}
+).
+-define(HOOK_REG(AccountId, EventName),
+    {'p', 'l', {'kz_hook', AccountId, EventName}}
+).
 
--define(HOOK_REG_RR
-       ,{'p', 'l', 'kz_hook_rr'}).
--define(HOOK_REG_RR(AccountId)
-       ,{'p', 'l', {'kz_hook_rr', AccountId}}).
--define(HOOK_REG_RR(AccountId, EventName)
-       ,{'p', 'l', {'kz_hook_rr', AccountId, EventName}}).
+-define(HOOK_REG_RR,
+    {'p', 'l', 'kz_hook_rr'}
+).
+-define(HOOK_REG_RR(AccountId),
+    {'p', 'l', {'kz_hook_rr', AccountId}}
+).
+-define(HOOK_REG_RR(AccountId, EventName),
+    {'p', 'l', {'kz_hook_rr', AccountId, EventName}}
+).
 
 -spec register() -> 'true'.
 register() ->
@@ -76,19 +84,19 @@ registered(AccountId, EventName) ->
 -spec all_registered() -> kz_term:pids().
 all_registered() ->
     lists:usort(
-      lists:foldl(fun all_registered_fold/2
-                 ,[]
-                 ,[?HOOK_REG
-                  ,?HOOK_REG('_')
-                  ,?HOOK_REG('_', '_')
-                  ])
-     ).
+        lists:foldl(
+            fun all_registered_fold/2,
+            [],
+            [
+                ?HOOK_REG,
+                ?HOOK_REG('_'),
+                ?HOOK_REG('_', '_')
+            ]
+        )
+    ).
 
 all_registered_fold(HookPattern, Acc) ->
-    Match = [{{HookPattern, '$1', '_'}
-             ,[]
-             ,['$1']
-             }],
+    Match = [{{HookPattern, '$1', '_'}, [], ['$1']}],
     gproc:select(Match) ++ Acc.
 
 -spec register_rr() -> 'true'.
@@ -130,13 +138,16 @@ registered_rr(AccountId, EventName) ->
 -spec all_registered_rr() -> kz_term:pids().
 all_registered_rr() ->
     lists:usort(
-      lists:foldl(fun all_registered_fold/2
-                 ,[]
-                 ,[?HOOK_REG_RR
-                  ,?HOOK_REG_RR('_')
-                  ,?HOOK_REG_RR('_', '_')
-                  ])
-     ).
+        lists:foldl(
+            fun all_registered_fold/2,
+            [],
+            [
+                ?HOOK_REG_RR,
+                ?HOOK_REG_RR('_'),
+                ?HOOK_REG_RR('_', '_')
+            ]
+        )
+    ).
 
 -spec maybe_add_hook(tuple()) -> 'true'.
 maybe_add_hook(Hook) ->
@@ -179,17 +190,17 @@ maybe_remove_hook(Hook) ->
             'true'
     end.
 
-maybe_unbind_hook(?HOOK_REG=Hook) ->
+maybe_unbind_hook(?HOOK_REG = Hook) ->
     maybe_unbind_hook(Hook, Hook);
-maybe_unbind_hook(?HOOK_REG(_AccountId)=Hook) ->
+maybe_unbind_hook(?HOOK_REG(_AccountId) = Hook) ->
     maybe_unbind_hook(?HOOK_REG, Hook);
-maybe_unbind_hook(?HOOK_REG(_AccountId, CallEvent)=Hook) ->
+maybe_unbind_hook(?HOOK_REG(_AccountId, CallEvent) = Hook) ->
     maybe_unbind_hook(?HOOK_REG('_', CallEvent), Hook);
-maybe_unbind_hook(?HOOK_REG_RR=Hook) ->
+maybe_unbind_hook(?HOOK_REG_RR = Hook) ->
     maybe_unbind_hook(Hook, Hook);
-maybe_unbind_hook(?HOOK_REG_RR(_AccountId)=Hook) ->
+maybe_unbind_hook(?HOOK_REG_RR(_AccountId) = Hook) ->
     maybe_unbind_hook(?HOOK_REG_RR, Hook);
-maybe_unbind_hook(?HOOK_REG_RR(_AccountId, CallEvent)=Hook) ->
+maybe_unbind_hook(?HOOK_REG_RR(_AccountId, CallEvent) = Hook) ->
     maybe_unbind_hook(?HOOK_REG_RR('_', CallEvent), Hook).
 
 maybe_unbind_hook(SearchHook, Hook) ->
@@ -230,19 +241,22 @@ handle_call_event(JObj, Props) ->
     kz_util:put_callid(CallId),
     handle_call_event(JObj, AccountId, HookEvent, CallId, props:get_is_true('rr', Props)).
 
--spec handle_call_event(kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()) ->
-          'ok'.
-handle_call_event(JObj, 'undefined', <<"CHANNEL_CREATE">>=HookEvent, CallId, RR) ->
+-spec handle_call_event(
+    kz_json:object(), kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), boolean()
+) ->
+    'ok'.
+handle_call_event(JObj, 'undefined', <<"CHANNEL_CREATE">> = HookEvent, CallId, RR) ->
     lager:debug("event 'channel_create' had no account id"),
     case lookup_account_id(JObj) of
         {'error', _R} ->
             lager:debug("failed to determine account id for 'channel_create'", []);
         {'ok', AccountId} ->
             lager:debug("determined account id for 'channel_create' is ~s", [AccountId]),
-            J = kz_json:set_value([<<"Custom-Channel-Vars">>, <<"Account-ID">>]
-                                 ,AccountId
-                                 ,JObj
-                                 ),
+            J = kz_json:set_value(
+                [<<"Custom-Channel-Vars">>, <<"Account-ID">>],
+                AccountId,
+                JObj
+            ),
             handle_call_event(J, AccountId, HookEvent, CallId, RR)
     end;
 handle_call_event(JObj, AccountId, HookEvent, _CallId, 'false') ->
@@ -262,14 +276,17 @@ lookup_account_id(JObj) ->
         'undefined' ->
             Number = get_inbound_destination(JObj),
             lookup_account_id_by_number(Number, kz_term:is_empty(Number));
-        Id -> {'ok', Id}
+        Id ->
+            {'ok', Id}
     end.
 
--spec lookup_account_id_by_number(kz_term:api_binary(), boolean()) -> {'ok', kz_term:ne_binary()} | {'error', any()}.
-lookup_account_id_by_number(_Number, 'true') -> {'error', 'not_found'};
+-spec lookup_account_id_by_number(kz_term:api_binary(), boolean()) ->
+    {'ok', kz_term:ne_binary()} | {'error', any()}.
+lookup_account_id_by_number(_Number, 'true') ->
+    {'error', 'not_found'};
 lookup_account_id_by_number(Number, 'false') ->
     case kz_cache:peek_local(?HOOKS_CACHE_NAME, cache_key_number(Number)) of
-        {'ok', _AccountId}=Ok -> Ok;
+        {'ok', _AccountId} = Ok -> Ok;
         {'error', 'not_found'} -> fetch_account_id(Number)
     end.
 
@@ -279,9 +296,12 @@ fetch_account_id(Number) ->
         {'ok', AccountId, _} ->
             lager:debug("associated number ~s with account ~s", [Number, AccountId]),
             CacheProps = [{'origin', {'db', knm_converters:to_db(Number), Number}}],
-            kz_cache:store_local(?HOOKS_CACHE_NAME, cache_key_number(Number), AccountId, CacheProps),
+            kz_cache:store_local(
+                ?HOOKS_CACHE_NAME, cache_key_number(Number), AccountId, CacheProps
+            ),
             {'ok', AccountId};
-        {'error', _}=Error -> Error
+        {'error', _} = Error ->
+            Error
     end.
 
 -spec cache_key_number(kz_term:ne_binary()) -> {'kz_hooks', kz_term:ne_binary()}.
@@ -290,9 +310,11 @@ cache_key_number(Number) -> {'kz_hooks', Number}.
 -spec get_inbound_destination(kz_json:object()) -> kz_term:api_binary().
 get_inbound_destination(JObj) ->
     {Number, _} = kapps_util:get_destination(JObj, <<"stepswitch">>, <<"inbound_user_field">>),
-    case {kz_term:is_empty(Number)
-         ,kapps_config:get_is_true(<<"stepswitch">>, <<"assume_inbound_e164">>, 'false')
-         }
+    case
+        {
+            kz_term:is_empty(Number),
+            kapps_config:get_is_true(<<"stepswitch">>, <<"assume_inbound_e164">>, 'false')
+        }
     of
         {'true', _} -> 'undefined';
         {'false', 'true'} -> assume_e164(Number);

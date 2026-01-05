@@ -7,13 +7,24 @@
 
 -export([new/0]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_forward_direct_calls_only/1, call_forward_direct_calls_only/2, set_call_forward_direct_calls_only/2]).
+-export([
+    call_forward_direct_calls_only/1, call_forward_direct_calls_only/2,
+    set_call_forward_direct_calls_only/2
+]).
 -export([call_forward_enabled/1, call_forward_enabled/2, set_call_forward_enabled/2]).
 -export([call_forward_failover/1, call_forward_failover/2, set_call_forward_failover/2]).
--export([call_forward_ignore_early_media/1, call_forward_ignore_early_media/2, set_call_forward_ignore_early_media/2]).
--export([call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2]).
+-export([
+    call_forward_ignore_early_media/1, call_forward_ignore_early_media/2,
+    set_call_forward_ignore_early_media/2
+]).
+-export([
+    call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2
+]).
 -export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
--export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
+-export([
+    call_forward_require_keypress/1, call_forward_require_keypress/2,
+    set_call_forward_require_keypress/2
+]).
 -export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
@@ -40,13 +51,21 @@
 -export([name/1, name/2, set_name/2]).
 -export([outbound_flags/1, outbound_flags/2, set_outbound_flags/2]).
 -export([owner_id/1, owner_id/2, set_owner_id/2]).
--export([presence_id/1, presence_id/2, set_presence_id/2
-        ,calculate_presence_id/1, calculate_presence_id/2
-        ]).
+-export([
+    presence_id/1, presence_id/2,
+    set_presence_id/2,
+    calculate_presence_id/1, calculate_presence_id/2
+]).
 -export([provision/1, provision/2, set_provision/2]).
--export([provision_check_sync_event/1, provision_check_sync_event/2, set_provision_check_sync_event/2]).
--export([provision_check_sync_reboot/1, provision_check_sync_reboot/2, set_provision_check_sync_reboot/2]).
--export([provision_check_sync_reload/1, provision_check_sync_reload/2, set_provision_check_sync_reload/2]).
+-export([
+    provision_check_sync_event/1, provision_check_sync_event/2, set_provision_check_sync_event/2
+]).
+-export([
+    provision_check_sync_reboot/1, provision_check_sync_reboot/2, set_provision_check_sync_reboot/2
+]).
+-export([
+    provision_check_sync_reload/1, provision_check_sync_reload/2, set_provision_check_sync_reload/2
+]).
 -export([provision_combo_keys/1, provision_combo_keys/2, set_provision_combo_keys/2]).
 -export([provision_combo_key/2, provision_combo_key/3, set_provision_combo_key/3]).
 -export([provision_endpoint_brand/1, provision_endpoint_brand/2, set_provision_endpoint_brand/2]).
@@ -61,7 +80,10 @@
 -export([sip/1, sip/2, set_sip/2]).
 -export([sip_custom_sip_headers/1, sip_custom_sip_headers/2, set_sip_custom_sip_headers/2]).
 -export([sip_expire_seconds/1, sip_expire_seconds/2, set_sip_expire_seconds/2]).
--export([sip_ignore_completed_elsewhere/1, sip_ignore_completed_elsewhere/2, set_sip_ignore_completed_elsewhere/2]).
+-export([
+    sip_ignore_completed_elsewhere/1, sip_ignore_completed_elsewhere/2,
+    set_sip_ignore_completed_elsewhere/2
+]).
 -export([sip_invite_format/1, sip_invite_format/2, set_sip_invite_format/2]).
 -export([sip_ip/1, sip_ip/2, set_sip_ip/2]).
 -export([sip_method/1, sip_method/2, set_sip_method/2]).
@@ -71,23 +93,31 @@
 -export([sip_route/1, sip_route/2, set_sip_route/2]).
 -export([sip_static_route/1, sip_static_route/2, set_sip_static_route/2]).
 -export([sip_username/1, sip_username/2, set_sip_username/2]).
--export([suppress_unregister_notifications/1, suppress_unregister_notifications/2, set_suppress_unregister_notifications/2]).
+-export([
+    suppress_unregister_notifications/1, suppress_unregister_notifications/2,
+    set_suppress_unregister_notifications/2
+]).
 -export([timezone/1, timezone/2, set_timezone/2]).
 -export([is_hotdesked/1, hotdesk_ids/1, hotdesk_ids/2]).
 
--export([fetch/2
-        ,type/0
-        ,is_device/1
+-export([
+    fetch/2,
+    type/0,
+    is_device/1,
 
-        ,custom_sip_headers_inbound/1, custom_sip_headers_inbound/2, set_custom_sip_headers_inbound/2
-        ,custom_sip_headers_outbound/1, custom_sip_headers_outbound/2, set_custom_sip_headers_outbound/2
-        ,custom_sip_header_inbound/2, custom_sip_header_inbound/3
-        ,custom_sip_header_outbound/2, custom_sip_header_outbound/3
+    custom_sip_headers_inbound/1, custom_sip_headers_inbound/2,
+    set_custom_sip_headers_inbound/2,
+    custom_sip_headers_outbound/1, custom_sip_headers_outbound/2,
+    set_custom_sip_headers_outbound/2,
+    custom_sip_header_inbound/2, custom_sip_header_inbound/3,
+    custom_sip_header_outbound/2, custom_sip_header_outbound/3,
 
-        ,set_outbound_flags/3
-        ,outbound_static_flags/1, set_outbound_static_flags/2
-        ,outbound_dynamic_flags/1, set_outbound_dynamic_flags/2
-        ]).
+    set_outbound_flags/3,
+    outbound_static_flags/1,
+    set_outbound_static_flags/2,
+    outbound_dynamic_flags/1,
+    set_outbound_dynamic_flags/2
+]).
 
 -include("kz_documents.hrl").
 
@@ -124,7 +154,9 @@ call_forward_direct_calls_only(Doc, Default) ->
 
 -spec set_call_forward_direct_calls_only(doc(), boolean()) -> doc().
 set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
-    kz_json:set_value([<<"call_forward">>, <<"direct_calls_only">>], CallForwardDirectCallsOnly, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"direct_calls_only">>], CallForwardDirectCallsOnly, Doc
+    ).
 
 -spec call_forward_enabled(doc()) -> boolean().
 call_forward_enabled(Doc) ->
@@ -160,7 +192,9 @@ call_forward_ignore_early_media(Doc, Default) ->
 
 -spec set_call_forward_ignore_early_media(doc(), boolean()) -> doc().
 set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
-    kz_json:set_value([<<"call_forward">>, <<"ignore_early_media">>], CallForwardIgnoreEarlyMedia, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"ignore_early_media">>], CallForwardIgnoreEarlyMedia, Doc
+    ).
 
 -spec call_forward_keep_caller_id(doc()) -> boolean().
 call_forward_keep_caller_id(Doc) ->
@@ -196,7 +230,9 @@ call_forward_require_keypress(Doc, Default) ->
 
 -spec set_call_forward_require_keypress(doc(), boolean()) -> doc().
 set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
-    kz_json:set_value([<<"call_forward">>, <<"require_keypress">>], CallForwardRequireKeypress, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"require_keypress">>], CallForwardRequireKeypress, Doc
+    ).
 
 -spec call_forward_substitute(doc()) -> boolean().
 call_forward_substitute(Doc) ->
@@ -468,18 +504,24 @@ mwi_unsolicited_updates(Doc) ->
 
 -spec mwi_unsolicited_updates(doc(), Default) -> boolean() | Default.
 mwi_unsolicited_updates(Doc, Default) ->
-    case kz_json:get_first_defined([<<"mwi_unsolicited_updates">>, <<"mwi_unsolicitated_updates">>], Doc) of
+    case
+        kz_json:get_first_defined(
+            [<<"mwi_unsolicited_updates">>, <<"mwi_unsolicitated_updates">>], Doc
+        )
+    of
         'undefined' -> Default;
         Bool -> kz_term:safe_cast(Bool, Default, fun kz_term:to_boolean/1)
     end.
 
 -spec set_mwi_unsolicited_updates(doc(), boolean()) -> doc().
 set_mwi_unsolicited_updates(Doc, MwiUnsolicitedUpdates) ->
-    kz_json:set_values([{<<"mwi_unsolicited_updates">>, MwiUnsolicitedUpdates}
-                       ,{<<"mwi_unsoliciated_updates">>, 'null'}
-                       ]
-                      ,Doc
-                      ).
+    kz_json:set_values(
+        [
+            {<<"mwi_unsolicited_updates">>, MwiUnsolicitedUpdates},
+            {<<"mwi_unsoliciated_updates">>, 'null'}
+        ],
+        Doc
+    ).
 
 -spec name(doc()) -> kz_term:api_ne_binary().
 name(Doc) ->
@@ -579,13 +621,15 @@ fix_presence_id(Doc, PresenceId) ->
     AccountRealm = kzd_accounts:fetch_realm(kz_doc:account_id(Doc)),
     <<PresenceId/binary, "@", AccountRealm/binary>>.
 
--spec calculate_presence_id(doc(), Default, kz_term:api_ne_binary()) -> kz_term:ne_binary() | Default.
+-spec calculate_presence_id(doc(), Default, kz_term:api_ne_binary()) ->
+    kz_term:ne_binary() | Default.
 calculate_presence_id(Doc, DevicePresenceId, 'undefined') ->
     calculate_presence_id_from_hotdesk(Doc, DevicePresenceId, hotdesk_ids(Doc, []));
 calculate_presence_id(Doc, DevicePresenceId, OwnerId) ->
     calculate_presence_id_from_owner(Doc, DevicePresenceId, OwnerId).
 
--spec calculate_presence_id_from_owner(doc(), Default, kz_term:ne_binary()) -> kz_term:ne_binary() | Default.
+-spec calculate_presence_id_from_owner(doc(), Default, kz_term:ne_binary()) ->
+    kz_term:ne_binary() | Default.
 calculate_presence_id_from_owner(Doc, DevicePresenceId, OwnerId) ->
     case kzd_users:fetch(kz_doc:account_db(Doc), OwnerId) of
         {'ok', Owner} ->
@@ -594,11 +638,14 @@ calculate_presence_id_from_owner(Doc, DevicePresenceId, OwnerId) ->
             DevicePresenceId
     end.
 
--spec calculate_presence_id_from_hotdesk(doc(), Default, kz_term:ne_binaries()) -> kz_term:ne_binary() | Default.
-calculate_presence_id_from_hotdesk(_Doc, DevicePresenceId, []) -> DevicePresenceId;
-calculate_presence_id_from_hotdesk(Doc, DevicePresenceId, [HotdeskId|HotdeskIds]) ->
+-spec calculate_presence_id_from_hotdesk(doc(), Default, kz_term:ne_binaries()) ->
+    kz_term:ne_binary() | Default.
+calculate_presence_id_from_hotdesk(_Doc, DevicePresenceId, []) ->
+    DevicePresenceId;
+calculate_presence_id_from_hotdesk(Doc, DevicePresenceId, [HotdeskId | HotdeskIds]) ->
     case calculate_presence_id_from_owner(Doc, DevicePresenceId, HotdeskId) of
-        DevicePresenceId -> calculate_presence_id_from_hotdesk(Doc, DevicePresenceId, HotdeskIds);
+        DevicePresenceId ->
+            calculate_presence_id_from_hotdesk(Doc, DevicePresenceId, HotdeskIds);
         HotdeskPresenceId ->
             lager:debug("using hotdesk presence id ~s from ~s", [HotdeskPresenceId, HotdeskId]),
             HotdeskPresenceId
@@ -830,7 +877,9 @@ sip_ignore_completed_elsewhere(Doc, Default) ->
 
 -spec set_sip_ignore_completed_elsewhere(doc(), boolean()) -> doc().
 set_sip_ignore_completed_elsewhere(Doc, SipIgnoreCompletedElsewhere) ->
-    kz_json:set_value([<<"sip">>, <<"ignore_completed_elsewhere">>], SipIgnoreCompletedElsewhere, Doc).
+    kz_json:set_value(
+        [<<"sip">>, <<"ignore_completed_elsewhere">>], SipIgnoreCompletedElsewhere, Doc
+    ).
 
 -spec sip_invite_format(doc()) -> binary().
 sip_invite_format(Doc) ->
@@ -950,7 +999,9 @@ suppress_unregister_notifications(Doc, Default) ->
 
 -spec set_suppress_unregister_notifications(doc(), boolean()) -> doc().
 set_suppress_unregister_notifications(Doc, SuppressUnregisterNotifications) ->
-    kz_json:set_value([<<"suppress_unregister_notifications">>], SuppressUnregisterNotifications, Doc).
+    kz_json:set_value(
+        [<<"suppress_unregister_notifications">>], SuppressUnregisterNotifications, Doc
+    ).
 
 -spec timezone(doc()) -> kz_term:api_binary().
 timezone(Doc) ->
@@ -964,9 +1015,10 @@ timezone(Doc, Default) ->
 set_timezone(Doc, Timezone) ->
     kz_json:set_value([<<"timezone">>], Timezone, Doc).
 
--spec fetch(kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> {'ok', doc()} |
-          {'error', any()}.
-fetch(Account=?NE_BINARY, DeviceId=?NE_BINARY) ->
+-spec fetch(kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
+    {'ok', doc()}
+    | {'error', any()}.
+fetch(Account = ?NE_BINARY, DeviceId = ?NE_BINARY) ->
     AccountDb = kz_util:format_account_db(Account),
     kz_datamgr:open_cache_doc(AccountDb, DeviceId, [{'cache_failures', 'false'}]);
 fetch(_, _) ->
@@ -1028,16 +1080,19 @@ set_custom_sip_headers_outbound(Device, Headers) ->
     set_sip_custom_sip_headers(Device, OutboundCSH).
 
 -spec set_outbound_flags(kz_json:object(), kz_term:api_ne_binaries(), kz_term:api_ne_binaries()) ->
-          kz_json:object().
+    kz_json:object().
 set_outbound_flags(JObj, 'undefined', DynamicFlags) ->
     set_outbound_flags(JObj, [], DynamicFlags);
 set_outbound_flags(JObj, StaticFlags, 'undefined') ->
     set_outbound_flags(JObj, StaticFlags, []);
-set_outbound_flags(JObj, StaticFlags, DynamicFlags) when is_list(StaticFlags),
-                                                         is_list(DynamicFlags) ->
-    Flags = kz_json:from_list([{?DYNAMIC_FLAGS, DynamicFlags}
-                              ,{?STATIC_FLAGS, StaticFlags}
-                              ]),
+set_outbound_flags(JObj, StaticFlags, DynamicFlags) when
+    is_list(StaticFlags),
+    is_list(DynamicFlags)
+->
+    Flags = kz_json:from_list([
+        {?DYNAMIC_FLAGS, DynamicFlags},
+        {?STATIC_FLAGS, StaticFlags}
+    ]),
     set_outbound_flags(JObj, Flags).
 
 -spec outbound_static_flags(kz_json:object()) -> kz_term:ne_binaries().

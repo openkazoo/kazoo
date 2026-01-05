@@ -11,18 +11,19 @@
 
 -export([start_link/2]).
 
--export([node_srv/1
-        ,authn_srv/1
-        ,route_srv/1
-        ,channel_srv/1
-        ,config_srv/1
-        ,resource_srv/1
-        ,notify_srv/1
-        ,authz_srv/1
-        ,cdr_srv/1
-        ,conference_srv/1
-        ,event_stream_sup/1
-        ]).
+-export([
+    node_srv/1,
+    authn_srv/1,
+    route_srv/1,
+    channel_srv/1,
+    config_srv/1,
+    resource_srv/1,
+    notify_srv/1,
+    authz_srv/1,
+    cdr_srv/1,
+    conference_srv/1,
+    event_stream_sup/1
+]).
 
 -export([init/1]).
 
@@ -116,13 +117,14 @@ init([Node, Options]) ->
     M = kazoo_bindings:map(<<"freeswitch.node.modules">>, []),
     Modules = lists:foldl(fun(A, B) -> A ++ B end, [], M),
     JObj = ensure_modules(maybe_correct_modules(Modules)),
-    Children = kz_json:foldr(fun(Module, V, Acc) ->
-                                     Type = kz_json:get_ne_binary_value(<<"type">>, V),
-                                     [child_name(NodeB, Args, Module, Type) | Acc]
-                             end
-                            ,[]
-                            ,JObj
-                            ),
+    Children = kz_json:foldr(
+        fun(Module, V, Acc) ->
+            Type = kz_json:get_ne_binary_value(<<"type">>, V),
+            [child_name(NodeB, Args, Module, Type) | Acc]
+        end,
+        [],
+        JObj
+    ),
     {'ok', {SupFlags, Children}}.
 
 -spec ensure_modules(kz_json:object()) -> kz_json:object().
@@ -144,21 +146,25 @@ child_name(NodeB, Args, Module, <<"worker">>) ->
     ?WORKER_NAME_ARGS_TYPE(Name, Mod, Args, 'transient').
 
 -spec srv([{atom(), pid(), any(), any()}] | tuple(), list()) -> kz_term:api_pid().
-srv([], _) -> 'undefined';
+srv([], _) ->
+    'undefined';
 srv([{Name, Pid, _, _} | Children], Suffix) ->
     %% FIXME: use lists:suffix
     case lists:prefix(Suffix, lists:reverse(kz_term:to_list(Name))) of
         'true' -> Pid;
         'false' -> srv(Children, Suffix)
     end;
-srv(_, _) -> 'undefined'.
+srv(_, _) ->
+    'undefined'.
 
 -spec maybe_correct_modules(list() | kz_json:object()) -> kz_json:object().
-maybe_correct_modules(Modules)
-  when is_list(Modules) ->
+maybe_correct_modules(Modules) when
+    is_list(Modules)
+->
     FixedModules = [fix_module(Mod) || Mod <- Modules],
     maybe_correct_modules(kz_json:from_list(FixedModules));
-maybe_correct_modules(JObj) -> set_order(JObj).
+maybe_correct_modules(JObj) ->
+    set_order(JObj).
 
 -spec fix_module_type(kz_term:ne_binary()) -> kz_json:object().
 fix_module_type(<<"pus_", _/binary>>) ->
@@ -171,8 +177,9 @@ maybe_module_deprecated(<<"route">>) -> <<"route_sup">>;
 maybe_module_deprecated(Mod) -> Mod.
 
 -spec fix_module(kz_term:ne_binary() | string()) -> {kz_term:ne_binary(), kz_json:object()}.
-fix_module(Mod)
-  when not is_binary(Mod)->
+fix_module(Mod) when
+    not is_binary(Mod)
+->
     fix_module(kz_term:to_binary(Mod));
 fix_module(Mod) ->
     Module = maybe_module_deprecated(Mod),
@@ -189,11 +196,11 @@ set_config_first({<<"node">>, <<"config">>}, _) -> 'false';
 set_config_first({<<"node">>, _}, _) -> 'true';
 set_config_first(_, _) -> 'false'.
 
--spec which_children(SupRef) -> [{Id,Child,Type,Modules}] | {'EXIT', any()} when
-      SupRef :: supervisor:sup_ref(),
-      Id :: supervisor:child_id() | undefined,
-      Child :: supervisor:child() | 'restarting',
-      Type :: supervisor:worker(),
-      Modules :: supervisor:modules().
+-spec which_children(SupRef) -> [{Id, Child, Type, Modules}] | {'EXIT', any()} when
+    SupRef :: supervisor:sup_ref(),
+    Id :: supervisor:child_id() | undefined,
+    Child :: supervisor:child() | 'restarting',
+    Type :: supervisor:worker(),
+    Modules :: supervisor:modules().
 which_children(Supervisor) ->
     catch supervisor:which_children(Supervisor).

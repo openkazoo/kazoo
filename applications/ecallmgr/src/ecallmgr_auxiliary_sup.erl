@@ -17,28 +17,31 @@
 -export([cache_proc/0]).
 -export([init/1]).
 
--define(CACHE_AUTHN_PROPS, [{'origin_bindings', [[{'type', <<"account">>}]
-                                                ,[{'type', <<"device">>}]
-                                                ,[{'type', <<"user">>}]
-                                                ]
-                            }
-                           ]).
--define(CACHE_UTIL_PROPS, [{'origin_bindings', [[{'db', ?KZ_CONFIG_DB}]
-                                               ,[{'type', <<"media">>}]
-                                               ]
-                           }
-                          ]).
+-define(CACHE_AUTHN_PROPS, [
+    {'origin_bindings', [
+        [{'type', <<"account">>}],
+        [{'type', <<"device">>}],
+        [{'type', <<"user">>}]
+    ]}
+]).
+-define(CACHE_UTIL_PROPS, [
+    {'origin_bindings', [
+        [{'db', ?KZ_CONFIG_DB}],
+        [{'type', <<"media">>}]
+    ]}
+]).
 
--define(CHILDREN, [?CACHE_ARGS(?ECALLMGR_UTIL_CACHE, ?CACHE_UTIL_PROPS)
-                  ,?CACHE_ARGS(?ECALLMGR_AUTH_CACHE, ?CACHE_AUTHN_PROPS)
-                  ,?CACHE(?ECALLMGR_CALL_CACHE)
-                  ,?CACHE(?ECALLMGR_INTERACTION_CACHE)
-                  ,?SUPER('ecallmgr_originate_sup')
-                  ,?WORKER('ecallmgr_registrar')
-                  ,?WORKER('ecallmgr_balance_crawler_statem')
-                  ,?WORKER('ecallmgr_discovery')
-                  ,?WORKER('ecallmgr_usurp_monitor')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?ECALLMGR_UTIL_CACHE, ?CACHE_UTIL_PROPS),
+    ?CACHE_ARGS(?ECALLMGR_AUTH_CACHE, ?CACHE_AUTHN_PROPS),
+    ?CACHE(?ECALLMGR_CALL_CACHE),
+    ?CACHE(?ECALLMGR_INTERACTION_CACHE),
+    ?SUPER('ecallmgr_originate_sup'),
+    ?WORKER('ecallmgr_registrar'),
+    ?WORKER('ecallmgr_balance_crawler_statem'),
+    ?WORKER('ecallmgr_discovery'),
+    ?WORKER('ecallmgr_usurp_monitor')
+]).
 
 %%==============================================================================
 %% API functions

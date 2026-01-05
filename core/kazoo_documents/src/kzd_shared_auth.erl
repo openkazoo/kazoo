@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([shared_auth/1, shared_auth/2, set_shared_auth/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

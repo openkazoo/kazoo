@@ -31,7 +31,7 @@ start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 -spec start_proc(list()) -> kz_types:sup_startchild_ret().
-start_proc([Node, CallId|_]=Args) ->
+start_proc([Node, CallId | _] = Args) ->
     case gproc:lookup_values(?FS_CALL_EVENTS_PROCESS_REG(Node, CallId)) of
         [] ->
             lager:debug("starting event handler for ~s", [Node]),

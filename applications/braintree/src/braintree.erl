@@ -10,6 +10,6 @@
 -spec is_configured() -> boolean().
 is_configured() ->
     case braintree_request:braintree_server_url() of
-        [_|_] -> 'true';
+        [_ | _] -> 'true';
         _ -> 'false'
     end.

@@ -6,16 +6,18 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_apps_init).
 
--export([start_link/0
-        ,sanity_checks/0
-        ,init/0
-        ]).
+-export([
+    start_link/0,
+    sanity_checks/0,
+    init/0
+]).
 
 -include("kazoo_apps.hrl").
 
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    _ = sanity_checks(), %% one day make this true
+    %% one day make this true
+    _ = sanity_checks(),
     _ = kz_util:spawn(fun init/0),
     'ignore'.
 
@@ -44,54 +46,63 @@ cookie_from_ini() ->
         [] ->
             [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
             case kz_config:get_atom(kz_term:to_atom(Name, 'true'), 'cookie') of
-                [] -> lager:warning("failed to get cookie for node ~s, generating one", [node()]),
-                      kz_term:to_atom(kz_binary:rand_hex(16), 'true');
-                [Cookie|_] -> Cookie
+                [] ->
+                    lager:warning("failed to get cookie for node ~s, generating one", [node()]),
+                    kz_term:to_atom(kz_binary:rand_hex(16), 'true');
+                [Cookie | _] ->
+                    Cookie
             end;
-        [Cookie|_] -> Cookie
+        [Cookie | _] ->
+            Cookie
     end.
 
 -spec set_loglevel() -> 'ok'.
 set_loglevel() ->
-    [Console|_] = kz_config:get_atom('log', 'console', ['notice']),
+    [Console | _] = kz_config:get_atom('log', 'console', ['notice']),
     kz_log:change_console_log_level(Console),
-    [Syslog|_] = kz_config:get_atom('log', 'syslog', ['info']),
+    [Syslog | _] = kz_config:get_atom('log', 'syslog', ['info']),
     kz_log:change_syslog_log_level(Syslog),
-    [Error|_] = kz_config:get_atom('log', 'error', ['error']),
+    [Error | _] = kz_config:get_atom('log', 'error', ['error']),
     kz_log:change_error_log_level(Error),
     'ok'.
 
 -spec sanity_checks() -> boolean().
 sanity_checks() ->
-    lists:all(fun(F) -> F() end
-             ,[fun does_hostname_resolve_speedily/0
-              ,fun is_system_clock_on_utc/0
-              ]
-             ).
+    lists:all(
+        fun(F) -> F() end,
+        [
+            fun does_hostname_resolve_speedily/0,
+            fun is_system_clock_on_utc/0
+        ]
+    ).
 
 -spec does_hostname_resolve_speedily() -> boolean().
 does_hostname_resolve_speedily() ->
     HowManyTests = 100,
     {Min, Max, Total, Timings} = time_hostname_resolutions(HowManyTests),
-    Mean = (Total div (HowManyTests+1)),
+    Mean = (Total div (HowManyTests + 1)),
     Median = lists:nth(HowManyTests div 2, lists:sort(Timings)),
 
     IsSlow =
-        Max > 5000
-        andalso Median > 1000
-        andalso log_slow_resolution(Min, Max, Mean, Median),
+        Max > 5000 andalso
+            Median > 1000 andalso
+            log_slow_resolution(Min, Max, Mean, Median),
     not IsSlow.
 
 -spec log_slow_resolution(pos_integer(), pos_integer(), pos_integer(), pos_integer()) -> 'true'.
 log_slow_resolution(Min, Max, Mean, Median) ->
-    lager:warning("hostname resolution(in us): Min/Median/Mean/Max ~p/~p/~p/~p"
-                 ,[Min, Median, Mean, Max]
-                 ),
-    lager:critical("hostname resolution is painfully slow!!! all config lookups rely on this being fast"),
+    lager:warning(
+        "hostname resolution(in us): Min/Median/Mean/Max ~p/~p/~p/~p",
+        [Min, Median, Mean, Max]
+    ),
+    lager:critical(
+        "hostname resolution is painfully slow!!! all config lookups rely on this being fast"
+    ),
     'true'.
 
-
--type resolutions() :: {Min :: pos_integer(), Max :: pos_integer(), Total:: pos_integer(), Timings :: [pos_integer()]}.
+-type resolutions() :: {
+    Min :: pos_integer(), Max :: pos_integer(), Total :: pos_integer(), Timings :: [pos_integer()]
+}.
 
 -spec time_hostname_resolutions(pos_integer()) -> resolutions().
 time_hostname_resolutions(HowManyTests) ->
@@ -99,21 +110,22 @@ time_hostname_resolutions(HowManyTests) ->
 
 -spec time_hostname_resolutions(pos_integer(), pos_integer()) -> resolutions().
 time_hostname_resolutions(HowManyTests, InitTime) ->
-    lists:foldl(fun time_hostname_resolution/2
-               ,{InitTime, InitTime, InitTime, []}
-               ,lists:seq(1, HowManyTests)
-               ).
+    lists:foldl(
+        fun time_hostname_resolution/2,
+        {InitTime, InitTime, InitTime, []},
+        lists:seq(1, HowManyTests)
+    ).
 
 -spec time_hostname_resolution(any(), resolutions()) ->
-          resolutions().
+    resolutions().
 time_hostname_resolution(_TestNo, {Min, Max, Total, Timings}) ->
     case time_hostname_resolution() of
         Time when Time < Min ->
-            {Time, Max, Total+Time, [Time | Timings]};
+            {Time, Max, Total + Time, [Time | Timings]};
         Time when Time > Max ->
-            {Min, Time, Total+Time, [Time | Timings]};
+            {Min, Time, Total + Time, [Time | Timings]};
         Time ->
-            {Min, Max, Total+Time, [Time | Timings]}
+            {Min, Max, Total + Time, [Time | Timings]}
     end.
 
 -spec time_hostname_resolution() -> pos_integer().
@@ -124,7 +136,8 @@ time_hostname_resolution() ->
 -spec is_system_clock_on_utc() -> boolean().
 is_system_clock_on_utc() ->
     case {calendar:local_time(), calendar:universal_time()} of
-        {UTC, UTC} -> 'true';
+        {UTC, UTC} ->
+            'true';
         {_Local, _UTC} ->
             lager:warning("local: ~p UTC: ~p", [_Local, _UTC]),
             lager:critical("system is not running in UTC and Kazoo expects it"),

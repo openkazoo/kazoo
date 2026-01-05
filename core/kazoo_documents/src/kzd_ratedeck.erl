@@ -9,12 +9,13 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_ratedeck).
 
--export([id/0
-        ,name/1
-        ,database_name/1
-        ,format_ratedeck_db/1
-        ,format_ratedeck_id/1
-        ]).
+-export([
+    id/0,
+    name/1,
+    database_name/1,
+    format_ratedeck_db/1,
+    format_ratedeck_id/1
+]).
 
 -include("kz_documents.hrl").
 -include_lib("kazoo_documents/include/kzd_ratedeck.hrl").
@@ -37,10 +38,14 @@ database_name(Doc) ->
     end.
 
 -spec format_ratedeck_db(kz_term:ne_binary()) -> kz_term:ne_binary().
-format_ratedeck_db(?KZ_RATES_DB) -> ?KZ_RATES_DB;
-format_ratedeck_db(?MATCH_RATEDECK_DB_ENCODED(_)=Db) -> Db;
-format_ratedeck_db(?MATCH_RATEDECK_DB_encoded(_)=Db) -> Db;
-format_ratedeck_db(?MATCH_RATEDECK_DB_UNENCODED(RatedeckId)) -> ?ENCODE_RATEDECK_DB(RatedeckId);
+format_ratedeck_db(?KZ_RATES_DB) ->
+    ?KZ_RATES_DB;
+format_ratedeck_db(?MATCH_RATEDECK_DB_ENCODED(_) = Db) ->
+    Db;
+format_ratedeck_db(?MATCH_RATEDECK_DB_encoded(_) = Db) ->
+    Db;
+format_ratedeck_db(?MATCH_RATEDECK_DB_UNENCODED(RatedeckId)) ->
+    ?ENCODE_RATEDECK_DB(RatedeckId);
 format_ratedeck_db(<<_/binary>> = RatedeckId) ->
     ?ENCODE_RATEDECK_DB(kz_http_util:urlencode(RatedeckId)).
 

@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([api_key/1, api_key/2, set_api_key/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

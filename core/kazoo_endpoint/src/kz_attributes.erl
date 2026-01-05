@@ -14,18 +14,20 @@
 -export([moh_attributes/2, moh_attributes/3]).
 -export([owner_id/1, owner_id/2]).
 -export([presence_id/1, presence_id/2]).
--export([owned_by/2, owned_by/3
-        ,owned_by_docs/2, owned_by_docs/3
-        ]).
+-export([
+    owned_by/2, owned_by/3,
+    owned_by_docs/2, owned_by_docs/3
+]).
 -export([owner_ids/2]).
 -export([get_account_external_cid/1]).
 -export([maybe_get_assigned_number/3]).
 -export([maybe_get_account_default_number/4]).
 -export([maybe_prefix_cid/5]).
 -export([get_flags/2]).
--export([process_dynamic_flags/2
-        ,process_dynamic_flags/3
-        ]).
+-export([
+    process_dynamic_flags/2,
+    process_dynamic_flags/3
+]).
 
 -include("kazoo_endpoint.hrl").
 
@@ -39,7 +41,8 @@
 temporal_rules(Call) ->
     AccountDb = kapps_call:account_db(Call),
     case kz_datamgr:get_results(AccountDb, <<"attributes/temporal_rules">>, ['include_docs']) of
-        {'ok', JObjs} -> JObjs;
+        {'ok', JObjs} ->
+            JObjs;
         {'error', _E} ->
             lager:debug("failed to find temporal rules: ~p", [_E]),
             []
@@ -81,11 +84,11 @@ caller_id(Call) ->
 caller_id(Attribute, Call) ->
     CCVs = kapps_call:custom_channel_vars(Call),
     Inception = kapps_call:inception(Call),
-    case ((Inception =/= 'undefined'
-           andalso not kz_json:is_true(<<"Call-Forward">>, CCVs)
-          )
-          orelse kz_json:is_true(<<"Retain-CID">>, CCVs))
-        andalso kz_term:is_false(kapps_call:kvs_fetch('force_dynamic_cid', 'false', Call))
+    case
+        ((Inception =/= 'undefined' andalso
+            not kz_json:is_true(<<"Call-Forward">>, CCVs)) orelse
+            kz_json:is_true(<<"Retain-CID">>, CCVs)) andalso
+            kz_term:is_false(kapps_call:kvs_fetch('force_dynamic_cid', 'false', Call))
     of
         'true' ->
             Number = kapps_call:caller_id_number(Call),
@@ -98,8 +101,9 @@ caller_id(Attribute, Call) ->
 -spec maybe_get_dynamic_cid(boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
 maybe_get_dynamic_cid(Validate, Attribute, Call) ->
     case kapps_call:kvs_fetch('dynamic_cid', Call) of
-        'undefined' -> maybe_get_endpoint_cid(Validate, Attribute, Call);
-        {DynamicCIDNum,  DynamicCIDName} ->
+        'undefined' ->
+            maybe_get_endpoint_cid(Validate, Attribute, Call);
+        {DynamicCIDNum, DynamicCIDName} ->
             lager:debug("found dynamic caller id ~s/~s", [DynamicCIDNum, DynamicCIDName]),
             maybe_normalize_cid(DynamicCIDNum, DynamicCIDName, Validate, Attribute, Call);
         DynamicCID ->
@@ -121,19 +125,24 @@ maybe_get_endpoint_cid(Validate, Attribute, Call) ->
             maybe_use_presence_number(Number, Name, JObj, Validate, Attribute, Call1)
     end.
 
--spec maybe_add_originals_to_kvs(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()) -> kapps_call:call().
-maybe_add_originals_to_kvs('undefined', 'undefined', Call) -> Call;
-maybe_add_originals_to_kvs('undefined', ?NE_BINARY=Name, Call) ->
+-spec maybe_add_originals_to_kvs(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kapps_call:call()
+) -> kapps_call:call().
+maybe_add_originals_to_kvs('undefined', 'undefined', Call) ->
+    Call;
+maybe_add_originals_to_kvs('undefined', ?NE_BINARY = Name, Call) ->
     kapps_call:exec([fun(C) -> kapps_call:kvs_store('original_cid_name', Name, C) end], Call);
-maybe_add_originals_to_kvs(?NE_BINARY=Number, 'undefined', Call) ->
+maybe_add_originals_to_kvs(?NE_BINARY = Number, 'undefined', Call) ->
     kapps_call:exec([fun(C) -> kapps_call:kvs_store('original_cid_number', Number, C) end], Call);
 maybe_add_originals_to_kvs(Number, Name, Call) ->
-    Updates = [fun(C) -> kapps_call:kvs_store('original_cid_number', Number, C) end
-              ,fun(C) -> kapps_call:kvs_store('original_cid_name', Name, C) end
-              ],
+    Updates = [
+        fun(C) -> kapps_call:kvs_store('original_cid_number', Number, C) end,
+        fun(C) -> kapps_call:kvs_store('original_cid_name', Name, C) end
+    ],
     kapps_call:exec(Updates, Call).
 
--spec log_configured_endpoint_cid(kz_term:ne_binary(), kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
+-spec log_configured_endpoint_cid(kz_term:ne_binary(), kz_term:api_binary(), kz_term:api_binary()) ->
+    'ok'.
 log_configured_endpoint_cid(Attribute, 'undefined', 'undefined') ->
     lager:debug("endpoint not configured with an ~s caller id", [Attribute]);
 log_configured_endpoint_cid(Attribute, Name, 'undefined') ->
@@ -143,7 +152,14 @@ log_configured_endpoint_cid(Attribute, 'undefined', Number) ->
 log_configured_endpoint_cid(Attribute, Name, Number) ->
     lager:debug("endpoint configured with ~s caller id <~s> ~s", [Attribute, Name, Number]).
 
--spec maybe_use_presence_number(kz_term:api_binary(), kz_term:api_binary(), kz_json:object(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_use_presence_number(
+    kz_term:api_binary(),
+    kz_term:api_binary(),
+    kz_json:object(),
+    boolean(),
+    kz_term:ne_binary(),
+    kapps_call:call()
+) -> cid().
 maybe_use_presence_number('undefined', Name, Endpoint, Validate, <<"internal">> = Attribute, Call) ->
     case maybe_get_presence_number(Endpoint, Call) of
         'undefined' ->
@@ -155,7 +171,14 @@ maybe_use_presence_number('undefined', Name, Endpoint, Validate, <<"internal">> 
 maybe_use_presence_number(Number, Name, Endpoint, Validate, Attribute, Call) ->
     maybe_format_cid_number(Number, Name, Endpoint, Validate, Attribute, Call).
 
--spec maybe_format_cid_number(kz_term:api_binary(), kz_term:api_binary(), kz_json:object(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_format_cid_number(
+    kz_term:api_binary(),
+    kz_term:api_binary(),
+    kz_json:object(),
+    boolean(),
+    kz_term:ne_binary(),
+    kapps_call:call()
+) -> cid().
 maybe_format_cid_number('undefined', Name, Endpoint, Validate, Attribute, Call) ->
     Number = kapps_call:caller_id_number(Call),
     Format = kz_json:get_ne_value([<<"caller_id_options">>, <<"format">>], Endpoint),
@@ -166,7 +189,9 @@ maybe_format_cid_number(Number, Name, Endpoint, Validate, Attribute, Call) ->
     Formatted = kapps_call:maybe_format_caller_id_str(Number, Format),
     maybe_normalize_cid(Formatted, Name, Validate, Attribute, Call).
 
--spec maybe_normalize_cid(kz_term:api_binary(), kz_term:api_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_normalize_cid(
+    kz_term:api_binary(), kz_term:api_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_normalize_cid('undefined', Name, Validate, Attribute, Call) ->
     Number = kapps_call:caller_id_number(Call),
     lager:debug("replacing empty caller id number with SIP caller id number ~s", [Number]),
@@ -178,53 +203,68 @@ maybe_normalize_cid(Number, 'undefined', Validate, Attribute, Call) ->
 maybe_normalize_cid(Number, Name, Validate, Attribute, Call) ->
     maybe_prefix_cid(kz_term:to_binary(Number), Name, Validate, Attribute, Call).
 
--spec maybe_prefix_cid(kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_prefix_cid(
+    kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_prefix_cid(Number, Name, Validate, Attribute, Call) ->
     OrigNumber = kapps_call:kvs_fetch('original_cid_number', Number, Call),
     case kapps_call:kvs_fetch('prepend_cid_number', Call) of
-        'undefined' -> maybe_prefix_cid_name(Number, Name, Validate, Attribute, Call);
+        'undefined' ->
+            maybe_prefix_cid_name(Number, Name, Validate, Attribute, Call);
         Prefix ->
             lager:debug("prepending caller id number with ~s", [Prefix]),
             Prefixed = <<(kz_term:to_binary(Prefix))/binary, OrigNumber/binary>>,
             maybe_prefix_cid_name(Prefixed, Name, Validate, Attribute, Call)
     end.
 
--spec maybe_prefix_cid_name(kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_prefix_cid_name(
+    kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_prefix_cid_name(Number, Name, Validate, Attribute, Call) ->
     OrigName = kapps_call:kvs_fetch('original_cid_name', Name, Call),
     case kapps_call:kvs_fetch('prepend_cid_name', Call) of
-        'undefined' -> maybe_rewrite_cid_number(Number, Name, Validate, Attribute, Call);
+        'undefined' ->
+            maybe_rewrite_cid_number(Number, Name, Validate, Attribute, Call);
         Prefix ->
             lager:debug("prepending caller id name with ~s", [Prefix]),
             Prefixed = <<(kz_term:to_binary(Prefix))/binary, OrigName/binary>>,
             maybe_rewrite_cid_number(Number, Prefixed, Validate, Attribute, Call)
     end.
 
--spec maybe_rewrite_cid_number(kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_rewrite_cid_number(
+    kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_rewrite_cid_number(Number, Name, Validate, Attribute, Call) ->
     case kapps_call:kvs_fetch('rewrite_cid_number', Call) of
-        'undefined' -> maybe_rewrite_cid_name(Number, Name, Validate, Attribute, Call);
+        'undefined' ->
+            maybe_rewrite_cid_name(Number, Name, Validate, Attribute, Call);
         NewNumber ->
             lager:debug("reformatting caller id number from ~s to ~s", [Number, NewNumber]),
             maybe_rewrite_cid_name(NewNumber, Name, Validate, Attribute, Call)
     end.
 
--spec maybe_rewrite_cid_name(kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_rewrite_cid_name(
+    kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_rewrite_cid_name(Number, Name, Validate, Attribute, Call) ->
     case kapps_call:kvs_fetch('rewrite_cid_name', Call) of
-        'undefined' -> maybe_ensure_cid_valid(Number, Name, Validate, Attribute, Call);
+        'undefined' ->
+            maybe_ensure_cid_valid(Number, Name, Validate, Attribute, Call);
         NewName ->
             lager:debug("reformatting caller id name from ~s to ~s", [Name, NewName]),
             maybe_ensure_cid_valid(Number, NewName, Validate, Attribute, Call)
     end.
 
--spec maybe_ensure_cid_valid(kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()) -> cid().
+-spec maybe_ensure_cid_valid(
+    kz_term:ne_binary(), kz_term:ne_binary(), boolean(), kz_term:ne_binary(), kapps_call:call()
+) -> cid().
 maybe_ensure_cid_valid(Number, Name, 'true', <<"emergency">>, _Call) ->
     lager:info("determined emergency caller id is <~s> ~s", [Name, Number]),
     {Number, Name};
 maybe_ensure_cid_valid(Number, Name, 'true', <<"external">>, Call) ->
     case kapps_config:get_is_true(<<"callflow">>, <<"ensure_valid_caller_id">>, 'false') of
-        'true' -> ensure_valid_caller_id(Number, Name, Call);
+        'true' ->
+            ensure_valid_caller_id(Number, Name, Call);
         'false' ->
             lager:info("determined external caller id is <~s> ~s", [Name, Number]),
             {Number, Name}
@@ -259,45 +299,65 @@ maybe_get_account_cid(Number, Name, Call) ->
         {'error', _E} ->
             ?LOG_INFO("failed to open ~s: ~p", [kapps_call:account_id(Call), _E]),
             maybe_get_assigned_number(Number, Name, Call);
-        {'ok', AccountDoc} -> maybe_get_account_external_cid(Number, Name, Call, AccountDoc)
+        {'ok', AccountDoc} ->
+            maybe_get_account_external_cid(Number, Name, Call, AccountDoc)
     end.
 
--spec maybe_get_account_external_cid(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()) -> cid().
+-spec maybe_get_account_external_cid(
+    kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()
+) -> cid().
 maybe_get_account_external_cid(Number, Name, Call, AccountDoc) ->
-    ExternalNumber = kz_json:get_ne_value([<<"caller_id">>, <<"external">>, <<"number">>], AccountDoc),
-    ExternalName = kz_json:get_ne_value([<<"caller_id">>, <<"external">>, <<"name">>], AccountDoc, Name),
+    ExternalNumber = kz_json:get_ne_value(
+        [<<"caller_id">>, <<"external">>, <<"number">>], AccountDoc
+    ),
+    ExternalName = kz_json:get_ne_value(
+        [<<"caller_id">>, <<"external">>, <<"name">>], AccountDoc, Name
+    ),
 
     case is_valid_caller_id(ExternalNumber, Call) of
         'true' ->
-            ?LOG_INFO("determined valid account external caller id is <~s> ~s", [ExternalName, ExternalNumber]),
+            ?LOG_INFO("determined valid account external caller id is <~s> ~s", [
+                ExternalName, ExternalNumber
+            ]),
             {ExternalNumber, ExternalName};
         'false' ->
             ?LOG_DEBUG("external number ~s not valid, trying default", [ExternalNumber]),
             maybe_get_account_default_number(Number, ExternalName, Call, AccountDoc)
     end.
 
--spec maybe_get_account_default_number(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()) -> cid().
+-spec maybe_get_account_default_number(
+    kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kzd_accounts:doc()
+) -> cid().
 maybe_get_account_default_number(Number, Name, Call, AccountDoc) ->
-    DefaultNumber = kz_json:get_ne_value([<<"caller_id">>, <<"default">>, <<"number">>], AccountDoc),
-    DefaultName = kz_json:get_ne_value([<<"caller_id">>, <<"default">>, <<"name">>], AccountDoc, Name),
+    DefaultNumber = kz_json:get_ne_value(
+        [<<"caller_id">>, <<"default">>, <<"number">>], AccountDoc
+    ),
+    DefaultName = kz_json:get_ne_value(
+        [<<"caller_id">>, <<"default">>, <<"name">>], AccountDoc, Name
+    ),
 
     case is_valid_caller_id(DefaultNumber, Call) of
         'true' ->
-            ?LOG_INFO("determined valid account default caller id is <~s> ~s", [DefaultName, DefaultNumber]),
+            ?LOG_INFO("determined valid account default caller id is <~s> ~s", [
+                DefaultName, DefaultNumber
+            ]),
             {DefaultNumber, DefaultName};
         'false' ->
             ?LOG_DEBUG("default number ~s not valid, trying assigned numbers", [DefaultNumber]),
             maybe_get_assigned_number(Number, Name, Call)
     end.
 
--spec maybe_get_assigned_number(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()|kapps_call:call()) -> cid().
-maybe_get_assigned_number(CandidateNumber, Name, ?MATCH_ACCOUNT_ENCODED(_)=AccountDb) ->
+-spec maybe_get_assigned_number(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary() | kapps_call:call()
+) -> cid().
+maybe_get_assigned_number(CandidateNumber, Name, ?MATCH_ACCOUNT_ENCODED(_) = AccountDb) ->
     case knm_numbers:account_listing(AccountDb) of
-        [_|_] = NumbersList ->
-            Numbers = [Num
-                       || {Num, JObj} <- NumbersList,
-                          kz_json:get_ne_binary_value(<<"state">>, JObj) =:= ?NUMBER_STATE_IN_SERVICE
-                      ],
+        [_ | _] = NumbersList ->
+            Numbers = [
+                Num
+             || {Num, JObj} <- NumbersList,
+                kz_json:get_ne_binary_value(<<"state">>, JObj) =:= ?NUMBER_STATE_IN_SERVICE
+            ],
             case lists:member(CandidateNumber, Numbers) of
                 'true' ->
                     ?LOG_DEBUG("using assigned number <~s> ~s", [Name, CandidateNumber]),
@@ -317,23 +377,26 @@ maybe_get_assigned_number(CandidateNumber, Name, Call) ->
     AccountDb = kapps_call:account_db(Call),
     maybe_get_assigned_number(CandidateNumber, Name, AccountDb).
 
--spec maybe_get_assigned_numbers(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()) -> cid().
+-spec maybe_get_assigned_numbers(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()) ->
+    cid().
 maybe_get_assigned_numbers(AccountId, [], Name) ->
     Number = default_cid_number(AccountId),
     ?LOG_INFO("failed to find any in-service numbers, using default <~s> ~s", [Name, Number]),
     {Number, Name};
-maybe_get_assigned_numbers(_AccountId, [Number|_], Name) ->
+maybe_get_assigned_numbers(_AccountId, [Number | _], Name) ->
     %% This could optionally cycle all found numbers and ensure they valid
     %% but that could be a lot of wasted db lookups...
     ?LOG_INFO("using first assigned number caller id <~s> ~s", [Name, Number]),
     {Number, Name}.
 
 -spec is_valid_caller_id(kz_term:api_binary(), kapps_call:call()) -> boolean().
-is_valid_caller_id('undefined', _) -> 'false';
+is_valid_caller_id('undefined', _) ->
+    'false';
 is_valid_caller_id(Number, Call) ->
     AccountId = kapps_call:account_id(Call),
     case knm_number:lookup_account(Number) of
-        {'ok', AccountId, _} -> 'true';
+        {'ok', AccountId, _} ->
+            'true';
         _Else ->
             ?LOG_DEBUG("failed to find ~s in account ~s: ~p", [Number, AccountId, _Else]),
             'false'
@@ -342,7 +405,8 @@ is_valid_caller_id(Number, Call) ->
 -spec maybe_get_presence_number(kz_json:object(), kapps_call:call()) -> kz_term:api_binary().
 maybe_get_presence_number(Endpoint, Call) ->
     case presence_id(Endpoint, Call, 'undefined') of
-        'undefined' -> 'undefined';
+        'undefined' ->
+            'undefined';
         PresenceId ->
             case binary:split(PresenceId, <<"@">>) of
                 [PresenceNumber, _] -> PresenceNumber;
@@ -358,8 +422,7 @@ maybe_get_presence_number(Endpoint, Call) ->
 callee_id(EndpointId, Call) when is_binary(EndpointId) ->
     case kz_endpoint:get(EndpointId, Call) of
         {'ok', Endpoint} -> callee_id(Endpoint, Call);
-        {'error', _R} ->
-            maybe_normalize_callee('undefined', 'undefined', kz_json:new(), Call)
+        {'error', _R} -> maybe_normalize_callee('undefined', 'undefined', kz_json:new(), Call)
     end;
 callee_id(Endpoint, Call) ->
     Attribute = determine_callee_attribute(Call),
@@ -367,7 +430,9 @@ callee_id(Endpoint, Call) ->
     Name = get_cid_or_default(Attribute, <<"name">>, Endpoint),
     maybe_normalize_callee(Number, Name, Endpoint, Call).
 
--spec maybe_normalize_callee(kz_term:api_binary(), kz_term:api_binary(), kz_json:object(), kapps_call:call()) -> cid().
+-spec maybe_normalize_callee(
+    kz_term:api_binary(), kz_term:api_binary(), kz_json:object(), kapps_call:call()
+) -> cid().
 maybe_normalize_callee('undefined', Name, Endpoint, Call) ->
     maybe_normalize_callee(kapps_call:request_user(Call), Name, Endpoint, Call);
 maybe_normalize_callee(Number, 'undefined', Endpoint, Call) ->
@@ -391,17 +456,22 @@ determine_callee_attribute(Call) ->
 -spec moh_attributes(kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binary().
 moh_attributes(Attribute, Call) ->
     case kz_endpoint:get(Call) of
-        {'error', _R} -> 'undefined';
+        {'error', _R} ->
+            'undefined';
         {'ok', Endpoint} ->
             Value = kz_json:get_ne_value([<<"music_on_hold">>, Attribute], Endpoint),
             maybe_normalize_moh_attribute(Value, Attribute, Call)
     end.
 
--spec moh_attributes(kz_term:api_binary() | kz_json:object(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binary().
-moh_attributes('undefined', _, _) -> 'undefined';
+-spec moh_attributes(
+    kz_term:api_binary() | kz_json:object(), kz_term:ne_binary(), kapps_call:call()
+) -> kz_term:api_binary().
+moh_attributes('undefined', _, _) ->
+    'undefined';
 moh_attributes(EndpointId, Attribute, Call) when is_binary(EndpointId) ->
     case kz_endpoint:get(EndpointId, Call) of
-        {'error', _} -> 'undefined';
+        {'error', _} ->
+            'undefined';
         {'ok', Endpoint} ->
             Value = kz_json:get_ne_value([<<"music_on_hold">>, Attribute], Endpoint),
             maybe_normalize_moh_attribute(Value, Attribute, Call)
@@ -410,8 +480,10 @@ moh_attributes(Endpoint, Attribute, Call) ->
     Value = kz_json:get_ne_value([<<"music_on_hold">>, Attribute], Endpoint),
     maybe_normalize_moh_attribute(Value, Attribute, Call).
 
--spec maybe_normalize_moh_attribute(kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binary().
-maybe_normalize_moh_attribute('undefined', _, _) -> 'undefined';
+-spec maybe_normalize_moh_attribute(kz_term:api_binary(), kz_term:ne_binary(), kapps_call:call()) ->
+    kz_term:api_binary().
+maybe_normalize_moh_attribute('undefined', _, _) ->
+    'undefined';
 maybe_normalize_moh_attribute(Value, <<"media_id">>, Call) ->
     MediaId = kz_media_util:media_path(Value, kapps_call:account_id(Call)),
     lager:info("found music_on_hold media_id: '~p'", [MediaId]),
@@ -428,10 +500,12 @@ maybe_normalize_moh_attribute(Value, Attribute, _) ->
 -spec owner_id(kapps_call:call()) -> kz_term:api_ne_binary().
 owner_id(Call) ->
     case kz_endpoint:get(Call) of
-        {'error', _} -> 'undefined';
+        {'error', _} ->
+            'undefined';
         {'ok', Endpoint} ->
             case kz_json:get_ne_binary_value(<<"owner_id">>, Endpoint) of
-                'undefined' -> 'undefined';
+                'undefined' ->
+                    'undefined';
                 OwnerId ->
                     lager:info("initiating endpoint is owned by ~s", [OwnerId]),
                     OwnerId
@@ -439,14 +513,17 @@ owner_id(Call) ->
     end.
 
 -spec owner_id(kz_term:api_ne_binary(), kapps_call:call()) -> kz_term:api_ne_binary().
-owner_id('undefined', _Call) -> 'undefined';
+owner_id('undefined', _Call) ->
+    'undefined';
 owner_id(ObjectId, Call) ->
     AccountDb = kapps_call:account_db(Call),
     ViewOptions = [{'key', ObjectId}],
     case kz_datamgr:get_results(AccountDb, <<"attributes/owner">>, ViewOptions) of
-        {'ok', [JObj]} -> kz_json:get_value(<<"value">>, JObj);
-        {'ok', []} -> 'undefined';
-        {'ok', [_|_]=JObjs} ->
+        {'ok', [JObj]} ->
+            kz_json:get_value(<<"value">>, JObj);
+        {'ok', []} ->
+            'undefined';
+        {'ok', [_ | _] = JObjs} ->
             Owners = [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs],
             lager:debug("object ~s has multiple owners: ~-500p", [ObjectId, Owners]),
             'undefined';
@@ -456,14 +533,17 @@ owner_id(ObjectId, Call) ->
     end.
 
 -spec owner_ids(kz_term:api_binary(), kapps_call:call()) -> kz_term:ne_binaries().
-owner_ids('undefined', _Call) -> [];
+owner_ids('undefined', _Call) ->
+    [];
 owner_ids(ObjectId, Call) ->
     AccountDb = kapps_call:account_db(Call),
     ViewOptions = [{'key', ObjectId}],
     case kz_datamgr:get_results(AccountDb, <<"attributes/owner">>, ViewOptions) of
-        {'ok', []} -> [];
-        {'ok', [JObj]} -> [kz_json:get_value(<<"value">>, JObj)];
-        {'ok', [_|_]=JObjs} ->
+        {'ok', []} ->
+            [];
+        {'ok', [JObj]} ->
+            [kz_json:get_value(<<"value">>, JObj)];
+        {'ok', [_ | _] = JObjs} ->
             [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find owner for ~s: ~p", [ObjectId, _R]),
@@ -478,7 +558,8 @@ owner_ids(ObjectId, Call) ->
 presence_id(Call) ->
     presence_id(kapps_call:authorizing_id(Call), Call).
 
--spec presence_id(kz_term:api_binary() | kz_json:object(), kapps_call:call()) -> kz_term:api_binary().
+-spec presence_id(kz_term:api_binary() | kz_json:object(), kapps_call:call()) ->
+    kz_term:api_binary().
 presence_id(EndpointId, Call) when is_binary(EndpointId) ->
     case kz_endpoint:get(EndpointId, Call) of
         {'ok', Endpoint} -> presence_id(Endpoint, Call);
@@ -498,38 +579,46 @@ presence_id(Endpoint, _Call, Default) ->
 %%------------------------------------------------------------------------------
 
 -spec owned_by(kz_term:api_binary(), kapps_call:call()) -> kz_term:api_binaries().
-owned_by('undefined', _) -> [];
+owned_by('undefined', _) ->
+    [];
 owned_by(OwnerId, Call) ->
     AccountDb = kapps_call:account_db(Call),
-    ViewOptions = [{'startkey', [OwnerId]}
-                  ,{'endkey', [OwnerId, kz_json:new()]}
-                  ],
+    ViewOptions = [
+        {'startkey', [OwnerId]},
+        {'endkey', [OwnerId, kz_json:new()]}
+    ],
     case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_json:get_value(<<"value">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find documents owned by ~s: ~p", [OwnerId, _R]),
             []
     end.
 
--spec owned_by(kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_binaries().
-owned_by('undefined', _, _) -> [];
-owned_by([_|_]=OwnerIds, Type, Call) ->
+-spec owned_by(
+    kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()
+) -> kz_term:api_binaries().
+owned_by('undefined', _, _) ->
+    [];
+owned_by([_ | _] = OwnerIds, Type, Call) ->
     Keys = [[OwnerId, Type] || OwnerId <- OwnerIds],
     owned_by_query([{'keys', Keys}], Call);
 owned_by(OwnerId, Type, Call) ->
     owned_by_query([{'key', [OwnerId, Type]}], Call).
 
-
 -spec owned_by_docs(kz_term:api_binary(), kapps_call:call()) -> kz_term:api_objects().
-owned_by_docs('undefined', _) -> [];
-owned_by_docs(OwnerId, ?NE_BINARY=Account) ->
+owned_by_docs('undefined', _) ->
+    [];
+owned_by_docs(OwnerId, ?NE_BINARY = Account) ->
     AccountDb = kz_util:format_account_db(Account),
-    ViewOptions = [{'startkey', [OwnerId]}
-                  ,{'endkey', [OwnerId, kz_json:new()]}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'startkey', [OwnerId]},
+        {'endkey', [OwnerId, kz_json:new()]},
+        'include_docs'
+    ],
     case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find documents owned by ~s: ~p", [OwnerId, _R]),
             []
@@ -537,9 +626,12 @@ owned_by_docs(OwnerId, ?NE_BINARY=Account) ->
 owned_by_docs(OwnerId, Call) ->
     owned_by_docs(OwnerId, kapps_call:account_id(Call)).
 
--spec owned_by_docs(kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:api_objects().
-owned_by_docs('undefined', _, _) -> [];
-owned_by_docs([_|_]=OwnerIds, Type, Call) ->
+-spec owned_by_docs(
+    kz_term:api_binary() | kz_term:api_binaries(), kz_term:ne_binary(), kapps_call:call()
+) -> kz_term:api_objects().
+owned_by_docs('undefined', _, _) ->
+    [];
+owned_by_docs([_ | _] = OwnerIds, Type, Call) ->
     Keys = [[OwnerId, Type] || OwnerId <- OwnerIds],
     owned_by_query([{'keys', Keys}, 'include_docs'], Call, <<"doc">>);
 owned_by_docs(OwnerId, Type, Call) ->
@@ -553,7 +645,8 @@ owned_by_query(ViewOptions, Call) ->
 owned_by_query(ViewOptions, Call, ViewKey) ->
     AccountDb = kapps_call:account_db(Call),
     case kz_datamgr:get_results(AccountDb, <<"attributes/owned">>, ViewOptions) of
-        {'ok', JObjs} -> [kz_json:get_value(ViewKey, JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_json:get_value(ViewKey, JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:warning("unable to find owned documents (~p) using ~p", [_R, ViewOptions]),
             []
@@ -565,53 +658,59 @@ owned_by_query(ViewOptions, Call, ViewKey) ->
 %%------------------------------------------------------------------------------
 -spec get_flags(kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binaries() | undefined.
 get_flags(ApplicationName, Call) ->
-    Routines = [fun maybe_get_endpoint_static_flags/3
-               ,fun get_account_static_flags/3
-               ,fun get_config_static_flags/3
-               ,fun maybe_get_endpoint_dynamic_flags/3
-               ,fun get_account_dynamic_flags/3
-               ,fun get_config_dynamic_flags/3
-               ],
+    Routines = [
+        fun maybe_get_endpoint_static_flags/3,
+        fun get_account_static_flags/3,
+        fun get_config_static_flags/3,
+        fun maybe_get_endpoint_dynamic_flags/3,
+        fun get_account_dynamic_flags/3,
+        fun get_config_dynamic_flags/3
+    ],
     Flags = lists:foldl(fun(F, A) -> F(ApplicationName, Call, A) end, [], Routines),
     sets:to_list(sets:from_list(Flags)).
 
--spec maybe_get_endpoint_static_flags(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+-spec maybe_get_endpoint_static_flags(
+    kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()
+) ->
+    kz_term:ne_binaries().
 maybe_get_endpoint_static_flags(_, Call, Flags) ->
     case kz_endpoint:get(Call) of
         {'error', _R} -> Flags;
-        {'ok', Endpoint} ->
-            get_endpoint_static_flags(Flags, Endpoint)
+        {'ok', Endpoint} -> get_endpoint_static_flags(Flags, Endpoint)
     end.
 
 -spec get_endpoint_static_flags(kz_term:ne_binaries(), kz_json:object()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_endpoint_static_flags(Flags, Endpoint) ->
     kzd_devices:outbound_static_flags(Endpoint) ++ Flags.
 
 -spec get_account_static_flags(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_account_static_flags(_, Call, Flags) ->
     AccountId = kapps_call:account_id(Call),
     case kzd_accounts:fetch(AccountId) of
-        {'ok', AccountJObj} -> kzd_devices:outbound_static_flags(AccountJObj) ++ Flags;
+        {'ok', AccountJObj} ->
+            kzd_devices:outbound_static_flags(AccountJObj) ++ Flags;
         {'error', _E} ->
             lager:error("not applying account outbound flags for ~s: ~p", [AccountId, _E]),
             Flags
     end.
 
 -spec get_config_static_flags(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_config_static_flags(ApplicationName, Call, Flags) ->
-    kapps_account_config:get_ne_binaries(kapps_call:account_id(Call)
-                                        ,ApplicationName
-                                        ,<<"outbound_flags">>
-                                        ,[]
-                                        )
-        ++ Flags.
+    kapps_account_config:get_ne_binaries(
+        kapps_call:account_id(Call),
+        ApplicationName,
+        <<"outbound_flags">>,
+        []
+    ) ++
+        Flags.
 
--spec maybe_get_endpoint_dynamic_flags(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+-spec maybe_get_endpoint_dynamic_flags(
+    kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()
+) ->
+    kz_term:ne_binaries().
 maybe_get_endpoint_dynamic_flags(_, Call, Flags) ->
     case kz_endpoint:get(Call) of
         {'error', _} -> Flags;
@@ -619,7 +718,7 @@ maybe_get_endpoint_dynamic_flags(_, Call, Flags) ->
     end.
 
 -spec get_endpoint_dynamic_flags(kapps_call:call(), kz_term:ne_binaries(), kz_json:object()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_endpoint_dynamic_flags(Call, Flags, Endpoint) ->
     case kzd_devices:outbound_dynamic_flags(Endpoint) of
         [] -> Flags;
@@ -627,7 +726,7 @@ get_endpoint_dynamic_flags(Call, Flags, Endpoint) ->
     end.
 
 -spec get_account_dynamic_flags(kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_account_dynamic_flags(_, Call, Flags) ->
     AccountId = kapps_call:account_id(Call),
     case kzd_accounts:fetch(AccountId) of
@@ -639,13 +738,14 @@ get_account_dynamic_flags(_, Call, Flags) ->
     end.
 
 -spec get_config_dynamic_flags(kz_types:ne_binary(), kapps_call:call(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_config_dynamic_flags(ApplicationName, Call, Flags) ->
-    DynamicFlags = kapps_account_config:get_ne_binaries(kapps_call:account_id(Call)
-                                                       ,ApplicationName
-                                                       ,<<"dynamic_flags">>
-                                                       ,[]
-                                                       ),
+    DynamicFlags = kapps_account_config:get_ne_binaries(
+        kapps_call:account_id(Call),
+        ApplicationName,
+        <<"dynamic_flags">>,
+        []
+    ),
     process_dynamic_flags(DynamicFlags, Flags, Call).
 
 %%------------------------------------------------------------------------------
@@ -657,28 +757,31 @@ process_dynamic_flags(DynamicFlags, Call) ->
     process_dynamic_flags(DynamicFlags, [], Call).
 
 -spec process_dynamic_flags(kz_term:ne_binaries(), kz_term:ne_binaries(), kapps_call:call()) ->
-          kz_term:ne_binaries().
-process_dynamic_flags([], Flags, _) -> Flags;
-process_dynamic_flags([<<"zone">>|DynamicFlags], Flags, Call) ->
+    kz_term:ne_binaries().
+process_dynamic_flags([], Flags, _) ->
+    Flags;
+process_dynamic_flags([<<"zone">> | DynamicFlags], Flags, Call) ->
     Zone = kz_term:to_binary(kz_nodes:local_zone()),
     lager:debug("adding dynamic flag ~s", [Zone]),
-    process_dynamic_flags(DynamicFlags, [Zone|Flags], Call);
-process_dynamic_flags([<<"custom_channel_vars.", Key/binary>>|DynamicFlags], Flags, Call) ->
+    process_dynamic_flags(DynamicFlags, [Zone | Flags], Call);
+process_dynamic_flags([<<"custom_channel_vars.", Key/binary>> | DynamicFlags], Flags, Call) ->
     CCVs = kz_json:normalize_jobj(kapps_call:custom_channel_vars(Call)),
     case kz_json:get_ne_binary_value(Key, CCVs) of
-        'undefined' -> process_dynamic_flags(DynamicFlags, Flags, Call);
+        'undefined' ->
+            process_dynamic_flags(DynamicFlags, Flags, Call);
         Flag ->
             lager:debug("adding dynamic flag ~s", [Flag]),
-            process_dynamic_flags(DynamicFlags, [Flag|Flags], Call)
+            process_dynamic_flags(DynamicFlags, [Flag | Flags], Call)
     end;
-process_dynamic_flags([DynamicFlag|DynamicFlags], Flags, Call) ->
+process_dynamic_flags([DynamicFlag | DynamicFlags], Flags, Call) ->
     case is_flag_exported(DynamicFlag) of
-        'false' -> process_dynamic_flags(DynamicFlags, Flags, Call);
+        'false' ->
+            process_dynamic_flags(DynamicFlags, Flags, Call);
         'true' ->
             Fun = kz_term:to_atom(DynamicFlag),
-            Flag =  kapps_call:Fun(Call),
+            Flag = kapps_call:Fun(Call),
             lager:debug("adding dynamic flag ~s", [Flag]),
-            process_dynamic_flags(DynamicFlags, [Flag|Flags], Call)
+            process_dynamic_flags(DynamicFlags, [Flag | Flags], Call)
     end.
 
 -spec is_flag_exported(kz_term:ne_binary()) -> boolean().
@@ -691,30 +794,36 @@ is_flag_exported(Flag) ->
 %%------------------------------------------------------------------------------
 -spec default_cid_number(kz_term:ne_binary()) -> kz_term:ne_binary().
 default_cid_number(AccountId) ->
-    kapps_config:get_ne_binary(?CONFIG_CAT
-                              ,<<"default_caller_id_number">>
-                              ,kz_privacy:anonymous_caller_id_number(AccountId)
-                              ).
+    kapps_config:get_ne_binary(
+        ?CONFIG_CAT,
+        <<"default_caller_id_number">>,
+        kz_privacy:anonymous_caller_id_number(AccountId)
+    ).
 
 -spec default_cid_name(kz_json:object(), kapps_call:call()) -> kz_term:ne_binary().
 default_cid_name('undefined', Call) ->
     AccountId = kapps_call:account_id(Call),
-    kapps_config:get_ne_binary(?CONFIG_CAT
-                              ,<<"default_caller_id_name">>
-                              ,kapps_call:unknown_caller_id_name(AccountId)
-                              );
-default_cid_name(<<_/binary>> = Name, _Call) -> Name;
+    kapps_config:get_ne_binary(
+        ?CONFIG_CAT,
+        <<"default_caller_id_name">>,
+        kapps_call:unknown_caller_id_name(AccountId)
+    );
+default_cid_name(<<_/binary>> = Name, _Call) ->
+    Name;
 default_cid_name(Endpoint, Call) ->
     default_cid_name(kz_json:get_ne_value(<<"name">>, Endpoint), Call).
 
--spec get_cid_or_default(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
+-spec get_cid_or_default(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_term:api_ne_binary().
 get_cid_or_default(<<"emergency">>, Property, Endpoint) ->
-    case kz_json:get_first_defined([[<<"caller_id">>, <<"emergency">>, Property]
-                                   ,[<<"caller_id">>, <<"external">>, Property]
-                                   ]
-                                  ,Endpoint
-                                  )
-
+    case
+        kz_json:get_first_defined(
+            [
+                [<<"caller_id">>, <<"emergency">>, Property],
+                [<<"caller_id">>, <<"external">>, Property]
+            ],
+            Endpoint
+        )
     of
         'undefined' -> kz_json:get_ne_value([<<"default">>, Property], Endpoint);
         Value -> Value

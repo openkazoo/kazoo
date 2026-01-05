@@ -24,12 +24,16 @@
 handle(Data, Call) ->
     lager:info("receive fax for owner: ~s", [kz_json:get_value(<<"owner_id">>, Data)]),
     Props = props:filter_undefined(
-              props:filter_empty(
-                [{<<"Call">>, kapps_call:to_json(Call)}
-                ,{<<"Action">>, <<"receive">>}
-                ,{<<"Owner-ID">>, kz_json:get_ne_binary_value(<<"owner_id">>, Data)}
-                ,{<<"Fax-T38-Option">>, kz_json:get_ne_binary_value([<<"media">>, <<"fax_option">>], Data)}
-                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                ])),
+        props:filter_empty(
+            [
+                {<<"Call">>, kapps_call:to_json(Call)},
+                {<<"Action">>, <<"receive">>},
+                {<<"Owner-ID">>, kz_json:get_ne_binary_value(<<"owner_id">>, Data)},
+                {<<"Fax-T38-Option">>,
+                    kz_json:get_ne_binary_value([<<"media">>, <<"fax_option">>], Data)}
+                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ]
+        )
+    ),
     kapi_fax:publish_req(Props),
     cf_exe:control_usurped(Call).

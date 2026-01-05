@@ -7,8 +7,7 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ]).
+-export([start_link/0]).
 -export([init/1]).
 
 -include("kazoo_bindings.hrl").
@@ -18,17 +17,21 @@
 -define(ID, 'kazoo_bindings').
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER_ARGS('kazoo_etsmgr_srv'
-                               ,[
-                                 [{'table_id', kazoo_bindings:table_id()}
-                                 ,{'table_options', kazoo_bindings:table_options()}
-                                 ,{'find_me_function', fun kazoo_bindings:find_me_function/0}
-                                 ,{'gift_data', kazoo_bindings:gift_data()}
-                                 ]
-                                ])
-                  ,?WORKER(?ID)
-                  ,?WORKER('kazoo_bindings_init')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_ARGS(
+        'kazoo_etsmgr_srv',
+        [
+            [
+                {'table_id', kazoo_bindings:table_id()},
+                {'table_options', kazoo_bindings:table_options()},
+                {'find_me_function', fun kazoo_bindings:find_me_function/0},
+                {'gift_data', kazoo_bindings:gift_data()}
+            ]
+        ]
+    ),
+    ?WORKER(?ID),
+    ?WORKER('kazoo_bindings_init')
+]).
 
 %%==============================================================================
 %% API functions

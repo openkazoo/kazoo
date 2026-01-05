@@ -11,73 +11,87 @@
 -export([app_using/2]).
 -export([generate_js_classifiers/1]).
 
--export([carrier_module_usage/0
-        ,carrier_module_usage/1
-        ]).
--export([convert_carrier_module/2
-        ,convert_carrier_module/3
-        ,convert_carrier_module_number/2
-        ]).
--export([refresh_numbers_dbs/0
-        ,refresh_numbers_db/1
-        ]).
--export([init_dbs/0
-        ,register_views/0
-        ]).
+-export([
+    carrier_module_usage/0,
+    carrier_module_usage/1
+]).
+-export([
+    convert_carrier_module/2,
+    convert_carrier_module/3,
+    convert_carrier_module_number/2
+]).
+-export([
+    refresh_numbers_dbs/0,
+    refresh_numbers_db/1
+]).
+-export([
+    init_dbs/0,
+    register_views/0
+]).
 
-
--export([copy_accounts_to_number_dbs/0
-        ,copy_accounts_to_number_dbs/1
-        ,copy_single_account_to_number_dbs/1
-        ]).
--export([copy_number_dbs_to_accounts/0
-        ,copy_number_dbs_to_accounts/1
-        ,copy_single_number_db_to_accounts/1
-        ]).
--export([copy_assigned_number_dbs_to_account/1
-        ,copy_single_assigned_number_db_to_account/2
-        ]).
+-export([
+    copy_accounts_to_number_dbs/0,
+    copy_accounts_to_number_dbs/1,
+    copy_single_account_to_number_dbs/1
+]).
+-export([
+    copy_number_dbs_to_accounts/0,
+    copy_number_dbs_to_accounts/1,
+    copy_single_number_db_to_accounts/1
+]).
+-export([
+    copy_assigned_number_dbs_to_account/1,
+    copy_single_assigned_number_db_to_account/2
+]).
 
 -export([copy_single_number_to_account_db/2]).
 
--export([fix_apps_for_account_dbs/0
-        ,fix_apps_for_account_dbs/1
-        ,fix_apps_for_single_account_db/1
-        ]).
--export([fix_apps_for_number_dbs/0
-        ,fix_apps_for_number_dbs/1
-        ,fix_apps_for_single_number_db/1
-        ]).
--export([fix_apps_in_number_dbs_for_accounts/1
-        ,fix_apps_in_number_dbs_for_single_account/1
-        ]).
+-export([
+    fix_apps_for_account_dbs/0,
+    fix_apps_for_account_dbs/1,
+    fix_apps_for_single_account_db/1
+]).
+-export([
+    fix_apps_for_number_dbs/0,
+    fix_apps_for_number_dbs/1,
+    fix_apps_for_single_number_db/1
+]).
+-export([
+    fix_apps_in_number_dbs_for_accounts/1,
+    fix_apps_in_number_dbs_for_single_account/1
+]).
 
--export([remove_wrong_assigned_from_accounts/0
-        ,remove_wrong_assigned_from_single_accountdb/1
-        ]).
-
+-export([
+    remove_wrong_assigned_from_accounts/0,
+    remove_wrong_assigned_from_single_accountdb/1
+]).
 
 -export([fix_account_db_numbers/1]).
 
--export([copy_numbers_from_dbs_to_assigned_accounts/1
-        ,copy_number_from_db_to_assigned_account/1
-        ]).
+-export([
+    copy_numbers_from_dbs_to_assigned_accounts/1,
+    copy_number_from_db_to_assigned_account/1
+]).
 
--export([copy_numbers_from_accountdb_to_numbdbs/2
-        ,copy_number_from_accountdb_to_numbdb/2
-        ]).
+-export([
+    copy_numbers_from_accountdb_to_numbdbs/2,
+    copy_number_from_accountdb_to_numbdb/2
+]).
 
--export([fix_numbers_apps_in_accountdb/2
-        ,fix_numbers_apps_in_numbdb/1
-        ]).
+-export([
+    fix_numbers_apps_in_accountdb/2,
+    fix_numbers_apps_in_numbdb/1
+]).
 
--export([fix_numbers/2
-        ,fix_number/2
-        ]).
+-export([
+    fix_numbers/2,
+    fix_number/2
+]).
 
--export([migrate/0
-        ,migrate_unassigned_numbers/0, migrate_unassigned_numbers/1
-        ]).
+-export([
+    migrate/0,
+    migrate_unassigned_numbers/0, migrate_unassigned_numbers/1
+]).
 -export([generate_numbers/4]).
 -export([delete/1]).
 -export([purge_discovery/0, purge_discovery/1]).
@@ -86,39 +100,48 @@
 
 -export([all_features/0]).
 -export([feature_permissions_on_number/1]).
--export([add_allowed_feature_on_number/2
-        ,remove_allowed_feature_on_number/2
-        ,add_denied_feature_on_number/2
-        ,remove_denied_feature_on_number/2
-        ]).
+-export([
+    add_allowed_feature_on_number/2,
+    remove_allowed_feature_on_number/2,
+    add_denied_feature_on_number/2,
+    remove_denied_feature_on_number/2
+]).
 -export([feature_permissions_on_reseller_of/1]).
--export([add_allowed_feature_on_reseller_of/2
-        ,remove_allowed_feature_on_reseller_of/2
-        ,add_denied_feature_on_reseller_of/2
-        ,remove_denied_feature_on_reseller_of/2
-        ]).
+-export([
+    add_allowed_feature_on_reseller_of/2,
+    remove_allowed_feature_on_reseller_of/2,
+    add_denied_feature_on_reseller_of/2,
+    remove_denied_feature_on_reseller_of/2
+]).
 -export([feature_permissions_on_system_config/0]).
--export([add_allowed_feature_on_system_config/1
-        ,remove_allowed_feature_on_system_config/1
-        ,reset_allowed_features_to_defaults_on_system_config/0
-        ]).
+-export([
+    add_allowed_feature_on_system_config/1,
+    remove_allowed_feature_on_system_config/1,
+    reset_allowed_features_to_defaults_on_system_config/0
+]).
 -export([ensure_adminonly_features_are_reachable/0]).
 
 -export([migrate_port_requests/0]).
 
--define(TIME_BETWEEN_ACCOUNTS_MS
-       ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"time_between_accounts_ms">>, ?MILLISECONDS_IN_SECOND)).
+-define(TIME_BETWEEN_ACCOUNTS_MS,
+    kapps_config:get_pos_integer(
+        ?KNM_CONFIG_CAT, <<"time_between_accounts_ms">>, ?MILLISECONDS_IN_SECOND
+    )
+).
 
--define(TIME_BETWEEN_NUMBERS_MS
-       ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"time_between_numbers_ms">>, ?MILLISECONDS_IN_SECOND)).
+-define(TIME_BETWEEN_NUMBERS_MS,
+    kapps_config:get_pos_integer(
+        ?KNM_CONFIG_CAT, <<"time_between_numbers_ms">>, ?MILLISECONDS_IN_SECOND
+    )
+).
 
--define(TIME_BETWEEN_DBS_MS
-       ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"time_between_db_ms">>, 50)
-       ).
+-define(TIME_BETWEEN_DBS_MS,
+    kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"time_between_db_ms">>, 50)
+).
 
--define(PARALLEL_JOBS_COUNT
-       ,kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"parallel_jobs_count">>, 1)
-       ).
+-define(PARALLEL_JOBS_COUNT,
+    kapps_config:get_pos_integer(?KNM_CONFIG_CAT, <<"parallel_jobs_count">>, 1)
+).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -136,10 +159,10 @@ carrier_module_usage(Prefix) ->
 -spec carrier_module_usage(kz_term:ne_binaries(), dict:dict()) -> 'ok'.
 carrier_module_usage([], Totals) ->
     io:format("Totals:~n", []),
-    F = fun (Module, Count) -> io:format("    ~s: ~p~n", [Module, Count]) end,
+    F = fun(Module, Count) -> io:format("    ~s: ~p~n", [Module, Count]) end,
     _ = dict:map(F, Totals),
     'ok';
-carrier_module_usage([Database|Databases], Totals0) ->
+carrier_module_usage([Database | Databases], Totals0) ->
     Totals1 = get_carrier_module_usage(Database, Totals0),
     carrier_module_usage(Databases, Totals1).
 
@@ -151,8 +174,9 @@ get_carrier_module_usage(Database, Totals) ->
     log_carrier_module_usage(JObjs, Database, Totals).
 
 -spec log_carrier_module_usage(kz_json:objects(), kz_term:ne_binary(), dict:dict()) -> dict:dict().
-log_carrier_module_usage([], _, Totals) -> Totals;
-log_carrier_module_usage([JObj|JObjs], Database, Totals0) ->
+log_carrier_module_usage([], _, Totals) ->
+    Totals;
+log_carrier_module_usage([JObj | JObjs], Database, Totals0) ->
     Module = kz_json:get_value(<<"key">>, JObj),
     Count = kz_json:get_value(<<"value">>, JObj),
     io:format("    ~s: ~p~n", [Module, Count]),
@@ -172,11 +196,16 @@ convert_carrier_module(Source, Target, Prefix) ->
     Database = knm_converters:to_db(Prefix),
     convert_carrier_module_database(Source, Target, [Database]).
 
--spec convert_carrier_module_database(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) -> 'ok'.
-convert_carrier_module_database(_, _, []) -> 'ok';
-convert_carrier_module_database(Source, Target, [Database|Databases]) ->
-    io:format("attempt to convert numbers with carrier module ~s to ~s in database ~s~n"
-             ,[Source, Target, Database]),
+-spec convert_carrier_module_database(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()
+) -> 'ok'.
+convert_carrier_module_database(_, _, []) ->
+    'ok';
+convert_carrier_module_database(Source, Target, [Database | Databases]) ->
+    io:format(
+        "attempt to convert numbers with carrier module ~s to ~s in database ~s~n",
+        [Source, Target, Database]
+    ),
     ViewOptions = [{'reduce', 'false'}, {'key', Source}],
     {'ok', JObjs} = kz_datamgr:get_results(Database, <<"numbers/module_name">>, ViewOptions),
     convert_carrier_module_numbers([kz_doc:id(JObj) || JObj <- JObjs], Target),
@@ -185,7 +214,8 @@ convert_carrier_module_database(Source, Target, [Database|Databases]) ->
 -spec convert_carrier_module_numbers(kz_term:ne_binaries(), kz_term:ne_binary()) -> 'ok'.
 convert_carrier_module_numbers(Nums, Target) ->
     case lists:member(Target, knm_carriers:all_modules()) of
-        'false' -> io:format("Bad carrier module: ~s\n", [Target]);
+        'false' ->
+            io:format("Bad carrier module: ~s\n", [Target]);
         'true' ->
             Routines = [{fun knm_phone_number:set_module_name/2, Target}],
             #{ok := Ns, ko := KOs} = knm_numbers:update(Nums, Routines),
@@ -194,20 +224,27 @@ convert_carrier_module_numbers(Nums, Target) ->
             print_convert_carrier_failure(Target, TotalLength, KOs)
     end.
 
--spec print_convert_carrier_success(kz_term:ne_binary(), non_neg_integer(), kz_term:ne_binaries()) -> 'ok'.
-print_convert_carrier_success(_, _, []) -> 'ok';
+-spec print_convert_carrier_success(kz_term:ne_binary(), non_neg_integer(), kz_term:ne_binaries()) ->
+    'ok'.
+print_convert_carrier_success(_, _, []) ->
+    'ok';
 print_convert_carrier_success(Target, TotalLength, Converted) ->
-    io:format("updated carrier module to ~s for ~b/~b number(s):\n", [Target, length(Converted), TotalLength]),
-    F = fun (N) -> io:format("\t~s\n", [knm_phone_number:number(knm_number:phone_number(N))]) end,
+    io:format("updated carrier module to ~s for ~b/~b number(s):\n", [
+        Target, length(Converted), TotalLength
+    ]),
+    F = fun(N) -> io:format("\t~s\n", [knm_phone_number:number(knm_number:phone_number(N))]) end,
     lists:foreach(F, Converted).
 
 -spec print_convert_carrier_failure(kz_term:ne_binary(), non_neg_integer(), map()) -> 'ok'.
 print_convert_carrier_failure(Target, TotalLength, KOs) ->
     case maps:size(KOs) of
-        0 -> 'ok';
+        0 ->
+            'ok';
         KOsSize ->
-            io:format("updating carrier module to ~s failed for ~b/~b number(s):\n", [Target, KOsSize, TotalLength]),
-            F = fun (Num, R) -> io:format("\t~s: ~p\n", [Num, R]) end,
+            io:format("updating carrier module to ~s failed for ~b/~b number(s):\n", [
+                Target, KOsSize, TotalLength
+            ]),
+            F = fun(Num, R) -> io:format("\t~s: ~p\n", [Num, R]) end,
             _ = maps:map(F, KOs),
             'ok'
     end.
@@ -218,18 +255,21 @@ convert_carrier_module_number(Num, Target) ->
 
 -spec init_dbs() -> 'ok'.
 init_dbs() ->
-    init_dbs([?KZ_MANAGED_DB
-             ,?KZ_INUM_DB
-             ,?KZ_PORT_REQUESTS_DB
-             ]).
+    init_dbs([
+        ?KZ_MANAGED_DB,
+        ?KZ_INUM_DB,
+        ?KZ_PORT_REQUESTS_DB
+    ]).
 
-init_dbs([]) -> 'ok';
+init_dbs([]) ->
+    'ok';
 init_dbs([Db | Dbs]) ->
     case kz_datamgr:db_exists(Db) of
         'false' ->
             Result = kz_datamgr:db_create(Db),
             lager:debug("~s is created: ~p", [Db, Result]);
-        'true' -> 'ok'
+        'true' ->
+            'ok'
     end,
     _ = kapps_maintenance:refresh(Db),
     init_dbs(Dbs).
@@ -248,8 +288,9 @@ refresh_numbers_dbs() ->
     refresh_numbers_dbs(NumberDbs, length(NumberDbs)).
 
 -spec refresh_numbers_dbs(kz_term:ne_binaries(), non_neg_integer()) -> 'ok'.
-refresh_numbers_dbs([], _) -> 'ok';
-refresh_numbers_dbs([NumberDb|NumberDbs], Total) ->
+refresh_numbers_dbs([], _) ->
+    'ok';
+refresh_numbers_dbs([NumberDb | NumberDbs], Total) ->
     ?SUP_LOG_DEBUG("(~p/~p) updating number db ~s", [length(NumberDbs) + 1, Total, NumberDb]),
     _ = refresh_numbers_db(NumberDb),
     refresh_numbers_dbs(NumberDbs, Total).
@@ -269,30 +310,38 @@ refresh_numbers_db(_Thing) ->
 -spec update_number_services_view(kz_term:ne_binary()) -> 'no_return'.
 update_number_services_view(?MATCH_ACCOUNT_RAW(AccountId)) ->
     update_number_services_view(kz_util:format_account_db(AccountId));
-update_number_services_view(?MATCH_ACCOUNT_ENCODED(_)=AccountDb) ->
+update_number_services_view(?MATCH_ACCOUNT_ENCODED(_) = AccountDb) ->
     FunMatchBlock = fun(Class) -> ["    resC['", Class, "'] = resM;"] end,
     MapView = number_services_map(FunMatchBlock),
     RedView = number_services_red(),
     ViewName = <<"_design/numbers">>,
-    View = case kz_datamgr:open_doc(AccountDb, ViewName) of
-               {'ok', JObj} -> JObj;
-               {'error', _R} ->
-                   lager:debug("reading account view ~s from disk (~p)", [ViewName, _R]),
-                   {ViewName,JObj} = kapps_util:get_view_json('kazoo_apps', <<"account/numbers.json">>),
-                   JObj
-           end,
+    View =
+        case kz_datamgr:open_doc(AccountDb, ViewName) of
+            {'ok', JObj} ->
+                JObj;
+            {'error', _R} ->
+                lager:debug("reading account view ~s from disk (~p)", [ViewName, _R]),
+                {ViewName, JObj} = kapps_util:get_view_json(
+                    'kazoo_apps', <<"account/numbers.json">>
+                ),
+                JObj
+        end,
     PathMap = [<<"views">>, <<"reconcile_services">>, <<"map">>],
     PathRed = [<<"views">>, <<"reconcile_services">>, <<"reduce">>],
-    case MapView =:= kz_json:get_ne_binary_value(PathMap, View)
-        andalso RedView =:= kz_json:get_ne_binary_value(PathRed, View)
+    case
+        MapView =:= kz_json:get_ne_binary_value(PathMap, View) andalso
+            RedView =:= kz_json:get_ne_binary_value(PathRed, View)
     of
-        'true' -> 'no_return';
+        'true' ->
+            'no_return';
         'false' ->
-            NewView = kz_json:set_values([{PathMap, MapView}
-                                         ,{PathRed, RedView}
-                                         ]
-                                        ,View
-                                        ),
+            NewView = kz_json:set_values(
+                [
+                    {PathMap, MapView},
+                    {PathRed, RedView}
+                ],
+                View
+            ),
             _Updated = kz_datamgr:db_view_update(AccountDb, [{ViewName, NewView}]),
             ?SUP_LOG_DEBUG("view updated for '~s': ~p", [AccountDb, _Updated])
     end.
@@ -309,9 +358,10 @@ copy_accounts_to_number_dbs() ->
 
 -spec copy_accounts_to_number_dbs(kz_term:ne_binaries()) -> 'ok'.
 copy_accounts_to_number_dbs(AccountIds) ->
-    ?SUP_LOG_DEBUG("::: start copying numbers doc from ~b account dbs to number dbs"
-                  ,[length(AccountIds)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start copying numbers doc from ~b account dbs to number dbs",
+        [length(AccountIds)]
+    ),
     State = accounts_to_numdbs_state([kz_util:format_account_db(A) || A <- AccountIds]),
     loop_dbs(State, fun copy_account_to_numdbs/2).
 
@@ -327,24 +377,28 @@ copy_single_account_to_number_dbs(AccountId) ->
 %% @private
 -spec accounts_to_numdbs_state(kz_term:ne_binaries()) -> loop_state().
 accounts_to_numdbs_state(Dbs) ->
-    maps:merge(loop_dbs_init()
-              ,#{dbs => Dbs
-                ,delete_revision => 'true'
-                }
-              ).
+    maps:merge(
+        loop_dbs_init(),
+        #{
+            dbs => Dbs,
+            delete_revision => 'true'
+        }
+    ).
 
 %% @private
 -spec copy_account_to_numdbs(loop_state(), kz_term:ne_binary()) -> loop_state().
 copy_account_to_numdbs(State, AccountDb) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()},
+        'include_docs'
+    ],
     View = <<"numbers/list_by_number">>,
-    Funs = [fun get_docs_from_result/2
-           ,fun delete_revision/2
-           ,fun split_docs_by_number_dbs/2
-           ,fun save_to_dbs/2
-           ],
+    Funs = [
+        fun get_docs_from_result/2,
+        fun delete_revision/2,
+        fun split_docs_by_number_dbs/2,
+        fun save_to_dbs/2
+    ],
     get_results_loop(State, AccountDb, View, ViewOptions, Funs).
 
 %%------------------------------------------------------------------------------
@@ -357,9 +411,10 @@ copy_number_dbs_to_accounts() ->
 
 -spec copy_number_dbs_to_accounts(kz_term:ne_binaries()) -> 'ok'.
 copy_number_dbs_to_accounts(NumberDbs) ->
-    ?SUP_LOG_DEBUG("::: start copying numbers doc from ~b number dbs to account dbs"
-                  ,[length(NumberDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start copying numbers doc from ~b number dbs to account dbs",
+        [length(NumberDbs)]
+    ),
     loop_dbs(numdbs_to_accounts_state(NumberDbs), fun copy_numdb_to_accounts/2).
 
 %%------------------------------------------------------------------------------
@@ -374,30 +429,34 @@ copy_single_number_db_to_accounts(NumberDb) ->
 %% @private
 -spec numdbs_to_accounts_state(kz_term:ne_binaries()) -> loop_state().
 numdbs_to_accounts_state(NumberDbs) ->
-    maps:merge(loop_dbs_init()
-              ,#{dbs => NumberDbs
-                ,delete_revision => 'true'
-                ,retry_conflict => 'true'
-                }
-              ).
+    maps:merge(
+        loop_dbs_init(),
+        #{
+            dbs => NumberDbs,
+            delete_revision => 'true',
+            retry_conflict => 'true'
+        }
+    ).
 
 %% @private
 -spec copy_numdb_to_accounts(loop_state(), kz_term:ne_binary()) -> loop_state().
 copy_numdb_to_accounts(State, NumberDb) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()},
+        'include_docs'
+    ],
     copy_numdb_to_accounts(State, NumberDb, ViewOptions).
 
 %% @private
 -spec copy_numdb_to_accounts(loop_state(), kz_term:ne_binary(), kz_term:proplist()) -> loop_state().
 copy_numdb_to_accounts(State, NumberDb, ViewOptions) ->
     View = <<"numbers/assigned_to">>,
-    Funs = [fun get_docs_from_result/2
-           ,fun delete_revision/2
-           ,fun split_docs_by_assigned_to/2
-           ,fun save_to_dbs/2
-           ],
+    Funs = [
+        fun get_docs_from_result/2,
+        fun delete_revision/2,
+        fun split_docs_by_assigned_to/2,
+        fun save_to_dbs/2
+    ],
     get_results_loop(State, NumberDb, View, ViewOptions, Funs).
 
 %%------------------------------------------------------------------------------
@@ -408,26 +467,29 @@ copy_numdb_to_accounts(State, NumberDb, ViewOptions) ->
 -spec copy_assigned_number_dbs_to_account(kz_term:ne_binary()) -> 'ok'.
 copy_assigned_number_dbs_to_account(Account) ->
     NumberDbs = knm_util:get_all_number_dbs(),
-    ?SUP_LOG_DEBUG("::: start copying assigned numbers doc from ~b number dbs to account ~s"
-                  ,[length(NumberDbs), Account]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start copying assigned numbers doc from ~b number dbs to account ~s",
+        [length(NumberDbs), Account]
+    ),
     AccountId = kz_util:format_account_id(Account),
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ,{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()},
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]},
+        'include_docs'
+    ],
     State = numdbs_to_accounts_state(NumberDbs),
     loop_dbs(State, fun(StateAcc, Db) -> copy_numdb_to_accounts(StateAcc, Db, ViewOptions) end).
 
 -spec copy_single_assigned_number_db_to_account(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 copy_single_assigned_number_db_to_account(Account, NumberDb) ->
     AccountId = kz_util:format_account_id(Account),
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ,{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()},
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]},
+        'include_docs'
+    ],
     State = numdbs_to_accounts_state([NumberDb]),
     _ = copy_numdb_to_accounts(State, NumberDb, ViewOptions),
     'ok'.
@@ -436,7 +498,8 @@ copy_single_assigned_number_db_to_account(Account, NumberDb) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec copy_single_number_to_account_db(kz_term:ne_binary(), kz_term:ne_binary()) -> {'ok' | 'error', kz_term:ne_binary()}.
+-spec copy_single_number_to_account_db(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {'ok' | 'error', kz_term:ne_binary()}.
 copy_single_number_to_account_db(Num, Account) ->
     AccountId = kz_util:format_account_id(Account),
     AccountDb = kz_util:format_account_db(AccountId),
@@ -444,26 +507,30 @@ copy_single_number_to_account_db(Num, Account) ->
     NumberDb = knm_converters:to_db(Number),
     case kz_datamgr:open_doc(NumberDb, Number) of
         {'ok', JObj} ->
-            NewJObj = case kz_datamgr:lookup_doc_rev(AccountDb, kz_doc:id(JObj)) of
-                          {'ok', Rev} -> kz_doc:set_revision(JObj, Rev);
-                          {'error', _} -> kz_doc:delete_revision(JObj)
-                      end,
+            NewJObj =
+                case kz_datamgr:lookup_doc_rev(AccountDb, kz_doc:id(JObj)) of
+                    {'ok', Rev} -> kz_doc:set_revision(JObj, Rev);
+                    {'error', _} -> kz_doc:delete_revision(JObj)
+                end,
             case kz_datamgr:save_doc(AccountDb, NewJObj) of
-                {'ok', _} -> {'ok', kz_doc:id(JObj)};
+                {'ok', _} ->
+                    {'ok', kz_doc:id(JObj)};
                 {'error', Reason} ->
                     Error = kz_term:to_binary(
-                              io_lib:format("can save number '~s' to account db: ~p"
-                                           ,[kz_doc:id(JObj), Reason]
-                                           )
-                             ),
+                        io_lib:format(
+                            "can save number '~s' to account db: ~p",
+                            [kz_doc:id(JObj), Reason]
+                        )
+                    ),
                     {'error', Error}
             end;
         {'error', Reason} ->
             Error = kz_term:to_binary(
-                      io_lib:format("can read number '~s' from '~s': ~p"
-                                   ,[Number, NumberDb, Reason]
-                                   )
-                     ),
+                io_lib:format(
+                    "can read number '~s' from '~s': ~p",
+                    [Number, NumberDb, Reason]
+                )
+            ),
             {'error', Error}
     end.
 
@@ -477,9 +544,10 @@ fix_apps_for_account_dbs() ->
 
 -spec fix_apps_for_account_dbs(kz_term:ne_binaries()) -> 'ok'.
 fix_apps_for_account_dbs(AccountDbs) ->
-    ?SUP_LOG_DEBUG("::: start fixing numbers doc used_by field for ~b account dbs"
-                  ,[length(AccountDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start fixing numbers doc used_by field for ~b account dbs",
+        [length(AccountDbs)]
+    ),
     State = apps_fix_state([kz_util:format_account_db(A) || A <- AccountDbs]),
     loop_dbs(State, fun fix_apps_for_account/2).
 
@@ -494,11 +562,13 @@ fix_apps_for_single_account_db(Account) ->
 %% @private
 -spec apps_fix_state(kz_term:ne_binaries()) -> loop_state().
 apps_fix_state(Dbs) ->
-    maps:merge(loop_dbs_init()
-              ,#{dbs => Dbs
-                ,apps_fixers => #{}
-                }
-              ).
+    maps:merge(
+        loop_dbs_init(),
+        #{
+            dbs => Dbs,
+            apps_fixers => #{}
+        }
+    ).
 
 %% @private
 -spec fix_apps_for_account(loop_state(), kz_term:ne_binary()) -> loop_state().
@@ -507,15 +577,17 @@ fix_apps_for_account(State, AccountDb) ->
 
 -spec fix_apps_for_account(loop_state(), kz_term:ne_binary(), kz_term:proplist()) -> loop_state().
 fix_apps_for_account(State, AccountDb, ViewOpts) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                   | ViewOpts
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()}
+        | ViewOpts
+    ],
     View = <<"numbers/list_by_app">>,
-    Funs = [fun check_app_usage/2
-           ,fun open_docs_from_db/2
-           ,fun apply_apps_fixers/2
-           ,fun save_to_dbs/2
-           ],
+    Funs = [
+        fun check_app_usage/2,
+        fun open_docs_from_db/2,
+        fun apply_apps_fixers/2,
+        fun save_to_dbs/2
+    ],
     NewState = get_results_loop(State, AccountDb, View, ViewOptions, Funs),
     NewState#{apps_fixers => #{}}.
 
@@ -529,9 +601,10 @@ fix_apps_for_number_dbs() ->
 
 -spec fix_apps_for_number_dbs(kz_term:ne_binaries()) -> 'ok'.
 fix_apps_for_number_dbs(NumberDbs) ->
-    ?SUP_LOG_DEBUG("::: start fixing numbers doc used_by field for ~b number dbs"
-                  ,[length(NumberDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start fixing numbers doc used_by field for ~b number dbs",
+        [length(NumberDbs)]
+    ),
     State = apps_fix_state(NumberDbs),
     loop_dbs(State, fun fix_apps_for_number_db/2).
 
@@ -547,16 +620,18 @@ fix_apps_for_number_db(State, NumberDb) ->
 
 -spec fix_apps_for_number_db(loop_state(), kz_term:ne_binary(), kz_term:proplist()) -> loop_state().
 fix_apps_for_number_db(State, NumberDb, ViewOpts) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                   | ViewOpts
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()}
+        | ViewOpts
+    ],
     View = <<"numbers/list_assigned_and_app">>,
-    Funs = [fun split_by_list_assigned_and_app/2
-           ,fun check_app_usage/2
-           ,fun open_docs_from_db/2
-           ,fun apply_apps_fixers/2
-           ,fun save_to_dbs/2
-           ],
+    Funs = [
+        fun split_by_list_assigned_and_app/2,
+        fun check_app_usage/2,
+        fun open_docs_from_db/2,
+        fun apply_apps_fixers/2,
+        fun save_to_dbs/2
+    ],
     NewState = get_results_loop(State, NumberDb, View, ViewOptions, Funs),
     NewState#{apps_fixers => #{}}.
 
@@ -567,14 +642,15 @@ fix_apps_for_number_db(State, NumberDb, ViewOpts) ->
 -spec fix_apps_in_number_dbs_for_accounts(kz_term:ne_binaries()) -> 'ok'.
 fix_apps_in_number_dbs_for_accounts(Accounts) ->
     NumberDbs = knm_util:get_all_number_dbs(),
-    ?SUP_LOG_DEBUG("::: start fixing numbers doc used_by field in ~b number dbs for ~b accounts"
-                  ,[length(NumberDbs), length(Accounts)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start fixing numbers doc used_by field in ~b number dbs for ~b accounts",
+        [length(NumberDbs), length(Accounts)]
+    ),
     AccountIds = [kz_util:format_account_id(A) || A <- Accounts],
     State = apps_fix_state(NumberDbs),
     Fun = fun(StateAcc, NumberDb) ->
-                  fix_apps_in_number_dbs_for_account(StateAcc, NumberDb, length(AccountIds), AccountIds)
-          end,
+        fix_apps_in_number_dbs_for_account(StateAcc, NumberDb, length(AccountIds), AccountIds)
+    end,
     loop_dbs(State, Fun).
 
 -spec fix_apps_in_number_dbs_for_single_account(kz_term:ne_binary()) -> 'ok'.
@@ -582,32 +658,38 @@ fix_apps_in_number_dbs_for_single_account(Account) ->
     fix_apps_in_number_dbs_for_accounts([Account]).
 
 %% @private
--spec fix_apps_in_number_dbs_for_account(loop_state(), kz_term:ne_binary(), non_neg_integer(), kz_term:ne_binaries()) ->
-          loop_state().
+-spec fix_apps_in_number_dbs_for_account(
+    loop_state(), kz_term:ne_binary(), non_neg_integer(), kz_term:ne_binaries()
+) ->
+    loop_state().
 fix_apps_in_number_dbs_for_account(State, _, _, []) ->
     State;
-fix_apps_in_number_dbs_for_account(State, NumberDb, Total, [AccountId|AccountIds]) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ,{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
-    ?SUP_LOG_DEBUG("==> (~p/~p) fixing numbers app usage for account ~s"
-                  ,[length(AccountIds) + 1, Total, AccountId]
-                  ),
+fix_apps_in_number_dbs_for_account(State, NumberDb, Total, [AccountId | AccountIds]) ->
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_read()},
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
+    ?SUP_LOG_DEBUG(
+        "==> (~p/~p) fixing numbers app usage for account ~s",
+        [length(AccountIds) + 1, Total, AccountId]
+    ),
 
     View = <<"numbers/list_assigned_and_app">>,
-    Funs = [fun split_by_list_assigned_and_app/2
-           ,fun check_app_usage/2
-           ,fun open_docs_from_db/2
-           ,fun apply_apps_fixers/2
-           ,fun save_to_dbs/2
-           ],
+    Funs = [
+        fun split_by_list_assigned_and_app/2,
+        fun check_app_usage/2,
+        fun open_docs_from_db/2,
+        fun apply_apps_fixers/2,
+        fun save_to_dbs/2
+    ],
     NewState = get_results_loop(State, NumberDb, View, ViewOptions, Funs),
-    fix_apps_in_number_dbs_for_account(NewState#{apps_fixers => #{}}
-                                      ,NumberDb
-                                      ,Total
-                                      ,AccountIds
-                                      ).
+    fix_apps_in_number_dbs_for_account(
+        NewState#{apps_fixers => #{}},
+        NumberDb,
+        Total,
+        AccountIds
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -619,9 +701,10 @@ remove_wrong_assigned_from_accounts() ->
 
 -spec remove_wrong_assigned_from_accounts(kz_term:ne_binaries()) -> 'ok'.
 remove_wrong_assigned_from_accounts(AccountDbs) ->
-    ?SUP_LOG_DEBUG("::: start removing wrong assigned numbers from ~b account dbs"
-                  ,[length(AccountDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start removing wrong assigned numbers from ~b account dbs",
+        [length(AccountDbs)]
+    ),
     State = remove_accountdb_wrong_assigned_state([kz_util:format_account_db(A) || A <- AccountDbs]),
     loop_dbs(State, fun loop_remove_bad_assignment_account/2).
 
@@ -632,31 +715,32 @@ remove_wrong_assigned_from_single_accountdb(Account) ->
 %% @private
 -spec remove_accountdb_wrong_assigned_state(kz_term:ne_binaries()) -> loop_state().
 remove_accountdb_wrong_assigned_state(Dbs) ->
-    maps:merge(loop_dbs_init()
-              ,#{dbs => Dbs}
-              ).
+    maps:merge(
+        loop_dbs_init(),
+        #{dbs => Dbs}
+    ).
 
 %% @private
 -spec loop_remove_bad_assignment_account(loop_state(), kz_term:ne_binary()) -> loop_state().
 loop_remove_bad_assignment_account(State, AccountDb) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}
-                  ],
+    ViewOptions = [{'limit', kz_datamgr:max_bulk_read()}],
     View = <<"numbers/assigned_to">>,
     Funs = [fun do_remove_wrong_assigned_from_account/2],
     get_results_loop(State, AccountDb, View, ViewOptions, Funs).
 
 %% @private
 -spec do_remove_wrong_assigned_from_account(loop_state(), kz_term:ne_binary()) -> loop_state().
-do_remove_wrong_assigned_from_account(#{todo := []}=State, _) ->
+do_remove_wrong_assigned_from_account(#{todo := []} = State, _) ->
     ?SUP_LOG_DEBUG("     no wrong assignment to remove"),
     State;
-do_remove_wrong_assigned_from_account(#{todo := JObjs}=State, AccountDb) ->
+do_remove_wrong_assigned_from_account(#{todo := JObjs} = State, AccountDb) ->
     ?SUP_LOG_DEBUG("     ~b wrong assignments to remove", [length(JObjs)]),
     AccountId = kz_util:format_account_id(AccountDb),
-    ToRemove = [kz_doc:id(JObj)
-                || JObj <- JObjs,
-                   kz_json:get_value(<<"key">>, JObj) =/= AccountId
-               ],
+    ToRemove = [
+        kz_doc:id(JObj)
+     || JObj <- JObjs,
+        kz_json:get_value(<<"key">>, JObj) =/= AccountId
+    ],
     _ = kz_datamgr:del_docs(AccountDb, ToRemove),
     State#{todo => []}.
 
@@ -670,19 +754,22 @@ copy_numbers_from_dbs_to_assigned_accounts(Numbers) ->
     DbMap = group_numbers_by_db(Numbers1),
     NumberDbs = maps:keys(DbMap),
 
-    ?SUP_LOG_DEBUG("::: start copying ~b numbers doc from ~b number dbs to account dbs"
-                  ,[length(Numbers1), length(NumberDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start copying ~b numbers doc from ~b number dbs to account dbs",
+        [length(Numbers1), length(NumberDbs)]
+    ),
 
-    loop_dbs(numdbs_to_accounts_state(NumberDbs)
-            ,[fun(StateAcc, Db) ->
-                      open_docs_from_db(StateAcc#{todo => maps:get(Db, DbMap, [])}, Db)
-              end
-             ,fun delete_revision/2
-             ,fun split_docs_by_assigned_to/2
-             ,fun save_to_dbs/2
-             ]
-            ).
+    loop_dbs(
+        numdbs_to_accounts_state(NumberDbs),
+        [
+            fun(StateAcc, Db) ->
+                open_docs_from_db(StateAcc#{todo => maps:get(Db, DbMap, [])}, Db)
+            end,
+            fun delete_revision/2,
+            fun split_docs_by_assigned_to/2,
+            fun save_to_dbs/2
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -700,19 +787,22 @@ copy_number_from_db_to_assigned_account(Num) ->
 copy_numbers_from_accountdb_to_numbdbs(Account, Numbers) ->
     Numbers1 = knm_converters:normalize(Numbers),
 
-    ?SUP_LOG_DEBUG("::: start copying ~b numbers doc from account db to number dbs"
-                  ,[length(Numbers1)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start copying ~b numbers doc from account db to number dbs",
+        [length(Numbers1)]
+    ),
 
-    loop_dbs(accounts_to_numdbs_state([kz_util:format_account_id(Account)])
-            ,[fun(StateAcc, Db) ->
-                      open_docs_from_db(StateAcc#{todo => Numbers1}, Db)
-              end
-             ,fun delete_revision/2
-             ,fun split_docs_by_number_dbs/2
-             ,fun save_to_dbs/2
-             ]
-            ).
+    loop_dbs(
+        accounts_to_numdbs_state([kz_util:format_account_id(Account)]),
+        [
+            fun(StateAcc, Db) ->
+                open_docs_from_db(StateAcc#{todo => Numbers1}, Db)
+            end,
+            fun delete_revision/2,
+            fun split_docs_by_number_dbs/2,
+            fun save_to_dbs/2
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -730,16 +820,19 @@ copy_number_from_accountdb_to_numbdb(Account, Number) ->
 fix_numbers_apps_in_accountdb(Account, Numbers) ->
     Numbers1 = knm_converters:normalize(Numbers),
 
-    ?SUP_LOG_DEBUG("::: start fixing ~b numbers doc used_by field in account db"
-                  ,[length(Numbers1)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start fixing ~b numbers doc used_by field in account db",
+        [length(Numbers1)]
+    ),
 
-    loop_dbs(apps_fix_state([kz_util:format_account_id(Account)])
-            ,[fun(StateAcc, Db) -> open_docs_from_db(StateAcc#{todo => Numbers1}, Db) end
-             ,fun fix_apps_usage/2
-             ,fun save_to_dbs/2
-             ]
-            ).
+    loop_dbs(
+        apps_fix_state([kz_util:format_account_id(Account)]),
+        [
+            fun(StateAcc, Db) -> open_docs_from_db(StateAcc#{todo => Numbers1}, Db) end,
+            fun fix_apps_usage/2,
+            fun save_to_dbs/2
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -751,19 +844,22 @@ fix_numbers_apps_in_numbdb(Numbers) ->
     DbMap = group_numbers_by_db(Numbers1),
     NumberDbs = maps:keys(DbMap),
 
-    ?SUP_LOG_DEBUG("::: start fixing ~b numbers doc used_by field in ~b number dbs"
-                  ,[length(Numbers1), length(NumberDbs)]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "::: start fixing ~b numbers doc used_by field in ~b number dbs",
+        [length(Numbers1), length(NumberDbs)]
+    ),
 
-    loop_dbs(apps_fix_state(NumberDbs)
-            ,[fun(StateAcc, Db) ->
-                      open_docs_from_db(StateAcc#{todo => maps:get(Db, DbMap, [])}, Db)
-              end
-             ,fun split_docs_by_assigned_to/2
-             ,fun fix_apps_usage/2
-             ,fun save_to_dbs/2
-             ]
-            ).
+    loop_dbs(
+        apps_fix_state(NumberDbs),
+        [
+            fun(StateAcc, Db) ->
+                open_docs_from_db(StateAcc#{todo => maps:get(Db, DbMap, [])}, Db)
+            end,
+            fun split_docs_by_assigned_to/2,
+            fun fix_apps_usage/2,
+            fun save_to_dbs/2
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -792,9 +888,10 @@ fix_number(Account, Number) ->
 %%------------------------------------------------------------------------------
 -spec loop_dbs_init() -> loop_state().
 loop_dbs_init() ->
-    #{ko => #{}
-     ,todo => []
-     }.
+    #{
+        ko => #{},
+        todo => []
+    }.
 
 -type loop_db_fun() :: fun((loop_state(), kz_term:ne_binary()) -> loop_state()).
 -type loop_db_funs() :: [loop_db_fun()].
@@ -803,50 +900,57 @@ loop_dbs_init() ->
 -spec loop_dbs(loop_state(), loop_db_fun() | loop_db_funs()) -> 'ok'.
 loop_dbs(Options, Fun) ->
     Dbs = lists:usort(maps:get('dbs', Options, [])),
-    loop_dbs(maps:merge(loop_dbs_init(), Options#{dbs => Dbs})
-            ,length(maps:get('dbs', Options))
-            ,?TIME_BETWEEN_DBS_MS
-            ,Fun
-            ).
+    loop_dbs(
+        maps:merge(loop_dbs_init(), Options#{dbs => Dbs}),
+        length(maps:get('dbs', Options)),
+        ?TIME_BETWEEN_DBS_MS,
+        Fun
+    ).
 
 %% @private
--spec loop_dbs(loop_state(), non_neg_integer(), non_neg_integer(), loop_db_fun() | loop_db_funs()) -> 'ok'.
-loop_dbs(#{dbs := []}=State, _, _, _) ->
+-spec loop_dbs(loop_state(), non_neg_integer(), non_neg_integer(), loop_db_fun() | loop_db_funs()) ->
+    'ok'.
+loop_dbs(#{dbs := []} = State, _, _, _) ->
     report_loop_state(State);
-loop_dbs(#{dbs := [Db | Dbs]}=State, Total, SleepTime, Funs) ->
-    ?SUP_LOG_DEBUG("(~p/~p) processing '~s' database"
-                  ,[length(Dbs) + 1, Total, Db]
-                  ),
+loop_dbs(#{dbs := [Db | Dbs]} = State, Total, SleepTime, Funs) ->
+    ?SUP_LOG_DEBUG(
+        "(~p/~p) processing '~s' database",
+        [length(Dbs) + 1, Total, Db]
+    ),
     NewState = apply_loop_db_funs(State#{dbs => Dbs}, Db, Funs),
     _ = timer:sleep(SleepTime),
     loop_dbs(NewState, Total, SleepTime, Funs).
 
--spec apply_loop_db_funs(loop_state(), kz_term:ne_binary(), loop_db_fun() | loop_db_funs()) -> loop_state().
+-spec apply_loop_db_funs(loop_state(), kz_term:ne_binary(), loop_db_fun() | loop_db_funs()) ->
+    loop_state().
 apply_loop_db_funs(State, Db, Fun) when is_function(Fun, 2) ->
     Fun(State, Db);
 apply_loop_db_funs(State, _, []) ->
     State;
-apply_loop_db_funs(State, Db, [Fun|Funs]) ->
+apply_loop_db_funs(State, Db, [Fun | Funs]) ->
     apply_loop_db_funs(Fun(State, Db), Db, Funs).
 
 -spec report_loop_state(loop_state()) -> 'ok'.
 report_loop_state(#{ko := KO}) when map_size(KO) > 0 ->
     ?SUP_LOG_DEBUG("::: done. see console log for error summary"),
     io:put_chars(
-      kz_term:to_binary(
-        ["\n\n"
-        ,kz_json:encode(kz_json:from_list(
-                          [Prop
-                           || {_, V}=Prop <- maps:to_list(KO),
-                              kz_term:is_not_empty(V)
-                          ]
-                         )
-                       ,[pretty]
-                       )
-        ,"\n"
-        ]
-       )
-     );
+        kz_term:to_binary(
+            [
+                "\n\n",
+                kz_json:encode(
+                    kz_json:from_list(
+                        [
+                            Prop
+                         || {_, V} = Prop <- maps:to_list(KO),
+                            kz_term:is_not_empty(V)
+                        ]
+                    ),
+                    [pretty]
+                ),
+                "\n"
+            ]
+        )
+    );
 report_loop_state(_) ->
     ?SUP_LOG_DEBUG("::: done successfully~n").
 
@@ -854,68 +958,104 @@ report_loop_state(_) ->
 %% @private
 %% @end
 %%------------------------------------------------------------------------------
--spec get_results_loop(loop_state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), loop_db_funs()) ->
-          loop_state().
+-spec get_results_loop(
+    loop_state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist(), loop_db_funs()
+) ->
+    loop_state().
 get_results_loop(State, Db, View, ViewOpts, Funs) ->
     get_results_loop(State#{get_loop_count => 1}, Db, View, ViewOpts, Funs, 2).
 
 %% @private
--spec get_results_loop(loop_state(), kz_term:ne_binary(), kz_term:ne_binary()
-                      ,kz_term:proplist(), loop_db_funs(), non_neg_integer()
-                      ) -> loop_state().
-get_results_loop(#{ko := KO, get_loop_count := LoopCount}=State, Db, _View, _, _, Retries) when Retries =< 0 ->
+-spec get_results_loop(
+    loop_state(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    loop_db_funs(),
+    non_neg_integer()
+) -> loop_state().
+get_results_loop(#{ko := KO, get_loop_count := LoopCount} = State, Db, _View, _, _, Retries) when
+    Retries =< 0
+->
     DbKO = maps:get(Db, KO, #{}),
-    ?SUP_LOG_DEBUG(" -- loop ~b: maximum retries to get results: ~100p"
-                  ,[LoopCount, maps:get('last_error', DbKO)]
-                  ),
-    State#{todo => []
-          ,get_loop_count => 0
-          };
-get_results_loop(#{get_loop_count := LoopCount}=State, Db, View, ViewOpts, Funs, Retries) ->
+    ?SUP_LOG_DEBUG(
+        " -- loop ~b: maximum retries to get results: ~100p",
+        [LoopCount, maps:get('last_error', DbKO)]
+    ),
+    State#{
+        todo => [],
+        get_loop_count => 0
+    };
+get_results_loop(#{get_loop_count := LoopCount} = State, Db, View, ViewOpts, Funs, Retries) ->
     %% to print which retries is this. max retries is set above to 2
-    ?SUP_LOG_DEBUG("  -- loop ~b: getting results from ~s ~s (try: ~b)"
-                  ,[LoopCount, Db, View, 3 - Retries]
-                  ),
+    ?SUP_LOG_DEBUG(
+        "  -- loop ~b: getting results from ~s ~s (try: ~b)",
+        [LoopCount, Db, View, 3 - Retries]
+    ),
     Results = kz_datamgr:get_results(Db, View, ViewOpts),
     handle_get_results(State, Db, View, ViewOpts, Funs, Retries, Results).
 
 %% @private
--spec handle_get_results(loop_state(), kz_term:ne_binary(), kz_term:ne_binary()
-                        ,kz_term:proplist(), loop_db_funs(), non_neg_integer()
-                        ,kazoo_data:get_results_return()
-                        ) -> loop_state().
-handle_get_results(#{get_loop_count := LoopCount}=State, _Db, _View, _, _, _, {'ok', []}) ->
+-spec handle_get_results(
+    loop_state(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist(),
+    loop_db_funs(),
+    non_neg_integer(),
+    kazoo_data:get_results_return()
+) -> loop_state().
+handle_get_results(#{get_loop_count := LoopCount} = State, _Db, _View, _, _, _, {'ok', []}) ->
     ?SUP_LOG_DEBUG("  -- loop ~b: no more results", [LoopCount]),
-    State#{todo => []
-          ,get_loop_count => 0
-          };
-handle_get_results(#{get_loop_count := LoopCount}=State, Db, View, ViewOpts, Funs, Retries, {'ok', JObjs}) ->
+    State#{
+        todo => [],
+        get_loop_count => 0
+    };
+handle_get_results(
+    #{get_loop_count := LoopCount} = State, Db, View, ViewOpts, Funs, Retries, {'ok', JObjs}
+) ->
     NewState = apply_funs_on_results(State, Db, Funs, JObjs),
-    NewViewOptions = props:set_value('skip', props:get_integer_value('skip', ViewOpts, 0) + length(JObjs), ViewOpts),
-    get_results_loop(NewState#{get_loop_count => LoopCount + 1}, Db, View, NewViewOptions, Funs, Retries);
-handle_get_results(#{ko := KO, get_loop_count := LoopCount}=State, Db, View, ViewOpts, Funs, Retries, {'error', 'timeout'}) ->
+    NewViewOptions = props:set_value(
+        'skip', props:get_integer_value('skip', ViewOpts, 0) + length(JObjs), ViewOpts
+    ),
+    get_results_loop(
+        NewState#{get_loop_count => LoopCount + 1}, Db, View, NewViewOptions, Funs, Retries
+    );
+handle_get_results(
+    #{ko := KO, get_loop_count := LoopCount} = State,
+    Db,
+    View,
+    ViewOpts,
+    Funs,
+    Retries,
+    {'error', 'timeout'}
+) ->
     ?SUP_LOG_DEBUG("  -- timeout to get results, maybe trying again..."),
 
     _ = timer:sleep(?MILLISECONDS_IN_SECOND),
 
     DbKO = maps:get(Db, KO, #{}),
-    NewState = State#{ko => KO#{Db => DbKO#{'last_error' => <<"get_results-", View/binary, "-timeout">>}}
-                     ,todo => []
-                     ,get_loop_count => LoopCount + 1
-                     },
+    NewState = State#{
+        ko => KO#{Db => DbKO#{'last_error' => <<"get_results-", View/binary, "-timeout">>}},
+        todo => [],
+        get_loop_count => LoopCount + 1
+    },
     get_results_loop(NewState, Db, View, ViewOpts, Funs, Retries - 1);
-handle_get_results(#{ko := KO}=State, Db, View, _, _, _, {'error', Reason}) ->
-    ?SUP_LOG_DEBUG("  -- failed to get results: ~100p"
-                  ,[Reason]
-                  ),
+handle_get_results(#{ko := KO} = State, Db, View, _, _, _, {'error', Reason}) ->
+    ?SUP_LOG_DEBUG(
+        "  -- failed to get results: ~100p",
+        [Reason]
+    ),
     DbKO = maps:get(Db, KO, #{}),
     Error = to_binary_data_error(Reason),
-    State#{ko => KO#{Db => DbKO#{'last_error' => <<"get_results-", View/binary, "-", Error/binary>>}}
-          ,todo => []
-          ,get_loop_count => 0
-          }.
+    State#{
+        ko => KO#{Db => DbKO#{'last_error' => <<"get_results-", View/binary, "-", Error/binary>>}},
+        todo => [],
+        get_loop_count => 0
+    }.
 
--spec apply_funs_on_results(loop_state(), kz_term:ne_binary(), loop_db_funs(), kz_json:objects()) -> loop_state().
+-spec apply_funs_on_results(loop_state(), kz_term:ne_binary(), loop_db_funs(), kz_json:objects()) ->
+    loop_state().
 apply_funs_on_results(State, Db, Funs, Results) ->
     ApplyFun = fun(Fun, StateAcc) -> Fun(StateAcc, Db) end,
     (lists:foldl(ApplyFun, State#{todo => Results}, Funs))#{todo => []}.
@@ -925,14 +1065,18 @@ apply_funs_on_results(State, Db, Funs, Results) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_docs_from_result(loop_state(), kz_term:ne_binary()) -> loop_state().
-get_docs_from_result(#{todo := JObjs}=State, _Db) ->
+get_docs_from_result(#{todo := JObjs} = State, _Db) ->
     State#{todo => [kz_json:get_value(<<"doc">>, JObj) || JObj <- JObjs]}.
 
 %% @private see note above
 -spec delete_revision(loop_state(), kz_term:ne_binary()) -> loop_state().
-delete_revision(#{todo := Todos
-                 ,delete_revision := 'true'
-                 }=State, _Db) ->
+delete_revision(
+    #{
+        todo := Todos,
+        delete_revision := 'true'
+    } = State,
+    _Db
+) ->
     ?SUP_LOG_DEBUG("     delete revision from ~b documents", [length(Todos)]),
     State#{todo => [kz_doc:delete_revision(JObj) || JObj <- Todos]};
 delete_revision(State, _) ->
@@ -943,34 +1087,34 @@ delete_revision(State, _) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec split_docs_by_number_dbs(loop_state(), kz_term:ne_binary()) -> loop_state().
-split_docs_by_number_dbs(#{todo := Todos}=State, _Db) ->
+split_docs_by_number_dbs(#{todo := Todos} = State, _Db) ->
     ?SUP_LOG_DEBUG("     grouping ~b docs by number db", [length(Todos)]),
-    F = fun (JObj, M) ->
-                NumberDb = knm_converters:to_db(knm_converters:normalize(kz_doc:id(JObj))),
-                M#{NumberDb => [JObj | maps:get(NumberDb, M, [])]}
-        end,
+    F = fun(JObj, M) ->
+        NumberDb = knm_converters:to_db(knm_converters:normalize(kz_doc:id(JObj))),
+        M#{NumberDb => [JObj | maps:get(NumberDb, M, [])]}
+    end,
     State#{todo => maps:to_list(lists:foldl(F, #{}, Todos))}.
 
 %% @private see note above
 -spec split_docs_by_assigned_to(loop_state(), kz_term:ne_binary()) -> loop_state().
-split_docs_by_assigned_to(#{todo := Todos}=State, _Db) ->
+split_docs_by_assigned_to(#{todo := Todos} = State, _Db) ->
     ?SUP_LOG_DEBUG("     grouping ~b docs by assigned_to", [length(Todos)]),
-    F = fun (JObj, M) ->
-                AccountDb = kz_util:format_account_db(
-                              kz_json:get_value(<<"pvt_assigned_to">>, JObj)
-                             ),
-                M#{AccountDb => [JObj | maps:get(AccountDb, M, [])]}
-        end,
+    F = fun(JObj, M) ->
+        AccountDb = kz_util:format_account_db(
+            kz_json:get_value(<<"pvt_assigned_to">>, JObj)
+        ),
+        M#{AccountDb => [JObj | maps:get(AccountDb, M, [])]}
+    end,
     State#{todo => maps:to_list(lists:foldl(F, #{}, Todos))}.
 
 -spec split_by_list_assigned_and_app(loop_state(), kz_term:ne_binary()) -> loop_state().
-split_by_list_assigned_and_app(#{todo := Todos}=State, _Db) ->
+split_by_list_assigned_and_app(#{todo := Todos} = State, _Db) ->
     ?SUP_LOG_DEBUG("     grouping ~b docs by assigned_to", [length(Todos)]),
-    F = fun (JObj, M) ->
-                [AssginedTo, _PvtUsedBy] = kz_json:get_value(<<"key">>, JObj),
-                AccountDb = kz_util:format_account_db(AssginedTo),
-                M#{AccountDb => [JObj | maps:get(AccountDb, M, [])]}
-        end,
+    F = fun(JObj, M) ->
+        [AssginedTo, _PvtUsedBy] = kz_json:get_value(<<"key">>, JObj),
+        AccountDb = kz_util:format_account_db(AssginedTo),
+        M#{AccountDb => [JObj | maps:get(AccountDb, M, [])]}
+    end,
     State#{todo => maps:to_list(lists:foldl(F, #{}, Todos))}.
 
 %%------------------------------------------------------------------------------
@@ -984,9 +1128,9 @@ group_numbers_by_db(Numbers) ->
 -spec group_numbers_by_db(kz_term:ne_binaries(), map()) -> map().
 group_numbers_by_db([], Acc) ->
     Acc;
-group_numbers_by_db([Num|Numbers], Acc) ->
+group_numbers_by_db([Num | Numbers], Acc) ->
     Db = knm_converters:to_db(Num),
-    group_numbers_by_db(Numbers, Acc#{Db => [Num|maps:get(Db, Acc, [])]}).
+    group_numbers_by_db(Numbers, Acc#{Db => [Num | maps:get(Db, Acc, [])]}).
 
 %%------------------------------------------------------------------------------
 %% @private We don't save fixed apps to another db, it should always save to
@@ -996,46 +1140,54 @@ group_numbers_by_db([Num|Numbers], Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec check_app_usage(loop_state(), kz_term:ne_binary()) -> loop_state().
-check_app_usage(#{todo := []}=State, _Db) ->
+check_app_usage(#{todo := []} = State, _Db) ->
     ?SUP_LOG_DEBUG("     no numbers to check apps usage", []),
     State;
-check_app_usage(#{todo := [{_AccountDb, _JObjs}|_]=Todos}=State, _NumberDb) ->
+check_app_usage(#{todo := [{_AccountDb, _JObjs} | _] = Todos} = State, _NumberDb) ->
     ?SUP_LOG_DEBUG("     check apps usage for ~b numbers", [length(Todos)]),
     check_app_usage_fold(State#{todo => []}, Todos);
-check_app_usage(#{todo := JObjs}=State, AccountDb) ->
+check_app_usage(#{todo := JObjs} = State, AccountDb) ->
     ?SUP_LOG_DEBUG("     check apps usage for ~b numbers", [length(JObjs)]),
     check_app_usage_fold(State#{todo => []}, [{AccountDb, JObjs}]).
 
 %% @private see note above
--spec check_app_usage_fold(loop_state(), [{kz_term:ne_binary(), kz_json:objects()}]) -> loop_state().
+-spec check_app_usage_fold(loop_state(), [{kz_term:ne_binary(), kz_json:objects()}]) ->
+    loop_state().
 check_app_usage_fold(State, []) ->
     State;
-check_app_usage_fold(#{todo := Todo
-                      ,apps_fixers := Fixers
-                      }=State
-                    ,[{AccountDbForEver, JObjs}|Rest]
-                    ) ->
+check_app_usage_fold(
+    #{
+        todo := Todo,
+        apps_fixers := Fixers
+    } = State,
+    [{AccountDbForEver, JObjs} | Rest]
+) ->
     Ids = [kz_doc:id(JObj) || JObj <- JObjs],
     AppsUsing = get_account_dids_apps(AccountDbForEver, Ids),
 
     DbFixers = create_apps_fixer(JObjs, AppsUsing, #{}),
 
-    check_app_usage_fold(State#{todo => Todo ++ maps:keys(DbFixers)
-                               ,apps_fixers => maps:merge(Fixers, DbFixers)
-                               }
-                        ,Rest
-                        ).
+    check_app_usage_fold(
+        State#{
+            todo => Todo ++ maps:keys(DbFixers),
+            apps_fixers => maps:merge(Fixers, DbFixers)
+        },
+        Rest
+    ).
 
 %% @private
 -spec create_apps_fixer(kz_json:objects(), map(), map()) -> map().
 create_apps_fixer([], _, Acc) ->
     Acc;
-create_apps_fixer([JObj|JObjs], AppsUsing, Fixers) ->
+create_apps_fixer([JObj | JObjs], AppsUsing, Fixers) ->
     Number = kz_doc:id(JObj),
-    NumUsedBy = case kz_json:get_value(<<"key">>, JObj, 'null') of
-                    [_AssignedTo, App] -> App; %% from number_db
-                    App -> App %% from account_db
-                end,
+    NumUsedBy =
+        case kz_json:get_value(<<"key">>, JObj, 'null') of
+            %% from number_db
+            [_AssignedTo, App] -> App;
+            %% from account_db
+            App -> App
+        end,
     UsedByApp = maps:get(Number, AppsUsing, 'undefined'),
     create_apps_fixer(JObjs, AppsUsing, maybe_fix_used_by(Number, NumUsedBy, UsedByApp, Fixers)).
 
@@ -1044,22 +1196,23 @@ create_apps_fixer([JObj|JObjs], AppsUsing, Fixers) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec fix_apps_usage(loop_state(), kz_term:ne_binary()) -> loop_state().
-fix_apps_usage(#{todo := []}=State, _Db) ->
+fix_apps_usage(#{todo := []} = State, _Db) ->
     ?SUP_LOG_DEBUG("     no numbers to fix apps usage", []),
     State;
-fix_apps_usage(#{todo := [{_AccountDb, _JObjs}|_]=Todos}=State, _NumberDb) ->
+fix_apps_usage(#{todo := [{_AccountDb, _JObjs} | _] = Todos} = State, _NumberDb) ->
     ?SUP_LOG_DEBUG("     fix apps usage for ~b numbers", [length(Todos)]),
     fix_apps_usage_fold(State#{todo => []}, Todos);
-fix_apps_usage(#{todo := JObjs}=State, AccountDb) ->
+fix_apps_usage(#{todo := JObjs} = State, AccountDb) ->
     ?SUP_LOG_DEBUG("     fix apps usage for ~b numbers", [length(JObjs)]),
     fix_apps_usage_fold(State#{todo => []}, [{AccountDb, JObjs}]).
 
 -spec fix_apps_usage_fold(loop_state(), kz_term:proplist()) -> loop_state().
 fix_apps_usage_fold(State, []) ->
     State;
-fix_apps_usage_fold(#{todo := Todo}=State
-                   ,[{AccountDbForEver, JObjs}|Rest]
-                   ) ->
+fix_apps_usage_fold(
+    #{todo := Todo} = State,
+    [{AccountDbForEver, JObjs} | Rest]
+) ->
     Ids = [kz_doc:id(JObj) || JObj <- JObjs],
     AppsUsing = get_account_dids_apps(AccountDbForEver, Ids),
 
@@ -1071,19 +1224,16 @@ fix_apps_usage_fold(#{todo := Todo}=State
 -spec do_fix_apps_usage(kz_json:objects(), map(), kz_json:objects()) -> kz_json:objects().
 do_fix_apps_usage([], _, Acc) ->
     Acc;
-do_fix_apps_usage([JObj|JObjs], AppsUsing, Acc) ->
+do_fix_apps_usage([JObj | JObjs], AppsUsing, Acc) ->
     Number = kz_doc:id(JObj),
-    case {kz_json:get_value(<<"pvt_used_by">>, JObj)
-         ,maps:get(Number, AppsUsing, 'undefined')
-         }
-    of
+    case {kz_json:get_value(<<"pvt_used_by">>, JObj), maps:get(Number, AppsUsing, 'undefined')} of
         {_YouAreWrongSir, 'undefined'} ->
-            NewAcc = [kz_json:delete_key(<<"pvt_used_by">>, JObj)|Acc],
+            NewAcc = [kz_json:delete_key(<<"pvt_used_by">>, JObj) | Acc],
             do_fix_apps_usage(JObjs, AppsUsing, NewAcc);
         {UsedBy, UsedBy} ->
             do_fix_apps_usage(JObjs, AppsUsing, Acc);
         {_YouAreWrongSir, UsedBy} ->
-            NewAcc = [kz_json:set_value(<<"pvt_used_by">>, UsedBy, JObj)|Acc],
+            NewAcc = [kz_json:set_value(<<"pvt_used_by">>, UsedBy, JObj) | Acc],
             do_fix_apps_usage(JObjs, AppsUsing, NewAcc)
     end.
 
@@ -1092,21 +1242,23 @@ do_fix_apps_usage([JObj|JObjs], AppsUsing, Acc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec apply_apps_fixers(loop_state(), kz_term:ne_binary()) -> loop_state().
-apply_apps_fixers(#{todo := []}=State, _Db) ->
+apply_apps_fixers(#{todo := []} = State, _Db) ->
     ?SUP_LOG_DEBUG("     no numbers to fix apps usage", []),
     State;
-apply_apps_fixers(#{todo := Todos}=State, _Db) ->
+apply_apps_fixers(#{todo := Todos} = State, _Db) ->
     apply_apps_fixers_fold(State#{todo => []}, Todos).
 
 %% @private
 -spec apply_apps_fixers_fold(loop_state(), kz_term:proplist()) -> loop_state().
-apply_apps_fixers_fold(#{apps_fixers := AppsFixers}=State, JObjs) ->
-    ?SUP_LOG_DEBUG("     applying app usage fixes on ~b numbers"
-                  ,[length(JObjs)]
-                  ),
-    Todo = [(maps:get(kz_doc:id(JObj), AppsFixers, fun kz_term:identity/1))(JObj)
-            || JObj <- JObjs
-           ],
+apply_apps_fixers_fold(#{apps_fixers := AppsFixers} = State, JObjs) ->
+    ?SUP_LOG_DEBUG(
+        "     applying app usage fixes on ~b numbers",
+        [length(JObjs)]
+    ),
+    Todo = [
+        (maps:get(kz_doc:id(JObj), AppsFixers, fun kz_term:identity/1))(JObj)
+     || JObj <- JObjs
+    ],
     State#{todo => Todo}.
 
 %%------------------------------------------------------------------------------
@@ -1114,28 +1266,30 @@ apply_apps_fixers_fold(#{apps_fixers := AppsFixers}=State, JObjs) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec open_docs_from_db(loop_state(), kz_term:ne_binary()) -> loop_state().
-open_docs_from_db(#{todo := []}=State, _) ->
+open_docs_from_db(#{todo := []} = State, _) ->
     State;
-open_docs_from_db(#{todo := Todos}=State, Db) ->
+open_docs_from_db(#{todo := Todos} = State, Db) ->
     open_docs_from_dbs_fold(State#{todo := []}, Todos, Db).
 
 %% @private
--spec open_docs_from_dbs_fold(loop_state(), kz_term:proplist(), kz_term:ne_binary()) -> loop_state().
-open_docs_from_dbs_fold(#{ko := KO}=State, Ids, Db) ->
+-spec open_docs_from_dbs_fold(loop_state(), kz_term:proplist(), kz_term:ne_binary()) ->
+    loop_state().
+open_docs_from_dbs_fold(#{ko := KO} = State, Ids, Db) ->
     ?SUP_LOG_DEBUG("     opening ~b documents from ~s", [length(Ids), Db]),
     case kz_datamgr:open_docs(Db, Ids) of
         {'ok', JObjs} ->
-            Docs = [kz_json:get_value(<<"doc">>, JObj)
-                    || JObj <- JObjs,
-                       kz_json:get_value(<<"error">>, JObjs) =:= 'undefined'
-                   ],
+            Docs = [
+                kz_json:get_value(<<"doc">>, JObj)
+             || JObj <- JObjs,
+                kz_json:get_value(<<"error">>, JObjs) =:= 'undefined'
+            ],
             State#{todo => Docs};
         {'error', Reason} ->
             ?SUP_LOG_ERROR("       failed to open docs, skipping db: ~100p", [Reason]),
             Error = to_binary_data_error(Reason),
             DbKO = maps:get(Db, KO, #{}),
             DbFailed = maps:get(failed, DbKO, #{}),
-            NewFailed = merge_error_num_ids(<<"open_doc-",Error/binary>>, Ids, DbFailed),
+            NewFailed = merge_error_num_ids(<<"open_doc-", Error/binary>>, Ids, DbFailed),
             State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, NewFailed)}}
     end.
 
@@ -1144,33 +1298,39 @@ open_docs_from_dbs_fold(#{ko := KO}=State, Ids, Db) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec save_to_dbs(loop_state(), kz_term:ne_binary()) -> loop_state().
-save_to_dbs(#{todo := []}=State, _Db) ->
+save_to_dbs(#{todo := []} = State, _Db) ->
     ?SUP_LOG_DEBUG("     nothing to save"),
     State;
-save_to_dbs(#{todo := [{_Db, _JObjs}|_]=Todos}=State, _OtherDb) ->
+save_to_dbs(#{todo := [{_Db, _JObjs} | _] = Todos} = State, _OtherDb) ->
     ?SUP_LOG_DEBUG("     start saving to ~b dbs", [length(Todos)]),
     save_to_dbs(State#{todo => []}, length(Todos), Todos, 2);
-save_to_dbs(#{todo := JObjs}=State, Db) ->
+save_to_dbs(#{todo := JObjs} = State, Db) ->
     ?SUP_LOG_DEBUG("     start saving to 1 db"),
     save_to_dbs(State#{todo => []}, 1, [{Db, JObjs}], 2).
 
--spec save_to_dbs(loop_state(), non_neg_integer(), kz_term:proplist(), non_neg_integer()) -> loop_state().
+-spec save_to_dbs(loop_state(), non_neg_integer(), kz_term:proplist(), non_neg_integer()) ->
+    loop_state().
 save_to_dbs(State, _, [], _) ->
     State;
-save_to_dbs(#{ko := KO}=State, Total, [{Db, JObjs}|Rest], Retries) when Retries =< 0 ->
+save_to_dbs(#{ko := KO} = State, Total, [{Db, JObjs} | Rest], Retries) when Retries =< 0 ->
     DbKO = maps:get(Db, KO, #{}),
     DbFailed = maps:get(failed, DbKO, #{}),
     LastError = maps:get('last_error', DbKO),
 
     ?SUP_LOG_DEBUG("       reached to maximum retries to save db: ~100p", [Db, LastError]),
 
-    NewFailed = merge_error_num_ids(<<"save_docs-", LastError/binary>>, [kz_doc:id(J) || J <- JObjs], DbFailed),
-    NewState = State#{ko => KO#{Db => maps:remove(last_error, add_failed_to_db_ko(DbKO, NewFailed))}},
+    NewFailed = merge_error_num_ids(
+        <<"save_docs-", LastError/binary>>, [kz_doc:id(J) || J <- JObjs], DbFailed
+    ),
+    NewState = State#{
+        ko => KO#{Db => maps:remove(last_error, add_failed_to_db_ko(DbKO, NewFailed))}
+    },
     save_to_dbs(NewState, Total, Rest, 2);
-save_to_dbs(#{ko := KO}=State, Total, [{Db, JObjs} | Rest], Retries) ->
-    ?SUP_LOG_DEBUG("       (~b/~b) saving ~b documents to ~s (try: ~b)"
-                  ,[length(Rest) + 1, Total, length(JObjs), Db, 3 - Retries]
-                  ),
+save_to_dbs(#{ko := KO} = State, Total, [{Db, JObjs} | Rest], Retries) ->
+    ?SUP_LOG_DEBUG(
+        "       (~b/~b) saving ~b documents to ~s (try: ~b)",
+        [length(Rest) + 1, Total, length(JObjs), Db, 3 - Retries]
+    ),
 
     DbKO = maps:get(Db, KO, #{}),
     DbFailed = maps:get(failed, DbKO, #{}),
@@ -1191,7 +1351,9 @@ save_to_dbs(#{ko := KO}=State, Total, [{Db, JObjs} | Rest], Retries) ->
             save_to_dbs(NewState, Total, [{Db, JObjs} | Rest], Retries - 1);
         {'error', 'not_found'} ->
             ?SUP_LOG_DEBUG("         db not found"),
-            NewFailed = merge_error_num_ids(<<"save_docs-db_not_found">>, [kz_doc:id(J) || J <- JObjs], DbFailed),
+            NewFailed = merge_error_num_ids(
+                <<"save_docs-db_not_found">>, [kz_doc:id(J) || J <- JObjs], DbFailed
+            ),
             NewState = State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, NewFailed)}},
             save_to_dbs(NewState, Total, Rest, 2);
         {'error', 'timeout'} ->
@@ -1204,38 +1366,47 @@ save_to_dbs(#{ko := KO}=State, Total, [{Db, JObjs} | Rest], Retries) ->
         {'error', Reason} ->
             ?SUP_LOG_DEBUG("         failed to save documents to db: ~100p", [Reason]),
             Error = to_binary_data_error(Reason),
-            NewFailed = merge_error_num_ids(<<"save_docs-", Error/binary>>, [kz_doc:id(J) || J <- JObjs], DbFailed),
+            NewFailed = merge_error_num_ids(
+                <<"save_docs-", Error/binary>>, [kz_doc:id(J) || J <- JObjs], DbFailed
+            ),
             NewState = State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, NewFailed)}},
             save_to_dbs(NewState, Total, Rest, 2)
     end.
 
 %% @private
--spec handle_bulk_save_errors(loop_state(), kz_term:ne_binary(), kz_json:objects(), kz_json:objects(), boolean()) ->
-          loop_state().
-handle_bulk_save_errors(#{ko := KO}=State, Db, Saved, JObjs, IsConflictTry) ->
+-spec handle_bulk_save_errors(
+    loop_state(), kz_term:ne_binary(), kz_json:objects(), kz_json:objects(), boolean()
+) ->
+    loop_state().
+handle_bulk_save_errors(#{ko := KO} = State, Db, Saved, JObjs, IsConflictTry) ->
     DbKO = maps:get(Db, KO, #{}),
     DbFailed = maps:get(failed, DbKO, #{}),
     {ConflictSet, Failed} = split_by_error(Saved, gb_sets:new(), DbFailed, 0),
 
     ConflictSize = gb_sets:size(ConflictSet),
 
-    case not IsConflictTry
-        andalso maps:get('retry_conflict', State, 'false')
-        andalso ConflictSize > 0
+    case
+        not IsConflictTry andalso
+            maps:get('retry_conflict', State, 'false') andalso
+            ConflictSize > 0
     of
         'true' ->
-            ConflictJObjs = [JObj
-                             || JObj <- JObjs,
-                                gb_sets:is_element(kz_doc:id(JObj), ConflictSet)
-                            ],
-            save_conflicts_to_db(State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, Failed)}}
-                                ,Db
-                                ,ConflictJObjs
-                                );
+            ConflictJObjs = [
+                JObj
+             || JObj <- JObjs,
+                gb_sets:is_element(kz_doc:id(JObj), ConflictSet)
+            ],
+            save_conflicts_to_db(
+                State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, Failed)}},
+                Db,
+                ConflictJObjs
+            );
         'false' when ConflictSize =:= 0 ->
             State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, Failed)}};
         'false' ->
-            NewFailed = merge_error_num_ids(<<"save_docs-conflict">>, gb_sets:to_list(ConflictSet), Failed),
+            NewFailed = merge_error_num_ids(
+                <<"save_docs-conflict">>, gb_sets:to_list(ConflictSet), Failed
+            ),
             State#{ko => KO#{Db => add_failed_to_db_ko(DbKO, NewFailed)}}
     end.
 
@@ -1256,21 +1427,26 @@ merge_error_num_ids(ErrorType, Ids, Acc) ->
 
 %% @private
 -spec split_by_error(kz_json:objects(), gb_sets:set(), map(), non_neg_integer()) ->
-          {gb_sets:set(), map()}.
+    {gb_sets:set(), map()}.
 split_by_error([], ConflictSet, Failed, TotalFailed) ->
     maybe_log_failed_saves(ConflictSet, TotalFailed),
     {ConflictSet, Failed};
-split_by_error([JObj|JObjs], ConflictSet, Failed, TotalFailed) ->
+split_by_error([JObj | JObjs], ConflictSet, Failed, TotalFailed) ->
     case kz_json:get_value(<<"error">>, JObj) of
-        'undefined' -> split_by_error(JObjs, ConflictSet, Failed, TotalFailed);
+        'undefined' ->
+            split_by_error(JObjs, ConflictSet, Failed, TotalFailed);
         <<"conflict">> ->
-            split_by_error(JObjs, gb_sets:add_element(kz_doc:id(JObj), ConflictSet), Failed, TotalFailed);
+            split_by_error(
+                JObjs, gb_sets:add_element(kz_doc:id(JObj), ConflictSet), Failed, TotalFailed
+            );
         Reason ->
             Error = to_binary_data_error(Reason),
-            NewFailed = maps:update_with(<<"save_docs-", Error/binary>>, fun(Nums) -> [kz_doc:id(JObj)| Nums] end
-                                        ,[kz_doc:id(JObj)]
-                                        ,Failed
-                                        ),
+            NewFailed = maps:update_with(
+                <<"save_docs-", Error/binary>>,
+                fun(Nums) -> [kz_doc:id(JObj) | Nums] end,
+                [kz_doc:id(JObj)],
+                Failed
+            ),
             split_by_error(JObjs, ConflictSet, NewFailed, TotalFailed + 1)
     end.
 
@@ -1279,8 +1455,7 @@ split_by_error([JObj|JObjs], ConflictSet, Failed, TotalFailed) ->
 maybe_log_failed_saves(ConflictSet, 0) ->
     case gb_sets:size(ConflictSet) of
         0 -> 'ok';
-        Size ->
-            ?SUP_LOG_DEBUG("         [conflict: ~b]", [Size])
+        Size -> ?SUP_LOG_DEBUG("         [conflict: ~b]", [Size])
     end;
 maybe_log_failed_saves(ConflictSet, TotalFailed) when TotalFailed > 0 ->
     case gb_sets:size(ConflictSet) of
@@ -1292,8 +1467,8 @@ maybe_log_failed_saves(ConflictSet, TotalFailed) when TotalFailed > 0 ->
 
 %% @private
 -spec save_conflicts_to_db(loop_state(), kz_term:ne_binary(), kz_json:objects()) ->
-          loop_state().
-save_conflicts_to_db(#{ko := KO}=State, Db, ConflictJObjs) ->
+    loop_state().
+save_conflicts_to_db(#{ko := KO} = State, Db, ConflictJObjs) ->
     ?SUP_LOG_DEBUG("         trying to ensure save ~b conflicts", [length(ConflictJObjs)]),
     DbKO = maps:get(Db, KO, #{}),
     DbFailed = maps:get(failed, DbKO, #{}),
@@ -1304,11 +1479,12 @@ save_conflicts_to_db(#{ko := KO}=State, Db, ConflictJObjs) ->
 
     DefinitelyFailed = merge_error_num_ids(DbFailed, Errored),
 
-    ToSave = [kz_doc:set_revision(JObj, Rev)
-              || JObj <- ConflictJObjs,
-                 Rev <- [maps:get(kz_doc:id(JObj), Revs, 'undefined')],
-                 Rev =/= 'undefined'
-             ],
+    ToSave = [
+        kz_doc:set_revision(JObj, Rev)
+     || JObj <- ConflictJObjs,
+        Rev <- [maps:get(kz_doc:id(JObj), Revs, 'undefined')],
+        Rev =/= 'undefined'
+    ],
     _ = timer:sleep(100),
     ?SUP_LOG_DEBUG("           saving ~b conflicts", [length(ToSave)]),
     case kz_datamgr:save_docs(Db, ToSave) of
@@ -1318,13 +1494,15 @@ save_conflicts_to_db(#{ko := KO}=State, Db, ConflictJObjs) ->
         {'error', Reason} ->
             ?SUP_LOG_DEBUG("             nope, attempt failed: ~100p", [Reason]),
             Error = to_binary_data_error(Reason),
-            MeowFailed = merge_error_num_ids(<<"try_save_conflicts-", Error/binary>>, ConflictIds, DefinitelyFailed),
+            MeowFailed = merge_error_num_ids(
+                <<"try_save_conflicts-", Error/binary>>, ConflictIds, DefinitelyFailed
+            ),
             State#{ko => KO#{Db => DbKO#{failed => add_failed_to_db_ko(DbKO, MeowFailed)}}}
     end.
 
 %% @private
 -spec get_conflicts_revs(kz_term:ne_binary(), kz_term:ne_binaries()) ->
-          {map(), map()}.
+    {map(), map()}.
 get_conflicts_revs(Db, ConflictIds) ->
     ?SUP_LOG_DEBUG("           fetching ~b revs from ~s", [length(ConflictIds), Db]),
     case kz_datamgr:all_docs(Db, [{'keys', ConflictIds}]) of
@@ -1338,21 +1516,19 @@ get_conflicts_revs(Db, ConflictIds) ->
 
 %% @private
 -spec split_errors_opened_revs(kz_json:objects(), {map(), map()}) ->
-          {map(), map()}.
-split_errors_opened_revs([], Acc) -> Acc;
-split_errors_opened_revs([JObj|JObjs], {Errors, Revs}) ->
+    {map(), map()}.
+split_errors_opened_revs([], Acc) ->
+    Acc;
+split_errors_opened_revs([JObj | JObjs], {Errors, Revs}) ->
     Id = kz_json:get_value(<<"key">>, JObj),
     case kz_json:get_value(<<"error">>, JObj) of
         'undefined' ->
-            Acc = {Errors
-                  ,Revs#{Id => kz_json:get_ne_binary_value([<<"value">>, <<"rev">>], JObj)}
-                  },
+            Acc =
+                {Errors, Revs#{Id => kz_json:get_ne_binary_value([<<"value">>, <<"rev">>], JObj)}},
             split_errors_opened_revs(JObjs, Acc);
         Reason ->
             Error = <<"fetch_rev-", Reason/binary>>,
-            Acc = {Errors#{Error => [Id | maps:get(Error, Errors, [])]}
-                  ,Revs
-                  },
+            Acc = {Errors#{Error => [Id | maps:get(Error, Errors, [])]}, Revs},
             split_errors_opened_revs(JObjs, Acc)
     end.
 
@@ -1362,10 +1538,11 @@ to_binary_data_error(Bin) when is_binary(Bin) ->
 to_binary_data_error(Atom) when is_atom(Atom) ->
     kz_term:to_binary(Atom);
 to_binary_data_error(SomethingElse) ->
-    kz_term:safe_cast(SomethingElse
-                     ,<<"datastore_fault_not_mine">>
-                     ,fun kz_term:to_binary/1
-                     ).
+    kz_term:safe_cast(
+        SomethingElse,
+        <<"datastore_fault_not_mine">>,
+        fun kz_term:to_binary/1
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -1373,7 +1550,7 @@ to_binary_data_error(SomethingElse) ->
 %%------------------------------------------------------------------------------
 -spec get_account_dids_apps(kz_term:ne_binary(), kz_term:ne_binaries()) -> map().
 get_account_dids_apps(Account, Ids) ->
-    ViewOpts= [{'keys', Ids}],
+    ViewOpts = [{'keys', Ids}],
     ?SUP_LOG_DEBUG("      getting app usage for ~b numbers in account ~s", [length(Ids), Account]),
     AccountDb = kz_util:format_account_db(Account),
     case get_dids_for_app(AccountDb, <<"callflow">>, ViewOpts) of
@@ -1382,15 +1559,17 @@ get_account_dids_apps(Account, Ids) ->
                 {'ok', TrunkstoreDIDs} ->
                     handle_dids_app(CallflowDIDs, TrunkstoreDIDs);
                 {'error', _R} ->
-                    ?SUP_LOG_DEBUG("         failed to get trunkstore numbers (~100p), skipping..."
-                                  ,[_R]
-                                  ),
+                    ?SUP_LOG_DEBUG(
+                        "         failed to get trunkstore numbers (~100p), skipping...",
+                        [_R]
+                    ),
                     #{}
             end;
         {'error', _R} ->
-            ?SUP_LOG_DEBUG("         failed to get callflow numbers (~100p), skipping..."
-                          ,[_R]
-                          ),
+            ?SUP_LOG_DEBUG(
+                "         failed to get callflow numbers (~100p), skipping...",
+                [_R]
+            ),
             #{}
     end.
 
@@ -1405,36 +1584,45 @@ handle_dids_app(CallflowDIDs, TrunkstoreDIDs) ->
     Multi = gb_sets:intersection(Callflow, Trunk),
     case gb_sets:is_empty(Multi) of
         'true' ->
-            maps:merge(maps:from_list([{D, <<"callflow">>} || D <- CallflowDIDs])
-                      ,maps:from_list([{D, <<"trunkstore">>} || D <- TrunkstoreDIDs])
-                      );
+            maps:merge(
+                maps:from_list([{D, <<"callflow">>} || D <- CallflowDIDs]),
+                maps:from_list([{D, <<"trunkstore">>} || D <- TrunkstoreDIDs])
+            );
         'false' ->
             Msg = kz_term:to_binary(
-                    io_lib:format("numbers used by both trunkstore and callflow: ~s"
-                                 ,[kz_binary:join(gb_sets:to_list(Multi))]
-                                 )
-                   ),
+                io_lib:format(
+                    "numbers used by both trunkstore and callflow: ~s",
+                    [kz_binary:join(gb_sets:to_list(Multi))]
+                )
+            ),
             ?SUP_LOG_DEBUG("~s", [Msg]),
-            maps:merge(maps:from_list(
-                         [{D, <<"callflow">>}
-                          || D <- CallflowDIDs,
-                             not gb_sets:is_element(D, Multi)
-                         ] ++ [{D, <<"calltrunkflow">>}
-                               || D <- gb_sets:to_list(Multi)
-                              ]
-                        )
-                      ,maps:from_list([{D, <<"trunkstore">>}
-                                       || D <- TrunkstoreDIDs,
-                                          not gb_sets:is_element(D, Multi)
-                                      ])
-                      )
+            maps:merge(
+                maps:from_list(
+                    [
+                        {D, <<"callflow">>}
+                     || D <- CallflowDIDs,
+                        not gb_sets:is_element(D, Multi)
+                    ] ++
+                        [
+                            {D, <<"calltrunkflow">>}
+                         || D <- gb_sets:to_list(Multi)
+                        ]
+                ),
+                maps:from_list([
+                    {D, <<"trunkstore">>}
+                 || D <- TrunkstoreDIDs,
+                    not gb_sets:is_element(D, Multi)
+                ])
+            )
     end.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_fix_used_by(kz_term:ne_binary(), 'null' | kz_term:ne_binary(), kz_term:api_ne_binary(), map()) -> map().
+-spec maybe_fix_used_by(
+    kz_term:ne_binary(), 'null' | kz_term:ne_binary(), kz_term:api_ne_binary(), map()
+) -> map().
 maybe_fix_used_by(_, _, <<"calltrunkflow">>, ToFix) ->
     ToFix;
 maybe_fix_used_by(_, 'null', 'undefined', ToFix) ->
@@ -1500,12 +1688,14 @@ migrate_unassigned_numbers(Number) ->
 
 -spec migrate_unassigned_numbers(kz_term:ne_binary(), integer()) -> 'ok'.
 migrate_unassigned_numbers(NumberDb, Offset) ->
-    ViewOptions = [{'limit', kz_datamgr:max_bulk_insert()}
-                  ,{'skip', Offset}
-                  ],
+    ViewOptions = [
+        {'limit', kz_datamgr:max_bulk_insert()},
+        {'skip', Offset}
+    ],
     ?SUP_LOG_DEBUG("[~s] checking for unassigned numbers with offset ~b", [NumberDb, Offset]),
     case kz_datamgr:get_results(NumberDb, <<"numbers/unassigned">>, ViewOptions) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'ok', JObjs} ->
             Length = length(JObjs),
             ?SUP_LOG_DEBUG("[~s] fixing ~b docs", [NumberDb, Length]),
@@ -1520,7 +1710,8 @@ migrate_unassigned_numbers(NumberDb, Offset) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_dids_for_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> kazoo_data:get_results_return().
+-spec get_dids_for_app(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    kazoo_data:get_results_return().
 get_dids_for_app(AccountDb, <<"callflow">>, ViewOptions) ->
     View = <<"callflows/listing_by_number">>,
     ?SUP_LOG_DEBUG("         getting callflow numbers from ~s", [AccountDb]),
@@ -1540,7 +1731,8 @@ get_dids_for_app(AccountDb, <<"trunkstore">>, ViewOptions) ->
 -spec get_DIDs_callflow_set(kz_term:ne_binary(), kz_term:proplist()) -> dids().
 get_DIDs_callflow_set(AccountDb, ViewOptions) ->
     case get_dids_for_app(AccountDb, <<"callflow">>, ViewOptions) of
-        {'ok', DIDs} -> gb_sets:from_list(DIDs);
+        {'ok', DIDs} ->
+            gb_sets:from_list(DIDs);
         {'error', _R} ->
             ?SUP_LOG_DEBUG("failed to get callflow DIDs from ~s: ~p", [AccountDb, _R]),
             gb_sets:new()
@@ -1549,7 +1741,8 @@ get_DIDs_callflow_set(AccountDb, ViewOptions) ->
 -spec get_DIDs_trunkstore_set(kz_term:ne_binary(), kz_term:proplist()) -> dids().
 get_DIDs_trunkstore_set(AccountDb, ViewOptions) ->
     case get_dids_for_app(AccountDb, <<"trunkstore">>, ViewOptions) of
-        {'ok', DIDs} -> gb_sets:from_list(DIDs);
+        {'ok', DIDs} ->
+            gb_sets:from_list(DIDs);
         {'error', _R} ->
             ?SUP_LOG_DEBUG("failed to get trunkstore DIDs from ~s: ~p", [AccountDb, _R]),
             gb_sets:new()
@@ -1566,10 +1759,12 @@ app_using(Num, AccountDb) ->
     TrunkstoreNums = get_DIDs_trunkstore_set(AccountDb, [{'key', Num}]),
     app_using(Num, AccountDb, CallflowNums, TrunkstoreNums).
 
--spec app_using(kz_term:ne_binary(), kz_term:ne_binary(), dids(), dids()) -> kz_term:api_ne_binary().
+-spec app_using(kz_term:ne_binary(), kz_term:ne_binary(), dids(), dids()) ->
+    kz_term:api_ne_binary().
 app_using(Num, _, CallflowNums, TrunkstoreNums) ->
     case gb_sets:is_element(Num, CallflowNums) of
-        'true' -> <<"callflow">>;
+        'true' ->
+            <<"callflow">>;
         'false' ->
             case gb_sets:is_element(Num, TrunkstoreNums) of
                 'true' -> <<"trunkstore">>;
@@ -1587,9 +1782,9 @@ app_using(Num, _, CallflowNums, TrunkstoreNums) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec escape(kz_term:ne_binary()) -> kz_term:ne_binary().
-escape(?NE_BINARY=Bin0) ->
-    StartSz = byte_size(Start= <<"<<">>),
-    EndSz   = byte_size(End  = <<">>">>),
+escape(?NE_BINARY = Bin0) ->
+    StartSz = byte_size(Start = <<"<<">>),
+    EndSz = byte_size(End = <<">>">>),
     Bin = iolist_to_binary(io_lib:format("~p", [Bin0])),
     SizeOfWhatIWant = byte_size(Bin) - (StartSz + EndSz),
     <<Start:StartSz/binary, Escaped:SizeOfWhatIWant/binary, End:EndSz/binary>> = Bin,
@@ -1599,91 +1794,104 @@ escape(?NE_BINARY=Bin0) ->
 -spec number_services_map(js_match_block()) -> kz_term:ne_binary().
 number_services_map(FunMatchBlock) ->
     iolist_to_binary(
-      ["function(doc) {"
-       "  if (doc.pvt_type != 'number' || doc.pvt_deleted) return;"
-       "  var resM = {};"
-       "  resM[doc.pvt_module_name] = 1;"
-       "  var resC = {};"
-      ,generate_js_classifiers(FunMatchBlock),
-       "  var resF = {};"
-       "  var used = doc.pvt_features || {};"
-       "  for (var feature in used)"
-       "    if (used.hasOwnProperty(feature))"
-       "      resF[feature] = 1;"
-       "  emit(doc._id, {'classifications':resC, 'features':resF});"
-       "}"
-      ]).
+        [
+            "function(doc) {"
+            "  if (doc.pvt_type != 'number' || doc.pvt_deleted) return;"
+            "  var resM = {};"
+            "  resM[doc.pvt_module_name] = 1;"
+            "  var resC = {};",
+            generate_js_classifiers(FunMatchBlock),
+            "  var resF = {};"
+            "  var used = doc.pvt_features || {};"
+            "  for (var feature in used)"
+            "    if (used.hasOwnProperty(feature))"
+            "      resF[feature] = 1;"
+            "  emit(doc._id, {'classifications':resC, 'features':resF});"
+            "}"
+        ]
+    ).
 
 -spec generate_js_classifiers(js_match_block()) -> iolist().
 generate_js_classifiers(FunMatchBlock) ->
-    ClassifiersJObj = knm_converters:available_classifiers(), %%TODO: per-account classifiers.
-    Pairs = [{Classification, kz_json:get_value([Classification, <<"regex">>], ClassifiersJObj)}
-             || Classification <- kz_json:get_keys(ClassifiersJObj)
-            ],
+    %%TODO: per-account classifiers.
+    ClassifiersJObj = knm_converters:available_classifiers(),
+    Pairs = [
+        {Classification, kz_json:get_value([Classification, <<"regex">>], ClassifiersJObj)}
+     || Classification <- kz_json:get_keys(ClassifiersJObj)
+    ],
     {Classifications, Regexs} = lists:unzip(Pairs),
     generate_js_classifiers(Classifications, Regexs, FunMatchBlock).
 
--spec generate_js_classifiers(kz_term:ne_binaries(), kz_term:ne_binaries(), js_match_block()) -> iolist().
+-spec generate_js_classifiers(kz_term:ne_binaries(), kz_term:ne_binaries(), js_match_block()) ->
+    iolist().
 generate_js_classifiers(Classifications, Regexs, FunMatchBlock) ->
-    ["  var e164 = doc._id;"
-     "  if (false) return;"
-    ,[["  else if (e164.match(", escape(Regex), "))"
-      ,FunMatchBlock(Class)
-      ]
-      || {Class, Regex} <- lists:zip(Classifications, Regexs),
-         is_binary(Regex)
-     ]
+    [
+        "  var e164 = doc._id;"
+        "  if (false) return;",
+        [
+            [
+                "  else if (e164.match(",
+                escape(Regex),
+                "))",
+                FunMatchBlock(Class)
+            ]
+         || {Class, Regex} <- lists:zip(Classifications, Regexs),
+            is_binary(Regex)
+        ]
     ].
 
 -spec number_services_red() -> kz_term:ne_binary().
 number_services_red() ->
     iolist_to_binary(
-      ["function(Keys, Values, _Rereduce) {"
-       "  var incr = function (o, k, v) {"
-       "    o[k] = v + ((o[k] === undefined) ? 0 : o[k]);"
-       "    return o;"
-       "  };"
-       "  var acc = function (Oout, Oin) {"
-       "    for (var Ofield in Oin)"
-       "      if (Oin.hasOwnProperty(Ofield))"
-       "        Oout = incr(Oout, Ofield, Oin[Ofield]);"
-       "    return Oout;"
-       "  };"
-       "  var resF = {};"
-       "  var resC = {};"
-       "  for (var i in Values) {"
-       "    var Value = Values[i];"
-       "    resF = acc(resF, Value['features'] || {});"
-       "    var Classifications = Value['classifications'] || {};"
-       "    for (var klass in Classifications) {"
-       "      if (Classifications.hasOwnProperty(klass))"
-       "        resC[klass] = acc(resC[klass] || {}, Classifications[klass]);"
-       "    }"
-       "  }"
-       "  return {'classifications':resC, 'features':resF};"
-       "}"
-      ]).
+        [
+            "function(Keys, Values, _Rereduce) {"
+            "  var incr = function (o, k, v) {"
+            "    o[k] = v + ((o[k] === undefined) ? 0 : o[k]);"
+            "    return o;"
+            "  };"
+            "  var acc = function (Oout, Oin) {"
+            "    for (var Ofield in Oin)"
+            "      if (Oin.hasOwnProperty(Ofield))"
+            "        Oout = incr(Oout, Ofield, Oin[Ofield]);"
+            "    return Oout;"
+            "  };"
+            "  var resF = {};"
+            "  var resC = {};"
+            "  for (var i in Values) {"
+            "    var Value = Values[i];"
+            "    resF = acc(resF, Value['features'] || {});"
+            "    var Classifications = Value['classifications'] || {};"
+            "    for (var klass in Classifications) {"
+            "      if (Classifications.hasOwnProperty(klass))"
+            "        resC[klass] = acc(resC[klass] || {}, Classifications[klass]);"
+            "    }"
+            "  }"
+            "  return {'classifications':resC, 'features':resF};"
+            "}"
+        ]
+    ).
 
 -spec fix_unassign_doc(kz_term:ne_binaries()) -> 'ok'.
 fix_unassign_doc(DIDs) ->
-    Setters = [{fun knm_phone_number:set_used_by/2, 'undefined'}
-              ,fun knm_phone_number:remove_denied_features/1
-              ],
-    Options = [{'auth_by', ?KNM_DEFAULT_AUTH_BY}
-               %% No caching + bulk doc writes
-              ,{'batch_run', 'true'}
-              ],
+    Setters = [
+        {fun knm_phone_number:set_used_by/2, 'undefined'},
+        fun knm_phone_number:remove_denied_features/1
+    ],
+    Options = [
+        {'auth_by', ?KNM_DEFAULT_AUTH_BY},
+        %% No caching + bulk doc writes
+        {'batch_run', 'true'}
+    ],
     case knm_numbers:update(DIDs, Setters, Options) of
         #{ko := Map} when map_size(Map) =:= 0 -> 'ok';
-        #{ko := KOs} ->
-            ?SUP_LOG_DEBUG("failed fixing ~b unassigned numbers.", [maps:size(KOs)])
+        #{ko := KOs} -> ?SUP_LOG_DEBUG("failed fixing ~b unassigned numbers.", [maps:size(KOs)])
     end.
 
--spec generate_numbers(kz_term:ne_binary(), kz_term:ne_binary(), pos_integer(), non_neg_integer()) -> 'ok'.
+-spec generate_numbers(kz_term:ne_binary(), kz_term:ne_binary(), pos_integer(), non_neg_integer()) ->
+    'ok'.
 generate_numbers(Type, AccountId, StartingNumber, Quantity) ->
     M = kz_term:to_atom(<<"knm_", Type/binary>>, 'true'),
     M:generate_numbers(AccountId, kz_term:to_integer(StartingNumber), kz_term:to_integer(Quantity)).
-
 
 -spec delete(kz_term:ne_binary()) -> 'no_return'.
 delete(Num) ->
@@ -1692,7 +1900,6 @@ delete(Num) ->
         {'error', _R} -> io:format("ERROR: ~p\n", [_R])
     end,
     'no_return'.
-
 
 -spec purge_discovery() -> 'no_return'.
 purge_discovery() ->
@@ -1716,19 +1923,25 @@ purge_discovery(Prefix) ->
 
 -spec purge_number_db(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 purge_number_db(NumberDb, State) ->
-    ViewOptions = [{'startkey', [State]}
-                  ,{'endkey', [State, kz_json:new()]}
-                  ,'include_docs'
-                  ,{'limit', 500}
-                  ],
+    ViewOptions = [
+        {'startkey', [State]},
+        {'endkey', [State, kz_json:new()]},
+        'include_docs',
+        {'limit', 500}
+    ],
     case kz_datamgr:get_results(NumberDb, <<"numbers/status">>, ViewOptions) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'ok', Numbers} ->
-            io:format("removing ~p numbers in state '~s' from ~s~n", [length(Numbers), State, NumberDb]),
-            JObjs = [JObj || Number <- Numbers,
-                             JObj <- [kz_json:get_value(<<"doc">>, Number)],
-                             State =:= kz_json:get_value(?PVT_STATE, JObj)
-                    ],
+            io:format("removing ~p numbers in state '~s' from ~s~n", [
+                length(Numbers), State, NumberDb
+            ]),
+            JObjs = [
+                JObj
+             || Number <- Numbers,
+                JObj <- [kz_json:get_value(<<"doc">>, Number)],
+                State =:= kz_json:get_value(?PVT_STATE, JObj)
+            ],
             _ = kz_datamgr:del_docs(NumberDb, JObjs),
             purge_number_db(NumberDb, State)
     end.
@@ -1753,19 +1966,21 @@ list_features(Features) ->
 
 -spec error_with_number(kz_term:ne_binary(), any()) -> 'no_return'.
 error_with_number(Num, Error) ->
-    Reason = case kz_json:is_json_object(Error) of
-                 'false' -> Error;
-                 'true' -> knm_errors:error(Error)
-             end,
+    Reason =
+        case kz_json:is_json_object(Error) of
+            'false' -> Error;
+            'true' -> knm_errors:error(Error)
+        end,
     io:format("Error with number ~s: ~s\n", [Num, Reason]),
     'no_return'.
 
 -spec print_feature_permissions(kz_term:ne_binaries(), kz_term:ne_binaries()) -> 'no_return'.
 print_feature_permissions(Allowed, Denied) ->
-    io:format("\tFeatures allowed: ~s\n"
-              "\tFeatures denied: ~s\n"
-             ,[list_features(Allowed), list_features(Denied)]
-             ),
+    io:format(
+        "\tFeatures allowed: ~s\n"
+        "\tFeatures denied: ~s\n",
+        [list_features(Allowed), list_features(Denied)]
+    ),
     'no_return'.
 
 -spec list_number_feature_permissions(knm_number:knm_number()) -> 'no_return'.
@@ -1777,10 +1992,12 @@ list_number_feature_permissions(N) ->
     io:format("Feature permissions on ~s:\n", [Num]),
     print_feature_permissions(Allowed, Denied).
 
--spec edit_feature_permissions_on_number(kz_term:ne_binary(), fun(), kz_term:ne_binary()) -> 'no_return'.
+-spec edit_feature_permissions_on_number(kz_term:ne_binary(), fun(), kz_term:ne_binary()) ->
+    'no_return'.
 edit_feature_permissions_on_number(Num, Fun, Feature) ->
     case is_feature_valid(Feature) of
-        'false' -> invalid_feature(Feature);
+        'false' ->
+            invalid_feature(Feature);
         'true' ->
             Updates = [{Fun, Feature}],
             case knm_number:update(Num, Updates) of
@@ -1797,19 +2014,19 @@ feature_permissions_on_number(Num) ->
     end.
 
 -spec add_allowed_feature_on_number(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-add_allowed_feature_on_number(?NE_BINARY=Feature, ?NE_BINARY=Num) ->
+add_allowed_feature_on_number(?NE_BINARY = Feature, ?NE_BINARY = Num) ->
     edit_feature_permissions_on_number(Num, fun knm_phone_number:add_allowed_feature/2, Feature).
 
 -spec remove_allowed_feature_on_number(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-remove_allowed_feature_on_number(?NE_BINARY=Feature, ?NE_BINARY=Num) ->
+remove_allowed_feature_on_number(?NE_BINARY = Feature, ?NE_BINARY = Num) ->
     edit_feature_permissions_on_number(Num, fun knm_phone_number:remove_allowed_feature/2, Feature).
 
 -spec add_denied_feature_on_number(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-add_denied_feature_on_number(?NE_BINARY=Feature, ?NE_BINARY=Num) ->
+add_denied_feature_on_number(?NE_BINARY = Feature, ?NE_BINARY = Num) ->
     edit_feature_permissions_on_number(Num, fun knm_phone_number:add_denied_feature/2, Feature).
 
 -spec remove_denied_feature_on_number(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-remove_denied_feature_on_number(?NE_BINARY=Feature, ?NE_BINARY=Num) ->
+remove_denied_feature_on_number(?NE_BINARY = Feature, ?NE_BINARY = Num) ->
     edit_feature_permissions_on_number(Num, fun knm_phone_number:remove_denied_feature/2, Feature).
 
 -spec feature_permissions_on_reseller_of(kz_term:ne_binary()) -> 'no_return'.
@@ -1824,46 +2041,57 @@ feature_permissions_on_reseller_of(?MATCH_ACCOUNT_RAW(AccountId)) ->
 empty_list_when_undefined('undefined') -> [];
 empty_list_when_undefined(NeBinaries) -> NeBinaries.
 
--spec edit_allowed_feature_permissions_on_reseller_of(kz_term:ne_binary(), fun(), kz_term:ne_binary()) -> 'no_return'.
+-spec edit_allowed_feature_permissions_on_reseller_of(
+    kz_term:ne_binary(), fun(), kz_term:ne_binary()
+) -> 'no_return'.
 edit_allowed_feature_permissions_on_reseller_of(AccountId, Fun, Feature) ->
     case is_feature_valid(Feature) of
-        'false' -> invalid_feature(Feature);
+        'false' ->
+            invalid_feature(Feature);
         'true' ->
             Allowed = empty_list_when_undefined(?FEATURES_ALLOWED_RESELLER(AccountId)),
             NewFeatures = lists:usort(Fun(Feature, Allowed)),
             ResellerId = kz_services_reseller:get_id(AccountId),
-            _ = kapps_account_config:set(ResellerId, ?KNM_CONFIG_CAT, ?KEY_FEATURES_ALLOW, NewFeatures),
+            _ = kapps_account_config:set(
+                ResellerId, ?KNM_CONFIG_CAT, ?KEY_FEATURES_ALLOW, NewFeatures
+            ),
             feature_permissions_on_reseller_of(AccountId)
     end.
 
--spec edit_denied_feature_permissions_on_reseller_of(kz_term:ne_binary(), fun(), kz_term:ne_binary()) -> 'no_return'.
+-spec edit_denied_feature_permissions_on_reseller_of(
+    kz_term:ne_binary(), fun(), kz_term:ne_binary()
+) -> 'no_return'.
 edit_denied_feature_permissions_on_reseller_of(AccountId, Fun, Feature) ->
     case is_feature_valid(Feature) of
-        'false' -> invalid_feature(Feature);
+        'false' ->
+            invalid_feature(Feature);
         'true' ->
             Denied = empty_list_when_undefined(?FEATURES_DENIED_RESELLER(AccountId)),
             NewFeatures = lists:usort(Fun(Feature, Denied)),
             ResellerId = kz_services_reseller:get_id(AccountId),
-            _ = kapps_account_config:set(ResellerId, ?KNM_CONFIG_CAT, ?KEY_FEATURES_DENY, NewFeatures),
+            _ = kapps_account_config:set(
+                ResellerId, ?KNM_CONFIG_CAT, ?KEY_FEATURES_DENY, NewFeatures
+            ),
             feature_permissions_on_reseller_of(AccountId)
     end.
 
 -spec add_allowed_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-add_allowed_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
-    Cons = fun (AFeature, Features) -> [AFeature|Features] end,
+add_allowed_feature_on_reseller_of(?NE_BINARY = Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+    Cons = fun(AFeature, Features) -> [AFeature | Features] end,
     edit_allowed_feature_permissions_on_reseller_of(AccountId, Cons, Feature).
 
--spec remove_allowed_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-remove_allowed_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+-spec remove_allowed_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    'no_return'.
+remove_allowed_feature_on_reseller_of(?NE_BINARY = Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     edit_allowed_feature_permissions_on_reseller_of(AccountId, fun lists:delete/2, Feature).
 
 -spec add_denied_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-add_denied_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
-    Cons = fun (AFeature, Features) -> [AFeature|Features] end,
+add_denied_feature_on_reseller_of(?NE_BINARY = Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+    Cons = fun(AFeature, Features) -> [AFeature | Features] end,
     edit_denied_feature_permissions_on_reseller_of(AccountId, Cons, Feature).
 
 -spec remove_denied_feature_on_reseller_of(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
-remove_denied_feature_on_reseller_of(?NE_BINARY=Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
+remove_denied_feature_on_reseller_of(?NE_BINARY = Feature, ?MATCH_ACCOUNT_RAW(AccountId)) ->
     edit_denied_feature_permissions_on_reseller_of(AccountId, fun lists:delete/2, Feature).
 
 -spec feature_permissions_on_system_config() -> 'no_return'.
@@ -1884,29 +2112,33 @@ set_features_on_system_config(Features) ->
 -spec edit_allowed_feature_permissions_on_system_config(fun(), kz_term:ne_binary()) -> 'no_return'.
 edit_allowed_feature_permissions_on_system_config(Fun, Feature) ->
     case is_feature_valid(Feature) of
-        'false' -> invalid_feature(Feature);
+        'false' ->
+            invalid_feature(Feature);
         'true' ->
             Allowed = knm_providers:system_allowed_features(),
             set_features_on_system_config(Fun(Feature, Allowed))
     end.
 
 -spec add_allowed_feature_on_system_config(kz_term:ne_binary()) -> 'no_return'.
-add_allowed_feature_on_system_config(?NE_BINARY=Feature) ->
-    Cons = fun (AFeature, Features) -> [AFeature|Features] end,
+add_allowed_feature_on_system_config(?NE_BINARY = Feature) ->
+    Cons = fun(AFeature, Features) -> [AFeature | Features] end,
     edit_allowed_feature_permissions_on_system_config(Cons, Feature).
 
 -spec remove_allowed_feature_on_system_config(kz_term:ne_binary()) -> 'no_return'.
-remove_allowed_feature_on_system_config(?NE_BINARY=Feature) ->
+remove_allowed_feature_on_system_config(?NE_BINARY = Feature) ->
     edit_allowed_feature_permissions_on_system_config(fun lists:delete/2, Feature).
 
 -spec ensure_adminonly_features_are_reachable() -> 'no_return'.
 ensure_adminonly_features_are_reachable() ->
     Configured = knm_providers:system_allowed_features(),
     case lists:usort(?ADMIN_ONLY_FEATURES) -- Configured of
-        [] -> 'no_return';
+        [] ->
+            'no_return';
         ToAdd ->
-            io:format("Adding the following admin-only number features to system_config: ~s"
-                     ,[list_features(ToAdd)]),
+            io:format(
+                "Adding the following admin-only number features to system_config: ~s",
+                [list_features(ToAdd)]
+            ),
             set_features_on_system_config(ToAdd ++ Configured)
     end.
 

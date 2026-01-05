@@ -11,9 +11,10 @@
 
 -export([delegate/1, delegate_v/1]).
 
--export([bind_q/2
-        ,unbind_q/2
-        ]).
+-export([
+    bind_q/2,
+    unbind_q/2
+]).
 -export([declare_exchanges/0]).
 -export([publish_delegate/2, publish_delegate/3, publish_delegate/4]).
 
@@ -23,21 +24,25 @@
 
 -type maybe_key() :: kz_term:ne_binary() | 'undefined'.
 
--define(DELEGATE_ROUTING_KEY(App, Key)
-       ,list_to_binary([?APIKEY, "."
-                       ,kz_amqp_util:encode(App), "."
-                       ,kz_amqp_util:encode(Key)
-                       ])
-       ).
--define(DELEGATE_ROUTING_KEY(App)
-       ,list_to_binary([?APIKEY, ".", kz_amqp_util:encode(App)])
-       ).
+-define(DELEGATE_ROUTING_KEY(App, Key),
+    list_to_binary([
+        ?APIKEY,
+        ".",
+        kz_amqp_util:encode(App),
+        ".",
+        kz_amqp_util:encode(Key)
+    ])
+).
+-define(DELEGATE_ROUTING_KEY(App),
+    list_to_binary([?APIKEY, ".", kz_amqp_util:encode(App)])
+).
 
 -define(DELEGATE_HEADERS, [<<"Delegate-Message">>]).
 -define(OPTIONAL_DELEGATE_HEADERS, []).
--define(DELEGATE_VALUES, [{<<"Event-Category">>, <<"delegate">>}
-                         ,{<<"Event-Name">>, <<"job">>}
-                         ]).
+-define(DELEGATE_VALUES, [
+    {<<"Event-Category">>, <<"delegate">>},
+    {<<"Event-Name">>, <<"job">>}
+]).
 -define(DELEGATE_TYPES, []).
 
 %%------------------------------------------------------------------------------
@@ -51,12 +56,14 @@ delegate(Prop) when is_list(Prop) ->
         'true' -> kz_api:build_message(Prop, ?DELEGATE_HEADERS, ?OPTIONAL_DELEGATE_HEADERS);
         'false' -> {'error', "Proplist failed validation for authn_error"}
     end;
-delegate(JObj) -> delegate(kz_json:to_proplist(JObj)).
+delegate(JObj) ->
+    delegate(kz_json:to_proplist(JObj)).
 
 -spec delegate_v(kz_term:api_terms()) -> boolean().
 delegate_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?DELEGATE_HEADERS, ?DELEGATE_VALUES, ?DELEGATE_TYPES);
-delegate_v(JObj) -> delegate_v(kz_json:to_proplist(JObj)).
+delegate_v(JObj) ->
+    delegate_v(kz_json:to_proplist(JObj)).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, Props) ->

@@ -9,10 +9,11 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0
-        ,start_bucket/3
-        ,stop_bucket/1
-        ]).
+-export([
+    start_link/0,
+    start_bucket/3,
+    stop_bucket/1
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -36,7 +37,7 @@ start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 -spec start_bucket(pos_integer(), pos_integer(), kz_token_bucket:fill_rate_time()) ->
-          kz_types:sup_startchild_ret().
+    kz_types:sup_startchild_ret().
 start_bucket(MaxTokens, FillRate, FillTime) ->
     supervisor:start_child(?SERVER, [MaxTokens, FillRate, 'true', FillTime]).
 

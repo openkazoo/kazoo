@@ -5,22 +5,27 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_tts).
 
--export([create/1
-        ,create/2
-        ,create/3
-        ,create/4
-        ,create/5
-        ]).
+-export([
+    create/1,
+    create/2,
+    create/3,
+    create/4,
+    create/5
+]).
 
 -export([decode/4]).
 
--export([cache_time_ms/0
-        ,default_provider/0, default_provider/1, set_default_provider/1
-        ,default_language/0, set_default_language/1
-        ,default_voice/0, set_default_voice/1
+-export([
+    cache_time_ms/0,
+    default_provider/0, default_provider/1,
+    set_default_provider/1,
+    default_language/0,
+    set_default_language/1,
+    default_voice/0,
+    set_default_voice/1,
 
-        ,provider_module/1
-        ]).
+    provider_module/1
+]).
 
 -include("kazoo_speech.hrl").
 
@@ -36,11 +41,18 @@ create(Text, Voice) ->
 create(Text, Voice, Format) ->
     create(Text, Voice, Format, []).
 
--spec create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> create_resp().
+-spec create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    create_resp().
 create(Text, Voice, Format, Options) ->
     create(default_provider(), Text, Voice, Format, Options).
 
--spec create(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> create_resp().
+-spec create(
+    kz_term:api_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:proplist()
+) -> create_resp().
 create('undefined', Text, Voice, Format, Options) ->
     create(Text, Voice, Format, Options);
 create(<<"flite">>, _Text, _Voice, _Format, _Options) ->
@@ -74,11 +86,12 @@ default_provider() ->
 -spec default_provider(kapps_call:call()) -> kz_term:ne_binary().
 default_provider(Call) ->
     Default = default_provider(),
-    kapps_account_config:get_global(kapps_call:account_id(Call)
-                                   ,?MOD_CONFIG_CAT
-                                   ,<<"tts_provider">>
-                                   ,Default
-                                   ).
+    kapps_account_config:get_global(
+        kapps_call:account_id(Call),
+        ?MOD_CONFIG_CAT,
+        <<"tts_provider">>,
+        Default
+    ).
 
 -spec set_default_provider(kz_term:ne_binary()) -> 'ok'.
 set_default_provider(Provider) ->

@@ -7,26 +7,29 @@
 -module(crossbar_default_handler).
 -behaviour(cowboy_handler).
 
--export([init/2
-        ,upgrade/4
-        ,handle/2
-        ,terminate/3
-        ]).
+-export([
+    init/2,
+    upgrade/4,
+    handle/2,
+    terminate/3
+]).
 
 -include("crossbar.hrl").
 
--define(DEFAULT_PATHS, [<<"/:version/accounts/:account_id/vmboxes/:box_id/messages/:message_id/raw">>
-                       ,<<"/:version/accounts/:account_id/faxes/:direction/:fax_id/attachment">>
-                       ,<<"/:version/accounts/:account_id/presence/:reportid">>
-                       ]).
+-define(DEFAULT_PATHS, [
+    <<"/:version/accounts/:account_id/vmboxes/:box_id/messages/:message_id/raw">>,
+    <<"/:version/accounts/:account_id/faxes/:direction/:fax_id/attachment">>,
+    <<"/:version/accounts/:account_id/presence/:reportid">>
+]).
 
 -spec init(cowboy_req:req(), kz_term:proplist()) ->
-          {'ok', cowboy_req:req(), 'undefined'}.
+    {'ok', cowboy_req:req(), 'undefined'}.
 init(Req, HandlerOpts) ->
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
     Path = cowboy_req:path(Req),
     case get_magic_token(Path) of
-        'undefined' -> handle(Req, HandlerOpts);
+        'undefined' ->
+            handle(Req, HandlerOpts);
         Magic ->
             case is_valid_magic_path(Magic) of
                 'true' ->
@@ -39,25 +42,31 @@ init(Req, HandlerOpts) ->
     end.
 
 is_valid_magic_path(Path) ->
-    is_valid_magic_path(Path, kapps_config:get(?CONFIG_CAT, <<"magic_path_patterns">>, ?DEFAULT_PATHS)).
+    is_valid_magic_path(
+        Path, kapps_config:get(?CONFIG_CAT, <<"magic_path_patterns">>, ?DEFAULT_PATHS)
+    ).
 
 is_valid_magic_path(Path, Templates) ->
     lists:any(fun(Template) -> path_matches_template(Path, Template) end, Templates).
 
 path_matches_template(Path, Template) ->
     lager:debug("testing ~s against ~s", [Path, Template]),
-    path_matches_template_tokens(binary:split(Path, <<"/">>, ['global'])
-                                ,binary:split(Template, <<"/">>, ['global'])
-                                ).
+    path_matches_template_tokens(
+        binary:split(Path, <<"/">>, ['global']),
+        binary:split(Template, <<"/">>, ['global'])
+    ).
 
-path_matches_template_tokens([], []) -> 'true';
-path_matches_template_tokens([_|PathTokens], [<<":", _/binary>>|TemplateTokens]) ->
+path_matches_template_tokens([], []) ->
+    'true';
+path_matches_template_tokens([_ | PathTokens], [<<":", _/binary>> | TemplateTokens]) ->
     path_matches_template_tokens(PathTokens, TemplateTokens);
-path_matches_template_tokens([Token|PathTokens], [Token|TemplateTokens]) ->
+path_matches_template_tokens([Token | PathTokens], [Token | TemplateTokens]) ->
     path_matches_template_tokens(PathTokens, TemplateTokens);
-path_matches_template_tokens(_, _) -> 'false'.
+path_matches_template_tokens(_, _) ->
+    'false'.
 
--spec upgrade(cowboy_req:req(), cowboy_middleware:env(), any(), any()) -> {'ok', cowboy_req:req(), cowboy_middleware:env()}.
+-spec upgrade(cowboy_req:req(), cowboy_middleware:env(), any(), any()) ->
+    {'ok', cowboy_req:req(), cowboy_middleware:env()}.
 upgrade(Req, Env, _Handler, HandlerOpts) ->
     NewEnv = maps:put('handler', 'api_resource', Env),
     cowboy_rest:upgrade(Req, NewEnv, 'api_resource', HandlerOpts).
@@ -65,10 +74,13 @@ upgrade(Req, Env, _Handler, HandlerOpts) ->
 get_magic_token(Path) ->
     get_magic_token_from_path(binary:split(Path, <<"/">>, ['global'])).
 
-get_magic_token_from_path([]) -> 'undefined';
-get_magic_token_from_path([<<>>|Paths]) -> get_magic_token_from_path(Paths);
-get_magic_token_from_path([Path|Paths]) ->
-    try kapps_util:from_magic_hash(Path)
+get_magic_token_from_path([]) ->
+    'undefined';
+get_magic_token_from_path([<<>> | Paths]) ->
+    get_magic_token_from_path(Paths);
+get_magic_token_from_path([Path | Paths]) ->
+    try
+        kapps_util:from_magic_hash(Path)
     catch
         _:_ -> get_magic_token_from_path(Paths)
     end.

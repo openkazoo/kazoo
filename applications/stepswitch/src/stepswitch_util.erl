@@ -17,13 +17,14 @@
 -export([json_to_template_props/1]).
 
 -ifdef(TEST).
--export([maybe_constrain_shortdial_correction/3
-        ,shortdial_correction_length/3
-        ,maybe_deny_reclassified_number/3
-        ,do_correct_shortdial/3
-        ,should_correct_shortdial/2
-        ,correct_shortdial/4
-        ]).
+-export([
+    maybe_constrain_shortdial_correction/3,
+    shortdial_correction_length/3,
+    maybe_deny_reclassified_number/3,
+    do_correct_shortdial/3,
+    should_correct_shortdial/2,
+    correct_shortdial/4
+]).
 -endif.
 
 -include("stepswitch.hrl").
@@ -35,7 +36,8 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_realm(kz_term:api_binary() | kz_json:object()) -> kz_term:api_ne_binary().
-get_realm('undefined') -> 'undefined';
+get_realm('undefined') ->
+    'undefined';
 get_realm(From) when is_binary(From) ->
     case binary:split(From, <<"@">>) of
         [_, Realm] -> Realm;
@@ -43,13 +45,13 @@ get_realm(From) when is_binary(From) ->
     end;
 get_realm(JObj) ->
     AuthRealm = kz_json:get_ne_binary_value(<<"Auth-Realm">>, JObj),
-    case kz_term:is_empty(AuthRealm)
-        orelse kz_network_utils:is_ipv4(AuthRealm)
-        orelse kz_network_utils:is_ipv6(AuthRealm)
+    case
+        kz_term:is_empty(AuthRealm) orelse
+            kz_network_utils:is_ipv4(AuthRealm) orelse
+            kz_network_utils:is_ipv6(AuthRealm)
     of
         'false' -> AuthRealm;
-        'true' ->
-            get_realm(kz_json:get_ne_binary_value(<<"From">>, JObj))
+        'true' -> get_realm(kz_json:get_ne_binary_value(<<"From">>, JObj))
     end.
 
 %%------------------------------------------------------------------------------
@@ -88,14 +90,16 @@ get_outbound_destination(OffnetReq) ->
 %%------------------------------------------------------------------------------
 -spec correct_shortdial(kz_term:ne_binary(), kapi_offnet_resource:req()) -> kz_term:api_binary().
 correct_shortdial(Number, OffnetReq) ->
-    CIDNum = case stepswitch_bridge:bridge_outbound_cid_number(OffnetReq) of
-                 'undefined' -> Number;
-                 N -> N
-             end,
+    CIDNum =
+        case stepswitch_bridge:bridge_outbound_cid_number(OffnetReq) of
+            'undefined' -> Number;
+            N -> N
+        end,
     DeniedCallRestrictions = kapi_offnet_resource:denied_call_restrictions(OffnetReq),
     correct_shortdial(Number, CIDNum, DeniedCallRestrictions).
 
--spec correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
+-spec correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_term:api_ne_binary().
 correct_shortdial(<<"+", Number/binary>>, CIDNum, DeniedCallRestrictions) ->
     correct_shortdial(Number, CIDNum, DeniedCallRestrictions);
 correct_shortdial(Number, <<"+", CIDNum/binary>>, DeniedCallRestrictions) ->
@@ -103,33 +107,40 @@ correct_shortdial(Number, <<"+", CIDNum/binary>>, DeniedCallRestrictions) ->
 correct_shortdial(Number, CIDNum, DeniedCallRestrictions) when is_binary(CIDNum) ->
     correct_shortdial(Number, CIDNum, DeniedCallRestrictions, should_correct_shortdial(Number)).
 
--spec correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), {boolean(), pos_integer()}) -> kz_term:api_ne_binary().
+-spec correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), {
+    boolean(), pos_integer()
+}) -> kz_term:api_ne_binary().
 correct_shortdial(Number, CIDNum, DeniedCallRestrictions, {'true', _Length}) ->
     case shortdial_correction_length(Number, CIDNum) of
         0 ->
-            lager:debug("unable to correct shortdial ~s via CID ~s"
-                       ,[Number, CIDNum]
-                       ),
+            lager:debug(
+                "unable to correct shortdial ~s via CID ~s",
+                [Number, CIDNum]
+            ),
             'undefined';
         Length ->
-            maybe_deny_reclassified_number(do_correct_shortdial(Number, CIDNum, Length)
-                                          ,CIDNum
-                                          ,DeniedCallRestrictions
-                                          )
+            maybe_deny_reclassified_number(
+                do_correct_shortdial(Number, CIDNum, Length),
+                CIDNum,
+                DeniedCallRestrictions
+            )
     end;
 correct_shortdial(Number, _CIDNum, _DeniedCallRestrictions, {'false', Length}) ->
-    lager:debug("~s's lenght (~p) doesn't match min_shortdial_destination param's value (~p), skipping"
-               ,[Number, byte_size(Number), Length]
-               ),
+    lager:debug(
+        "~s's lenght (~p) doesn't match min_shortdial_destination param's value (~p), skipping",
+        [Number, byte_size(Number), Length]
+    ),
     'undefined'.
 
 -spec should_correct_shortdial(kz_term:ne_binary()) -> {boolean(), pos_integer()}.
 should_correct_shortdial(Number) ->
-    should_correct_shortdial(Number
-                            ,kapps_config:get_integer(?SS_CONFIG_CAT
-                                                     ,<<"min_shortdial_destination">>
-                                                     )
-                            ).
+    should_correct_shortdial(
+        Number,
+        kapps_config:get_integer(
+            ?SS_CONFIG_CAT,
+            <<"min_shortdial_destination">>
+        )
+    ).
 
 -spec should_correct_shortdial(kz_term:ne_binary(), pos_integer()) -> {boolean(), pos_integer()}.
 should_correct_shortdial(_Number, 'undefined') ->
@@ -139,19 +150,22 @@ should_correct_shortdial(Number, Length) ->
     %% parameter again when printing the debug line. So it is only useful for the `{false, N}' branch.
     {byte_size(Number) =:= Length, Length}.
 
--spec do_correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), non_neg_integer()) -> kz_term:api_ne_binary().
+-spec do_correct_shortdial(kz_term:ne_binary(), kz_term:ne_binary(), non_neg_integer()) ->
+    kz_term:api_ne_binary().
 do_correct_shortdial(Number, CIDNum, Length) ->
     Correction = kz_binary:truncate_right(CIDNum, Length),
     CorrectedNumber = knm_converters:normalize(<<Correction/binary, Number/binary>>),
     lager:debug("corrected shortdial ~s via CID ~s to ~s", [Number, CIDNum, CorrectedNumber]),
     CorrectedNumber.
 
--spec maybe_deny_reclassified_number(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_term:api_ne_binary().
+-spec maybe_deny_reclassified_number(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_term:api_ne_binary().
 maybe_deny_reclassified_number(CorrectedNumber, CIDNum, DeniedCallRestrictions) ->
     Classification = knm_converters:classify(CorrectedNumber),
-    lager:debug("re-classified corrected number ~s as ~s, testing for call restrictions"
-               ,[CorrectedNumber, Classification]
-               ),
+    lager:debug(
+        "re-classified corrected number ~s as ~s, testing for call restrictions",
+        [CorrectedNumber, Classification]
+    ),
     case kz_json:get_ne_binary_value([Classification, <<"action">>], DeniedCallRestrictions) of
         <<"deny">> ->
             lager:info("unable to correct shortdial via CID ~s due to a call restriction", [CIDNum]),
@@ -162,12 +176,14 @@ maybe_deny_reclassified_number(CorrectedNumber, CIDNum, DeniedCallRestrictions) 
 
 -spec shortdial_correction_length(kz_term:ne_binary(), kz_term:ne_binary()) -> integer().
 shortdial_correction_length(Number, CIDNum) ->
-    shortdial_correction_length(Number
-                               ,CIDNum
-                               ,kapps_config:get_integer(?SS_CONFIG_CAT
-                                                        ,<<"fixed_length_shortdial_correction">>
-                                                        )
-                               ).
+    shortdial_correction_length(
+        Number,
+        CIDNum,
+        kapps_config:get_integer(
+            ?SS_CONFIG_CAT,
+            <<"fixed_length_shortdial_correction">>
+        )
+    ).
 
 -spec shortdial_correction_length(kz_term:ne_binary(), kz_term:ne_binary(), integer()) -> integer().
 shortdial_correction_length(Number, CIDNum, 'undefined') ->
@@ -178,20 +194,25 @@ shortdial_correction_length(_Number, _CIDNum, FixedLength) ->
 
 -spec maybe_constrain_shortdial_correction(integer()) -> integer().
 maybe_constrain_shortdial_correction(Length) ->
-    maybe_constrain_shortdial_correction(Length
-                                        ,kapps_config:get_integer(?SS_CONFIG_CAT
-                                                                 ,<<"min_shortdial_correction">>
-                                                                 ,2
-                                                                 )
-                                        ,kapps_config:get_integer(?SS_CONFIG_CAT
-                                                                 ,<<"max_shortdial_correction">>
-                                                                 ,5
-                                                                 )
-                                        ).
+    maybe_constrain_shortdial_correction(
+        Length,
+        kapps_config:get_integer(
+            ?SS_CONFIG_CAT,
+            <<"min_shortdial_correction">>,
+            2
+        ),
+        kapps_config:get_integer(
+            ?SS_CONFIG_CAT,
+            <<"max_shortdial_correction">>,
+            5
+        )
+    ).
 
 -spec maybe_constrain_shortdial_correction(integer(), integer(), integer()) -> integer().
-maybe_constrain_shortdial_correction(Length, Min, Max) when Length >= Min
-                                                            andalso Length =< Max ->
+maybe_constrain_shortdial_correction(Length, Min, Max) when
+    Length >= Min andalso
+        Length =< Max
+->
     Length;
 maybe_constrain_shortdial_correction(_Length, _Min, _Max) ->
     0.
@@ -204,10 +225,11 @@ get_sip_headers(OffnetReq) ->
             maybe_remove_diversions(SIPHeaders);
         Diversions ->
             lager:debug("setting diversions ~p", [Diversions]),
-            kz_json:set_value(<<"Diversions">>
-                             ,Diversions
-                             ,SIPHeaders
-                             )
+            kz_json:set_value(
+                <<"Diversions">>,
+                Diversions,
+                SIPHeaders
+            )
     end.
 
 -spec maybe_remove_diversions(kz_json:object()) -> kz_json:object().
@@ -215,39 +237,47 @@ maybe_remove_diversions(JObj) ->
     kz_json:delete_key(<<"Diversions">>, JObj).
 
 -spec get_diversions(kz_json:object()) ->
-          'undefined' |
-          kz_term:ne_binaries().
+    'undefined'
+    | kz_term:ne_binaries().
 get_diversions(JObj) ->
     Inception = kz_json:get_value(<<"Inception">>, JObj),
     Diversions = kz_json:get_value(<<"Diversions">>, JObj, []),
     get_diversions(Inception, Diversions).
 
 -spec get_diversions(kz_term:api_binary(), kz_term:ne_binaries()) ->
-          'undefined' |
-          kz_term:ne_binaries().
-get_diversions('undefined', _Diversion) -> 'undefined';
-get_diversions(_Inception, []) -> 'undefined';
+    'undefined'
+    | kz_term:ne_binaries().
+get_diversions('undefined', _Diversion) ->
+    'undefined';
+get_diversions(_Inception, []) ->
+    'undefined';
 get_diversions(Inception, Diversions) ->
-    Fs = [{fun kzsip_diversion:set_address/2, <<"sip:", Inception/binary>>}
-         ,{fun kzsip_diversion:set_counter/2, find_diversion_count(Diversions) + 1}
-         ],
-    [kzsip_diversion:to_binary(
-       lists:foldl(fun({F, V}, D) -> F(D, V) end
-                  ,kzsip_diversion:new()
-                  ,Fs
-                  )
-      )
+    Fs = [
+        {fun kzsip_diversion:set_address/2, <<"sip:", Inception/binary>>},
+        {fun kzsip_diversion:set_counter/2, find_diversion_count(Diversions) + 1}
+    ],
+    [
+        kzsip_diversion:to_binary(
+            lists:foldl(
+                fun({F, V}, D) -> F(D, V) end,
+                kzsip_diversion:new(),
+                Fs
+            )
+        )
     ].
 
 -spec find_diversion_count(kz_term:ne_binaries()) -> non_neg_integer().
 find_diversion_count(Diversions) ->
-    lists:max([kzsip_diversion:counter(
-                 kzsip_diversion:from_binary(Diversion)
-                )
-               || Diversion <- Diversions
-              ]).
+    lists:max([
+        kzsip_diversion:counter(
+            kzsip_diversion:from_binary(Diversion)
+        )
+     || Diversion <- Diversions
+    ]).
 
--spec format_endpoints(kz_json:objects(), kz_term:ne_binary(), kz_term:ne_binary(), kapi_offnet_resource:req()) -> kz_json:objects().
+-spec format_endpoints(
+    kz_json:objects(), kz_term:ne_binary(), kz_term:ne_binary(), kapi_offnet_resource:req()
+) -> kz_json:objects().
 format_endpoints(Endpoints, Name, Number, OffnetReq) ->
     EndpointFilter = build_filter_fun(Name, Number),
     format_endpoints(Endpoints, Name, Number, OffnetReq, EndpointFilter).
@@ -255,21 +285,35 @@ format_endpoints(Endpoints, Name, Number, OffnetReq) ->
 -type filter_fun() :: fun(({kz_term:ne_binary(), kz_term:ne_binary()}) -> boolean()).
 -spec build_filter_fun(kz_term:ne_binary(), kz_term:ne_binary()) -> filter_fun().
 build_filter_fun(Name, Number) ->
-    fun({?KEY_OUTBOUND_CALLER_ID_NUMBER, N}) when N =:= Number -> 'false';
-       ({?KEY_OUTBOUND_CALLER_ID_NAME, N}) when N =:= Name -> 'false';
-       (_Else) -> 'true'
+    fun
+        ({?KEY_OUTBOUND_CALLER_ID_NUMBER, N}) when N =:= Number -> 'false';
+        ({?KEY_OUTBOUND_CALLER_ID_NAME, N}) when N =:= Name -> 'false';
+        (_Else) -> 'true'
     end.
 
--spec format_endpoints(kz_json:objects(), kz_term:api_binary(), kz_term:api_binary(), kapi_offnet_resource:req(), filter_fun()) ->
-          kz_json:objects().
+-spec format_endpoints(
+    kz_json:objects(),
+    kz_term:api_binary(),
+    kz_term:api_binary(),
+    kapi_offnet_resource:req(),
+    filter_fun()
+) ->
+    kz_json:objects().
 format_endpoints(Endpoints, Name, Number, OffnetReq, FilterFun) ->
     SIPHeaders = get_sip_headers(OffnetReq),
-    AccountId = kapi_offnet_resource:hunt_account_id(OffnetReq
-                                                    ,kapi_offnet_resource:account_id(OffnetReq)
-                                                    ),
-    [format_endpoint(set_endpoint_caller_id(Endpoint, Name, Number)
-                    ,Number, FilterFun, OffnetReq, SIPHeaders, AccountId
-                    )
+    AccountId = kapi_offnet_resource:hunt_account_id(
+        OffnetReq,
+        kapi_offnet_resource:account_id(OffnetReq)
+    ),
+    [
+        format_endpoint(
+            set_endpoint_caller_id(Endpoint, Name, Number),
+            Number,
+            FilterFun,
+            OffnetReq,
+            SIPHeaders,
+            AccountId
+        )
      || Endpoint <- Endpoints
     ].
 
@@ -280,18 +324,28 @@ default_realm(OffnetReq) ->
         Realm -> Realm
     end.
 
--spec set_endpoint_caller_id(kz_json:object(), kz_term:api_binary(), kz_term:api_binary()) -> kz_json:object().
+-spec set_endpoint_caller_id(kz_json:object(), kz_term:api_binary(), kz_term:api_binary()) ->
+    kz_json:object().
 set_endpoint_caller_id(Endpoint, Name, Number) ->
-    kz_json:insert_values(props:filter_undefined(
-                            [{?KEY_OUTBOUND_CALLER_ID_NUMBER, Number}
-                            ,{?KEY_OUTBOUND_CALLER_ID_NAME, Name}
-                            ]
-                           )
-                         ,Endpoint
-                         ).
+    kz_json:insert_values(
+        props:filter_undefined(
+            [
+                {?KEY_OUTBOUND_CALLER_ID_NUMBER, Number},
+                {?KEY_OUTBOUND_CALLER_ID_NAME, Name}
+            ]
+        ),
+        Endpoint
+    ).
 
--spec format_endpoint(kz_json:object(), kz_term:api_binary(), filter_fun(), kapi_offnet_resource:req(), kz_json:object(), kz_term:ne_binary()) ->
-          kz_json:object().
+-spec format_endpoint(
+    kz_json:object(),
+    kz_term:api_binary(),
+    filter_fun(),
+    kapi_offnet_resource:req(),
+    kz_json:object(),
+    kz_term:ne_binary()
+) ->
+    kz_json:object().
 format_endpoint(Endpoint, Number, FilterFun, OffnetReq, SIPHeaders, AccountId) ->
     FormattedEndpoint = apply_formatters(Endpoint, SIPHeaders, AccountId),
     FilteredEndpoint = kz_json:filter(FilterFun, FormattedEndpoint),
@@ -299,13 +353,15 @@ format_endpoint(Endpoint, Number, FilterFun, OffnetReq, SIPHeaders, AccountId) -
 
 -spec apply_formatters(kz_json:object(), kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 apply_formatters(Endpoint, SIPHeaders, AccountId) ->
-    kz_formatters:apply(maybe_add_sip_headers(Endpoint, SIPHeaders)
-                       ,props:get_value(<<"Formatters">>
-                                       ,endpoint_props(Endpoint, AccountId)
-                                       ,kz_json:new()
-                                       )
-                       ,'outbound'
-                       ).
+    kz_formatters:apply(
+        maybe_add_sip_headers(Endpoint, SIPHeaders),
+        props:get_value(
+            <<"Formatters">>,
+            endpoint_props(Endpoint, AccountId),
+            kz_json:new()
+        ),
+        'outbound'
+    ).
 
 -spec endpoint_props(kz_json:object(), kz_term:api_binary()) -> kz_term:proplist().
 endpoint_props(Endpoint, AccountId) ->
@@ -331,57 +387,73 @@ maybe_add_sip_headers(Endpoint, SIPHeaders) ->
     end.
 
 -spec maybe_endpoint_format_from(kz_json:object(), kz_term:ne_binary(), kapi_offnet_resource:req()) ->
-          kz_json:object().
+    kz_json:object().
 maybe_endpoint_format_from(Endpoint, Number, OffnetReq) ->
     CCVs = kz_json:get_value(<<"Custom-Channel-Vars">>, Endpoint, kz_json:new()),
     case kz_json:is_true(<<"Format-From-URI">>, CCVs) of
-        'true' -> endpoint_format_from(Endpoint, Number, OffnetReq, CCVs);
+        'true' ->
+            endpoint_format_from(Endpoint, Number, OffnetReq, CCVs);
         'false' ->
-            kz_json:set_value(<<"Custom-Channel-Vars">>
-                             ,kz_json:delete_keys([<<"Format-From-URI">>
-                                                  ,<<"From-URI-Realm">>
-                                                  ,<<"From-Account-Realm">>
-                                                  ]
-                                                 ,CCVs
-                                                 )
-                             ,Endpoint
-                             )
+            kz_json:set_value(
+                <<"Custom-Channel-Vars">>,
+                kz_json:delete_keys(
+                    [
+                        <<"Format-From-URI">>,
+                        <<"From-URI-Realm">>,
+                        <<"From-Account-Realm">>
+                    ],
+                    CCVs
+                ),
+                Endpoint
+            )
     end.
 
--spec endpoint_format_from(kz_json:object(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_json:object()) ->
-          kz_json:object().
+-spec endpoint_format_from(
+    kz_json:object(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_json:object()
+) ->
+    kz_json:object().
 endpoint_format_from(Endpoint, Number, OffnetReq, CCVs) ->
     FromNumber = kz_json:get_ne_value(?KEY_OUTBOUND_CALLER_ID_NUMBER, Endpoint, Number),
     case get_endpoint_format_from(OffnetReq, CCVs) of
         <<_/binary>> = Realm ->
             FromURI = <<"sip:", FromNumber/binary, "@", Realm/binary>>,
-            lager:debug("setting resource ~s from-uri to ~s"
-                       ,[kz_json:get_value(<<"Resource-ID">>, CCVs)
-                        ,FromURI
-                        ]),
+            lager:debug(
+                "setting resource ~s from-uri to ~s",
+                [
+                    kz_json:get_value(<<"Resource-ID">>, CCVs),
+                    FromURI
+                ]
+            ),
             UpdatedCCVs = kz_json:set_value(<<"From-URI">>, FromURI, CCVs),
-            kz_json:set_value(<<"Custom-Channel-Vars">>
-                             ,kz_json:delete_keys([<<"Format-From-URI">>
-                                                  ,<<"From-URI-Realm">>
-                                                  ,<<"From-Account-Realm">>
-                                                  ]
-                                                 ,UpdatedCCVs
-                                                 )
-                             ,Endpoint
-                             );
+            kz_json:set_value(
+                <<"Custom-Channel-Vars">>,
+                kz_json:delete_keys(
+                    [
+                        <<"Format-From-URI">>,
+                        <<"From-URI-Realm">>,
+                        <<"From-Account-Realm">>
+                    ],
+                    UpdatedCCVs
+                ),
+                Endpoint
+            );
         _ ->
-            kz_json:set_value(<<"Custom-Channel-Vars">>
-                             ,kz_json:delete_keys([<<"Format-From-URI">>
-                                                  ,<<"From-URI-Realm">>
-                                                  ,<<"From-Account-Realm">>
-                                                  ]
-                                                 ,CCVs
-                                                 )
-                             ,Endpoint
-                             )
+            kz_json:set_value(
+                <<"Custom-Channel-Vars">>,
+                kz_json:delete_keys(
+                    [
+                        <<"Format-From-URI">>,
+                        <<"From-URI-Realm">>,
+                        <<"From-Account-Realm">>
+                    ],
+                    CCVs
+                ),
+                Endpoint
+            )
     end.
 
--spec get_endpoint_format_from(kapi_offnet_resource:req(), kz_json:object()) -> kz_term:api_binary().
+-spec get_endpoint_format_from(kapi_offnet_resource:req(), kz_json:object()) ->
+    kz_term:api_binary().
 get_endpoint_format_from(OffnetReq, CCVs) ->
     case kz_json:is_true(<<"From-Account-Realm">>, CCVs) of
         'true' -> kapi_offnet_resource:account_realm(OffnetReq);
@@ -396,26 +468,39 @@ route_by() ->
         Module -> Module
     end.
 
--spec resources_to_endpoints(stepswitch_resources:resources(), kz_term:ne_binary(), kapi_offnet_resource:req()) ->
-          kz_json:objects().
+-spec resources_to_endpoints(
+    stepswitch_resources:resources(), kz_term:ne_binary(), kapi_offnet_resource:req()
+) ->
+    kz_json:objects().
 resources_to_endpoints(Resources, Number, OffnetJObj) ->
     resources_to_endpoints(Resources, Number, OffnetJObj, []).
 
--spec resources_to_endpoints(stepswitch_resources:resources(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_json:objects()) ->
-          kz_json:objects().
+-spec resources_to_endpoints(
+    stepswitch_resources:resources(),
+    kz_term:ne_binary(),
+    kapi_offnet_resource:req(),
+    kz_json:objects()
+) ->
+    kz_json:objects().
 resources_to_endpoints([], _Number, _OffnetJObj, Endpoints) ->
     lists:reverse(Endpoints);
-resources_to_endpoints([Resource|Resources], Number, OffnetJObj, Endpoints) ->
+resources_to_endpoints([Resource | Resources], Number, OffnetJObj, Endpoints) ->
     MoreEndpoints = maybe_resource_to_endpoints(Resource, Number, OffnetJObj, Endpoints),
     resources_to_endpoints(Resources, Number, OffnetJObj, MoreEndpoints).
 
--spec maybe_resource_to_endpoints(stepswitch_resources:resource(), kz_term:ne_binary(), kapi_offnet_resource:req(), kz_json:objects()) ->
-          kz_json:objects().
-maybe_resource_to_endpoints(Resource
-                           ,Number
-                           ,OffnetJObj
-                           ,Endpoints
-                           ) ->
+-spec maybe_resource_to_endpoints(
+    stepswitch_resources:resource(),
+    kz_term:ne_binary(),
+    kapi_offnet_resource:req(),
+    kz_json:objects()
+) ->
+    kz_json:objects().
+maybe_resource_to_endpoints(
+    Resource,
+    Number,
+    OffnetJObj,
+    Endpoints
+) ->
     Id = stepswitch_resources:get_resrc_id(Resource),
     Name = stepswitch_resources:get_resrc_name(Resource),
     Gateways = stepswitch_resources:get_resrc_gateways(Resource),
@@ -426,17 +511,22 @@ maybe_resource_to_endpoints(Resource
     %% DestinationNumber = maybe_update_number(Resource, Number),
     DestinationNumber = Number,
     lager:debug("building resource ~s endpoints", [Id]),
-    CCVUpdates = [{<<"Global-Resource">>, kz_term:to_binary(Global)}
-                 ,{<<"Resource-ID">>, Id}
-                 ,{<<"E164-Destination">>, DestinationNumber}
-                 ,{<<"Original-Number">>, kapi_offnet_resource:to_did(OffnetJObj)}
-                 ],
-    Updates = [{<<"Name">>, Name}
-              ,{<<"Weight">>, Weight}
-              ],
-    EndpointList = [kz_json:set_values(Updates ,update_ccvs(Endpoint, CCVUpdates))
-                    || Endpoint <- stepswitch_resources:gateways_to_endpoints(DestinationNumber, Gateways, OffnetJObj, [])
-                   ],
+    CCVUpdates = [
+        {<<"Global-Resource">>, kz_term:to_binary(Global)},
+        {<<"Resource-ID">>, Id},
+        {<<"E164-Destination">>, DestinationNumber},
+        {<<"Original-Number">>, kapi_offnet_resource:to_did(OffnetJObj)}
+    ],
+    Updates = [
+        {<<"Name">>, Name},
+        {<<"Weight">>, Weight}
+    ],
+    EndpointList = [
+        kz_json:set_values(Updates, update_ccvs(Endpoint, CCVUpdates))
+     || Endpoint <- stepswitch_resources:gateways_to_endpoints(
+            DestinationNumber, Gateways, OffnetJObj, []
+        )
+    ],
     stepswitch_resources:maybe_add_proxies(EndpointList, Proxies, Endpoints).
 
 -spec update_ccvs(kz_json:object(), kz_term:proplist()) -> kz_json:object().
@@ -455,8 +545,7 @@ update_ccvs(Endpoint, Updates) ->
 %%------------------------------------------------------------------------------
 -spec json_to_template_props(kz_term:api_object()) -> 'undefined' | kz_term:proplist().
 json_to_template_props('undefined') -> 'undefined';
-json_to_template_props(JObj) ->
-    normalize_proplist(kz_json:recursive_to_proplist(JObj)).
+json_to_template_props(JObj) -> normalize_proplist(kz_json:recursive_to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -467,7 +556,7 @@ normalize_proplist(Props) ->
     [normalize_proplist_element(Elem) || Elem <- Props].
 
 -spec normalize_proplist_element({kz_term:proplist_key(), kz_term:proplist_value()}) ->
-          {kz_term:proplist_key(), kz_term:proplist_value()}.
+    {kz_term:proplist_key(), kz_term:proplist_value()}.
 normalize_proplist_element({K, V}) when is_list(V) ->
     {normalize_value(K), normalize_proplist(V)};
 normalize_proplist_element({K, V}) when is_binary(V) ->

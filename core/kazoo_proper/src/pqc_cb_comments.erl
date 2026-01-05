@@ -6,14 +6,12 @@
 -module(pqc_cb_comments).
 
 %% Manual testing
--export([seq/0
-        ]).
+-export([seq/0]).
 
 %% API Shims
 
 -include_lib("proper/include/proper.hrl").
 -include("kazoo_proper.hrl").
-
 
 -spec seq() -> 'ok'.
 seq() ->
@@ -35,11 +33,13 @@ init_system() ->
     kz_util:put_callid(TestId),
 
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_cdrs']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_cdrs']
+    ],
 
     ?INFO("INIT FINISHED").

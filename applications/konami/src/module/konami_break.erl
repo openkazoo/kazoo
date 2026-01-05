@@ -8,23 +8,25 @@
 %%%-----------------------------------------------------------------------------
 -module(konami_break).
 
--export([handle/2
-        ,number_builder/1
-        ]).
+-export([
+    handle/2,
+    number_builder/1
+]).
 
 -include("konami.hrl").
 
 -spec handle(kz_json:object(), kapps_call:call()) ->
-          {'continue', kapps_call:call()}.
+    {'continue', kapps_call:call()}.
 handle(Data, Call) ->
     RequestingLeg = kz_json:get_value(<<"dtmf_leg">>, Data),
 
     lager:debug("attempting to break ~s", [RequestingLeg]),
 
-    Command = [{<<"Application-Name">>, <<"break">>}
-              ,{<<"Call-ID">>, RequestingLeg}
-              ,{<<"Insert-At">>, <<"now">>}
-              ],
+    Command = [
+        {<<"Application-Name">>, <<"break">>},
+        {<<"Call-ID">>, RequestingLeg},
+        {<<"Insert-At">>, <<"now">>}
+    ],
     kapps_call_command:send_command(Command, Call),
     {'continue', Call}.
 
@@ -62,6 +64,10 @@ number_builder_check_option(NumberJObj, _Option) ->
 
 -spec metaflow_jobj(kz_json:object()) -> kz_json:object().
 metaflow_jobj(NumberJObj) ->
-    kz_json:set_values([{<<"module">>, <<"break">>}
-                       ,{<<"data">>, kz_json:new()}
-                       ], NumberJObj).
+    kz_json:set_values(
+        [
+            {<<"module">>, <<"break">>},
+            {<<"data">>, kz_json:new()}
+        ],
+        NumberJObj
+    ).

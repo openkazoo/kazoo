@@ -10,11 +10,12 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_hotdesks).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,validate/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    validate/1
+]).
 
 -include("crossbar.hrl").
 
@@ -76,10 +77,11 @@ validate(Context) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_hotdesks(cb_context:context(), http_method(), kz_term:proplist()) -> cb_context:context().
-validate_hotdesks(Context, ?HTTP_GET, [{<<"hotdesks">>, _}, {<<"users">>, [UserId]}|_]) ->
+-spec validate_hotdesks(cb_context:context(), http_method(), kz_term:proplist()) ->
+    cb_context:context().
+validate_hotdesks(Context, ?HTTP_GET, [{<<"hotdesks">>, _}, {<<"users">>, [UserId]} | _]) ->
     fetch_device_hotdesks(UserId, Context);
-validate_hotdesks(Context, ?HTTP_GET, [{<<"hotdesks">>, _}, {<<"devices">>, [DeviceId]}|_]) ->
+validate_hotdesks(Context, ?HTTP_GET, [{<<"hotdesks">>, _}, {<<"devices">>, [DeviceId]} | _]) ->
     fetch_user_hotdesks(DeviceId, Context);
 validate_hotdesks(Context, ?HTTP_GET, _) ->
     fetch_all_hotdesks(Context).
@@ -89,9 +91,9 @@ validate_hotdesks(Context, ?HTTP_GET, _) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) ->
-          kz_json:objects().
+    kz_json:objects().
 normalize_view_results(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -109,7 +111,8 @@ fetch_user_hotdesks(DeviceId, Context) ->
             JObj = cb_context:doc(Context1),
             Users = kz_json:get_value([<<"hotdesk">>, <<"users">>], JObj, kz_json:new()),
             fetch_users(kz_json:get_keys(Users), Context1);
-        _Else -> Context1
+        _Else ->
+            Context1
     end.
 
 -spec fetch_users(kz_term:ne_binaries(), cb_context:context()) -> cb_context:context().

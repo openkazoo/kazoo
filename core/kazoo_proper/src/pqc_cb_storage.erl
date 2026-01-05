@@ -7,16 +7,20 @@
 -module(pqc_cb_storage).
 
 %% Manual testing
--export([seq/0, blacklisted_url/0
-        ,cleanup/0
-        ,storage_doc/1
-        ,help_14316/0, help_14308/0
-        ]).
+-export([
+    seq/0,
+    blacklisted_url/0,
+    cleanup/0,
+    storage_doc/1,
+    help_14316/0,
+    help_14308/0
+]).
 
 %% API Shims
--export([create/3, create/4
-        ,update/3, update/4
-        ]).
+-export([
+    create/3, create/4,
+    update/3, update/4
+]).
 %%         ,fetch/1
 %%         ]).
 
@@ -42,42 +46,54 @@
 -define(SEND_MULTIPART, 'true').
 
 -spec create(pqc_cb_api:state(), kz_term:api_ne_binary(), kz_term:ne_binary() | kz_json:object()) ->
-          pqc_cb_api:response().
+    pqc_cb_api:response().
 create(API, AccountId, StorageDoc) ->
     create(API, AccountId, StorageDoc, 'undefined').
 
--spec create(pqc_cb_api:state(), kz_term:api_ne_binary(), kz_term:ne_binary() | kz_json:object(), kz_term:api_boolean()) ->
-          pqc_cb_api:response().
-create(API, AccountId, ?NE_BINARY=UUID, ValidateSettings) ->
+-spec create(
+    pqc_cb_api:state(),
+    kz_term:api_ne_binary(),
+    kz_term:ne_binary() | kz_json:object(),
+    kz_term:api_boolean()
+) ->
+    pqc_cb_api:response().
+create(API, AccountId, ?NE_BINARY = UUID, ValidateSettings) ->
     create(API, AccountId, storage_doc(UUID), ValidateSettings);
 create(API, AccountId, StorageDoc, ValidateSettings) ->
     StorageURL = storage_url(AccountId, ValidateSettings),
     RequestHeaders = pqc_cb_api:request_headers(API, [{<<"content-type">>, <<"application/json">>}]),
-    pqc_cb_api:make_request([201]
-                           ,fun kz_http:put/3
-                           ,StorageURL
-                           ,RequestHeaders
-                           ,kz_json:encode(pqc_cb_api:create_envelope(StorageDoc))
-                           ).
+    pqc_cb_api:make_request(
+        [201],
+        fun kz_http:put/3,
+        StorageURL,
+        RequestHeaders,
+        kz_json:encode(pqc_cb_api:create_envelope(StorageDoc))
+    ).
 
 -spec update(pqc_cb_api:state(), kz_term:api_ne_binary(), kz_term:ne_binary() | kz_json:object()) ->
-          pqc_cb_api:response().
+    pqc_cb_api:response().
 update(API, AccountId, StorageDoc) ->
     update(API, AccountId, StorageDoc, 'undefined').
 
--spec update(pqc_cb_api:state(), kz_term:api_ne_binary(), kz_term:ne_binary() | kz_json:object(), kz_term:api_boolean()) ->
-          pqc_cb_api:response().
+-spec update(
+    pqc_cb_api:state(),
+    kz_term:api_ne_binary(),
+    kz_term:ne_binary() | kz_json:object(),
+    kz_term:api_boolean()
+) ->
+    pqc_cb_api:response().
 update(API, AccountId, <<UUID/binary>>, ValidateSettings) ->
     update(API, AccountId, storage_doc(UUID), ValidateSettings);
 update(API, AccountId, StorageDoc, ValidateSettings) ->
     StorageURL = storage_url(AccountId, ValidateSettings),
     RequestHeaders = pqc_cb_api:request_headers(API, [{<<"content-type">>, <<"application/json">>}]),
-    pqc_cb_api:make_request([200]
-                           ,fun kz_http:post/3
-                           ,StorageURL
-                           ,RequestHeaders
-                           ,kz_json:encode(pqc_cb_api:create_envelope(StorageDoc))
-                           ).
+    pqc_cb_api:make_request(
+        [200],
+        fun kz_http:post/3,
+        StorageURL,
+        RequestHeaders,
+        kz_json:encode(pqc_cb_api:create_envelope(StorageDoc))
+    ).
 
 storage_url('undefined') ->
     string:join([pqc_cb_api:v2_base_url(), "storage"], "/");
@@ -100,12 +116,14 @@ init_system() ->
     kz_util:put_callid(TestId),
 
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar', 'media_mgr']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_storage', 'cb_vmboxes']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar', 'media_mgr']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_storage', 'cb_vmboxes']
+    ],
 
     _HTTPD = pqc_httpd:start_link(TestId),
     lager:info("HTTPD started: ~p", [_HTTPD]),
@@ -114,14 +132,15 @@ init_system() ->
 
 -spec seq() -> 'ok'.
 seq() ->
-    Tests = [fun base_test/0
-            ,fun skip_validation_test/0
-            ,fun global_test/0
-            ,fun missing_ref_test/0
-            ,fun blacklisted_url/0
-            ,fun help_14316/0
-            ,fun help_14308/0
-            ],
+    Tests = [
+        fun base_test/0,
+        fun skip_validation_test/0,
+        fun global_test/0,
+        fun missing_ref_test/0,
+        fun blacklisted_url/0,
+        fun help_14316/0,
+        fun help_14308/0
+    ],
     lists:foreach(fun run_test/1, Tests).
 
 run_test(TestFun) ->
@@ -139,23 +158,29 @@ help_14308() ->
     Base = pqc_httpd:base_url(),
     URL = <<Base/binary, ?MODULE_STRING>>,
 
-    HandlerSettings = kz_json:from_list([{<<"handler">>, <<"http">>}
-                                        ,{<<"name">>, <<"recording_server">>}
-                                        ,{<<"settings">>
-                                         ,kz_json:from_list([{<<"url">>, URL}
-                                                            ,{<<"verb">>, <<"post">>}
-                                                            ,{<<"base64_encode_data">>, 'false'}
-                                                            ,{<<"field_list">>, []}
-                                                            ])
-                                         }
-                                        ]),
+    HandlerSettings = kz_json:from_list([
+        {<<"handler">>, <<"http">>},
+        {<<"name">>, <<"recording_server">>},
+        {<<"settings">>,
+            kz_json:from_list([
+                {<<"url">>, URL},
+                {<<"verb">>, <<"post">>},
+                {<<"base64_encode_data">>, 'false'},
+                {<<"field_list">>, []}
+            ])}
+    ]),
     Attachments = kz_json:from_list([{UUID, HandlerSettings}]),
 
-    Plan = kz_json:set_value([<<"modb">>, <<"types">>, <<"mailbox_message">>, <<"attachments">>, <<"handler">>], UUID, kz_json:new()),
+    Plan = kz_json:set_value(
+        [<<"modb">>, <<"types">>, <<"mailbox_message">>, <<"attachments">>, <<"handler">>],
+        UUID,
+        kz_json:new()
+    ),
 
-    StorageDoc = kz_json:from_list([{<<"attachments">>, Attachments}
-                                   ,{<<"plan">>, Plan}
-                                   ]),
+    StorageDoc = kz_json:from_list([
+        {<<"attachments">>, Attachments},
+        {<<"plan">>, Plan}
+    ]),
 
     kzs_plan:allow_validation_overrides(),
     CreatedResp = create(API, AccountId, StorageDoc, 'false'),
@@ -174,24 +199,31 @@ help_14316() ->
     AccountId = create_account(API),
 
     UUID = kz_binary:rand_hex(16),
-    URL = <<"http://2600.hz/index.fu?key=abc123&env=ext&reseller_id=42&reseller_prefix=prefix&account_prefix=pdp&recording=">>,
+    URL =
+        <<"http://2600.hz/index.fu?key=abc123&env=ext&reseller_id=42&reseller_prefix=prefix&account_prefix=pdp&recording=">>,
 
-    HandlerSettings = kz_json:from_list([{<<"handler">>, <<"http">>}
-                                        ,{<<"name">>, <<"recording_server">>}
-                                        ,{<<"settings">>
-                                         ,kz_json:from_list([{<<"url">>, URL}
-                                                            ,{<<"verb">>, <<"post">>}
-                                                            ,{<<"base64_encode_data">>, 'false'}
-                                                            ])
-                                         }
-                                        ]),
+    HandlerSettings = kz_json:from_list([
+        {<<"handler">>, <<"http">>},
+        {<<"name">>, <<"recording_server">>},
+        {<<"settings">>,
+            kz_json:from_list([
+                {<<"url">>, URL},
+                {<<"verb">>, <<"post">>},
+                {<<"base64_encode_data">>, 'false'}
+            ])}
+    ]),
     Attachments = kz_json:from_list([{UUID, HandlerSettings}]),
 
-    Plan = kz_json:set_value([<<"modb">>, <<"types">>, <<"call_recording">>, <<"attachments">>, <<"handler">>], UUID, kz_json:new()),
+    Plan = kz_json:set_value(
+        [<<"modb">>, <<"types">>, <<"call_recording">>, <<"attachments">>, <<"handler">>],
+        UUID,
+        kz_json:new()
+    ),
 
-    StorageDoc = kz_json:from_list([{<<"attachments">>, Attachments}
-                                   ,{<<"plan">>, Plan}
-                                   ]),
+    StorageDoc = kz_json:from_list([
+        {<<"attachments">>, Attachments},
+        {<<"plan">>, Plan}
+    ]),
 
     kzs_plan:allow_validation_overrides(),
     CreatedResp = create(API, AccountId, StorageDoc, 'false'),
@@ -206,7 +238,18 @@ help_14316() ->
 
     'true' = has_expected_plan(AccountId, <<"call_recording">>, URL),
 
-    UpdateStorage = kz_json:set_value([<<"plan">>, <<"modb">>, <<"types">>, <<"mailbox_message">>, <<"attachments">>, <<"handler">>], UUID, StorageDoc),
+    UpdateStorage = kz_json:set_value(
+        [
+            <<"plan">>,
+            <<"modb">>,
+            <<"types">>,
+            <<"mailbox_message">>,
+            <<"attachments">>,
+            <<"handler">>
+        ],
+        UUID,
+        StorageDoc
+    ),
 
     UpdatedResp = update(API, AccountId, UpdateStorage, 'false'),
     lager:info("updated resp: ~s", [UpdatedResp]),
@@ -217,7 +260,9 @@ help_14316() ->
     'true' = has_expected_plan(AccountId, <<"mailbox_message">>, URL),
 
     %% just checking if we see the reload in kzs_plan
-    lager:info("hotload kzs_plan: ~p : ~p", [whereis(kazoo_bindings), kazoo_maintenance:hotload(kzs_plan)]),
+    lager:info("hotload kzs_plan: ~p : ~p", [
+        whereis(kazoo_bindings), kazoo_maintenance:hotload(kzs_plan)
+    ]),
     %% give it time to reload
     timer:sleep(150),
 
@@ -303,7 +348,8 @@ create_account(API) ->
     kz_json:get_value([<<"data">>, <<"id">>], kz_json:decode(AccountResp)).
 
 check_if_allowed(RespJObj, ShouldAllow) ->
-    Errored = 'undefined' =:= kz_json:get_json_value([<<"data">>, <<"validate_settings">>], RespJObj),
+    Errored =
+        'undefined' =:= kz_json:get_json_value([<<"data">>, <<"validate_settings">>], RespJObj),
     lager:info("request errored: ~p", [Errored]),
     ShouldAllow = Errored.
 
@@ -371,7 +417,9 @@ help_14308_test_vm(API, AccountId) ->
 
     MetadataResp = pqc_cb_vmboxes:fetch_message_metadata(API, AccountId, BoxId, MediaId),
     lager:info("message ~s meta: ~s", [MediaId, MetadataResp]),
-    MediaId = kz_json:get_ne_binary_value([<<"data">>, <<"media_id">>], kz_json:decode(MetadataResp)),
+    MediaId = kz_json:get_ne_binary_value(
+        [<<"data">>, <<"media_id">>], kz_json:decode(MetadataResp)
+    ),
 
     MessageBin = pqc_cb_vmboxes:fetch_message_binary(API, AccountId, BoxId, MediaId),
     lager:info("message bin =:= MP3: ~p", [MessageBin =:= MP3]),
@@ -401,7 +449,9 @@ test_vm_message(API, AccountId) ->
 
     MetadataResp = pqc_cb_vmboxes:fetch_message_metadata(API, AccountId, BoxId, MediaId),
     lager:info("message ~s meta: ~s", [MediaId, MetadataResp]),
-    MediaId = kz_json:get_ne_binary_value([<<"data">>, <<"media_id">>], kz_json:decode(MetadataResp)),
+    MediaId = kz_json:get_ne_binary_value(
+        [<<"data">>, <<"media_id">>], kz_json:decode(MetadataResp)
+    ),
 
     MessageBin = pqc_cb_vmboxes:fetch_message_binary(API, AccountId, BoxId, MediaId),
     lager:info("message bin =:= MP3: ~p", [MessageBin =:= MP3]),
@@ -424,15 +474,17 @@ create_voicemail(API, AccountId, BoxId, MP3) ->
     pqc_cb_vmboxes:new_message(API, AccountId, BoxId, MessageJObj, MP3).
 
 default_message() ->
-    kz_json:from_list([{<<"folder">>, <<"new">>}
-                      ,{<<"caller_id_name">>, <<?MODULE_STRING>>}
-                      ,{<<"caller_id_number">>, <<?MODULE_STRING>>}
-                      ]).
+    kz_json:from_list([
+        {<<"folder">>, <<"new">>},
+        {<<"caller_id_name">>, <<?MODULE_STRING>>},
+        {<<"caller_id_number">>, <<?MODULE_STRING>>}
+    ]).
 
 handle_multipart_store(MediaId, MP3, RequestBody) ->
     handle_multipart_contents(MediaId, MP3, binary:split(RequestBody, <<"\r\n">>, ['global'])).
 
-handle_multipart_contents(_MediaId, _MP3, []) -> 'true';
+handle_multipart_contents(_MediaId, _MP3, []) ->
+    'true';
 handle_multipart_contents(MediaId, MP3, [<<>> | Parts]) ->
     handle_multipart_contents(MediaId, MP3, Parts);
 handle_multipart_contents(MediaId, MP3, [<<"content-type: application/json">>, <<>>, JSON | Parts]) ->
@@ -441,24 +493,27 @@ handle_multipart_contents(MediaId, MP3, [<<"content-type: application/json">>, <
     MediaId = kz_json:get_ne_binary_value([<<"metadata">>, <<"media_id">>], JObj),
     lager:info("got expected media id ~s", [MediaId]),
 
-    kz_json:all(fun({MessageKey, MessageValue}) ->
-                        MessageValue =:= kz_json:get_value([<<"metadata">>, MessageKey], JObj)
-                end
-               ,default_message()
-               ),
+    kz_json:all(
+        fun({MessageKey, MessageValue}) ->
+            MessageValue =:= kz_json:get_value([<<"metadata">>, MessageKey], JObj)
+        end,
+        default_message()
+    ),
 
     handle_multipart_contents(MediaId, MP3, Parts);
 handle_multipart_contents(MediaId, MP3, [<<"content-type: audio/mp3">>, <<>>, Base64MP3 | Parts]) ->
     case handle_mp3_contents(MP3, Base64MP3, ?BASE64_ENCODED) of
         'true' ->
             handle_multipart_contents(MediaId, MP3, Parts);
-        'false' -> 'false'
+        'false' ->
+            'false'
     end;
 handle_multipart_contents(MediaId, MP3, [<<"content-type: audio/mpeg">>, <<>>, Base64MP3 | Parts]) ->
     case handle_mp3_contents(MP3, Base64MP3, ?BASE64_ENCODED) of
         'true' ->
             handle_multipart_contents(MediaId, MP3, Parts);
-        'false' -> 'false'
+        'false' ->
+            'false'
     end;
 handle_multipart_contents(MediaId, MP3, [_Part | Parts]) ->
     ?DEBUG("skipping part ~s", [_Part]),
@@ -496,39 +551,42 @@ storage_doc(UUID) ->
     storage_doc(UUID, 'undefined').
 
 storage_doc(UUID, URL) ->
-    kz_json:from_list([{<<"attachments">>, storage_attachments(UUID, URL)}
-                      ,{<<"plan">>, storage_plan(UUID)}
-                      ]).
+    kz_json:from_list([
+        {<<"attachments">>, storage_attachments(UUID, URL)},
+        {<<"plan">>, storage_plan(UUID)}
+    ]).
 
 storage_attachments(UUID, URL) ->
     kz_json:from_list([{UUID, http_handler(URL)}]).
 
 http_handler(URL) ->
-    kz_json:from_list([{<<"handler">>, <<"http">>}
-                      ,{<<"name">>, <<?MODULE_STRING>>}
-                      ,{<<"settings">>, http_handler_settings(URL)}
-                      ]).
+    kz_json:from_list([
+        {<<"handler">>, <<"http">>},
+        {<<"name">>, <<?MODULE_STRING>>},
+        {<<"settings">>, http_handler_settings(URL)}
+    ]).
 
 http_handler_settings('undefined') ->
     Base = pqc_httpd:base_url(),
     URL = <<Base/binary, ?MODULE_STRING>>,
     http_handler_settings(URL);
 http_handler_settings(<<URL/binary>>) ->
-    kz_json:from_list([{<<"url">>, URL}
-                      ,{<<"verb">>, <<"post">>}
-                      ,{<<"send_multipart">>, ?SEND_MULTIPART}
-                      ,{<<"base64_encode_data">>, ?BASE64_ENCODED}
-                      ,{<<"field_list">>, [kz_json:from_list([{<<"arg">>, <<"account_id">>}])
-                                          ,kz_json:from_list([{<<"arg">>, <<"id">>}])
-                                          ,kz_json:from_list([{<<"group">>
-                                                              ,[kz_json:from_list([{<<"arg">>, <<"attachment">>}])
-                                                               ,kz_json:from_list([{<<"const">>, <<"?from="?MODULE_STRING>>}])
-                                                               ]
-                                                              }
-                                                             ])
-                                          ]
-                       }
-                      ]).
+    kz_json:from_list([
+        {<<"url">>, URL},
+        {<<"verb">>, <<"post">>},
+        {<<"send_multipart">>, ?SEND_MULTIPART},
+        {<<"base64_encode_data">>, ?BASE64_ENCODED},
+        {<<"field_list">>, [
+            kz_json:from_list([{<<"arg">>, <<"account_id">>}]),
+            kz_json:from_list([{<<"arg">>, <<"id">>}]),
+            kz_json:from_list([
+                {<<"group">>, [
+                    kz_json:from_list([{<<"arg">>, <<"attachment">>}]),
+                    kz_json:from_list([{<<"const">>, <<"?from=" ?MODULE_STRING>>}])
+                ]}
+            ])
+        ]}
+    ]).
 
 storage_plan(UUID) ->
     storage_plan(UUID, 'undefined').
@@ -544,14 +602,16 @@ modb_types(AttUUID, ConnUUID) ->
 
 mailbox_handler(AttUUID, ConnUUID) ->
     Handler = kz_json:from_list([{<<"handler">>, AttUUID}]),
-    kz_json:from_list([{<<"attachments">>, Handler}
-                      ,{<<"connection">>, ConnUUID}
-                      ]).
+    kz_json:from_list([
+        {<<"attachments">>, Handler},
+        {<<"connection">>, ConnUUID}
+    ]).
 
 storage_doc_missing_conn(AttUUID, ConnUUID) ->
-    kz_json:from_list([{<<"attachments">>, storage_attachments(AttUUID, 'undefined')}
-                      ,{<<"plan">>, storage_plan(AttUUID, ConnUUID)}
-                      ]).
+    kz_json:from_list([
+        {<<"attachments">>, storage_attachments(AttUUID, 'undefined')},
+        {<<"plan">>, storage_plan(AttUUID, ConnUUID)}
+    ]).
 
 -spec missing_ref_test() -> 'ok'.
 missing_ref_test() ->

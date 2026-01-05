@@ -7,7 +7,8 @@
 
 -include("kazoo_speech.hrl").
 
--callback create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) -> create_resp().
+-callback create(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:proplist()) ->
+    create_resp().
 
 -callback set_api_key(kz_term:ne_binary()) -> 'ok'.
 

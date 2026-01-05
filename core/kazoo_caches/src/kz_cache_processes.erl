@@ -10,19 +10,21 @@
 %% @doc API functions
 %% @end
 %%------------------------------------------------------------------------------
--export([start_link/1
-        ,monitor_processes/3
-        ,unmonitor_key/2
-        ,unmonitor_all/1
-        ]).
+-export([
+    start_link/1,
+    monitor_processes/3,
+    unmonitor_key/2,
+    unmonitor_all/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_caches.hrl").
 
@@ -90,10 +92,10 @@ code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
 remove_key(_Key, []) -> [];
-remove_key(Key, Monitors) ->
-    remove_key(Key, Monitors, lists:keytake(Key, 1, Monitors)).
+remove_key(Key, Monitors) -> remove_key(Key, Monitors, lists:keytake(Key, 1, Monitors)).
 
-remove_key(_Key, Monitors, 'false') -> Monitors;
+remove_key(_Key, Monitors, 'false') ->
+    Monitors;
 remove_key(Key, _Monitors, {'value', {Key, _Pid, Ref}, Monitors}) ->
     demonitor(Ref, ['flush']),
     remove_key(Key, Monitors).
@@ -108,7 +110,9 @@ add_monitor(Pid, {Key, Monitors}) ->
     {Key, [{Key, Pid, monitor('process', Pid)} | Monitors]}.
 
 unmonitor_pid(Name, Pid, Ref, Monitors) ->
-    {Name, Pid, Ref, NewMonitors} = lists:foldl(fun unmonitor_pid_fold/2, {Name, Pid, Ref, []}, Monitors),
+    {Name, Pid, Ref, NewMonitors} = lists:foldl(
+        fun unmonitor_pid_fold/2, {Name, Pid, Ref, []}, Monitors
+    ),
     NewMonitors.
 
 unmonitor_pid_fold({Key, Pid, Ref}, {Name, Pid, Ref, Monitors}) ->

@@ -23,12 +23,13 @@
 -spec handle(kz_json:object(), kapps_im:im()) -> 'ok'.
 handle(Data, Im) ->
     Body = kz_json:get_value(<<"body">>, Data, <<"empty text">>),
-    Funs = [{fun kapps_im:set_from/2, kapps_im:to(Im)}
-           ,{fun kapps_im:set_to/2, kapps_im:from(Im)}
-           ,{fun kapps_im:set_body/2, Body}
-           ,{fun kapps_im:set_message_id/2, kz_binary:rand_hex(16)}
-           ,{fun kapps_im:remove_custom_vars/2, [<<"Authorizing-ID">>]}
-           ,{fun kapps_im:set_custom_var/3, <<"Authorizing-Type">>, <<"account">>}
-           ],
+    Funs = [
+        {fun kapps_im:set_from/2, kapps_im:to(Im)},
+        {fun kapps_im:set_to/2, kapps_im:from(Im)},
+        {fun kapps_im:set_body/2, Body},
+        {fun kapps_im:set_message_id/2, kz_binary:rand_hex(16)},
+        {fun kapps_im:remove_custom_vars/2, [<<"Authorizing-ID">>]},
+        {fun kapps_im:set_custom_var/3, <<"Authorizing-Type">>, <<"account">>}
+    ],
     kapi_im:publish_inbound(kapps_im:to_payload(kapps_im:exec(Funs, Im))),
     tf_exe:stop(Im, 'replied').

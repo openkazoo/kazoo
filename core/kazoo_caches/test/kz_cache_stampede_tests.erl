@@ -77,9 +77,10 @@ init_load() ->
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(6),
 
-    Pids = [spawn_monitor(?MODULE, 'stampede_worker', [Key, Value])
-            || _N <- lists:seq(1, ?WORKERS)
-           ],
+    Pids = [
+        spawn_monitor(?MODULE, 'stampede_worker', [Key, Value])
+     || _N <- lists:seq(1, ?WORKERS)
+    ],
     Waited = wait_for_workers('false', Pids, {0, 0}),
 
     {CachePid, Waited, ?WORKERS}.
@@ -90,17 +91,18 @@ init_failed() ->
     Value = kz_binary:rand_hex(6),
 
     W1 = spawn_monitor(fun() ->
-                               'ok' = kz_cache:mitigate_stampede_local(?MODULE, Key),
-                               timer:sleep(50), % db operation fails
-                               kz_cache:erase_local(?MODULE, Key)
-                       end),
+        'ok' = kz_cache:mitigate_stampede_local(?MODULE, Key),
+        % db operation fails
+        timer:sleep(50),
+        kz_cache:erase_local(?MODULE, Key)
+    end),
     W2 = spawn_monitor(fun() ->
-                               timer:sleep(1),
-                               'error' = kz_cache:mitigate_stampede_local(?MODULE, Key),
-                               {'error', 'not_found'} = kz_cache:wait_for_stampede_local(?MODULE, Key, 2000),
-                               kz_cache:store_local(?MODULE, Key, Value)
-                       end),
-    wait_for_workers('true', [W1, W2], {0,0}),
+        timer:sleep(1),
+        'error' = kz_cache:mitigate_stampede_local(?MODULE, Key),
+        {'error', 'not_found'} = kz_cache:wait_for_stampede_local(?MODULE, Key, 2000),
+        kz_cache:store_local(?MODULE, Key, Value)
+    end),
+    wait_for_workers('true', [W1, W2], {0, 0}),
     {CachePid, Key, Value}.
 
 check_failed({_CachePid, Key, Value}) ->
@@ -111,15 +113,16 @@ init_crashed() ->
     Key = kz_binary:rand_hex(5),
 
     _W1 = spawn_monitor(fun() ->
-                                'ok' = kz_cache:mitigate_stampede_local(?MODULE, Key),
-                                timer:sleep(50), % db operation fails
-                                exit(crash)
-                        end),
+        'ok' = kz_cache:mitigate_stampede_local(?MODULE, Key),
+        % db operation fails
+        timer:sleep(50),
+        exit(crash)
+    end),
     W2 = spawn_monitor(fun() ->
-                               timer:sleep(1),
-                               'error' = kz_cache:mitigate_stampede_local(?MODULE, Key),
-                               {'error', 'not_found'} = kz_cache:wait_for_stampede_local(?MODULE, Key, 2000)
-                       end),
+        timer:sleep(1),
+        'error' = kz_cache:mitigate_stampede_local(?MODULE, Key),
+        {'error', 'not_found'} = kz_cache:wait_for_stampede_local(?MODULE, Key, 2000)
+    end),
     Waited = wait_for_workers('true', [W2], {0, 0}),
 
     {CachePid, Waited, 1}.
@@ -138,12 +141,13 @@ wait_for_stop(CachePid) ->
     end.
 
 wait_for_stampede_local(_) ->
-    Timeout = rand:uniform(?BASE_TIMEOUT_MS)+?BASE_TIMEOUT_MS,
+    Timeout = rand:uniform(?BASE_TIMEOUT_MS) + ?BASE_TIMEOUT_MS,
     Key = kz_binary:rand_hex(5),
     Value = kz_binary:rand_hex(5),
 
     _WriterPid = spawn_monitor(fun() -> writer_job_stampede(Key, Value, Timeout) end),
-    timer:sleep(10), % allows the writer to lock the key
+    % allows the writer to lock the key
+    timer:sleep(10),
     ?_assertEqual({'ok', Value}, kz_cache:wait_for_stampede_local(?MODULE, Key, Timeout)).
 
 writer_job_stampede(Key, Value, Timeout) ->
@@ -162,7 +166,7 @@ stampede_worker(Key, Value) ->
         case kz_cache:fetch_local(?MODULE, Key) of
             {MitigationKey, _Pid} ->
                 kz_cache:wait_for_stampede_local(?MODULE, Key, ?STAMPEDE_TIMEOUT);
-            {'ok', Value}=Ok ->
+            {'ok', Value} = Ok ->
                 Ok;
             {'error', 'not_found'} ->
                 mitigate_stampede(Key, Value)
@@ -177,19 +181,21 @@ mitigate_stampede(Key, Value) ->
     end.
 
 write_to_cache(Key, Value) ->
-    timer:sleep(?DB_WRITE_TIME), % simulate a db operation or other long-computation
+    % simulate a db operation or other long-computation
+    timer:sleep(?DB_WRITE_TIME),
     kz_cache:store_local(?MODULE, Key, Value),
     {'ok', Value}.
 
-wait_for_workers(_ShouldLog, [], Results) -> Results;
+wait_for_workers(_ShouldLog, [], Results) ->
+    Results;
 wait_for_workers(ShouldLog, [{Pid, Ref} | Pids], {Success, Fail}) ->
     receive
         {'DOWN', Ref, 'process', Pid, 'normal'} ->
-            wait_for_workers(ShouldLog, Pids, {Success+1, Fail});
+            wait_for_workers(ShouldLog, Pids, {Success + 1, Fail});
         {'DOWN', Ref, 'process', Pid, _Reason} ->
-            ShouldLog
-                andalso ?LOG_INFO("pid ~p died: ~p", [Pid, _Reason]),
-            wait_for_workers(ShouldLog, Pids, {Success, Fail+1})
+            ShouldLog andalso
+                ?LOG_INFO("pid ~p died: ~p", [Pid, _Reason]),
+            wait_for_workers(ShouldLog, Pids, {Success, Fail + 1})
     after ?STAMPEDE_TIMEOUT ->
-            wait_for_workers(ShouldLog, Pids, {Success, Fail+1})
+        wait_for_workers(ShouldLog, Pids, {Success, Fail + 1})
     end.

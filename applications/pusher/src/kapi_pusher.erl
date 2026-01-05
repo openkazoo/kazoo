@@ -20,28 +20,37 @@
 
 -define(PUSH_EXCHANGE, <<"pushes">>).
 
--define(PUSH_REQ_HEADERS, [<<"Token-ID">>
-                          ,<<"Token-Type">>
-                          ,<<"Token-App">>
-                          ,<<"Payload">>
-                          ]).
--define(OPTIONAL_PUSH_REQ_HEADERS, [<<"Queue">>, <<"Call-ID">>
-                                   ,<<"Badge">>, <<"Sound">>
-                                   ,<<"Account-ID">>, <<"Endpoint-ID">>
-                                   ,<<"Expires">>
-                                   ,<<"Token-Reg">>
-                                   ,<<"Alert">>, <<"Alert-Key">>, <<"Alert-Params">>
-                                   ]).
--define(PUSH_REQ_VALUES, [{<<"Event-Category">>, <<"notification">>}
-                         ,{<<"Event-Name">>, <<"push_req">>}
-                         ]).
+-define(PUSH_REQ_HEADERS, [
+    <<"Token-ID">>,
+    <<"Token-Type">>,
+    <<"Token-App">>,
+    <<"Payload">>
+]).
+-define(OPTIONAL_PUSH_REQ_HEADERS, [
+    <<"Queue">>,
+    <<"Call-ID">>,
+    <<"Badge">>,
+    <<"Sound">>,
+    <<"Account-ID">>,
+    <<"Endpoint-ID">>,
+    <<"Expires">>,
+    <<"Token-Reg">>,
+    <<"Alert">>,
+    <<"Alert-Key">>,
+    <<"Alert-Params">>
+]).
+-define(PUSH_REQ_VALUES, [
+    {<<"Event-Category">>, <<"notification">>},
+    {<<"Event-Name">>, <<"push_req">>}
+]).
 -define(PUSH_REQ_TYPES, [{<<"Expires">>, fun(V) -> is_integer(kz_term:to_integer(V)) end}]).
 
 -define(PUSH_RESP_HEADERS, [<<"Token-ID">>]).
 -define(OPTIONAL_PUSH_RESP_HEADERS, []).
--define(PUSH_RESP_VALUES, [{<<"Event-Category">>, <<"notification">>}
-                          ,{<<"Event-Name">>, <<"push_resp">>}
-                          ]).
+-define(PUSH_RESP_VALUES, [
+    {<<"Event-Category">>, <<"notification">>},
+    {<<"Event-Name">>, <<"push_resp">>}
+]).
 -define(PUSH_RESP_TYPES, []).
 
 -define(KEY_PUSH, <<"notification.push">>).
@@ -105,9 +114,14 @@ publish_targeted_push_resp(RespQ, JObj, ContentType) ->
 
 -spec push_routing_key(kz_term:ne_binary() | kz_term:api_terms()) -> kz_term:ne_binary().
 push_routing_key(Req) when is_list(Req) ->
-    push_routing_key(props:get_value(<<"Token-Type">>, Req, <<"*">>), props:get_value(<<"Token">>, Req,<<"*">>));
+    push_routing_key(
+        props:get_value(<<"Token-Type">>, Req, <<"*">>), props:get_value(<<"Token">>, Req, <<"*">>)
+    );
 push_routing_key(Req) ->
-    push_routing_key(kz_json:get_value(<<"Token-Type">>, Req, <<"*">>), kz_json:get_value(<<"Token">>, Req, <<"*">>)).
+    push_routing_key(
+        kz_json:get_value(<<"Token-Type">>, Req, <<"*">>),
+        kz_json:get_value(<<"Token">>, Req, <<"*">>)
+    ).
 push_routing_key(Type, Token) ->
     list_to_binary([?KEY_PUSH, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(Token)]).
 
@@ -119,15 +133,17 @@ bind_q(Queue, Props) ->
     Type = props:get_value('type', Props, <<"*">>),
     bind_q(Queue, Type, Token, props:get_value('restrict_to', Props)).
 
--spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binaries()) -> 'ok'.
+-spec bind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binaries()) ->
+    'ok'.
 bind_q(Queue, Type, Token, 'undefined') ->
     kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE);
-bind_q(Queue, Type, Token, ['push'|Restrict]) ->
+bind_q(Queue, Type, Token, ['push' | Restrict]) ->
     kz_amqp_util:bind_q_to_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
     bind_q(Queue, Type, Token, Restrict);
-bind_q(Queue, Type, Token, [_|Restrict]) ->
+bind_q(Queue, Type, Token, [_ | Restrict]) ->
     bind_q(Queue, Type, Token, Restrict);
-bind_q(_Queue, _Type, _Token, []) -> 'ok'.
+bind_q(_Queue, _Type, _Token, []) ->
+    'ok'.
 
 -spec unbind_q(binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
@@ -135,15 +151,18 @@ unbind_q(Queue, Props) ->
     Type = props:get_value('type', Props, <<"*">>),
     unbind_q(Queue, Type, Token, props:get_value('restrict_to', Props)).
 
--spec unbind_q(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binaries()) -> 'ok'.
+-spec unbind_q(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:api_binaries()
+) -> 'ok'.
 unbind_q(Queue, Type, Token, 'undefined') ->
     kz_amqp_util:unbind_q_from_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE);
-unbind_q(Queue, Type, Token, ['push'|Restrict]) ->
+unbind_q(Queue, Type, Token, ['push' | Restrict]) ->
     kz_amqp_util:unbind_q_from_exchange(Queue, push_routing_key(Type, Token), ?PUSH_EXCHANGE),
     unbind_q(Queue, Type, Token, Restrict);
-unbind_q(Queue, Type, Token, [_|Restrict]) ->
+unbind_q(Queue, Type, Token, [_ | Restrict]) ->
     unbind_q(Queue, Type, Token, Restrict);
-unbind_q(_Queue, _Type, _Token, []) -> 'ok'.
+unbind_q(_Queue, _Type, _Token, []) ->
+    'ok'.
 
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->

@@ -6,26 +6,35 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_transaction_failed).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
 -define(TEMPLATE_ID, <<"transaction_failed">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"plan.id">>, <<"plan_id">>, <<"Plan ID">>, <<"Plan ID">>)
-          ,?MACRO_VALUE(<<"plan.category">>, <<"plan_category">>, <<"Plan Category">>, <<"Plan Category">>)
-          ,?MACRO_VALUE(<<"plan.item">>, <<"plan_item">>, <<"Plan Item">>, <<"Plan Item">>)
-          ,?MACRO_VALUE(<<"plan.activation_charge">>, <<"plan_activation_charge">>, <<"Activation Charge">>, <<"Activation Charge">>)
-           | ?TRANSACTION_MACROS
-           ++ ?USER_MACROS
-           ++ ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(<<"plan.id">>, <<"plan_id">>, <<"Plan ID">>, <<"Plan ID">>),
+            ?MACRO_VALUE(
+                <<"plan.category">>, <<"plan_category">>, <<"Plan Category">>, <<"Plan Category">>
+            ),
+            ?MACRO_VALUE(<<"plan.item">>, <<"plan_item">>, <<"Plan Item">>, <<"Plan Item">>),
+            ?MACRO_VALUE(
+                <<"plan.activation_charge">>,
+                <<"plan_activation_charge">>,
+                <<"Activation Charge">>,
+                <<"Activation Charge">>
+            )
+            | ?TRANSACTION_MACROS ++
+                ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Payment problem for your account '{{account.name}}'">>).
 -define(TEMPLATE_CATEGORY, <<"account">>).
@@ -40,16 +49,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"transaction">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -73,9 +83,12 @@ handle_req(JObj, 'true') ->
     ReqData =
         kz_json:set_value(<<"user">>, teletype_util:find_account_admin(AccountId), DataJObj),
     case processability(kz_json:is_false(<<"success">>, DataJObj), JObj) of
-        'ignore' -> teletype_util:notification_ignored(?TEMPLATE_ID);
-        'false' -> teletype_util:notification_disabled(DataJObj, ?TEMPLATE_ID);
-        'true' -> teletype_transaction:process_req(kz_json:merge_jobjs(DataJObj, ReqData), ?TEMPLATE_ID)
+        'ignore' ->
+            teletype_util:notification_ignored(?TEMPLATE_ID);
+        'false' ->
+            teletype_util:notification_disabled(DataJObj, ?TEMPLATE_ID);
+        'true' ->
+            teletype_transaction:process_req(kz_json:merge_jobjs(DataJObj, ReqData), ?TEMPLATE_ID)
     end.
 
 -spec processability(boolean(), kz_json:object()) -> 'ignore' | boolean().

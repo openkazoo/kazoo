@@ -17,20 +17,26 @@
 -export([get_modb/1, get_modb/2, get_modb/3]).
 -export([maybe_archive_modb/1]).
 -export([refresh_views/1]).
--export([create/1, maybe_create/1
-        ,add_routine/1
-        ]).
+-export([
+    create/1,
+    maybe_create/1,
+    add_routine/1
+]).
 -export([maybe_delete/2]).
 -export([get_range/3, get_range/4]).
 -export([get_year_month_sequence/3, get_year_month_sequence/4]).
 -export([strip_modb_options/1]).
 
--type view_option() :: {'year', kz_time:year()} |
-                       {'month', kz_time:month()} |
-                       {'create_db', boolean()} | 'create_db' |
-                       {'allow_old_modb_creation', boolean()} | 'allow_old_modb_creation' |
-                       {'missing_as_error', boolean()} | 'missing_as_error' |
-                       kz_datamgr:view_option().
+-type view_option() ::
+    {'year', kz_time:year()}
+    | {'month', kz_time:month()}
+    | {'create_db', boolean()}
+    | 'create_db'
+    | {'allow_old_modb_creation', boolean()}
+    | 'allow_old_modb_creation'
+    | {'missing_as_error', boolean()}
+    | 'missing_as_error'
+    | kz_datamgr:view_option().
 -type view_options() :: [view_option()].
 
 -define(MAX_RETRIES, 2).
@@ -43,15 +49,17 @@
 %%------------------------------------------------------------------------------
 
 -spec get_results(kz_term:ne_binary(), kz_term:ne_binary(), view_options()) ->
-          {'ok', kz_json:json_terms()} |
-          {'error', atom()}.
+    {'ok', kz_json:json_terms()}
+    | {'error', atom()}.
 get_results(Account, View, ViewOptions) ->
     MaxRetries = props:get_integer_value('max_retries', ViewOptions, ?MAX_RETRIES),
     get_results(Account, View, ViewOptions, 'first_try', MaxRetries).
 
--spec get_results(kz_term:ne_binary(), kz_term:ne_binary(), view_options(), atom(), non_neg_integer()) ->
-          {'ok', kz_json:json_terms()} |
-          {'error', atom()}.
+-spec get_results(
+    kz_term:ne_binary(), kz_term:ne_binary(), view_options(), atom(), non_neg_integer()
+) ->
+    {'ok', kz_json:json_terms()}
+    | {'error', atom()}.
 get_results(_Account, _View, _ViewOptions, Reason, Retry) when Retry =< 0 ->
     lager:debug("max retries to get view ~s/~s results: ~p", [_Account, _View, Reason]),
     {'error', Reason};
@@ -62,14 +70,17 @@ get_results(Account, View, ViewOptions, _Reason, Retry) ->
         {'error', 'not_found'} ->
             get_results_missing_db(Account, View, ViewOptions, Retry);
         {'error', 'timeout'} ->
-            get_results(Account, View, ViewOptions, 'timeout', Retry-1);
-        Results -> Results
+            get_results(Account, View, ViewOptions, 'timeout', Retry - 1);
+        Results ->
+            Results
     end.
 
 -spec strip_modb_options(view_options()) -> kz_datamgr:view_options().
 strip_modb_options(ViewOptions) ->
-    [Option || Option <- ViewOptions,
-               not is_modb_option(Option)
+    [
+        Option
+     || Option <- ViewOptions,
+        not is_modb_option(Option)
     ].
 
 -spec is_modb_option(view_option()) -> boolean().
@@ -86,23 +97,29 @@ is_modb_option('missing_as_error') -> 'true';
 is_modb_option(_) -> 'false'.
 
 -spec get_results_missing_db(kz_term:ne_binary(), kz_term:ne_binary(), view_options(), integer()) ->
-          {'ok', kz_json:objects()}.
+    {'ok', kz_json:objects()}.
 get_results_missing_db(Account, View, ViewOptions, Retry) ->
     AccountMODb = get_modb(Account, ViewOptions),
     ShouldCreate = props:get_is_true('create_db', ViewOptions, 'true'),
     MissingAsError = props:get_is_true('missing_as_error', ViewOptions, 'false'),
     lager:info("modb ~p not found, maybe creating...", [AccountMODb]),
-    case ShouldCreate
-        andalso maybe_create_current_modb(AccountMODb, ViewOptions)
+    case
+        ShouldCreate andalso
+            maybe_create_current_modb(AccountMODb, ViewOptions)
     of
-        'true' -> get_results(Account, View, ViewOptions, 'not_found', Retry-1);
+        'true' ->
+            get_results(Account, View, ViewOptions, 'not_found', Retry - 1);
         'too_old' when MissingAsError ->
             {'error', 'db_not_found'};
         'too_old' ->
             {'ok', []};
         'false' when ShouldCreate ->
-            lager:info("modb ~s creation failed, maybe due to race condition, re-trying get_results", [AccountMODb]),
-            get_results(Account, View, ViewOptions, 'not_found', Retry-1);
+            lager:info(
+                "modb ~s creation failed, maybe due to race condition, re-trying get_results", [
+                    AccountMODb
+                ]
+            ),
+            get_results(Account, View, ViewOptions, 'not_found', Retry - 1);
         'false' when MissingAsError ->
             {'error', 'db_not_found'};
         'false' ->
@@ -116,12 +133,12 @@ get_results_missing_db(Account, View, ViewOptions, Retry) ->
 %%------------------------------------------------------------------------------
 
 -spec open_doc(kz_term:ne_binary(), kazoo_data:docid()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
-open_doc(Account, {_, ?MATCH_MODB_PREFIX(Year,Month,_)} = DocId) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
+open_doc(Account, {_, ?MATCH_MODB_PREFIX(Year, Month, _)} = DocId) ->
     AccountMODb = get_modb(Account, kz_term:to_integer(Year), kz_term:to_integer(Month)),
     couch_open(AccountMODb, DocId);
-open_doc(Account, ?MATCH_MODB_PREFIX(Year,Month,_) = DocId) ->
+open_doc(Account, ?MATCH_MODB_PREFIX(Year, Month, _) = DocId) ->
     AccountMODb = get_modb(Account, kz_term:to_integer(Year), kz_term:to_integer(Month)),
     couch_open(AccountMODb, DocId);
 open_doc(Account, DocId) ->
@@ -129,37 +146,44 @@ open_doc(Account, DocId) ->
     couch_open(AccountMODb, DocId).
 
 -spec open_doc(kz_term:ne_binary(), kazoo_data:docid(), integer() | view_options()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
-open_doc(Account, DocId, Options)
-  when is_list(Options) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
+open_doc(Account, DocId, Options) when
+    is_list(Options)
+->
     AccountMODb = get_modb(Account, Options),
     couch_open(AccountMODb, DocId, Options);
-open_doc(Account, DocId, Timestamp)
-  when is_integer(Timestamp) ->
+open_doc(Account, DocId, Timestamp) when
+    is_integer(Timestamp)
+->
     AccountMODb = get_modb(Account, Timestamp),
     couch_open(AccountMODb, DocId).
 
--spec open_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_time:year() | kz_term:ne_binary(), kz_time:month() | kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec open_doc(
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_time:year() | kz_term:ne_binary(),
+    kz_time:month() | kz_term:ne_binary()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 open_doc(Account, DocId, Year, Month) ->
     AccountMODb = get_modb(Account, Year, Month),
     couch_open(AccountMODb, DocId).
 
 -spec couch_open(kz_term:ne_binary(), kazoo_data:docid()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 couch_open(AccountMODb, DocId) ->
     couch_open(AccountMODb, DocId, []).
 
 -spec couch_open(kz_term:ne_binary(), kazoo_data:docid(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 couch_open(AccountMODb, DocId, Options) ->
     EncodedMODb = kz_util:format_account_modb(AccountMODb, 'encoded'),
     case kz_datamgr:open_doc(EncodedMODb, DocId, Options) of
-        {'ok', _}=Ok -> Ok;
+        {'ok', _} = Ok -> Ok;
         Error -> Error
     end.
 
@@ -169,14 +193,18 @@ couch_open(AccountMODb, DocId, Options) ->
 %%------------------------------------------------------------------------------
 
 -spec save_doc(kz_term:ne_binary(), kz_json:object()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 save_doc(Account, Doc) ->
     save_doc(Account, Doc, []).
 
--spec save_doc(kz_term:ne_binary(), kz_json:object(), kz_time:now() | kz_time:gregorian_seconds() | kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec save_doc(
+    kz_term:ne_binary(),
+    kz_json:object(),
+    kz_time:now() | kz_time:gregorian_seconds() | kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 save_doc(Account, Doc, Options) when is_list(Options) ->
     AccountMODb = get_modb(Account),
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
@@ -184,9 +212,14 @@ save_doc(Account, Doc, Options) when is_list(Options) ->
 save_doc(Account, Doc, Timestamp) ->
     save_doc(Account, Doc, Timestamp, []).
 
--spec save_doc(kz_term:ne_binary(), kz_json:object(), kz_time:year() | kz_term:ne_binary() | kz_time:now(), kz_time:month() | kz_term:ne_binary() | kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec save_doc(
+    kz_term:ne_binary(),
+    kz_json:object(),
+    kz_time:year() | kz_term:ne_binary() | kz_time:now(),
+    kz_time:month() | kz_term:ne_binary() | kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 save_doc(Account, Doc, Timestamp, Options) when is_list(Options) ->
     AccountMODb = get_modb(Account, Timestamp),
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
@@ -200,8 +233,8 @@ save_doc(Account, Doc, Year, Month, Options) ->
     couch_save(AccountMODb, Doc, Options, 'first_try', MaxRetries).
 
 -spec couch_save(kz_term:ne_binary(), kz_json:object(), kz_term:proplist(), atom(), integer()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 couch_save(AccountMODb, _Doc, _Options, Reason, Retry) when Retry =< 0 ->
     lager:debug("max retries to save doc in ~s: ~p", [AccountMODb, Reason]),
     {'error', Reason};
@@ -209,52 +242,64 @@ couch_save(AccountMODb, Doc, Options, _Reason, Retry) ->
     EncodedMODb = kz_util:format_account_modb(AccountMODb, 'encoded'),
     SaveFun = save_fun(props:get_is_true('ensure_saved', Options, 'false')),
     case SaveFun(EncodedMODb, Doc, strip_modb_options(Options)) of
-        {'ok', _}=Ok -> Ok;
+        {'ok', _} = Ok ->
+            Ok;
         {'error', 'not_found'} = NotFound ->
             ShouldCreate = props:get_is_true('create_db', Options, 'true'),
             lager:info("modb ~p not found, maybe creating...", [AccountMODb]),
-            case ShouldCreate
-                andalso maybe_create_current_modb(AccountMODb, Options)
+            case
+                ShouldCreate andalso
+                    maybe_create_current_modb(AccountMODb, Options)
             of
                 'true' ->
-                    couch_save(AccountMODb, Doc, Options, 'not_found', Retry-1);
+                    couch_save(AccountMODb, Doc, Options, 'not_found', Retry - 1);
                 'too_old' ->
                     NotFound;
                 'false' when ShouldCreate ->
-                    lager:info("modb ~s creation failed, maybe due to race condition, re-trying save_doc", [AccountMODb]),
-                    couch_save(AccountMODb, Doc, Options, 'not_found', Retry-1);
+                    lager:info(
+                        "modb ~s creation failed, maybe due to race condition, re-trying save_doc",
+                        [AccountMODb]
+                    ),
+                    couch_save(AccountMODb, Doc, Options, 'not_found', Retry - 1);
                 'false' ->
                     lager:info("create_db is false, not creating modb ~s ...", [AccountMODb]),
                     NotFound
             end;
-        {'error', 'conflict'}=Conflict -> Conflict;
-        {'error', 'timeout'} -> couch_save(AccountMODb, Doc, Options, 'timeout', Retry-1);
-        Error -> Error
+        {'error', 'conflict'} = Conflict ->
+            Conflict;
+        {'error', 'timeout'} ->
+            couch_save(AccountMODb, Doc, Options, 'timeout', Retry - 1);
+        Error ->
+            Error
     end.
 
--spec save_fun(boolean()) -> fun((kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
-                                        {'ok', kz_json:object()} |
-                                        kz_datamgr:data_error()
-                                            ).
-save_fun('false') -> fun kz_datamgr:save_doc/3;
+-spec save_fun(boolean()) ->
+    fun(
+        (kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+            {'ok', kz_json:object()}
+            | kz_datamgr:data_error()
+    ).
+save_fun('false') ->
+    fun kz_datamgr:save_doc/3;
 save_fun('true') ->
     fun(EncodedMODb, Doc, _Options) ->
-            Id = kz_doc:id(Doc),
-            Updates = [{'update', kz_json:to_proplist(Doc)}
-                      ,{'ensure_saved', 'true'}
-                      ],
-            kz_datamgr:update_doc(EncodedMODb, Id, Updates)
+        Id = kz_doc:id(Doc),
+        Updates = [
+            {'update', kz_json:to_proplist(Doc)},
+            {'ensure_saved', 'true'}
+        ],
+        kz_datamgr:update_doc(EncodedMODb, Id, Updates)
     end.
 
 -spec save_docs(kz_term:text(), kz_json:objects()) ->
-          {'ok', kz_json:objects()} |
-          kz_datamgr:data_error().
+    {'ok', kz_json:objects()}
+    | kz_datamgr:data_error().
 save_docs(AccountMODb, Docs) ->
     save_docs(AccountMODb, Docs, []).
 
 -spec save_docs(kz_term:text(), kz_json:objects(), kz_term:proplist()) ->
-          {'ok', kz_json:objects()} |
-          kz_datamgr:data_error().
+    {'ok', kz_json:objects()}
+    | kz_datamgr:data_error().
 save_docs(AccountMODb, Docs, Options) ->
     kz_datamgr:save_docs(AccountMODb, Docs, Options).
 
@@ -267,41 +312,66 @@ save_docs(AccountMODb, Docs, Options) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec move_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 move_doc(FromDb, FromId, ToDb, ToId) ->
     move_doc(FromDb, FromId, ToDb, ToId, []).
 
--spec move_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec move_doc(
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 move_doc(FromDb, FromId, ToDb, ToId, Options) ->
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
     move_doc(FromDb, FromId, ToDb, ToId, Options, 'first_try', MaxRetries).
 
--spec move_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid(), kz_term:proplist(), atom(), integer()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec move_doc(
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:proplist(),
+    atom(),
+    integer()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 move_doc(_FromDb, _FromId, _ToDb, _ToId, _Options, Reason, Retry) when Retry =< 0 ->
-    lager:error("max retries to move doc from ~s/~p to ~s/~p : ~p"
-               ,[_FromDb, _FromId, _ToDb, _ToId, Reason]
-               ),
+    lager:error(
+        "max retries to move doc from ~s/~p to ~s/~p : ~p",
+        [_FromDb, _FromId, _ToDb, _ToId, Reason]
+    ),
     {'error', Reason};
 move_doc(FromDb, FromId, ToDb, ToId, Options, _Reason, Retry) ->
     case kz_datamgr:move_doc(FromDb, FromId, ToDb, ToId, strip_modb_options(Options)) of
-        {'ok', _}=OK -> OK;
+        {'ok', _} = OK ->
+            OK;
         {'error', 'not_found'} ->
             case maybe_create_destination_db(FromDb, FromId, ToDb, Options) of
-                'true' -> move_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry-1);
-                'source_not_exists' -> {'error', 'not_found'};
-                'too_old' -> {'error', 'not_found'};
+                'true' ->
+                    move_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry - 1);
+                'source_not_exists' ->
+                    {'error', 'not_found'};
+                'too_old' ->
+                    {'error', 'not_found'};
                 'false' ->
-                    lager:info("modb ~s creation failed, maybe due to race condition, re-trying move_doc", [ToDb]),
-                    move_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry-1)
+                    lager:info(
+                        "modb ~s creation failed, maybe due to race condition, re-trying move_doc",
+                        [ToDb]
+                    ),
+                    move_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry - 1)
             end;
-        {'error', 'conflict'}=Conflict -> Conflict;
-        {'error', 'timeout'} -> move_doc(FromDb, FromId, ToDb, ToId, Options, 'timeout', Retry-1);
-        Error -> Error
+        {'error', 'conflict'} = Conflict ->
+            Conflict;
+        {'error', 'timeout'} ->
+            move_doc(FromDb, FromId, ToDb, ToId, Options, 'timeout', Retry - 1);
+        Error ->
+            Error
     end.
 
 %%------------------------------------------------------------------------------
@@ -313,56 +383,86 @@ move_doc(FromDb, FromId, ToDb, ToId, Options, _Reason, Retry) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec copy_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 copy_doc(FromDb, FromId, ToDb, ToId) ->
     copy_doc(FromDb, FromId, ToDb, ToId, []).
 
--spec copy_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid(), kz_term:proplist()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec copy_doc(
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:proplist()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 copy_doc(FromDb, FromId, ToDb, ToId, Options) ->
     MaxRetries = props:get_integer_value('max_retries', Options, ?MAX_RETRIES),
     copy_doc(FromDb, FromId, ToDb, ToId, Options, 'first_try', MaxRetries).
 
--spec copy_doc(kz_term:ne_binary(), kazoo_data:docid(), kz_term:ne_binary(), kazoo_data:docid(), kz_term:proplist(), atom(), integer()) ->
-          {'ok', kz_json:object()} |
-          {'error', atom()}.
+-spec copy_doc(
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:ne_binary(),
+    kazoo_data:docid(),
+    kz_term:proplist(),
+    atom(),
+    integer()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', atom()}.
 copy_doc(_FromDb, _FromId, _ToDb, _ToId, _Options, Reason, Retry) when Retry =< 0 ->
-    lager:error("max retries to copy doc from ~s/~p to ~s/~p : ~p"
-               ,[_FromDb, _FromId, _ToDb, _ToId, Reason]
-               ),
+    lager:error(
+        "max retries to copy doc from ~s/~p to ~s/~p : ~p",
+        [_FromDb, _FromId, _ToDb, _ToId, Reason]
+    ),
     {'error', Reason};
 copy_doc(FromDb, FromId, ToDb, ToId, Options, _Reason, Retry) ->
     case kz_datamgr:copy_doc(FromDb, FromId, ToDb, ToId, strip_modb_options(Options)) of
-        {'ok', _}=OK -> OK;
+        {'ok', _} = OK ->
+            OK;
         {'error', 'not_found'} ->
             case maybe_create_destination_db(FromDb, FromId, ToDb, Options) of
-                'true' -> copy_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry-1);
-                'source_not_exists' -> {'error', 'not_found'};
-                'too_old' -> {'error', 'not_found'};
+                'true' ->
+                    copy_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry - 1);
+                'source_not_exists' ->
+                    {'error', 'not_found'};
+                'too_old' ->
+                    {'error', 'not_found'};
                 'false' ->
-                    lager:info("modb ~s creation failed, maybe due to race condition, re-trying copy_doc", [ToDb]),
-                    copy_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry-1)
+                    lager:info(
+                        "modb ~s creation failed, maybe due to race condition, re-trying copy_doc",
+                        [ToDb]
+                    ),
+                    copy_doc(FromDb, FromId, ToDb, ToId, Options, 'not_found', Retry - 1)
             end;
-        {'error', 'conflict'}=Conflict -> Conflict;
-        {'error', 'timeout'} -> copy_doc(FromDb, FromId, ToDb, ToId, Options, 'timeout', Retry-1);
-        {'error', _}=Error -> Error
+        {'error', 'conflict'} = Conflict ->
+            Conflict;
+        {'error', 'timeout'} ->
+            copy_doc(FromDb, FromId, ToDb, ToId, Options, 'timeout', Retry - 1);
+        {'error', _} = Error ->
+            Error
     end.
 
--spec maybe_create_destination_db(kz_term:ne_binary(), kz_term:docid(), kz_term:ne_binary(), kz_term:proplist()) ->
-          'source_not_exists' |
-          'too_old'|
-          boolean().
+-spec maybe_create_destination_db(
+    kz_term:ne_binary(), kz_term:docid(), kz_term:ne_binary(), kz_term:proplist()
+) ->
+    'source_not_exists'
+    | 'too_old'
+    | boolean().
 maybe_create_destination_db(FromDb, FromId, ToDb, Options) ->
     ShouldCreate = props:get_is_true('create_db', Options, 'true'),
     lager:info("destination modb ~p not found, maybe creating...", [ToDb]),
-    case ShouldCreate
-        andalso kz_datamgr:db_exists(FromDb)
-        andalso kz_datamgr:open_doc(FromDb, FromId)
+    case
+        ShouldCreate andalso
+            kz_datamgr:db_exists(FromDb) andalso
+            kz_datamgr:open_doc(FromDb, FromId)
     of
         'false' when ShouldCreate ->
-            lager:info("source modb ~s does not exist, not creating destination modb ~s", [FromDb, ToDb]),
+            lager:info("source modb ~s does not exist, not creating destination modb ~s", [
+                FromDb, ToDb
+            ]),
             'source_not_exists';
         'false' ->
             lager:info("create_db is false, not creating modb ~s ...", [ToDb]),
@@ -370,7 +470,9 @@ maybe_create_destination_db(FromDb, FromId, ToDb, Options) ->
         {'ok', _} ->
             maybe_create_current_modb(ToDb, Options);
         {'error', _} ->
-            lager:info("source document ~s/~p does not exist, not creating destination modb ~s", [FromDb, FromId, ToDb]),
+            lager:info("source document ~s/~p does not exist, not creating destination modb ~s", [
+                FromDb, FromId, ToDb
+            ]),
             'source_not_exists'
     end.
 
@@ -380,11 +482,11 @@ maybe_create_destination_db(FromDb, FromId, ToDb, Options) ->
 %%------------------------------------------------------------------------------
 
 -spec get_modb(kz_term:ne_binary()) -> kz_term:ne_binary().
-get_modb(?MATCH_MODB_SUFFIX_RAW(_,_,_) = AccountMODb) ->
+get_modb(?MATCH_MODB_SUFFIX_RAW(_, _, _) = AccountMODb) ->
     AccountMODb;
-get_modb(?MATCH_MODB_SUFFIX_ENCODED(_,_,_) = AccountMODb) ->
+get_modb(?MATCH_MODB_SUFFIX_ENCODED(_, _, _) = AccountMODb) ->
     kz_util:format_account_modb(AccountMODb, 'raw');
-get_modb(?MATCH_MODB_SUFFIX_UNENCODED(_,_,_) = AccountMODb) ->
+get_modb(?MATCH_MODB_SUFFIX_UNENCODED(_, _, _) = AccountMODb) ->
     kz_util:format_account_modb(AccountMODb, 'raw');
 get_modb(Account) ->
     AccountDb = kz_util:format_account_db(Account),
@@ -392,15 +494,14 @@ get_modb(Account) ->
     get_modb(AccountDb, Year, Month).
 
 -spec get_modb(kz_term:ne_binary(), view_options() | kz_time:gregorian_seconds() | kz_time:now()) ->
-          kz_term:ne_binary().
+    kz_term:ne_binary().
 get_modb(Account, ViewOptions) when is_list(ViewOptions) ->
     AccountDb = kz_util:format_account_db(Account),
-    case {props:get_value('month', ViewOptions)
-         ,props:get_value('year', ViewOptions)
-         }
-    of
-        {'undefined', 'undefined'} -> get_modb(Account);
-        {'undefined', _Year} -> get_modb(Account);
+    case {props:get_value('month', ViewOptions), props:get_value('year', ViewOptions)} of
+        {'undefined', 'undefined'} ->
+            get_modb(Account);
+        {'undefined', _Year} ->
+            get_modb(Account);
         {Month, 'undefined'} ->
             {Year, _, _} = erlang:date(),
             get_modb(AccountDb, Year, Month);
@@ -410,13 +511,15 @@ get_modb(Account, ViewOptions) when is_list(ViewOptions) ->
 get_modb(Account, Timestamp) ->
     kz_util:format_account_mod_id(Account, Timestamp).
 
--spec get_modb(kz_term:ne_binary(), kz_time:year() | kz_term:ne_binary(), kz_time:month() | kz_term:ne_binary()) ->
-          kz_term:ne_binary().
-get_modb(?MATCH_MODB_SUFFIX_RAW(_,_,_) = AccountMODb, _Year, _Month) ->
+-spec get_modb(
+    kz_term:ne_binary(), kz_time:year() | kz_term:ne_binary(), kz_time:month() | kz_term:ne_binary()
+) ->
+    kz_term:ne_binary().
+get_modb(?MATCH_MODB_SUFFIX_RAW(_, _, _) = AccountMODb, _Year, _Month) ->
     AccountMODb;
-get_modb(?MATCH_MODB_SUFFIX_ENCODED(_,_,_) = AccountMODb, _Year, _Month) ->
+get_modb(?MATCH_MODB_SUFFIX_ENCODED(_, _, _) = AccountMODb, _Year, _Month) ->
     kz_util:format_account_modb(AccountMODb, 'raw');
-get_modb(?MATCH_MODB_SUFFIX_UNENCODED(_,_,_) = AccountMODb, _Year, _Month) ->
+get_modb(?MATCH_MODB_SUFFIX_UNENCODED(_, _, _) = AccountMODb, _Year, _Month) ->
     kz_util:format_account_modb(AccountMODb, 'raw');
 get_modb(Account, Year, Month) ->
     AccountDb = kz_util:format_account_db(Account),
@@ -480,7 +583,8 @@ do_create(AccountMODb, 'false') ->
             _ = refresh_views(EncodedMODb),
             run_routines(AccountMODb),
             'true';
-        _ -> 'false'
+        _ ->
+            'false'
     end.
 
 -spec is_account_deleted(kz_term:ne_binary()) -> boolean().
@@ -490,7 +594,8 @@ is_account_deleted(AccountId) ->
         {'error', _} -> 'true'
     end.
 
--spec refresh_views(kz_term:ne_binary()) -> boolean() | {'error', 'invalid_db_name' | 'db_not_found'}.
+-spec refresh_views(kz_term:ne_binary()) ->
+    boolean() | {'error', 'invalid_db_name' | 'db_not_found'}.
 refresh_views(AccountMODb) ->
     lager:debug("refresh views on modb ~p", [AccountMODb]),
     EncodedMODb = kz_util:format_account_modb(AccountMODb, 'encoded'),
@@ -503,24 +608,25 @@ refresh_views(AccountMODb) ->
 -spec run_routines(kz_term:ne_binary()) -> 'ok'.
 run_routines(AccountMODb) ->
     Routines = kapps_config:get_ne_binaries(?CONFIG_CAT, <<"routines">>, []),
-    Runs = [{Routine, kz_util:spawn_monitor(kz_term:to_atom(Routine), 'modb', [AccountMODb])}
-            || Routine <- Routines,
-               kz_module:is_exported(Routine, 'modb', 1)
-           ],
+    Runs = [
+        {Routine, kz_util:spawn_monitor(kz_term:to_atom(Routine), 'modb', [AccountMODb])}
+     || Routine <- Routines,
+        kz_module:is_exported(Routine, 'modb', 1)
+    ],
     wait_for_runs(Runs, kz_time:now()).
 
 -type run() :: {kz_term:ne_binary(), kz_term:pid_ref()}.
 -type runs() :: [run()].
 
 -spec wait_for_runs(runs(), kz_time:now()) -> 'ok'.
-wait_for_runs([], _Start) -> 'ok';
+wait_for_runs([], _Start) ->
+    'ok';
 wait_for_runs(Runs, Start) ->
     receive
         {'DOWN', Ref, 'process', Pid, Reason} ->
             handle_finished_run(Runs, Start, {Pid, Ref}, Reason)
-    after
-        ?MILLISECONDS_IN_MINUTE ->
-            lager:info("runs haven't finished yet, moving on: ~p", [Runs])
+    after ?MILLISECONDS_IN_MINUTE ->
+        lager:info("runs haven't finished yet, moving on: ~p", [Runs])
     end.
 
 -spec handle_finished_run(runs(), kz_time:now(), kz_term:pid_ref(), any()) -> 'ok'.
@@ -530,10 +636,14 @@ handle_finished_run(Runs, Start, PidRef, Reason) ->
             lager:debug("ignoring unknown pid/ref ~p: ~p", [PidRef, Reason]),
             wait_for_runs(Runs, Start);
         {'value', {Routine, PidRef}, RestRuns} when Reason =:= 'normal' ->
-            lager:debug("routine ~s(~p) finished after ~pms", [Routine, element(1, PidRef), kz_time:elapsed_ms(Start)]),
+            lager:debug("routine ~s(~p) finished after ~pms", [
+                Routine, element(1, PidRef), kz_time:elapsed_ms(Start)
+            ]),
             wait_for_runs(RestRuns, Start);
         {'value', {Routine, PidRef}, RestRuns} ->
-            lager:info("routine ~s(~p) crashed after ~pms: ~p", [Routine, element(1, PidRef), kz_time:elapsed_ms(Start), Reason]),
+            lager:info("routine ~s(~p) crashed after ~pms: ~p", [
+                Routine, element(1, PidRef), kz_time:elapsed_ms(Start), Reason
+            ]),
             wait_for_runs(RestRuns, Start)
     end.
 
@@ -542,7 +652,8 @@ add_routine(Module) ->
     Routine = kz_term:to_binary(Module),
     Routines = kapps_config:get(?CONFIG_CAT, <<"routines">>, []),
     case add_migrate_routines(Routines, Routine) of
-        Routines -> 'ok';
+        Routines ->
+            'ok';
         NewRoutines ->
             _ = kapps_config:set_default(?CONFIG_CAT, <<"routines">>, NewRoutines),
             'ok'
@@ -553,7 +664,8 @@ add_migrate_routines(Routines, Module) ->
     lists:usort([Module | migrate_routines(Routines, [])] -- [<<"kz_currency">>]).
 
 -spec migrate_routines(kz_term:ne_binaries(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
-migrate_routines([], Acc) -> Acc;
+migrate_routines([], Acc) ->
+    Acc;
 migrate_routines([<<"wh_", Rest/binary>> | Rs], Acc) ->
     migrate_routines(Rs, [<<"kz_", Rest/binary>> | Acc]);
 migrate_routines([R | Rs], Acc) ->
@@ -580,7 +692,8 @@ maybe_archive_modb(AccountMODb) ->
 -spec should_archive(kz_term:ne_binary(), kz_time:year(), kz_time:month()) -> boolean().
 should_archive(AccountMODb, Year, Month) ->
     case kazoo_modb_util:split_account_mod(AccountMODb) of
-        {_AccountId, Year, Month} -> 'false';
+        {_AccountId, Year, Month} ->
+            'false';
         {_AccountId, ModbYear, ModbMonth} ->
             Months = (Year * 12) + Month,
             ModbMonths = (ModbYear * 12) + ModbMonth,
@@ -602,46 +715,54 @@ maybe_delete(AccountMODb, AccountIds) ->
     delete_if_orphaned(AccountMODb, IsOrphaned).
 
 -spec delete_if_orphaned(kz_term:ne_binary(), boolean()) -> boolean().
-delete_if_orphaned(_AccountMODb, 'false') -> 'false';
+delete_if_orphaned(_AccountMODb, 'false') ->
+    'false';
 delete_if_orphaned(AccountMODb, 'true') ->
     Succeeded = kz_datamgr:db_delete(AccountMODb),
-    lager:debug("cleanse orphaned modb ~p... ~p", [AccountMODb,Succeeded]),
+    lager:debug("cleanse orphaned modb ~p... ~p", [AccountMODb, Succeeded]),
     Succeeded.
 
-
-
 -spec get_range(kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_range(AccountId, From, To) ->
     get_range(<<"any">>, AccountId, From, To).
 
--spec get_range(kz_term:ne_binary(), kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()) ->
-          kz_term:ne_binaries().
+-spec get_range(
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_time:gregorian_seconds(),
+    kz_time:gregorian_seconds()
+) ->
+    kz_term:ne_binaries().
 get_range(Type, AccountId, From, To) ->
     {{FromYear, FromMonth, _}, _} = calendar:gregorian_seconds_to_datetime(From),
-    {{ToYear,   ToMonth,   _}, _} = calendar:gregorian_seconds_to_datetime(To),
-    [MODb
-     || MODb <- get_year_month_sequence(AccountId
-                                       ,{FromYear, FromMonth}
-                                       ,{ToYear, ToMonth}
-                                       ),
+    {{ToYear, ToMonth, _}, _} = calendar:gregorian_seconds_to_datetime(To),
+    [
+        MODb
+     || MODb <- get_year_month_sequence(
+            AccountId,
+            {FromYear, FromMonth},
+            {ToYear, ToMonth}
+        ),
         kz_datamgr:db_exists(MODb, Type)
     ].
 
 -type year_month_tuple() :: {kz_time:year(), kz_time:month()}.
 
 -spec get_year_month_sequence(kz_term:ne_binary(), year_month_tuple(), year_month_tuple()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 get_year_month_sequence(Account, From, To) ->
     get_year_month_sequence(Account, From, To, []).
 
--spec get_year_month_sequence(kz_term:ne_binary(), year_month_tuple(), year_month_tuple(), kz_term:proplist()) ->
-          kz_term:ne_binaries().
+-spec get_year_month_sequence(
+    kz_term:ne_binary(), year_month_tuple(), year_month_tuple(), kz_term:proplist()
+) ->
+    kz_term:ne_binaries().
 get_year_month_sequence(Account, Tuple, Tuple, Range) ->
-    ToMODbId = fun ({Year,Month}, Acc) -> [get_modb(Account, Year, Month)|Acc] end,
-    lists:foldl(ToMODbId, [], [Tuple|Range]);
-get_year_month_sequence(Account, {FromYear,13}, To, Range) ->
-    get_year_month_sequence(Account, {FromYear+1,1}, To, Range);
-get_year_month_sequence(Account, {FromYear,FromMonth}=From, {ToYear,ToMonth}=To, Range) ->
+    ToMODbId = fun({Year, Month}, Acc) -> [get_modb(Account, Year, Month) | Acc] end,
+    lists:foldl(ToMODbId, [], [Tuple | Range]);
+get_year_month_sequence(Account, {FromYear, 13}, To, Range) ->
+    get_year_month_sequence(Account, {FromYear + 1, 1}, To, Range);
+get_year_month_sequence(Account, {FromYear, FromMonth} = From, {ToYear, ToMonth} = To, Range) ->
     'true' = (FromYear * 12 + FromMonth) =< (ToYear * 12 + ToMonth),
-    get_year_month_sequence(Account, {FromYear,FromMonth+1}, To, [From|Range]).
+    get_year_month_sequence(Account, {FromYear, FromMonth + 1}, To, [From | Range]).

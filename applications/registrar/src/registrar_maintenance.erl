@@ -25,8 +25,9 @@ device_by_ip(IP) ->
     end.
 
 -spec pretty_print_device_by_ip(kz_term:proplist()) -> 'ok'.
-pretty_print_device_by_ip([]) -> 'ok';
-pretty_print_device_by_ip([{Key, Value}|Props]) ->
+pretty_print_device_by_ip([]) ->
+    'ok';
+pretty_print_device_by_ip([{Key, Value} | Props]) ->
     io:format("~-39s: ~s~n", [Key, kz_term:to_binary(Value)]),
     pretty_print_device_by_ip(Props).
 

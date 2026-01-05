@@ -10,32 +10,37 @@
 -export([update_all_accounts/1]).
 -export([replicate_from_accounts/2, replicate_from_account/3]).
 -export([revise_whapp_views_in_accounts/1]).
--export([get_all_accounts/0
-        ,get_all_accounts/1
-        ,get_all_accounts_and_mods/0
-        ,get_all_accounts_and_mods/1
-        ,get_all_account_mods/0
-        ,get_all_account_mods/1
-        ,get_account_mods/1
-        ,get_account_mods/2
-        ]).
--export([is_account_db/1
-        ,is_account_mod/1
-        ]).
--export([get_account_by_realm/1
-        ,get_ccvs_by_ip/1
-        ,get_accounts_by_name/1
+-export([
+    get_all_accounts/0,
+    get_all_accounts/1,
+    get_all_accounts_and_mods/0,
+    get_all_accounts_and_mods/1,
+    get_all_account_mods/0,
+    get_all_account_mods/1,
+    get_account_mods/1,
+    get_account_mods/2
+]).
+-export([
+    is_account_db/1,
+    is_account_mod/1
+]).
+-export([
+    get_account_by_realm/1,
+    get_ccvs_by_ip/1,
+    get_accounts_by_name/1,
 
-        ,are_all_enabled/1
-        ]).
--export([get_master_account_id/0
-        ,get_master_account_db/0
-        ]).
+    are_all_enabled/1
+]).
+-export([
+    get_master_account_id/0,
+    get_master_account_db/0
+]).
 -export([is_master_account/1]).
 -export([account_depth/1]).
--export([account_has_descendants/1
-        ,account_descendants/1
-        ]).
+-export([
+    account_has_descendants/1,
+    account_descendants/1
+]).
 -export([find_oldest_doc/1]).
 -export([get_call_termination_reason/1]).
 -export([get_view_json/1, get_view_json/2]).
@@ -45,18 +50,21 @@
 -export([get_destination/3]).
 
 -export([write_tts_file/2]).
--export([to_magic_hash/1
-        ,from_magic_hash/1
-        ]).
--export([get_application/0
-        ,put_application/1
-        ]).
+-export([
+    to_magic_hash/1,
+    from_magic_hash/1
+]).
+-export([
+    get_application/0,
+    put_application/1
+]).
 
 -include("kazoo_apps.hrl").
 
--type not_enabled_error() :: 'device_disabled' |
-                             'owner_disabled' |
-                             'account_disabled'.
+-type not_enabled_error() ::
+    'device_disabled'
+    | 'owner_disabled'
+    | 'account_disabled'.
 -export_type([not_enabled_error/0]).
 
 -define(REPLICATE_ENCODING, 'encoded').
@@ -78,10 +86,13 @@
 %%------------------------------------------------------------------------------
 -spec update_all_accounts(kz_term:ne_binary()) -> 'ok'.
 update_all_accounts(File) ->
-    lists:foreach(fun(AccountDb) ->
-                          timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
-                          kz_datamgr:revise_doc_from_file(AccountDb, 'crossbar', File)
-                  end, get_all_accounts(?REPLICATE_ENCODING)).
+    lists:foreach(
+        fun(AccountDb) ->
+            timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
+            kz_datamgr:revise_doc_from_file(AccountDb, 'crossbar', File)
+        end,
+        get_all_accounts(?REPLICATE_ENCODING)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc This function will import every `.json' file found in the given
@@ -90,10 +101,13 @@ update_all_accounts(File) ->
 %%------------------------------------------------------------------------------
 -spec revise_whapp_views_in_accounts(atom()) -> 'ok'.
 revise_whapp_views_in_accounts(App) ->
-    lists:foreach(fun(AccountDb) ->
-                          timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
-                          kz_datamgr:revise_views_from_folder(AccountDb, App)
-                  end, get_all_accounts(?REPLICATE_ENCODING)).
+    lists:foreach(
+        fun(AccountDb) ->
+            timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
+            kz_datamgr:revise_views_from_folder(AccountDb, App)
+        end,
+        get_all_accounts(?REPLICATE_ENCODING)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc This function will replicate the results of the filter from each
@@ -102,10 +116,13 @@ revise_whapp_views_in_accounts(App) ->
 %%------------------------------------------------------------------------------
 -spec replicate_from_accounts(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 replicate_from_accounts(TargetDb, FilterDoc) when is_binary(FilterDoc) ->
-    lists:foreach(fun(AccountDb) ->
-                          timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
-                          replicate_from_account(AccountDb, TargetDb, FilterDoc)
-                  end, get_all_accounts(?REPLICATE_ENCODING)).
+    lists:foreach(
+        fun(AccountDb) ->
+            timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
+            replicate_from_account(AccountDb, TargetDb, FilterDoc)
+        end,
+        get_all_accounts(?REPLICATE_ENCODING)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc This function will replicate the results of the filter from the
@@ -113,21 +130,26 @@ replicate_from_accounts(TargetDb, FilterDoc) when is_binary(FilterDoc) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec replicate_from_account(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', 'matching_dbs'}.
+    'ok' | {'error', 'matching_dbs'}.
 replicate_from_account(AccountDb, AccountDb, _) ->
     lager:debug("requested to replicate from db ~s to self, skipping", [AccountDb]),
     {'error', 'matching_dbs'};
 replicate_from_account(AccountDb, TargetDb, FilterDoc) ->
-    ReplicateProps = [{<<"source">>, kz_util:format_account_id(AccountDb, ?REPLICATE_ENCODING)}
-                     ,{<<"target">>, TargetDb}
-                     ,{<<"filter">>, FilterDoc}
-                     ,{<<"create_target">>, 'true'}
-                     ],
+    ReplicateProps = [
+        {<<"source">>, kz_util:format_account_id(AccountDb, ?REPLICATE_ENCODING)},
+        {<<"target">>, TargetDb},
+        {<<"filter">>, FilterDoc},
+        {<<"create_target">>, 'true'}
+    ],
     try kz_datamgr:db_replicate(ReplicateProps) of
         {'ok', _} ->
-            lager:debug("replicate ~s to ~s using filter ~s succeeded", [AccountDb, TargetDb, FilterDoc]);
+            lager:debug("replicate ~s to ~s using filter ~s succeeded", [
+                AccountDb, TargetDb, FilterDoc
+            ]);
         {'error', _} ->
-            lager:debug("replicate ~s to ~s using filter ~s failed", [AccountDb, TargetDb, FilterDoc])
+            lager:debug("replicate ~s to ~s using filter ~s failed", [
+                AccountDb, TargetDb, FilterDoc
+            ])
     catch
         _:_ ->
             lager:debug("replicate ~s to ~s using filter ~s error", [AccountDb, TargetDb, FilterDoc])
@@ -138,23 +160,31 @@ replicate_from_account(AccountDb, TargetDb, FilterDoc) ->
 %% set it to the oldest account and return that.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_master_account_id() -> {'ok', kz_term:ne_binary()} |
-          {'error', atom()}.
+-spec get_master_account_id() ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', atom()}.
 get_master_account_id() ->
     case kapps_config:get_ne_binary(?KZ_ACCOUNTS_DB, <<"master_account_id">>) of
         'undefined' ->
-            R = kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, ['include_docs']),
+            R = kz_datamgr:get_results(?KZ_ACCOUNTS_DB, <<"accounts/listing_by_id">>, [
+                'include_docs'
+            ]),
             find_master_account_id(R);
-        Default -> {'ok', Default}
+        Default ->
+            {'ok', Default}
     end.
 
-find_master_account_id({'error', _}=E) -> E;
-find_master_account_id({'ok', []}) -> {'error', 'no_accounts'};
+find_master_account_id({'error', _} = E) ->
+    E;
+find_master_account_id({'ok', []}) ->
+    {'error', 'no_accounts'};
 find_master_account_id({'ok', Accounts}) ->
-    {'ok', OldestAccountId}=Ok =
-        find_oldest_doc([kz_json:get_value(<<"doc">>, Account)
-                         || Account <- Accounts
-                        ]),
+    {'ok', OldestAccountId} =
+        Ok =
+        find_oldest_doc([
+            kz_json:get_value(<<"doc">>, Account)
+         || Account <- Accounts
+        ]),
     lager:debug("setting ~s.master_account_id to ~s", [?KZ_ACCOUNTS_DB, OldestAccountId]),
     {'ok', _} = kapps_config:set(?KZ_ACCOUNTS_DB, <<"master_account_id">>, OldestAccountId),
     Ok.
@@ -164,13 +194,13 @@ find_master_account_id({'ok', Accounts}) ->
 %% @see get_master_account_id/0
 %% @end
 %%------------------------------------------------------------------------------
--spec get_master_account_db() -> {'ok', kz_term:ne_binary()} |
-          {'error', any()}.
+-spec get_master_account_db() ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', any()}.
 get_master_account_db() ->
     case get_master_account_id() of
-        {'error', _}=E -> E;
-        {'ok', AccountId} ->
-            {'ok', kz_util:format_account_db(AccountId)}
+        {'error', _} = E -> E;
+        {'ok', AccountId} -> {'ok', kz_util:format_account_db(AccountId)}
     end.
 
 %%------------------------------------------------------------------------------
@@ -201,11 +231,13 @@ account_depth(Account) ->
 -spec account_descendants(kz_term:ne_binary()) -> kz_term:ne_binaries().
 account_descendants(?MATCH_ACCOUNT_RAW(AccountId)) ->
     View = <<"accounts/listing_by_descendants">>,
-    ViewOptions = [{'startkey', [AccountId]}
-                  ,{'endkey', [AccountId, kz_json:new()]}
-                  ],
+    ViewOptions = [
+        {'startkey', [AccountId]},
+        {'endkey', [AccountId, kz_json:new()]}
+    ],
     case kz_datamgr:get_results(?KZ_ACCOUNTS_DB, View, ViewOptions) of
-        {'ok', JObjs} -> [kz_doc:id(JObj) || JObj <- JObjs];
+        {'ok', JObjs} ->
+            [kz_doc:id(JObj) || JObj <- JObjs];
         {'error', _R} ->
             lager:debug("unable to get descendants of ~s: ~p", [AccountId, _R]),
             []
@@ -225,20 +257,23 @@ account_has_descendants(Account) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_oldest_doc(kz_json:objects()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', 'no_docs'}.
-find_oldest_doc([]) -> {'error', 'no_docs'};
-find_oldest_doc([First|Docs]) ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', 'no_docs'}.
+find_oldest_doc([]) ->
+    {'error', 'no_docs'};
+find_oldest_doc([First | Docs]) ->
     {_, OldestDocID} =
-        lists:foldl(fun(Doc, {Created, _}=Eldest) ->
-                            Older = kz_doc:created(Doc),
-                            case Older < Created  of
-                                'true' -> {Older, kz_doc:id(Doc)};
-                                'false' -> Eldest
-                            end
-                    end
-                   ,{kz_doc:created(First), kz_doc:id(First)}
-                   ,Docs),
+        lists:foldl(
+            fun(Doc, {Created, _} = Eldest) ->
+                Older = kz_doc:created(Doc),
+                case Older < Created of
+                    'true' -> {Older, kz_doc:id(Doc)};
+                    'false' -> Eldest
+                end
+            end,
+            {kz_doc:created(First), kz_doc:id(First)},
+            Docs
+        ),
     {'ok', OldestDocID}.
 
 %%------------------------------------------------------------------------------
@@ -252,10 +287,12 @@ get_all_accounts() -> get_all_accounts(?REPLICATE_ENCODING).
 
 -spec get_all_accounts(kz_util:account_format()) -> kz_term:ne_binaries().
 get_all_accounts(Encoding) ->
-    {'ok', Dbs} = kz_datamgr:db_list([{'startkey', <<"account/">>}
-                                     ,{'endkey', <<"account/\ufff0">>}
-                                     ]),
-    [kz_util:format_account_id(Db, Encoding)
+    {'ok', Dbs} = kz_datamgr:db_list([
+        {'startkey', <<"account/">>},
+        {'endkey', <<"account/\ufff0">>}
+    ]),
+    [
+        kz_util:format_account_id(Db, Encoding)
      || Db <- Dbs, is_account_db(Db)
     ].
 
@@ -266,20 +303,22 @@ get_all_accounts_and_mods() ->
 -spec get_all_accounts_and_mods(kz_util:account_format()) -> kz_term:ne_binaries().
 get_all_accounts_and_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
-    [format_db(Db, Encoding)
+    [
+        format_db(Db, Encoding)
      || Db <- Databases,
-        is_account_db(Db)
-            orelse is_account_mod(Db)
+        is_account_db(Db) orelse
+            is_account_mod(Db)
     ].
 
 -spec format_db(kz_term:ne_binary(), kz_util:account_format()) -> kz_term:ne_binary().
 format_db(Db, Encoding) ->
-    Fs = [{fun is_account_db/1, fun kz_util:format_account_id/2}
-         ,{fun is_account_mod/1, fun kz_util:format_account_modb/2}
-         ],
+    Fs = [
+        {fun is_account_db/1, fun kz_util:format_account_id/2},
+        {fun is_account_mod/1, fun kz_util:format_account_modb/2}
+    ],
     format_db(Db, Encoding, Fs).
 
-format_db(Db, Encoding, [{Predicate, Formatter}|Fs]) ->
+format_db(Db, Encoding, [{Predicate, Formatter} | Fs]) ->
     case Predicate(Db) of
         'true' -> Formatter(Db, Encoding);
         'false' -> format_db(Db, Encoding, Fs)
@@ -292,7 +331,8 @@ get_all_account_mods() ->
 -spec get_all_account_mods(kz_util:account_format()) -> kz_term:ne_binaries().
 get_all_account_mods(Encoding) ->
     {'ok', Databases} = kz_datamgr:db_info(),
-    [kz_util:format_account_modb(Db, Encoding)
+    [
+        kz_util:format_account_modb(Db, Encoding)
      || Db <- Databases,
         is_account_mod(Db)
     ].
@@ -304,27 +344,32 @@ get_account_mods(Account) ->
 -spec get_account_mods(kz_term:ne_binary(), kz_util:account_format()) -> kz_term:ne_binaries().
 get_account_mods(Account, Encoding) ->
     AccountId = kz_util:format_account_id(Account, Encoding),
-    [MOD
+    [
+        MOD
      || MOD <- get_all_account_mods(Encoding),
         is_account_mod(MOD),
         is_matched_account_mod(Encoding, MOD, AccountId)
     ].
 
--spec is_matched_account_mod(kz_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
-is_matched_account_mod('unencoded'
-                      ,?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _)
-                      ,?MATCH_ACCOUNT_UNENCODED(A, B, Rest)
-                      ) ->
+-spec is_matched_account_mod(kz_util:account_format(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    boolean().
+is_matched_account_mod(
+    'unencoded',
+    ?MATCH_MODB_SUFFIX_UNENCODED(A, B, Rest, _, _),
+    ?MATCH_ACCOUNT_UNENCODED(A, B, Rest)
+) ->
     'true';
-is_matched_account_mod('encoded'
-                      ,?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, _, _)
-                      ,?MATCH_ACCOUNT_ENCODED(A, B, Rest)
-                      ) ->
+is_matched_account_mod(
+    'encoded',
+    ?MATCH_MODB_SUFFIX_ENCODED(A, B, Rest, _, _),
+    ?MATCH_ACCOUNT_ENCODED(A, B, Rest)
+) ->
     'true';
-is_matched_account_mod('raw'
-                      ,?MATCH_MODB_SUFFIX_RAW(A, B, Rest, _, _)
-                      ,?MATCH_ACCOUNT_RAW(A, B, Rest)
-                      ) ->
+is_matched_account_mod(
+    'raw',
+    ?MATCH_MODB_SUFFIX_RAW(A, B, Rest, _, _),
+    ?MATCH_ACCOUNT_RAW(A, B, Rest)
+) ->
     'true';
 is_matched_account_mod(_, _, _) ->
     'false'.
@@ -337,10 +382,10 @@ is_account_mod(Db) ->
 is_account_db(Db) ->
     kz_datamgr:db_classification(Db) =:= 'account'.
 
-
--type getby_return() :: {'ok', kz_term:ne_binary()} |
-                        {'multiples', kz_term:ne_binaries()} |
-                        {'error', 'not_found'}.
+-type getby_return() ::
+    {'ok', kz_term:ne_binary()}
+    | {'multiples', kz_term:ne_binaries()}
+    | {'error', 'not_found'}.
 
 %%------------------------------------------------------------------------------
 %% @doc Get the account db by realm. Realms are one->one with accounts.
@@ -351,23 +396,26 @@ get_account_by_realm(RawRealm) ->
     Realm = kz_term:to_lower_binary(RawRealm),
     get_accounts_by(Realm, ?ACCT_BY_REALM_CACHE(Realm), ?AGG_LIST_BY_REALM).
 
--type get_by_ip_errors() :: {'error', 'not_found'} |
-                            {'error', {not_enabled_error(), kz_term:ne_binary()}}.
--type get_by_ip_return() :: {'ok', kz_term:proplist()} |
-                            get_by_ip_errors().
+-type get_by_ip_errors() ::
+    {'error', 'not_found'}
+    | {'error', {not_enabled_error(), kz_term:ne_binary()}}.
+-type get_by_ip_return() ::
+    {'ok', kz_term:proplist()}
+    | get_by_ip_errors().
 -spec get_ccvs_by_ip(kz_term:ne_binary()) -> get_by_ip_return().
 get_ccvs_by_ip(IP) ->
     case kz_cache:peek_local(?KAPPS_GETBY_CACHE, ?ACCT_BY_IP_CACHE(IP)) of
         {'error', 'not_found'} -> do_get_ccvs_by_ip(IP);
-        {'ok', {'error', _Reason}=E} -> E;
-        {'ok', {'ok', _AccountCCVs}=Ok} -> Ok
+        {'ok', {'error', _Reason} = E} -> E;
+        {'ok', {'ok', _AccountCCVs} = Ok} -> Ok
     end.
 
 -spec do_get_ccvs_by_ip(kz_term:ne_binary()) -> get_by_ip_return().
 do_get_ccvs_by_ip(IP) ->
     NotFound = {'error', 'not_found'},
-    case kapps_config:get_is_true(<<"registrar">>, <<"use_aggregate">>, 'true')
-        andalso kz_datamgr:get_results(?KZ_SIP_DB, ?AGG_LIST_BY_IP, [{'key', IP}])
+    case
+        kapps_config:get_is_true(<<"registrar">>, <<"use_aggregate">>, 'true') andalso
+            kz_datamgr:get_results(?KZ_SIP_DB, ?AGG_LIST_BY_IP, [{'key', IP}])
     of
         'false' ->
             lager:debug("aggregate SIP auth db disabled, skipping CCV lookup by IP ~s", [IP]),
@@ -377,7 +425,7 @@ do_get_ccvs_by_ip(IP) ->
             lager:debug("no entry in ~s for IP: ~s", [?KZ_SIP_DB, IP]),
             kz_cache:store_local(?KAPPS_GETBY_CACHE, ?ACCT_BY_IP_CACHE(IP), NotFound),
             NotFound;
-        {'ok', [Doc|_]} ->
+        {'ok', [Doc | _]} ->
             lager:debug("found IP ~s in db ~s (~s)", [IP, ?KZ_SIP_DB, kz_doc:id(Doc)]),
             Result = account_ccvs_from_ip_auth(Doc),
             kz_cache:store_local(?KAPPS_GETBY_CACHE, ?ACCT_BY_IP_CACHE(IP), Result),
@@ -392,10 +440,12 @@ account_ccvs_from_ip_auth(Doc) ->
     AccountId = kz_json:get_value([<<"value">>, <<"account_id">>], Doc),
     OwnerId = kz_json:get_value([<<"value">>, <<"owner_id">>], Doc),
     AuthType = kz_json:get_value([<<"value">>, <<"authorizing_type">>], Doc, <<"anonymous">>),
-    case are_all_enabled([{<<"account">>, AccountId}
-                         ,{<<"owner">>, OwnerId}
-                         ,{AuthType, kz_doc:id(Doc)}
-                         ])
+    case
+        are_all_enabled([
+            {<<"account">>, AccountId},
+            {<<"owner">>, OwnerId},
+            {AuthType, kz_doc:id(Doc)}
+        ])
     of
         {'false', Reason} ->
             lager:notice("no IP auth info: ~p", [Reason]),
@@ -403,46 +453,53 @@ account_ccvs_from_ip_auth(Doc) ->
         'true' ->
             AccountCCVs =
                 props:filter_undefined(
-                  [{<<"Account-ID">>, AccountId}
-                  ,{<<"Owner-ID">>, OwnerId}
-                  ,{<<"Authorizing-ID">>, kz_doc:id(Doc)}
-                  ,{<<"Inception">>, <<"on-net">>}
-                  ,{<<"Authorizing-Type">>, AuthType}
-                  ]),
+                    [
+                        {<<"Account-ID">>, AccountId},
+                        {<<"Owner-ID">>, OwnerId},
+                        {<<"Authorizing-ID">>, kz_doc:id(Doc)},
+                        {<<"Inception">>, <<"on-net">>},
+                        {<<"Authorizing-Type">>, AuthType}
+                    ]
+                ),
             {'ok', AccountCCVs}
     end.
 
 -spec are_all_enabled(kz_term:proplist()) ->
-          'true' |
-          {'false', {not_enabled_error(), kz_term:ne_binary()}}.
+    'true'
+    | {'false', {not_enabled_error(), kz_term:ne_binary()}}.
 are_all_enabled(Things) ->
     ?MATCH_ACCOUNT_RAW(AccountId) = props:get_value(<<"account">>, Things),
-    try lists:all(fun(Thing) -> is_enabled(AccountId, Thing) end, Things)
+    try
+        lists:all(fun(Thing) -> is_enabled(AccountId, Thing) end, Things)
     catch
         'throw':{'error', Reason} -> {'false', Reason}
     end.
 
 -spec is_enabled(kz_term:ne_binary(), {kz_term:ne_binary(), kz_term:api_ne_binary()}) -> boolean().
-is_enabled(_AccountId, {_Type, 'undefined'}) -> 'true';
+is_enabled(_AccountId, {_Type, 'undefined'}) ->
+    'true';
 is_enabled(AccountId, {<<"device">>, DeviceId}) ->
     Default = kapps_config:get_is_true(<<"registrar">>, <<"device_enabled_default">>, 'true'),
     {'ok', DeviceJObj} = kz_datamgr:open_cache_doc(kz_util:format_account_db(AccountId), DeviceId),
-    kzd_devices:enabled(DeviceJObj, Default)
-        orelse throw({'error', {'device_disabled', DeviceId}});
+    kzd_devices:enabled(DeviceJObj, Default) orelse
+        throw({'error', {'device_disabled', DeviceId}});
 is_enabled(AccountId, {<<"owner">>, OwnerId}) ->
     case kz_datamgr:open_cache_doc(kz_util:format_account_db(AccountId), OwnerId) of
         {'ok', UserJObj} ->
-            Default = kapps_config:get_is_true(<<"registrar">>, <<"owner_enabled_default">>, 'true'),
-            kzd_user:is_enabled(UserJObj, Default)
-                orelse throw({'error', {'owner_disabled', OwnerId}});
+            Default = kapps_config:get_is_true(
+                <<"registrar">>, <<"owner_enabled_default">>, 'true'
+            ),
+            kzd_user:is_enabled(UserJObj, Default) orelse
+                throw({'error', {'owner_disabled', OwnerId}});
         {'error', _R} ->
             lager:debug("unable to fetch owner doc ~s: ~p", [OwnerId, _R]),
             'true'
     end;
 is_enabled(AccountId, {<<"account">>, AccountId}) ->
-    kzd_accounts:is_enabled(AccountId)
-        orelse throw({'error', {'account_disabled', AccountId}});
-is_enabled(_AccountId, {_Type, _Thing}) -> 'true'.
+    kzd_accounts:is_enabled(AccountId) orelse
+        throw({'error', {'account_disabled', AccountId}});
+is_enabled(_AccountId, {_Type, _Thing}) ->
+    'true'.
 
 %%------------------------------------------------------------------------------
 %% @doc Get account db by account's name. Names are one->many with accounts
@@ -457,9 +514,8 @@ get_accounts_by_name(Name) ->
 get_accounts_by(What, CacheKey, View) ->
     case kz_cache:peek_local(?KAPPS_GETBY_CACHE, CacheKey) of
         {'ok', [AccountDb]} -> {'ok', AccountDb};
-        {'ok', [_|_]=AccountDbs} -> {'multiples', AccountDbs};
-        {'error', 'not_found'} ->
-            do_get_accounts_by(What, CacheKey, View)
+        {'ok', [_ | _] = AccountDbs} -> {'multiples', AccountDbs};
+        {'error', 'not_found'} -> do_get_accounts_by(What, CacheKey, View)
     end.
 
 -spec do_get_accounts_by(kz_term:ne_binary(), tuple(), kz_term:ne_binary()) -> getby_return().
@@ -470,8 +526,11 @@ do_get_accounts_by(What, CacheKey, View) ->
             AccountDb = kz_json:get_value([<<"value">>, <<"account_db">>], JObj),
             _ = cache(CacheKey, [AccountDb]),
             {'ok', AccountDb};
-        {'ok', [_|_]=JObjs} ->
-            AccountDbs = [kz_json:get_value([<<"value">>, <<"account_db">>], JObj) || JObj <- JObjs],
+        {'ok', [_ | _] = JObjs} ->
+            AccountDbs = [
+                kz_json:get_value([<<"value">>, <<"account_db">>], JObj)
+             || JObj <- JObjs
+            ],
             _ = cache(CacheKey, AccountDbs),
             {'multiples', AccountDbs};
         {'ok', []} ->
@@ -492,12 +551,13 @@ cache(Key, AccountDbs) ->
 %%------------------------------------------------------------------------------
 -spec get_call_termination_reason(kz_json:object()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 get_call_termination_reason(JObj) ->
-    Cause = case kz_json:get_ne_value(<<"Application-Response">>, JObj) of
-                'undefined' ->
-                    kz_json:get_ne_value(<<"Hangup-Cause">>, JObj, <<"UNSPECIFIED">>);
-                Response ->
-                    Response
-            end,
+    Cause =
+        case kz_json:get_ne_value(<<"Application-Response">>, JObj) of
+            'undefined' ->
+                kz_json:get_ne_value(<<"Hangup-Cause">>, JObj, <<"UNSPECIFIED">>);
+            Response ->
+                Response
+        end,
     Code = kz_json:get_value(<<"Hangup-Code">>, JObj, <<"sip:600">>),
     {Cause, Code}.
 
@@ -508,9 +568,10 @@ get_call_termination_reason(JObj) ->
 -spec get_views_json(atom(), string()) -> kz_datamgr:views_listing().
 get_views_json(App, Folder) ->
     Pattern = filename:join([code:priv_dir(App), "couchdb", Folder, "*.json"]),
-    [ViewListing
+    [
+        ViewListing
      || File <- filelib:wildcard(Pattern),
-        {?NE_BINARY,_}=ViewListing <- [catch get_view_json(File)]
+        {?NE_BINARY, _} = ViewListing <- [catch get_view_json(File)]
     ].
 
 -spec get_view_json(atom(), kz_term:text()) -> kz_datamgr:view_listing().
@@ -530,10 +591,12 @@ get_view_json(Path) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec add_aggregate_device(kz_term:ne_binary(), kz_term:api_binary()) -> 'ok'.
-add_aggregate_device(_, 'undefined') -> 'ok';
+add_aggregate_device(_, 'undefined') ->
+    'ok';
 add_aggregate_device(Db, Device) ->
     DeviceId = kz_doc:id(Device),
-    _ = case kz_datamgr:lookup_doc_rev(?KZ_SIP_DB, DeviceId) of
+    _ =
+        case kz_datamgr:lookup_doc_rev(?KZ_SIP_DB, DeviceId) of
             {'ok', Rev} ->
                 lager:debug("aggregating device ~s/~s", [Db, DeviceId]),
                 kz_datamgr:ensure_saved(?KZ_SIP_DB, kz_doc:set_revision(Device, Rev));
@@ -548,10 +611,12 @@ add_aggregate_device(Db, Device) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec rm_aggregate_device(kz_term:ne_binary(), kz_term:api_object() | kz_term:api_binary()) -> 'ok'.
-rm_aggregate_device(_, 'undefined') -> 'ok';
+rm_aggregate_device(_, 'undefined') ->
+    'ok';
 rm_aggregate_device(Db, DeviceId) when is_binary(DeviceId) ->
     case kz_datamgr:open_doc(?KZ_SIP_DB, DeviceId) of
-        {'error', 'not_found'} -> 'ok';
+        {'error', 'not_found'} ->
+            'ok';
         {'ok', JObj} ->
             lager:debug("removing aggregated device ~s/~s", [Db, DeviceId]),
             _ = kz_datamgr:del_doc(?KZ_SIP_DB, JObj),
@@ -566,7 +631,7 @@ rm_aggregate_device(Db, Device) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_destination(kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {kz_term:api_binary(), kz_term:api_binary()}.
+    {kz_term:api_binary(), kz_term:api_binary()}.
 get_destination(JObj, Cat, Key) ->
     case kapps_config:get(Cat, Key, <<"Request">>) of
         <<"To">> ->
@@ -576,28 +641,26 @@ get_destination(JObj, Cat, Key) ->
     end.
 
 -spec get_destination(kz_json:object(), kz_term:ne_binaries()) ->
-          {kz_term:api_binary(), kz_term:api_binary()}.
-get_destination(JObj, [Key|Keys]) ->
+    {kz_term:api_binary(), kz_term:api_binary()}.
+get_destination(JObj, [Key | Keys]) ->
     case maybe_split(Key, JObj) of
-        [User,Realm] -> {User,Realm};
+        [User, Realm] -> {User, Realm};
         'undefined' -> get_destination(JObj, Keys)
     end;
 get_destination(JObj, []) ->
-    {kz_json:get_value(<<"To-DID">>, JObj)
-    ,kz_json:get_value(<<"To-Realm">>, JObj)
-    }.
+    {kz_json:get_value(<<"To-DID">>, JObj), kz_json:get_value(<<"To-Realm">>, JObj)}.
 
 -spec maybe_split(kz_json:get_key(), kz_json:object()) -> kz_term:api_binaries().
 maybe_split(Key, JObj) ->
     case kz_json:get_ne_binary_value(Key, JObj) of
         'undefined' -> 'undefined';
-        <<"nouser@",_/binary>> -> 'undefined';
+        <<"nouser@", _/binary>> -> 'undefined';
         Bin -> binary:split(Bin, <<"@">>)
     end.
 
 -spec write_tts_file(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' |
-          {'error', file:posix() | 'badarg' | 'terminated'}.
+    'ok'
+    | {'error', file:posix() | 'badarg' | 'terminated'}.
 write_tts_file(Path, Say) ->
     lager:debug("trying to save TTS media to ~s", [Path]),
     {'ok', _, Wav} = kazoo_tts:create(Say),
@@ -623,7 +686,8 @@ find_application() ->
     case application:get_application() of
         {'ok', Application} ->
             Application;
-        _Else -> 'undefined'
+        _Else ->
+            'undefined'
     end.
 
 -spec put_application(atom()) -> atom().

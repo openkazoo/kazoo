@@ -15,8 +15,7 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('spyvsspy_listener')
-                  ]).
+-define(CHILDREN, [?WORKER('spyvsspy_listener')]).
 
 %%==============================================================================
 %% API functions

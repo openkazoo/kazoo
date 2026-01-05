@@ -14,7 +14,7 @@
 -define(KEY_CONTROL_QUEUE, <<"Control-Queue">>).
 -define(KEY_CSHS, <<"Custom-SIP-Headers">>).
 -define(KEY_REQUESTOR_CSHS, <<"Requestor-Custom-SIP-Headers">>).
--define(KEY_ENABLE_T38 ,<<"Enable-T38-Fax">>).
+-define(KEY_ENABLE_T38, <<"Enable-T38-Fax">>).
 -define(KEY_ENABLE_T38_GATEWAY, <<"Enable-T38-Gateway">>).
 -define(KEY_ENABLE_T38_PASSTHROUGH, <<"Enable-T38-Passthrough">>).
 -define(KEY_ENABLE_T38_REQUEST, <<"Enable-T38-Fax-Request">>).

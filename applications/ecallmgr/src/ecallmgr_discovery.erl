@@ -8,13 +8,14 @@
 
 -export([start_link/0]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
@@ -93,7 +94,7 @@ handle_info(_Msg, Startup) ->
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
 terminate(Reason, _State) ->
-    lager:debug("ecallmgr discovery terminating: ~p",[Reason]).
+    lager:debug("ecallmgr discovery terminating: ~p", [Reason]).
 
 %%------------------------------------------------------------------------------
 %% @doc Convert process state when code is changed
@@ -112,13 +113,20 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
-next_timeout(Elapsed)
-  when Elapsed < ?SECONDS_IN_MINUTE * 5 -> ?MILLISECONDS_IN_SECOND;
-next_timeout(Elapsed)
-  when Elapsed < ?SECONDS_IN_MINUTE * 10 -> ?MILLISECONDS_IN_SECOND * 3;
-next_timeout(Elapsed)
-  when Elapsed < ?SECONDS_IN_MINUTE * 20 -> ?MILLISECONDS_IN_SECOND * 5;
-next_timeout(_Elapsed) -> ?MILLISECONDS_IN_MINUTE.
+next_timeout(Elapsed) when
+    Elapsed < ?SECONDS_IN_MINUTE * 5
+->
+    ?MILLISECONDS_IN_SECOND;
+next_timeout(Elapsed) when
+    Elapsed < ?SECONDS_IN_MINUTE * 10
+->
+    ?MILLISECONDS_IN_SECOND * 3;
+next_timeout(Elapsed) when
+    Elapsed < ?SECONDS_IN_MINUTE * 20
+->
+    ?MILLISECONDS_IN_SECOND * 5;
+next_timeout(_Elapsed) ->
+    ?MILLISECONDS_IN_MINUTE.
 
 sbc_acl_filter({_K, V}) ->
     kz_json:get_ne_binary_value(<<"network-list-name">>, V) =:= <<"authoritative">>.
@@ -138,11 +146,11 @@ sbc_address_foldl(_, JObj, Acc) ->
         Ports -> props:set_value(IP, lists:usort([Port | Ports]), Acc)
     end.
 
-sbc_addresses(#kz_node{roles=Roles}) ->
+sbc_addresses(#kz_node{roles = Roles}) ->
     Listeners = kz_json:get_json_value(<<"Listeners">>, props:get_value(<<"Proxy">>, Roles)),
     kz_json:foldl(fun sbc_address_foldl/3, [], Listeners).
 
-sbc_node(#kz_node{node=Name}=Node) ->
+sbc_node(#kz_node{node = Name} = Node) ->
     {kz_term:to_binary(Name), sbc_addresses(Node)}.
 
 sbc_verify_ip({IP, _}, CIDRs) ->
@@ -165,11 +173,12 @@ filter_acls_fun({_Name, ACL}) ->
 sbc_acl(IPs) ->
     CIDRs = [kz_network_utils:to_cidr(IP) || {IP, _} <- IPs],
 
-    kz_json:from_list([{<<"type">>, <<"allow">>}
-                      ,{<<"network-list-name">>, ?FS_SBC_ACL_LIST}
-                      ,{<<"cidr">>, CIDRs}
-                      ,{<<"ports">>, lists:usort(lists:flatten([Ports || {_, Ports} <- IPs]))}
-                      ]).
+    kz_json:from_list([
+        {<<"type">>, <<"allow">>},
+        {<<"network-list-name">>, ?FS_SBC_ACL_LIST},
+        {<<"cidr">>, CIDRs},
+        {<<"ports">>, lists:usort(lists:flatten([Ports || {_, Ports} <- IPs]))}
+    ]).
 
 sbc_acls(Nodes) ->
     [{Node, sbc_acl(IPs)} || {Node, IPs} <- Nodes].
@@ -191,11 +200,12 @@ sbc_discovery(ConfigNode, CurrentACLs) ->
     CIDRs = sbc_cidrs(ACLs),
     Nodes = [sbc_node(Node) || Node <- kz_nodes:with_role(<<"Proxy">>, 'true')],
     case lists:foldl(fun(A, C) -> sbc_discover(A, CIDRs, C) end, [], Nodes) of
-        [] -> 'ok';
+        [] ->
+            'ok';
         Updates ->
             Names = lists:usort(lists:map(fun({Node, _}) -> Node end, Updates)),
             lager:debug("adding authoritative acls for ~s", [kz_binary:join(Names)]),
-            ToUpdate = lists:filter(fun({Node, _IPs}) -> lists:member(Node, Names) end , Nodes),
+            ToUpdate = lists:filter(fun({Node, _IPs}) -> lists:member(Node, Names) end, Nodes),
             SBCACLs = sbc_acls(ToUpdate),
             NewAcls = kz_json:set_values(SBCACLs, CurrentACLs),
             _ = kapps_config:set_node(?APP_NAME, <<"acls">>, NewAcls, ConfigNode),

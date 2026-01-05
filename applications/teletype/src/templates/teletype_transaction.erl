@@ -6,27 +6,36 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_transaction).
 
--export([init/0
-        ,handle_req/1
-        ,process_req/2
-        ]).
+-export([
+    init/0,
+    handle_req/1,
+    process_req/2
+]).
 
 -include("teletype.hrl").
 
 -define(TEMPLATE_ID, <<"transaction">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          [?MACRO_VALUE(<<"plan.id">>, <<"plan_id">>, <<"Plan ID">>, <<"Plan ID">>)
-          ,?MACRO_VALUE(<<"plan.category">>, <<"plan_category">>, <<"Plan Category">>, <<"Plan Category">>)
-          ,?MACRO_VALUE(<<"plan.item">>, <<"plan_item">>, <<"Plan Item">>, <<"Plan Item">>)
-          ,?MACRO_VALUE(<<"plan.activation_charge">>, <<"plan_activation_charge">>, <<"Activation Charge">>, <<"Activation Charge">>)
-           | ?TRANSACTION_MACROS
-           ++ ?USER_MACROS
-           ++ ?COMMON_TEMPLATE_MACROS
-          ]
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        [
+            ?MACRO_VALUE(<<"plan.id">>, <<"plan_id">>, <<"Plan ID">>, <<"Plan ID">>),
+            ?MACRO_VALUE(
+                <<"plan.category">>, <<"plan_category">>, <<"Plan Category">>, <<"Plan Category">>
+            ),
+            ?MACRO_VALUE(<<"plan.item">>, <<"plan_item">>, <<"Plan Item">>, <<"Plan Item">>),
+            ?MACRO_VALUE(
+                <<"plan.activation_charge">>,
+                <<"plan_activation_charge">>,
+                <<"Activation Charge">>,
+                <<"Activation Charge">>
+            )
+            | ?TRANSACTION_MACROS ++
+                ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Receipt for your payment of account '{{account.name}}'">>).
 -define(TEMPLATE_CATEGORY, <<"account">>).
@@ -41,16 +50,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"transaction">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -89,12 +99,13 @@ processability('false', _) ->
 
 -spec process_req(kz_json:object(), kz_term:ne_binary()) -> template_response().
 process_req(DataJObj, TemplateId) ->
-    Macros = [{<<"system">>, teletype_util:system_params()}
-             ,{<<"account">>, teletype_util:account_params(DataJObj)}
-             ,{<<"user">>, teletype_util:public_proplist(<<"user">>, DataJObj)}
-             ,{<<"plan">>, service_plan_data(DataJObj)}
-             ,{<<"transaction">>, transaction_data(DataJObj)}
-             ],
+    Macros = [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"user">>, teletype_util:public_proplist(<<"user">>, DataJObj)},
+        {<<"plan">>, service_plan_data(DataJObj)},
+        {<<"transaction">>, transaction_data(DataJObj)}
+    ],
 
     %% Load templates
     RenderedTemplates = teletype_templates:render(TemplateId, Macros, DataJObj),
@@ -102,7 +113,9 @@ process_req(DataJObj, TemplateId) ->
     AccountId = kapi_notifications:account_id(DataJObj),
     {'ok', TemplateMetaJObj} = teletype_templates:fetch_notification(TemplateId, AccountId),
 
-    Subject = teletype_util:render_subject(kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj]), Macros),
+    Subject = teletype_util:render_subject(
+        kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj]), Macros
+    ),
 
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, ?TEMPLATE_ID),
 
@@ -115,7 +128,7 @@ process_req(DataJObj, TemplateId) ->
 service_plan_data(DataJObj) ->
     case teletype_util:is_preview(DataJObj) of
         'true' -> [];
-        'false' ->teletype_util:public_proplist(<<"service_plan">>, DataJObj)
+        'false' -> teletype_util:public_proplist(<<"service_plan">>, DataJObj)
     end.
 
 -spec transaction_data(kz_json:object()) -> kz_term:proplist().
@@ -126,37 +139,59 @@ transaction_data(DataJObj) ->
 transaction_data(DataJObj, 'true') ->
     {'ok', JObj} = teletype_util:read_preview_doc(<<"transaction">>),
     Props = kz_json:recursive_to_proplist(JObj),
-    props:set_value(<<"date">>, teletype_util:fix_timestamp(props:get_value(<<"date">>, Props), DataJObj), Props);
+    props:set_value(
+        <<"date">>, teletype_util:fix_timestamp(props:get_value(<<"date">>, Props), DataJObj), Props
+    );
 transaction_data(DataJObj, 'false') ->
     props:filter_undefined(
-      [{<<"amount">>, get_transaction_amount(DataJObj)}
-      ,{<<"success">>, kz_json:is_true(<<"success">>, DataJObj)}
-      ,{<<"response">>, kz_json:get_value(<<"response">>, DataJObj)}
-      ,{<<"id">>, kz_json:get_value(<<"id">>, DataJObj)}
-      ,{<<"add_ons">>, calculate_total(kz_json:get_ne_value(<<"add_ons">>, DataJObj, []))}
-      ,{<<"discounts">>, calculate_total(kz_json:get_ne_value(<<"discounts">>, DataJObj, []))}
-      ,{<<"address">>
-       ,props:filter_undefined(
-          [{<<"first_name">>, kz_json:get_value([<<"billing_address">>, <<"first_name">>], DataJObj)}
-          ,{<<"last_name">>, kz_json:get_value([<<"billing_address">>, <<"last_name">>], DataJObj)}
-          ,{<<"company">>, kz_json:get_value([<<"billing_address">>, <<"company">>], DataJObj)}
-          ,{<<"street_address">>, kz_json:get_value([<<"billing_address">>, <<"street_address">>], DataJObj)}
-          ,{<<"extended_address">>, kz_json:get_value([<<"billing_address">>, <<"extended_address">>], DataJObj)}
-          ,{<<"locality">>, kz_json:get_value([<<"billing_address">>, <<"locality">>], DataJObj)}
-          ,{<<"region">>, kz_json:get_value([<<"billing_address">>, <<"region">>], DataJObj)}
-          ,{<<"postal_code">>, kz_json:get_value([<<"billing_address">>, <<"postal_code">>], DataJObj)}
-          ,{<<"country_name">>, kz_json:get_value([<<"billing_address">>, <<"country_name">>], DataJObj)}
-          ,{<<"phone">>, kz_json:get_value([<<"billing_address">>, <<"phone">>], DataJObj)}
-          ,{<<"email">>, kz_json:get_value([<<"billing_address">>, <<"email">>], DataJObj)}
-          ])
-       }
-      ,{<<"card_last_four">>, kz_json:get_value(<<"card_last_four">>, DataJObj)}
-      ,{<<"tax_amount">>, kz_json:get_value(<<"tax_amount">>, DataJObj)}
-      ,{<<"date">>, teletype_util:fix_timestamp(kz_json:get_value(<<"timestamp">>, DataJObj), DataJObj)}
-      ,{<<"purchase_order">>, purchase_order(DataJObj)}
-      ,{<<"currency_code">>, kz_json:get_value(<<"currency_code">>, DataJObj)}
-      ]
-     ).
+        [
+            {<<"amount">>, get_transaction_amount(DataJObj)},
+            {<<"success">>, kz_json:is_true(<<"success">>, DataJObj)},
+            {<<"response">>, kz_json:get_value(<<"response">>, DataJObj)},
+            {<<"id">>, kz_json:get_value(<<"id">>, DataJObj)},
+            {<<"add_ons">>, calculate_total(kz_json:get_ne_value(<<"add_ons">>, DataJObj, []))},
+            {<<"discounts">>, calculate_total(kz_json:get_ne_value(<<"discounts">>, DataJObj, []))},
+            {<<"address">>,
+                props:filter_undefined(
+                    [
+                        {<<"first_name">>,
+                            kz_json:get_value([<<"billing_address">>, <<"first_name">>], DataJObj)},
+                        {<<"last_name">>,
+                            kz_json:get_value([<<"billing_address">>, <<"last_name">>], DataJObj)},
+                        {<<"company">>,
+                            kz_json:get_value([<<"billing_address">>, <<"company">>], DataJObj)},
+                        {<<"street_address">>,
+                            kz_json:get_value(
+                                [<<"billing_address">>, <<"street_address">>], DataJObj
+                            )},
+                        {<<"extended_address">>,
+                            kz_json:get_value(
+                                [<<"billing_address">>, <<"extended_address">>], DataJObj
+                            )},
+                        {<<"locality">>,
+                            kz_json:get_value([<<"billing_address">>, <<"locality">>], DataJObj)},
+                        {<<"region">>,
+                            kz_json:get_value([<<"billing_address">>, <<"region">>], DataJObj)},
+                        {<<"postal_code">>,
+                            kz_json:get_value([<<"billing_address">>, <<"postal_code">>], DataJObj)},
+                        {<<"country_name">>,
+                            kz_json:get_value(
+                                [<<"billing_address">>, <<"country_name">>], DataJObj
+                            )},
+                        {<<"phone">>,
+                            kz_json:get_value([<<"billing_address">>, <<"phone">>], DataJObj)},
+                        {<<"email">>,
+                            kz_json:get_value([<<"billing_address">>, <<"email">>], DataJObj)}
+                    ]
+                )},
+            {<<"card_last_four">>, kz_json:get_value(<<"card_last_four">>, DataJObj)},
+            {<<"tax_amount">>, kz_json:get_value(<<"tax_amount">>, DataJObj)},
+            {<<"date">>,
+                teletype_util:fix_timestamp(kz_json:get_value(<<"timestamp">>, DataJObj), DataJObj)},
+            {<<"purchase_order">>, purchase_order(DataJObj)},
+            {<<"currency_code">>, kz_json:get_value(<<"currency_code">>, DataJObj)}
+        ]
+    ).
 
 %% amount is expected to be in dollars
 -spec get_transaction_amount(kz_json:object()) -> float().
@@ -166,23 +201,28 @@ get_transaction_amount(DataJObj) ->
         'undefined' when IsPreview -> 20.0;
         'undefined' ->
             lager:warning("failed to get topup amount from data: ~p", [DataJObj]),
-            throw({'error', 'missing_data',  <<"no transaction amount">>});
-        Amount -> Amount
+            throw({'error', 'missing_data', <<"no transaction amount">>});
+        Amount ->
+            Amount
     end.
 
 -spec purchase_order(kz_json:object()) -> binary().
 purchase_order(DataJObj) ->
-    binary:replace(kz_json:get_ne_binary_value(<<"purchase_order">>, DataJObj, <<>>)
-                  ,<<"_">>
-                  ,<<" ">>
-                  ,[global]
-                  ).
+    binary:replace(
+        kz_json:get_ne_binary_value(<<"purchase_order">>, DataJObj, <<>>),
+        <<"_">>,
+        <<" ">>,
+        [global]
+    ).
 
 -spec calculate_total(kz_term:api_objects() | binary()) -> non_neg_integer().
 calculate_total(JObjs) when is_list(JObjs) ->
     lists:sum(
-      [kz_json:get_integer_value(<<"quantity">>, J, 0) * kz_json:get_integer_value(<<"amount">>, J, 0)
-       || J <- JObjs
-      ]
-     );
-calculate_total(_) -> 0.
+        [
+            kz_json:get_integer_value(<<"quantity">>, J, 0) *
+                kz_json:get_integer_value(<<"amount">>, J, 0)
+         || J <- JObjs
+        ]
+    );
+calculate_total(_) ->
+    0.

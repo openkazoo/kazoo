@@ -7,29 +7,31 @@
 -module(blackhole_tracking).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_req/2
+-export([
+    start_link/0,
+    handle_req/2,
 
-        ,add_socket/1
-        ,remove_socket/1
-        ,update_socket/1
+    add_socket/1,
+    remove_socket/1,
+    update_socket/1,
 
-        ,get_context_by_session_id/1
-        ,get_contexts/0
-        ,get_contexts_by_account_id/1
-        ,get_contexts_by_ip/1
+    get_context_by_session_id/1,
+    get_contexts/0,
+    get_contexts_by_account_id/1,
+    get_contexts_by_ip/1,
 
-        ,session_count_by_ip/1
-        ]).
+    session_count_by_ip/1
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("blackhole.hrl").
 
@@ -55,16 +57,18 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}
-                           ,?MODULE
-                           ,[{'responders', ?RESPONDERS}
-                            ,{'bindings', ?BINDINGS}
-                            ,{'queue_name', ?BLACKHOLE_QUEUE_NAME}
-                            ,{'queue_options', ?BLACKHOLE_QUEUE_OPTIONS}
-                            ,{'consume_options', ?BLACKHOLE_CONSUME_OPTIONS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?BLACKHOLE_QUEUE_NAME},
+            {'queue_options', ?BLACKHOLE_QUEUE_OPTIONS},
+            {'consume_options', ?BLACKHOLE_CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -114,17 +118,21 @@ get_sockets_by_account(GetReq, [AccountId | IDs], Contexts) ->
 %% filter out duplicate (if any) and add context
 maybe_add_context(Context, Contexts) ->
     SessionId = bh_context:websocket_session_id(Context),
-    [Context |
-     [C || C <- Contexts,
-           SessionId =/= bh_context:websocket_session_id(C)
-     ]
+    [
+        Context
+        | [
+            C
+         || C <- Contexts,
+            SessionId =/= bh_context:websocket_session_id(C)
+        ]
     ].
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec to_resp_data([bh_context:context()] | bh_context:context()) -> kz_json:object() | kz_json:objects().
+-spec to_resp_data([bh_context:context()] | bh_context:context()) ->
+    kz_json:object() | kz_json:objects().
 to_resp_data(Contexts) when is_list(Contexts) ->
     [to_resp_data(Context) || Context <- Contexts];
 to_resp_data(Context) ->
@@ -132,20 +140,22 @@ to_resp_data(Context) ->
     kz_json:delete_keys(ToDelete, bh_context:to_json(Context)).
 
 error_resp(GetReq) ->
-    Resp = [{<<"Data">>, []}
-           ,{<<"Msg-ID">>, kz_api:msg_id(GetReq)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Data">>, []},
+        {<<"Msg-ID">>, kz_api:msg_id(GetReq)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     RespQ = kz_api:server_id(GetReq),
     kapi_websockets:publish_get_resp(RespQ, Resp).
 
 -spec success_resp(kz_json:object(), kz_json:object() | kz_json:objects()) -> 'ok'.
 success_resp(GetReq, Data) ->
     RespQ = kz_api:server_id(GetReq),
-    Resp = [{<<"Data">>, Data}
-           ,{<<"Msg-ID">>, kz_api:msg_id(GetReq)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Data">>, Data},
+        {<<"Msg-ID">>, kz_api:msg_id(GetReq)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     kapi_websockets:publish_get_resp(RespQ, Resp).
 
 %%------------------------------------------------------------------------------
@@ -155,7 +165,10 @@ success_resp(GetReq, Data) ->
 -spec add_socket(bh_context:context()) -> bh_context:context().
 add_socket(Context) ->
     'true' = ets:insert(?SERVER, Context),
-    gen_listener:cast(?SERVER, {'monitor', bh_context:websocket_session_id(Context), bh_context:websocket_pid(Context)}),
+    gen_listener:cast(
+        ?SERVER,
+        {'monitor', bh_context:websocket_session_id(Context), bh_context:websocket_pid(Context)}
+    ),
     Context.
 
 %%------------------------------------------------------------------------------
@@ -192,8 +205,8 @@ get_contexts() ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_contexts_by_account_id(kz_term:ne_binary()) ->
-          [bh_context:context(),...] |
-          {'error', 'not_found'}.
+    [bh_context:context(), ...]
+    | {'error', 'not_found'}.
 get_contexts_by_account_id(<<AccountId/binary>>) ->
     Pattern = bh_context:match_auth_account_id(AccountId),
     case ets:match_object(?SERVER, Pattern) of
@@ -206,8 +219,8 @@ get_contexts_by_account_id(<<AccountId/binary>>) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_context_by_session_id(kz_term:ne_binary()) ->
-          bh_context:context() |
-          {'error', 'not_found'}.
+    bh_context:context()
+    | {'error', 'not_found'}.
 get_context_by_session_id(<<SessionId/binary>>) ->
     case ets:lookup(?SERVER, SessionId) of
         [Context] -> Context;
@@ -219,8 +232,8 @@ get_context_by_session_id(<<SessionId/binary>>) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_contexts_by_ip(kz_term:ne_binary() | inet:ip_addresS()) ->
-          [bh_context:context(),...] |
-          {'error', 'not_found'}.
+    [bh_context:context(), ...]
+    | {'error', 'not_found'}.
 get_contexts_by_ip(<<IP/binary>>) ->
     Pattern = bh_context:match_source(IP),
     case ets:match_object(?SERVER, Pattern) of
@@ -249,11 +262,12 @@ session_count_by_ip(IPAddr) ->
 init([]) ->
     kz_util:put_callid(?MODULE),
     lager:debug("starting new ~s server", [?SERVER]),
-    _ = ets:new(?SERVER, ['set'
-                         ,'public'
-                         ,'named_table'
-                         ,{'keypos', bh_context:id_position()}
-                         ]),
+    _ = ets:new(?SERVER, [
+        'set',
+        'public',
+        'named_table',
+        {'keypos', bh_context:id_position()}
+    ]),
     _ = blackhole_bindings:bind(<<"blackhole.session.open">>, ?MODULE, 'add_socket'),
     _ = blackhole_bindings:bind(<<"blackhole.session.close">>, ?MODULE, 'remove_socket'),
     _ = blackhole_bindings:bind(<<"blackhole.finish.*">>, ?MODULE, 'update_socket'),
@@ -294,7 +308,8 @@ handle_info(_Info, State) ->
 
 maybe_update_state(Value, Position, State) ->
     case lists:keytake(Value, Position, State) of
-        'false' -> State;
+        'false' ->
+            State;
         {'value', {_Pid, Ref, SessionId}, NewState} ->
             _ = remove_socket(SessionId),
             demonitor(Ref, ['flush']),

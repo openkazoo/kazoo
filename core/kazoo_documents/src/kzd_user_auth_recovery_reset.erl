@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([reset_id/1, reset_id/2, set_reset_id/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

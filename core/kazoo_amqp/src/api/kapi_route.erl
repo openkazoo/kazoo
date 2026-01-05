@@ -7,23 +7,28 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_route).
 
--export([req/1, req_v/1
-        ,resp/1, resp_v/1
-        ,win/1, win_v/1
-        ,bind_q/2, unbind_q/2
-        ,declare_exchanges/0
-        ,publish_req/1, publish_req/2
-        ,publish_resp/2, publish_resp/3
-        ,publish_win/2, publish_win/3
-        ,get_auth_realm/1
-        ,get_auth_user/1
-        ,req_event_type/0
-        ,is_actionable_resp/1
+-export([
+    req/1,
+    req_v/1,
+    resp/1,
+    resp_v/1,
+    win/1,
+    win_v/1,
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
+    publish_req/1, publish_req/2,
+    publish_resp/2, publish_resp/3,
+    publish_win/2, publish_win/3,
+    get_auth_realm/1,
+    get_auth_user/1,
+    req_event_type/0,
+    is_actionable_resp/1,
 
-        ,call_id/1
-        ,control_queue/1
-        ,fetch_id/1
-        ]).
+    call_id/1,
+    control_queue/1,
+    fetch_id/1
+]).
 
 -include_lib("kz_amqp_util.hrl").
 -include("kapi_dialplan.hrl").
@@ -40,19 +45,21 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 req(Prop) when is_list(Prop) ->
     case req_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?ROUTE_REQ_HEADERS, ?OPTIONAL_ROUTE_REQ_HEADERS);
         'false' -> {'error', "Proplist failed validation for route_req"}
     end;
-req(JObj) -> req(kz_json:to_proplist(JObj)).
+req(JObj) ->
+    req(kz_json:to_proplist(JObj)).
 
 -spec req_v(kz_term:api_terms()) -> boolean().
 req_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?ROUTE_REQ_HEADERS, ?ROUTE_REQ_VALUES, ?ROUTE_REQ_TYPES);
-req_v(JObj) -> req_v(kz_json:to_proplist(JObj)).
+req_v(JObj) ->
+    req_v(kz_json:to_proplist(JObj)).
 
 -spec req_event_type() -> {kz_term:ne_binary(), kz_term:ne_binary()}.
 req_event_type() -> {?EVENT_CATEGORY, ?ROUTE_REQ_EVENT_NAME}.
@@ -63,37 +70,44 @@ req_event_type() -> {?EVENT_CATEGORY, ?ROUTE_REQ_EVENT_NAME}.
 %% @end
 %%------------------------------------------------------------------------------
 -spec resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 resp(Prop) when is_list(Prop) ->
-    Prop1 = case props:get_value(<<"Method">>, Prop) of
-                <<"bridge">> ->
-                    Routes = [begin
-                                  {'ok', RouteProp} = resp_route(Route),
-                                  kz_json:from_list(RouteProp)
-                              end || Route <- props:get_value(<<"Routes">>, Prop)],
-                    [{<<"Routes">>, Routes} | props:delete(<<"Routes">>, Prop)];
-                _ ->
-                    Prop
-            end,
+    Prop1 =
+        case props:get_value(<<"Method">>, Prop) of
+            <<"bridge">> ->
+                Routes = [
+                    begin
+                        {'ok', RouteProp} = resp_route(Route),
+                        kz_json:from_list(RouteProp)
+                    end
+                 || Route <- props:get_value(<<"Routes">>, Prop)
+                ],
+                [{<<"Routes">>, Routes} | props:delete(<<"Routes">>, Prop)];
+            _ ->
+                Prop
+        end,
     case resp_v(Prop1) of
         'true' -> kz_api:build_message(Prop1, ?ROUTE_RESP_HEADERS, ?OPTIONAL_ROUTE_RESP_HEADERS);
         'false' -> {'error', "Proplist failed validation for route_resp"}
     end;
-resp(JObj) -> resp(kz_json:to_proplist(JObj)).
+resp(JObj) ->
+    resp(kz_json:to_proplist(JObj)).
 
 -spec resp_v(kz_term:api_terms()) -> boolean().
 resp_v(Prop) when is_list(Prop) ->
     Valid = kz_api:validate(Prop, ?ROUTE_RESP_HEADERS, ?ROUTE_RESP_VALUES, ?ROUTE_RESP_TYPES),
     case props:get_value(<<"Method">>, Prop) of
-        <<"bridge">> when Valid->
-            lists:all(fun(Route) -> resp_route_v(Route) end
-                     ,props:get_value(<<"Routes">>, Prop)
-                     );
+        <<"bridge">> when Valid ->
+            lists:all(
+                fun(Route) -> resp_route_v(Route) end,
+                props:get_value(<<"Routes">>, Prop)
+            );
         _ ->
             Valid
     end;
-resp_v(JObj) -> resp_v(kz_json:to_proplist(JObj)).
+resp_v(JObj) ->
+    resp_v(kz_json:to_proplist(JObj)).
 
 -spec is_actionable_resp(kz_term:api_terms()) -> boolean().
 is_actionable_resp(Prop) when is_list(Prop) ->
@@ -115,19 +129,27 @@ is_actionable_resp(JObj) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec resp_route(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 resp_route(Prop) when is_list(Prop) ->
     case resp_route_v(Prop) of
-        'true' -> kz_api:build_message_specific_headers(Prop, ?ROUTE_RESP_ROUTE_HEADERS, ?OPTIONAL_ROUTE_RESP_ROUTE_HEADERS);
-        'false' -> {'error', "Proplist failed validation for route_resp_route"}
+        'true' ->
+            kz_api:build_message_specific_headers(
+                Prop, ?ROUTE_RESP_ROUTE_HEADERS, ?OPTIONAL_ROUTE_RESP_ROUTE_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for route_resp_route"}
     end;
-resp_route(JObj) -> resp_route(kz_json:to_proplist(JObj)).
+resp_route(JObj) ->
+    resp_route(kz_json:to_proplist(JObj)).
 
 -spec resp_route_v(kz_term:api_terms()) -> boolean().
 resp_route_v(Prop) when is_list(Prop) ->
-    kz_api:validate_message(Prop, ?ROUTE_RESP_ROUTE_HEADERS, ?ROUTE_RESP_ROUTE_VALUES, ?ROUTE_RESP_ROUTE_TYPES);
-resp_route_v(JObj) -> resp_route_v(kz_json:to_proplist(JObj)).
+    kz_api:validate_message(
+        Prop, ?ROUTE_RESP_ROUTE_HEADERS, ?ROUTE_RESP_ROUTE_VALUES, ?ROUTE_RESP_ROUTE_TYPES
+    );
+resp_route_v(JObj) ->
+    resp_route_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Winning Responder Message.
@@ -135,19 +157,21 @@ resp_route_v(JObj) -> resp_route_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec win(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 win(Prop) when is_list(Prop) ->
     case win_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?ROUTE_WIN_HEADERS, ?OPTIONAL_ROUTE_WIN_HEADERS);
         'false' -> {'error', "Proplist failed validation for route_win"}
     end;
-win(JObj) -> win(kz_json:to_proplist(JObj)).
+win(JObj) ->
+    win(kz_json:to_proplist(JObj)).
 
 -spec win_v(kz_term:api_terms()) -> boolean().
 win_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?ROUTE_WIN_HEADERS, ?ROUTE_WIN_VALUES, ?ROUTE_WIN_TYPES);
-win_v(JObj) -> win_v(kz_json:to_proplist(JObj)).
+win_v(JObj) ->
+    win_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind AMQP Queue for routing requests.
@@ -171,7 +195,8 @@ bind_q(Queue, ['account' | T], Props) ->
     bind_q(Queue, T, Props);
 bind_q(Queue, [_ | T], Props) ->
     bind_q(Queue, T, Props);
-bind_q(_, [], _) -> 'ok'.
+bind_q(_, [], _) ->
+    'ok'.
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
@@ -191,7 +216,8 @@ unbind_q(Queue, ['account' | T], Props) ->
     unbind_q(Queue, T, Props);
 unbind_q(Queue, [_ | T], Props) ->
     unbind_q(Queue, T, Props);
-unbind_q(_, [], _) -> 'ok'.
+unbind_q(_, [], _) ->
+    'ok'.
 
 get_all_routing_keys(Props) ->
     get_realm_routing_keys(Props) ++ get_account_routing_keys(Props).
@@ -215,13 +241,25 @@ get_account_routing_keys(Props) ->
 declare_exchanges() ->
     kz_amqp_util:callmgr_exchange().
 
--spec get_route_req_account_routing(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec get_route_req_account_routing(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 get_route_req_account_routing(Type, AccountId) ->
-    list_to_binary([?KEY_ROUTE_REQ, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(AccountId)]).
+    list_to_binary([
+        ?KEY_ROUTE_REQ, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(AccountId)
+    ]).
 
--spec get_route_req_realm_routing(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec get_route_req_realm_routing(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 get_route_req_realm_routing(Type, Realm, User) ->
-    list_to_binary([?KEY_ROUTE_REQ, ".", kz_amqp_util:encode(Type), ".", kz_amqp_util:encode(Realm), ".", kz_amqp_util:encode(User)]).
+    list_to_binary([
+        ?KEY_ROUTE_REQ,
+        ".",
+        kz_amqp_util:encode(Type),
+        ".",
+        kz_amqp_util:encode(Realm),
+        ".",
+        kz_amqp_util:encode(User)
+    ]).
 
 -spec get_route_req_routing(kz_term:api_terms()) -> kz_term:ne_binary().
 get_route_req_routing(Api) ->
@@ -238,12 +276,14 @@ publish_req(JObj) ->
 
 -spec publish_req(kz_term:api_terms(), binary()) -> 'ok'.
 publish_req(Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req
-                                                ,?ROUTE_REQ_VALUES
-                                                ,[{'formatter', fun req/1}
-                                                 ,{'remove_recursive', 'false'}
-                                                 ]
-                                                ),
+    {'ok', Payload} = kz_api:prepare_api_payload(
+        Req,
+        ?ROUTE_REQ_VALUES,
+        [
+            {'formatter', fun req/1},
+            {'remove_recursive', 'false'}
+        ]
+    ),
     kz_amqp_util:callmgr_publish(Payload, ContentType, get_route_req_routing(Req)).
 
 -spec publish_resp(kz_term:ne_binary(), kz_term:api_terms()) -> 'ok'.
@@ -297,11 +337,13 @@ get_auth_user_realm(ApiJObj) ->
 account_id(API) when is_list(API) ->
     account_id(kz_json:from_list(API));
 account_id(API) ->
-    kz_json:get_first_defined([<<"Account-ID">>
-                              ,[<<"Custom-Channel-Vars">>, <<"Account-ID">>]
-                              ]
-                             ,API
-                             ).
+    kz_json:get_first_defined(
+        [
+            <<"Account-ID">>,
+            [<<"Custom-Channel-Vars">>, <<"Account-ID">>]
+        ],
+        API
+    ).
 
 -spec resource_type(kz_term:api_terms()) -> kz_term:ne_binary().
 resource_type(ApiProp) when is_list(ApiProp) ->
@@ -323,9 +365,10 @@ control_queue(JObj) ->
 
 -spec has_cost_parameters(kz_json:object()) -> boolean().
 has_cost_parameters(JObj) ->
-    kz_json:is_json_object(JObj)
-        andalso kz_json:all(fun({K, _V}) ->
-                                    lists:member(K, ?ROUTE_REQ_COST_PARAMS)
-                            end
-                           ,JObj
-                           ).
+    kz_json:is_json_object(JObj) andalso
+        kz_json:all(
+            fun({K, _V}) ->
+                lists:member(K, ?ROUTE_REQ_COST_PARAMS)
+            end,
+            JObj
+        ).

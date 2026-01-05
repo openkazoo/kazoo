@@ -6,27 +6,34 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_discovery).
 
--export([declare_exchanges/0
-        ,bind_q/2, unbind_q/2
-        ]).
+-export([
+    declare_exchanges/0,
+    bind_q/2,
+    unbind_q/2
+]).
 
--export([flush/1, flush_v/1
-        ,req/1, req_v/1
-        ,resp/1, resp_v/1
-        ,number_req/1, number_req_v/1
+-export([
+    flush/1,
+    flush_v/1,
+    req/1,
+    req_v/1,
+    resp/1,
+    resp_v/1,
+    number_req/1,
+    number_req_v/1,
 
-        ,publish_flush/1, publish_flush/2
-        ,publish_number_req/1, publish_number_req/2
-        ,publish_req/1, publish_req/2
-        ,publish_resp/2, publish_resp/3
+    publish_flush/1, publish_flush/2,
+    publish_number_req/1, publish_number_req/2,
+    publish_req/1, publish_req/2,
+    publish_resp/2, publish_resp/3,
 
-        ,query_id/1
-        ,quantity/1
-        ,offset/1
-        ,results/1
-        ,prefix/1
-        ,number/1
-        ]).
+    query_id/1,
+    quantity/1,
+    offset/1,
+    results/1,
+    prefix/1,
+    number/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
@@ -40,7 +47,6 @@
 -define(DISCOVERY_EXCHANGE, <<"discovery">>).
 -define(DISCOVERY_EXCHANGE_TYPE, <<"topic">>).
 
-
 -define(DISCOVERY_EVENT_CATEGORY, <<"discovery">>).
 -define(DISCOVERY_RK, <<"discovery.*">>).
 
@@ -49,50 +55,52 @@
 -define(DISCOVERY_FLUSH_EVENT_NAME, <<"flush">>).
 -define(DISCOVERY_FLUSH_HEADERS, [?KEY_QUERY_ID]).
 -define(DISCOVERY_FLUSH_OPTIONAL_HEADERS, []).
--define(DISCOVERY_FLUSH_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
-                                ,{<<"Event-Name">>, ?DISCOVERY_FLUSH_EVENT_NAME}
-                                ]).
--define(DISCOVERY_FLUSH_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
-                               ]).
-
+-define(DISCOVERY_FLUSH_VALUES, [
+    {<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY},
+    {<<"Event-Name">>, ?DISCOVERY_FLUSH_EVENT_NAME}
+]).
+-define(DISCOVERY_FLUSH_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}]).
 
 %% Discovery Request
 -define(DISCOVERY_REQ_RK, <<"discovery.request">>).
 -define(DISCOVERY_REQ_EVENT_NAME, <<"request">>).
--define(DISCOVERY_REQ_HEADERS, [?KEY_QUERY_ID, ?KEY_PREFIX
-                               ,?KEY_OFFSET, ?KEY_QUANTITY
-                               ]).
+-define(DISCOVERY_REQ_HEADERS, [
+    ?KEY_QUERY_ID,
+    ?KEY_PREFIX,
+    ?KEY_OFFSET,
+    ?KEY_QUANTITY
+]).
 -define(DISCOVERY_REQ_OPTIONAL_HEADERS, []).
--define(DISCOVERY_REQ_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
-                              ,{<<"Event-Name">>, ?DISCOVERY_REQ_EVENT_NAME}
-                              ]).
--define(DISCOVERY_REQ_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
-                             ,{?KEY_OFFSET, fun is_integer/1}
-                             ,{?KEY_QUANTITY, fun is_integer/1}
-                             ]).
-
+-define(DISCOVERY_REQ_VALUES, [
+    {<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY},
+    {<<"Event-Name">>, ?DISCOVERY_REQ_EVENT_NAME}
+]).
+-define(DISCOVERY_REQ_TYPES, [
+    {?KEY_QUERY_ID, fun is_binary/1},
+    {?KEY_OFFSET, fun is_integer/1},
+    {?KEY_QUANTITY, fun is_integer/1}
+]).
 
 %% Number Request
 -define(NUMBER_REQ_RK, <<"discovery.number">>).
 -define(NUMBER_REQ_EVENT_NAME, <<"number">>).
 -define(NUMBER_REQ_HEADERS, [?KEY_NUMBER]).
 -define(NUMBER_REQ_OPTIONAL_HEADERS, []).
--define(NUMBER_REQ_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
-                           ,{<<"Event-Name">>, ?NUMBER_REQ_EVENT_NAME}
-                           ]).
--define(NUMBER_REQ_TYPES, [{?KEY_NUMBER, fun is_binary/1}
-                          ]).
+-define(NUMBER_REQ_VALUES, [
+    {<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY},
+    {<<"Event-Name">>, ?NUMBER_REQ_EVENT_NAME}
+]).
+-define(NUMBER_REQ_TYPES, [{?KEY_NUMBER, fun is_binary/1}]).
 
 %% Discovery/Number Response
 -define(DISCOVERY_RESP_EVENT_NAME, <<"response">>).
 -define(DISCOVERY_RESP_HEADERS, [?KEY_RESULTS]).
 -define(DISCOVERY_RESP_OPTIONAL_HEADERS, [?KEY_QUERY_ID]).
--define(DISCOVERY_RESP_VALUES, [{<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY}
-                               ,{<<"Event-Name">>, ?DISCOVERY_RESP_EVENT_NAME}
-                               ]).
--define(DISCOVERY_RESP_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}
-                              ]).
-
+-define(DISCOVERY_RESP_VALUES, [
+    {<<"Event-Category">>, ?DISCOVERY_EVENT_CATEGORY},
+    {<<"Event-Name">>, ?DISCOVERY_RESP_EVENT_NAME}
+]).
+-define(DISCOVERY_RESP_TYPES, [{?KEY_QUERY_ID, fun is_binary/1}]).
 
 %%------------------------------------------------------------------------------
 %% @doc Number Request
@@ -100,19 +108,21 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec number_req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 number_req(Prop) when is_list(Prop) ->
     case number_req_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?NUMBER_REQ_HEADERS, ?NUMBER_REQ_OPTIONAL_HEADERS);
         'false' -> {'error', "Proplist failed validation for number request"}
     end;
-number_req(JObj) -> number_req(kz_json:to_proplist(JObj)).
+number_req(JObj) ->
+    number_req(kz_json:to_proplist(JObj)).
 
 -spec number_req_v(kz_term:api_terms()) -> boolean().
 number_req_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?NUMBER_REQ_HEADERS, ?NUMBER_REQ_VALUES, ?NUMBER_REQ_TYPES);
-number_req_v(JObj) -> number_req_v(kz_json:to_proplist(JObj)).
+number_req_v(JObj) ->
+    number_req_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Discovery Request
@@ -120,20 +130,23 @@ number_req_v(JObj) -> number_req_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 req(Prop) when is_list(Prop) ->
     case req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DISCOVERY_REQ_HEADERS, ?DISCOVERY_REQ_OPTIONAL_HEADERS);
-        'false' -> {'error', "Proplist failed validation for discovery request"}
+        'true' ->
+            kz_api:build_message(Prop, ?DISCOVERY_REQ_HEADERS, ?DISCOVERY_REQ_OPTIONAL_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for discovery request"}
     end;
-req(JObj) -> req(kz_json:to_proplist(JObj)).
+req(JObj) ->
+    req(kz_json:to_proplist(JObj)).
 
 -spec req_v(kz_term:api_terms()) -> boolean().
 req_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?DISCOVERY_REQ_HEADERS, ?DISCOVERY_REQ_VALUES, ?DISCOVERY_REQ_TYPES);
-req_v(JObj) -> req_v(kz_json:to_proplist(JObj)).
-
+req_v(JObj) ->
+    req_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Discovery Response
@@ -141,20 +154,23 @@ req_v(JObj) -> req_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec resp(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 resp(Prop) when is_list(Prop) ->
     case resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DISCOVERY_RESP_HEADERS, ?DISCOVERY_RESP_OPTIONAL_HEADERS);
-        'false' -> {'error', "Proplist failed validation for discovery response"}
+        'true' ->
+            kz_api:build_message(Prop, ?DISCOVERY_RESP_HEADERS, ?DISCOVERY_RESP_OPTIONAL_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for discovery response"}
     end;
-resp(JObj) -> resp(kz_json:to_proplist(JObj)).
+resp(JObj) ->
+    resp(kz_json:to_proplist(JObj)).
 
 -spec resp_v(kz_term:api_terms()) -> boolean().
 resp_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?DISCOVERY_RESP_HEADERS, ?DISCOVERY_RESP_VALUES, ?DISCOVERY_RESP_TYPES);
-resp_v(JObj) -> resp_v(kz_json:to_proplist(JObj)).
-
+resp_v(JObj) ->
+    resp_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Discovery Flush
@@ -162,19 +178,25 @@ resp_v(JObj) -> resp_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec flush(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 flush(Prop) when is_list(Prop) ->
     case flush_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?DISCOVERY_FLUSH_HEADERS, ?DISCOVERY_FLUSH_OPTIONAL_HEADERS);
-        'false' -> {'error', "Proplist failed validation for discovery response"}
+        'true' ->
+            kz_api:build_message(Prop, ?DISCOVERY_FLUSH_HEADERS, ?DISCOVERY_FLUSH_OPTIONAL_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for discovery response"}
     end;
-flush(JObj) -> flush(kz_json:to_proplist(JObj)).
+flush(JObj) ->
+    flush(kz_json:to_proplist(JObj)).
 
 -spec flush_v(kz_term:api_terms()) -> boolean().
 flush_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?DISCOVERY_FLUSH_HEADERS, ?DISCOVERY_FLUSH_VALUES, ?DISCOVERY_FLUSH_TYPES);
-flush_v(JObj) -> flush_v(kz_json:to_proplist(JObj)).
+    kz_api:validate(
+        Prop, ?DISCOVERY_FLUSH_HEADERS, ?DISCOVERY_FLUSH_VALUES, ?DISCOVERY_FLUSH_TYPES
+    );
+flush_v(JObj) ->
+    flush_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind AMQP Queue for routing requests

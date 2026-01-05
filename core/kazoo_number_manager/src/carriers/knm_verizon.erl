@@ -26,8 +26,7 @@
 %%------------------------------------------------------------------------------
 -spec info() -> map().
 info() ->
-    #{?CARRIER_INFO_MAX_PREFIX => 3
-     }.
+    #{?CARRIER_INFO_MAX_PREFIX => 3}.
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?
@@ -42,8 +41,9 @@ is_local() -> 'false'.
 %% @doc Check with carrier if these numbers are registered with it.
 %% @end
 %%------------------------------------------------------------------------------
--spec check_numbers(kz_term:ne_binaries()) -> {'ok', kz_json:object()} |
-          {'error', 'not_implemented'}.
+-spec check_numbers(kz_term:ne_binaries()) ->
+    {'ok', kz_json:object()}
+    | {'error', 'not_implemented'}.
 check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 
 %%------------------------------------------------------------------------------
@@ -51,7 +51,7 @@ check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_numbers(kz_term:ne_binary(), pos_integer(), knm_carriers:options()) ->
-          {'ok', knm_number:knm_numbers()}.
+    {'ok', knm_number:knm_numbers()}.
 find_numbers(_Prefix, _Quantity, _Options) ->
     {'ok', []}.
 
@@ -60,7 +60,7 @@ find_numbers(_Prefix, _Quantity, _Options) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec acquire_number(knm_number:knm_number()) ->
-          no_return().
+    no_return().
 acquire_number(Number) ->
     knm_errors:by_carrier(?MODULE, 'not_implemented', Number).
 

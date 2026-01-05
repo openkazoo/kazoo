@@ -13,11 +13,14 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/0
-        ,new_worker/3, new_workers/4
-        ,workers/1, worker_count/1
-        ,status/1
-        ]).
+-export([
+    start_link/0,
+    new_worker/3,
+    new_workers/4,
+    workers/1,
+    worker_count/1,
+    status/1
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -41,10 +44,10 @@ new_worker(WorkersSup, AcctId, QueueId) ->
     new_workers(WorkersSup, AcctId, QueueId, 1).
 
 -spec new_workers(pid(), kz_term:ne_binary(), kz_term:ne_binary(), integer()) -> 'ok'.
-new_workers(_, _,_,N) when N =< 0 -> 'ok';
+new_workers(_, _, _, N) when N =< 0 -> 'ok';
 new_workers(WorkersSup, AcctId, QueueId, N) when is_integer(N) ->
     _ = supervisor:start_child(WorkersSup, [self(), AcctId, QueueId]),
-    new_workers(WorkersSup, AcctId, QueueId, N-1).
+    new_workers(WorkersSup, AcctId, QueueId, N - 1).
 
 -spec workers(pid()) -> kz_term:pids().
 workers(Super) ->

@@ -15,11 +15,12 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('ci_analyzers_sup')
-                  ,?SUPER('ci_parsers_sup')
-                  ,?WORKER('ci_datastore')
-                  ,?WORKER('ci_listener')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('ci_analyzers_sup'),
+    ?SUPER('ci_parsers_sup'),
+    ?WORKER('ci_datastore'),
+    ?WORKER('ci_listener')
+]).
 
 %%==============================================================================
 %% API functions

@@ -15,7 +15,6 @@
 -export([sort_string/1, sort_string/2, set_sort_string/2]).
 -export([title/1, title/2, set_title/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

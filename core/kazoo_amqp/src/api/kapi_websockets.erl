@@ -5,20 +5,25 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_websockets).
 
--export([get_req/1, get_req_v/1
-        ,get_resp/1, get_resp_v/1
-        ,module_req/1, module_req_v/1
-        ,module_resp/1, module_resp_v/1
+-export([
+    get_req/1,
+    get_req_v/1,
+    get_resp/1,
+    get_resp_v/1,
+    module_req/1,
+    module_req_v/1,
+    module_resp/1,
+    module_resp_v/1,
 
-        ,bind_q/2
-        ,unbind_q/2
-        ,declare_exchanges/0
+    bind_q/2,
+    unbind_q/2,
+    declare_exchanges/0,
 
-        ,publish_get_req/1, publish_get_req/2
-        ,publish_get_resp/2, publish_get_resp/3
-        ,publish_module_req/1, publish_module_req/2
-        ,publish_module_resp/2, publish_module_resp/3
-        ]).
+    publish_get_req/1, publish_get_req/2,
+    publish_get_resp/2, publish_get_resp/3,
+    publish_module_req/1, publish_module_req/2,
+    publish_module_resp/2, publish_module_resp/3
+]).
 
 -include("kapi_websockets.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -32,11 +37,15 @@
 
 -export_type([bind_props/0]).
 
--spec get_req(kz_term:api_terms()) ->{'ok', iolist()} | {'error', string()}.
+-spec get_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 get_req(Prop) when is_list(Prop) ->
     case get_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?WEBSOCKETS_GET_REQ_HEADERS, ?OPTIONAL_WEBSOCKETS_GET_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for websockets get_req"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?WEBSOCKETS_GET_REQ_HEADERS, ?OPTIONAL_WEBSOCKETS_GET_REQ_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for websockets get_req"}
     end;
 get_req(JObj) ->
     get_req(kz_json:to_proplist(JObj)).
@@ -47,7 +56,9 @@ get_req(JObj) ->
 %%------------------------------------------------------------------------------
 -spec get_req_v(kz_term:api_terms()) -> boolean().
 get_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?WEBSOCKETS_GET_REQ_HEADERS, ?WEBSOCKETS_GET_REQ_VALUES, ?WEBSOCKETS_TYPES);
+    kz_api:validate(
+        Prop, ?WEBSOCKETS_GET_REQ_HEADERS, ?WEBSOCKETS_GET_REQ_VALUES, ?WEBSOCKETS_TYPES
+    );
 get_req_v(JObj) ->
     get_req_v(kz_json:to_proplist(JObj)).
 
@@ -58,8 +69,12 @@ get_req_v(JObj) ->
 -spec get_resp(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 get_resp(Prop) when is_list(Prop) ->
     case get_resp_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?WEBSOCKETS_GET_RESP_HEADERS, ?OPTIONAL_WEBSOCKETS_GET_RESP_HEADERS);
-        'false' -> {'error', "Proplist failed validation for websockets get_resp"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?WEBSOCKETS_GET_RESP_HEADERS, ?OPTIONAL_WEBSOCKETS_GET_RESP_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for websockets get_resp"}
     end;
 get_resp(JObj) ->
     get_resp(kz_json:to_proplist(JObj)).
@@ -70,13 +85,15 @@ get_resp(JObj) ->
 %%------------------------------------------------------------------------------
 -spec get_resp_v(kz_term:api_terms()) -> boolean().
 get_resp_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?WEBSOCKETS_GET_RESP_HEADERS, ?WEBSOCKETS_GET_RESP_VALUES, ?WEBSOCKETS_TYPES);
+    kz_api:validate(
+        Prop, ?WEBSOCKETS_GET_RESP_HEADERS, ?WEBSOCKETS_GET_RESP_VALUES, ?WEBSOCKETS_TYPES
+    );
 get_resp_v(JObj) ->
     get_resp_v(kz_json:to_proplist(JObj)).
 
-
--spec module_req(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec module_req(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 module_req(Prop) when is_list(Prop) ->
     case module_req_v(Prop) of
         'false' -> {'error', "Proplist failed validation for module_req"};
@@ -91,8 +108,9 @@ module_req_v(Prop) when is_list(Prop) ->
 module_req_v(JObj) ->
     module_req_v(kz_json:to_proplist(JObj)).
 
--spec module_resp(kz_term:api_terms()) -> {'ok', iolist()} |
-          {'error', string()}.
+-spec module_resp(kz_term:api_terms()) ->
+    {'ok', iolist()}
+    | {'error', string()}.
 module_resp(Prop) when is_list(Prop) ->
     case module_resp_v(Prop) of
         'false' -> {'error', "Proplist failed validation for module_resp"};
@@ -109,9 +127,10 @@ module_resp_v(JObj) ->
 
 -spec bind_q(kz_term:ne_binary(), bind_props()) -> 'ok'.
 bind_q(Queue, Props) ->
-    lists:foreach(fun(Restriction) -> add_restriction(Queue, Restriction) end
-                 ,props:get_value('restrict_to', Props, ?DEFAULT_RESTRICTIONS)
-                 ).
+    lists:foreach(
+        fun(Restriction) -> add_restriction(Queue, Restriction) end,
+        props:get_value('restrict_to', Props, ?DEFAULT_RESTRICTIONS)
+    ).
 
 -spec add_restriction(kz_term:ne_binary(), restriction()) -> 'ok'.
 add_restriction(Queue, 'get') ->
@@ -119,12 +138,12 @@ add_restriction(Queue, 'get') ->
 add_restriction(Queue, 'module_req') ->
     kz_amqp_util:bind_q_to_kapps(Queue, ?MODULE_REQ_ROUTING_KEY).
 
-
 -spec unbind_q(kz_term:ne_binary(), bind_props()) -> 'ok'.
 unbind_q(Queue, Props) ->
-    lists:foreach(fun(Restriction) -> remove_restriction(Queue, Restriction) end
-                 ,props:get_value('restrict_to', Props, ?DEFAULT_RESTRICTIONS)
-                 ).
+    lists:foreach(
+        fun(Restriction) -> remove_restriction(Queue, Restriction) end,
+        props:get_value('restrict_to', Props, ?DEFAULT_RESTRICTIONS)
+    ).
 
 -spec remove_restriction(kz_term:ne_binary(), restriction()) -> 'ok'.
 remove_restriction(Queue, 'get') ->
@@ -181,8 +200,9 @@ publish_get_resp(RespQ, JObj) ->
 
 -spec publish_get_resp(kz_term:ne_binary(), kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_get_resp(RespQ, Api, ContentType) ->
-    PrepareOptions = [{'formatter', fun get_resp/1}
-                     ,{'remove_recursive', 'false'}
-                     ],
+    PrepareOptions = [
+        {'formatter', fun get_resp/1},
+        {'remove_recursive', 'false'}
+    ],
     {'ok', Payload} = kz_api:prepare_api_payload(Api, ?WEBSOCKETS_GET_RESP_VALUES, PrepareOptions),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).

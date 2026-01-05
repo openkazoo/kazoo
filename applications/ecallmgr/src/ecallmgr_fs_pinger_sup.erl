@@ -42,9 +42,8 @@ find_pinger(Node) ->
     find_pinger(Workers, Node).
 
 find_pinger([], _) -> 'undefined';
-find_pinger([{Node, Pid, 'worker', _}|_], Node) -> Pid;
-find_pinger([_|Workers], Node) ->
-    find_pinger(Workers, Node).
+find_pinger([{Node, Pid, 'worker', _} | _], Node) -> Pid;
+find_pinger([_ | Workers], Node) -> find_pinger(Workers, Node).
 
 -spec remove_node(atom()) -> 'ok' | {'error', any()}.
 remove_node(Node) ->

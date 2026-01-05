@@ -8,34 +8,32 @@
 
 -include("kazoo_template.hrl").
 
--export([compile/2, compile/3
-        ,render/2, render_with_options/3
-        ,render/3, render/4, render/5
-        ]).
+-export([
+    compile/2, compile/3,
+    render/2,
+    render_with_options/3,
+    render/3, render/4, render/5
+]).
 
--define(COMPILE_OPTS(Options)
-       ,[{'out_dir', 'false'}
-        ,'return'
-        ,'report'
-         | Options
-        ]).
+-define(COMPILE_OPTS(Options), [
+    {'out_dir', 'false'},
+    'return',
+    'report'
+    | Options
+]).
 
 -type template() :: nonempty_string() | kz_term:ne_binary().
 
--type template_result() :: {'ok', iolist() | atom()} |
-                           {'error', any()}.
+-type template_result() ::
+    {'ok', iolist() | atom()}
+    | {'error', any()}.
 
 %% copied from erlydtl.erl
 -type position() :: non_neg_integer().
--type location() :: 'none' | position() | {Line::position(), Column::position()}.
--type info() :: {location()
-                ,Module::atom()
-                ,ErrorDesc::term()
-                }.
+-type location() :: 'none' | position() | {Line :: position(), Column :: position()}.
+-type info() :: {location(), Module :: atom(), ErrorDesc :: term()}.
 
--type error_info() :: {File::list()
-                      ,[info()]
-                      }.
+-type error_info() :: {File :: list(), [info()]}.
 -type errors() :: list(error_info()).
 -type warnings() :: list(error_info()).
 
@@ -60,7 +58,8 @@ render(Template, Module, TemplateData) ->
 render(Template, Module, TemplateData, CompileOpts) ->
     render(Template, Module, TemplateData, CompileOpts, []).
 
--spec render(template(), atom(), kz_term:proplist(), kz_term:proplist(), kz_term:proplist()) -> template_result().
+-spec render(template(), atom(), kz_term:proplist(), kz_term:proplist(), kz_term:proplist()) ->
+    template_result().
 render(Template, Module, TemplateData, CompileOpts, RenderOpts) ->
     case compile(Template, Module, CompileOpts) of
         {'ok', Module} -> render_template(Module, TemplateData, RenderOpts);
@@ -103,10 +102,10 @@ compile(Path, Module, CompileOpts) ->
 render_template(Module, TemplateData, RenderOpts) ->
     lager:debug("rendering using ~s", [Module]),
     try Module:render(props:filter_empty(TemplateData), RenderOpts) of
-        {'ok', _IOList}=OK ->
+        {'ok', _IOList} = OK ->
             lager:debug("rendered template successfully"),
             OK;
-        {'error', _E}=E ->
+        {'error', _E} = E ->
             ?LOG_DEBUG("failed to render template: ~p", [_E]),
             E
     catch
@@ -131,7 +130,7 @@ render_template(Module, TemplateData, RenderOpts) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_compile_result(template(), atom(), template_result()) ->
-          template_result().
+    template_result().
 handle_compile_result(_Template, Module, {'ok', Module} = OK) ->
     lager:debug("built renderer for ~p", [Module]),
     OK;
@@ -139,8 +138,10 @@ handle_compile_result(_Template, Module, {'ok', Module, []}) ->
     lager:debug("built renderer for ~p", [Module]),
     {'ok', Module};
 handle_compile_result(Template, Module, {'ok', Module, Warnings}) ->
-    ?LOG_DEBUG("compiling template renderer for ~p produced warnings: ~p"
-              ,[Module, Warnings]),
+    ?LOG_DEBUG(
+        "compiling template renderer for ~p produced warnings: ~p",
+        [Module, Warnings]
+    ),
     log_warnings(Warnings, Template),
     {'ok', Module};
 handle_compile_result(_Template, _Module, 'error') ->
@@ -169,7 +170,7 @@ log_warnings(Ws, Template) ->
 -spec log_infos(string(), string(), [info()], template()) -> 'ok'.
 log_infos(Type, Module, Errors, Template) ->
     ?LOG_INFO("~s in module ~s", [Type, Module]),
-    lists:foreach(fun (Error) -> catch log_info(Error, Template, Module) end, Errors).
+    lists:foreach(fun(Error) -> catch log_info(Error, Template, Module) end, Errors).
 
 -spec log_info(info(), template(), atom()) -> 'ok'.
 log_info({{Row, Column}, _ErlydtlModule, Msg}, Template, Module) when not is_binary(Template) ->
@@ -179,10 +180,11 @@ log_info({Line, _ErlydtlModule, Msg}, Template, Module) when not is_binary(Templ
 log_info({{Row, Column}, _ErlydtlModule, Msg}, Template, Module) ->
     Rows = binary:split(Template, <<"\n">>, ['global']),
     %% Is ErlyDTL count lines as 0-based or 1-based?
-    MaybeRow = case Row of
-                   0 -> 1;
-                   _ -> Row
-               end,
+    MaybeRow =
+        case Row of
+            0 -> 1;
+            _ -> Row
+        end,
     %% Is ErlyDTL count lines as 0-based or 1-based?
     ErrorRow = lists:nth(MaybeRow, Rows),
 
@@ -192,16 +194,18 @@ log_info({{Row, Column}, _ErlydtlModule, Msg}, Template, Module) ->
     %%          ,[Module, Row, Column, Msg, Pre, Rest]
     %%          );
 
-    ?LOG_INFO("~s:~b:~b (row: '~p'): ~p"
-             ,[Module, Row, Column, ErrorRow, Msg]
-             );
+    ?LOG_INFO(
+        "~s:~b:~b (row: '~p'): ~p",
+        [Module, Row, Column, ErrorRow, Msg]
+    );
 log_info({Line, _ErlydtlModule, Msg}, Template, Module) ->
     Rows = binary:split(Template, <<"\n">>, ['global']),
     %% Is ErlyDTL count lines as 0-based or 1-based?
-    MaybeRow = case Line of
-                   0 -> 1;
-                   _ -> Line
-               end,
+    MaybeRow =
+        case Line of
+            0 -> 1;
+            _ -> Line
+        end,
     %% Is ErlyDTL count lines as 0-based or 1-based?
     ErrorRow = lists:nth(MaybeRow, Rows),
     ?LOG_INFO("~s:~p (row: '~p'): ~p", [Module, Line, ErrorRow, Msg]).

@@ -10,7 +10,6 @@
 -export([name/1, name/2, set_name/2]).
 -export([org/1, org/2, set_org/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

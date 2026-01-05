@@ -6,12 +6,13 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_fax_box).
 
--export([new/0
-        ,type/0
-        ,owner_id/1, owner_id/2
-        ,timezone/1, timezone/2
-        ,retries/1, retries/2
-        ]).
+-export([
+    new/0,
+    type/0,
+    owner_id/1, owner_id/2,
+    timezone/1, timezone/2,
+    retries/1, retries/2
+]).
 
 -include("kz_documents.hrl").
 
@@ -46,8 +47,9 @@ timezone(Box) ->
 -spec timezone(doc(), Default) -> kz_term:ne_binary() | Default.
 timezone(Box, Default) ->
     case kz_json:get_value(?KEY_TIMEZONE, Box) of
-        'undefined'   -> owner_timezone(Box, Default);
-        <<"inherit">> -> owner_timezone(Box, Default); %% UI-1808
+        'undefined' -> owner_timezone(Box, Default);
+        %% UI-1808
+        <<"inherit">> -> owner_timezone(Box, Default);
         TZ -> TZ
     end.
 

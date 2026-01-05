@@ -6,66 +6,95 @@
 -module(kzd_limits).
 
 -export([new/1]).
--export([enabled/1, enabled/2
-        ,set_enabled/2, set_pvt_enabled/2
-        ]).
--export([calls/1, calls/2
-        ,set_calls/2, set_pvt_calls/2
-        ]).
--export([resource_consuming_calls/1, resource_consuming_calls/2
-        ,set_resource_consuming_calls/2, set_pvt_resource_consuming_calls/2
-        ]).
--export([inbound_trunks/1, inbound_trunks/2
-        ,set_inbound_trunks/2, set_pvt_inbound_trunks/2
-        ]).
--export([outbound_trunks/1, outbound_trunks/2
-        ,set_outbound_trunks/2, set_pvt_outbound_trunks/2
-        ]).
--export([twoway_trunks/1, twoway_trunks/2
-        ,set_twoway_trunks/2, set_pvt_twoway_trunks/2
-        ]).
--export([bundled_inbound_trunks/1, bundled_inbound_trunks/2
-        ,set_pvt_bundled_inbound_trunks/2
-        ]).
--export([bundled_outbound_trunks/1, bundled_outbound_trunks/2
-        ,set_pvt_bundled_outbound_trunks/2
-        ]).
--export([bundled_twoway_trunks/1, bundled_twoway_trunks/2
-        ,set_pvt_bundled_twoway_trunks/2
-        ]).
--export([burst_trunks/1, burst_trunks/2
-        ,set_burst_trunks/2, set_pvt_burst_trunks/2
-        ]).
--export([max_postpay_units/1, max_postpay_units/2
-        ,set_pvt_max_postpay_units/2
-        ]).
--export([max_postpay_dollars/1, max_postpay_dollars/2
-        ,set_pvt_max_postpay_dollars/2
-        ]).
--export([reserve_units/1, reserve_units/2
-        ,set_pvt_reserve_units/2
-        ]).
--export([reserve_dollars/1, reserve_dollars/2
-        ,set_pvt_reserve_dollars/2
-        ]).
--export([allow_prepay/1, allow_prepay/2
-        ,set_allow_prepay/2, set_pvt_allow_prepay/2
-        ]).
--export([allow_postpay/1, allow_postpay/2
-        ,set_pvt_allow_postpay/2
-        ]).
--export([soft_limit_inbound/1, soft_limit_inbound/2
-        ,set_pvt_soft_limit_inbound/2
-        ]).
--export([soft_limit_outbound/1, soft_limit_outbound/2
-        ,set_pvt_soft_limit_outbound/2
-        ]).
--export([authz_resource_types/1, authz_resource_types/2
-        ,set_authz_resource_types/2, set_pvt_authz_resource_types/2
-        ]).
--export([allotments/1, allotments/2
-        ,set_allotments/2
-        ]).
+-export([
+    enabled/1, enabled/2,
+    set_enabled/2,
+    set_pvt_enabled/2
+]).
+-export([
+    calls/1, calls/2,
+    set_calls/2,
+    set_pvt_calls/2
+]).
+-export([
+    resource_consuming_calls/1, resource_consuming_calls/2,
+    set_resource_consuming_calls/2,
+    set_pvt_resource_consuming_calls/2
+]).
+-export([
+    inbound_trunks/1, inbound_trunks/2,
+    set_inbound_trunks/2,
+    set_pvt_inbound_trunks/2
+]).
+-export([
+    outbound_trunks/1, outbound_trunks/2,
+    set_outbound_trunks/2,
+    set_pvt_outbound_trunks/2
+]).
+-export([
+    twoway_trunks/1, twoway_trunks/2,
+    set_twoway_trunks/2,
+    set_pvt_twoway_trunks/2
+]).
+-export([
+    bundled_inbound_trunks/1, bundled_inbound_trunks/2,
+    set_pvt_bundled_inbound_trunks/2
+]).
+-export([
+    bundled_outbound_trunks/1, bundled_outbound_trunks/2,
+    set_pvt_bundled_outbound_trunks/2
+]).
+-export([
+    bundled_twoway_trunks/1, bundled_twoway_trunks/2,
+    set_pvt_bundled_twoway_trunks/2
+]).
+-export([
+    burst_trunks/1, burst_trunks/2,
+    set_burst_trunks/2,
+    set_pvt_burst_trunks/2
+]).
+-export([
+    max_postpay_units/1, max_postpay_units/2,
+    set_pvt_max_postpay_units/2
+]).
+-export([
+    max_postpay_dollars/1, max_postpay_dollars/2,
+    set_pvt_max_postpay_dollars/2
+]).
+-export([
+    reserve_units/1, reserve_units/2,
+    set_pvt_reserve_units/2
+]).
+-export([
+    reserve_dollars/1, reserve_dollars/2,
+    set_pvt_reserve_dollars/2
+]).
+-export([
+    allow_prepay/1, allow_prepay/2,
+    set_allow_prepay/2,
+    set_pvt_allow_prepay/2
+]).
+-export([
+    allow_postpay/1, allow_postpay/2,
+    set_pvt_allow_postpay/2
+]).
+-export([
+    soft_limit_inbound/1, soft_limit_inbound/2,
+    set_pvt_soft_limit_inbound/2
+]).
+-export([
+    soft_limit_outbound/1, soft_limit_outbound/2,
+    set_pvt_soft_limit_outbound/2
+]).
+-export([
+    authz_resource_types/1, authz_resource_types/2,
+    set_authz_resource_types/2,
+    set_pvt_authz_resource_types/2
+]).
+-export([
+    allotments/1, allotments/2,
+    set_allotments/2
+]).
 -export([inbound_channels_per_did_rules/1, inbound_channels_per_did_rules/2]).
 
 -include("kz_documents.hrl").
@@ -74,9 +103,10 @@
 
 -type tristate_integer() :: -1 | non_neg_integer().
 
--export_type([doc/0
-             ,tristate_integer/0
-             ]).
+-export_type([
+    doc/0,
+    tristate_integer/0
+]).
 
 -define(SCHEMA, <<"limits">>).
 -define(LIMITS_CAT, <<"limits">>).
@@ -89,15 +119,16 @@
 new(Account) ->
     TStamp = kz_time:now_s(),
     kz_json:from_list(
-      [{<<"_id">>, <<"limits">>}
-      ,{<<"pvt_account_db">>, kz_util:format_account_db(Account)}
-      ,{<<"pvt_account_id">>, kz_util:format_account_id(Account)}
-      ,{<<"pvt_type">>, <<"limits">>}
-      ,{<<"pvt_created">>, TStamp}
-      ,{<<"pvt_modified">>, TStamp}
-      ,{<<"pvt_vsn">>, 1}
-      ]
-     ).
+        [
+            {<<"_id">>, <<"limits">>},
+            {<<"pvt_account_db">>, kz_util:format_account_db(Account)},
+            {<<"pvt_account_id">>, kz_util:format_account_id(Account)},
+            {<<"pvt_type">>, <<"limits">>},
+            {<<"pvt_created">>, TStamp},
+            {<<"pvt_modified">>, TStamp},
+            {<<"pvt_vsn">>, 1}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -477,26 +508,23 @@ inbound_channels_per_did_rules(Doc, Default) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec get_limit(kz_term:ne_binary(), kz_json:object(), tristate_integer()) ->
-          tristate_integer().
+    tristate_integer().
 get_limit(Key, Doc, Default) ->
     PrivateValue = get_private_limit(Key, Doc),
-    PublicValue =  kz_json:get_integer_value(Key, Doc),
-    case PrivateValue =/= 'undefined'
-        andalso
-        (PublicValue =:= 'undefined'
-         orelse PublicValue < 0
-         orelse (
-           PrivateValue >= 0
-           andalso PrivateValue < PublicValue
-          )
-        )
+    PublicValue = kz_json:get_integer_value(Key, Doc),
+    case
+        PrivateValue =/= 'undefined' andalso
+            (PublicValue =:= 'undefined' orelse
+                PublicValue < 0 orelse
+                (PrivateValue >= 0 andalso
+                    PrivateValue < PublicValue))
     of
         'true' -> PrivateValue;
         'false' -> get_public_limit(Key, Doc, Default)
     end.
 
 -spec get_public_limit(kz_term:ne_binary(), kz_json:object(), tristate_integer()) ->
-          non_neg_integer().
+    non_neg_integer().
 get_public_limit(Key, Doc, Default) ->
     case kz_json:get_integer_value(Key, Doc) of
         'undefined' -> get_default_limit(Key, Default);
@@ -519,14 +547,17 @@ get_default_limit(Key, Default) ->
 -spec get_limit_integer(kz_term:ne_binary(), kz_json:object(), integer()) -> integer().
 get_limit_integer(Key, Doc, Default) ->
     case kz_json:get_value(<<"pvt_", Key/binary>>, Doc) of
-        'undefined' -> get_public_limit_integer(Key, Doc, Default);
-        0 -> 0;
+        'undefined' ->
+            get_public_limit_integer(Key, Doc, Default);
+        0 ->
+            0;
         Value when Value < 0 ->
             get_public_limit_integer(Key, Doc, Default);
         Value ->
-            enforce_integer_limit(Value
-                                 ,get_public_limit_integer(Key, Doc, Default)
-                                 )
+            enforce_integer_limit(
+                Value,
+                get_public_limit_integer(Key, Doc, Default)
+            )
     end.
 
 -spec get_public_limit_integer(kz_term:ne_binary(), kz_json:object(), integer()) -> integer().
@@ -551,7 +582,8 @@ enforce_integer_limit(Private, Public) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_limit_units(kz_term:ne_binary(), kz_json:object(), kz_currency:units()) -> kz_currency:units().
+-spec get_limit_units(kz_term:ne_binary(), kz_json:object(), kz_currency:units()) ->
+    kz_currency:units().
 get_limit_units(Key, Doc, Default) ->
     case kz_json:get_value(<<"pvt_", Key/binary>>, Doc) of
         Value when is_float(Value) -> kz_currency:dollars_to_units(abs(Value));
@@ -573,7 +605,8 @@ get_default_limit_units(Key, Default) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec get_limit_dollars(kz_term:ne_binary(), kz_json:object(), kz_currency:dollars()) -> kz_currency:dollars().
+-spec get_limit_dollars(kz_term:ne_binary(), kz_json:object(), kz_currency:dollars()) ->
+    kz_currency:dollars().
 get_limit_dollars(Key, Doc, Default) ->
     case kz_json:get_value(<<"pvt_", Key/binary>>, Doc) of
         Value when is_float(Value) -> abs(Value);
@@ -581,7 +614,8 @@ get_limit_dollars(Key, Doc, Default) ->
         _Else -> get_default_limit_dollars(Key, Default)
     end.
 
--spec get_default_limit_dollars(kz_term:ne_binary(), kz_currency:dollars()) -> kz_currency:dollars().
+-spec get_default_limit_dollars(kz_term:ne_binary(), kz_currency:dollars()) ->
+    kz_currency:dollars().
 get_default_limit_dollars(Key, Default) ->
     case kapps_config:get(?LIMITS_CAT, Key, Default) of
         Value when is_float(Value) -> abs(Value);
@@ -626,7 +660,8 @@ get_limit_list(Key, JObj, Default) ->
     case kz_json:get_list_value(<<"pvt_", Key/binary>>, JObj) of
         'undefined' ->
             get_public_limit_list(Key, JObj, Default);
-        Value -> Value
+        Value ->
+            Value
     end.
 
 -spec get_public_limit_list(kz_term:ne_binary(), kz_json:object(), list()) -> list().
@@ -647,7 +682,8 @@ get_default_limit_list(Key, Default) ->
 -spec get_bundled_inbound_limit(kz_term:ne_binary(), kz_json:object()) -> non_neg_integer().
 get_bundled_inbound_limit(AccountDb, JObj) ->
     case kz_json:get_ne_value(<<"pvt_bundled_inbound_trunks">>, JObj) of
-        'undefined' -> 0;
+        'undefined' ->
+            0;
         Type ->
             View = <<Type/binary, "/crossbar_listing">>,
             get_bundled_limit(AccountDb, View)
@@ -656,7 +692,8 @@ get_bundled_inbound_limit(AccountDb, JObj) ->
 -spec get_bundled_outbound_limit(kz_term:ne_binary(), kz_json:object()) -> non_neg_integer().
 get_bundled_outbound_limit(AccountDb, JObj) ->
     case kz_json:get_ne_value(<<"pvt_bundled_outbound_trunks">>, JObj) of
-        'undefined' -> 0;
+        'undefined' ->
+            0;
         Type ->
             View = <<Type/binary, "/crossbar_listing">>,
             get_bundled_limit(AccountDb, View)
@@ -665,7 +702,8 @@ get_bundled_outbound_limit(AccountDb, JObj) ->
 -spec get_bundled_twoway_limit(kz_term:ne_binary(), kz_json:object()) -> non_neg_integer().
 get_bundled_twoway_limit(AccountDb, JObj) ->
     case kz_json:get_ne_value(<<"pvt_bundled_twoway_trunks">>, JObj) of
-        'undefined' -> 0;
+        'undefined' ->
+            0;
         Type ->
             View = <<Type/binary, "/crossbar_listing">>,
             get_bundled_limit(AccountDb, View)
@@ -674,18 +712,24 @@ get_bundled_twoway_limit(AccountDb, JObj) ->
 -spec get_bundled_limit(kz_term:ne_binary(), kz_term:ne_binary()) -> non_neg_integer().
 get_bundled_limit(AccountDb, View) ->
     case kz_datamgr:get_results(AccountDb, View, []) of
-        {'ok', JObjs} -> filter_bundled_limit(JObjs);
+        {'ok', JObjs} ->
+            filter_bundled_limit(JObjs);
         {'error', _R} ->
-            lager:debug("failed get bundled limit from ~s in ~s: ~p"
-                       ,[View, AccountDb, _R]),
+            lager:debug(
+                "failed get bundled limit from ~s in ~s: ~p",
+                [View, AccountDb, _R]
+            ),
             0
     end.
 
 -spec filter_bundled_limit(kz_json:objects()) -> non_neg_integer().
 filter_bundled_limit(JObjs) ->
-    length([JObj
-            || JObj <- JObjs
-                   ,kz_json:is_true([<<"value">>, <<"enabled">>]
-                                   ,JObj
-                                   ,'true')
-           ]).
+    length([
+        JObj
+     || JObj <- JObjs,
+        kz_json:is_true(
+            [<<"value">>, <<"enabled">>],
+            JObj,
+            'true'
+        )
+    ]).

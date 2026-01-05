@@ -11,15 +11,17 @@
 
 -define(SERVER, ?MODULE).
 
--export([start_link/0
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    init/1
+]).
 
--define(CHILDREN, [?WORKER('kazoo_data_init')
-                  ,?SUPER('kazoo_data_link_sup')
-                  ,?WORKER('kz_data_tracing')
-                  ,?WORKER('kazoo_data_bootstrap')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('kazoo_data_init'),
+    ?SUPER('kazoo_data_link_sup'),
+    ?WORKER('kz_data_tracing'),
+    ?WORKER('kazoo_data_bootstrap')
+]).
 
 %%==============================================================================
 %% API functions

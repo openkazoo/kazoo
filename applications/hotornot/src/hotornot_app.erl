@@ -34,7 +34,6 @@ start(_StartType, _StartArgs) ->
 stop(_State) ->
     'ok'.
 
-
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     _ = kapi_rate:declare_exchanges(),

@@ -17,14 +17,15 @@
 -export([start_link/0]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("acdc.hrl").
 -include_lib("kazoo_events/include/kz_hooks.hrl").
@@ -34,36 +35,33 @@
 
 -define(SERVER, ?MODULE).
 
--define(BINDINGS, [{'acdc_agent', [{'restrict_to', ['status', 'stats_req']}]}
-                  ,{'presence', [{'restrict_to', ['probe']}]}
-                  ,{'conf', [{'type', <<"user">>}
-                            ,'federate'
-                            ]}
-                  ,{'conf', [{'type', <<"device">>}
-                            ,'federate'
-                            ]}
-                  ]).
--define(RESPONDERS, [{{'acdc_agent_handler', 'handle_status_update'}
-                     ,[{<<"agent">>, <<"login">>}
-                      ,{<<"agent">>, <<"logout">>}
-                      ,{<<"agent">>, <<"pause">>}
-                      ,{<<"agent">>, <<"resume">>}
-                      ,{<<"agent">>, <<"end_wrapup">>}
-                      ,{<<"agent">>, <<"login_queue">>}
-                      ,{<<"agent">>, <<"logout_queue">>}
-                      ,{<<"agent">>, <<"restart">>}
-                      ]
-                     }
-                    ,{{'acdc_agent_handler', 'handle_stats_req'}
-                     ,[{<<"agent">>, <<"stats_req">>}]
-                     }
-                    ,{{'acdc_agent_handler', 'handle_presence_probe'}
-                     ,[{<<"presence">>, <<"probe">>}]
-                     }
-                    ,{{'acdc_agent_handler', 'handle_config_change'}
-                     ,[{<<"configuration">>, <<"*">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'acdc_agent', [{'restrict_to', ['status', 'stats_req']}]},
+    {'presence', [{'restrict_to', ['probe']}]},
+    {'conf', [
+        {'type', <<"user">>},
+        'federate'
+    ]},
+    {'conf', [
+        {'type', <<"device">>},
+        'federate'
+    ]}
+]).
+-define(RESPONDERS, [
+    {{'acdc_agent_handler', 'handle_status_update'}, [
+        {<<"agent">>, <<"login">>},
+        {<<"agent">>, <<"logout">>},
+        {<<"agent">>, <<"pause">>},
+        {<<"agent">>, <<"resume">>},
+        {<<"agent">>, <<"end_wrapup">>},
+        {<<"agent">>, <<"login_queue">>},
+        {<<"agent">>, <<"logout_queue">>},
+        {<<"agent">>, <<"restart">>}
+    ]},
+    {{'acdc_agent_handler', 'handle_stats_req'}, [{<<"agent">>, <<"stats_req">>}]},
+    {{'acdc_agent_handler', 'handle_presence_probe'}, [{<<"presence">>, <<"probe">>}]},
+    {{'acdc_agent_handler', 'handle_config_change'}, [{<<"configuration">>, <<"*">>}]}
+]).
 
 %%%=============================================================================
 %%% API
@@ -75,12 +73,15 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link({'local', ?SERVER}, ?MODULE
-                           ,[{'bindings', ?BINDINGS}
-                            ,{'responders', ?RESPONDERS}
-                            ]
-                           ,[]
-                           ).
+    gen_listener:start_link(
+        {'local', ?SERVER},
+        ?MODULE,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -109,9 +110,9 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'created_queue',_QueueName}}, State) ->
+handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
@@ -130,7 +131,9 @@ handle_info(?HOOK_EVT(AccountId, <<"CHANNEL_DESTROY">>, JObj), State) ->
     _ = kz_util:spawn(fun acdc_agent_handler:handle_destroyed_channel/2, [JObj, AccountId]),
     {'noreply', State};
 handle_info(?HOOK_EVT(_AccountId, _EventName, _JObj), State) ->
-    lager:debug("ignoring ~s for account ~s on call ~s", [_EventName, _AccountId, kz_json:get_value(<<"Call-ID">>, _JObj)]),
+    lager:debug("ignoring ~s for account ~s on call ~s", [
+        _EventName, _AccountId, kz_json:get_value(<<"Call-ID">>, _JObj)
+    ]),
     {'noreply', State};
 handle_info(_Info, State) ->
     lager:debug("unhandled message: ~p", [_Info]),

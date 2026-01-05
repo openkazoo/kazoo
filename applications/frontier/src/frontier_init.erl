@@ -9,41 +9,52 @@
 -include("frontier.hrl").
 
 %% API
--export([start_link/0
-        ,default_rate_limits/0
-        ]).
+-export([
+    start_link/0,
+    default_rate_limits/0
+]).
 
--define(ACCOUNT_RATES_SEC, [{<<"registrations">>, 20}
-                           ,{<<"invites">>, 50}
-                           ,{<<"total_packets">>, 100}
-                           ]).
--define(DEVICE_RATES_SEC, [{<<"registrations">>, 2}
-                          ,{<<"invites">>, 5}
-                          ,{<<"total_packets">>, 20}
-                          ]).
--define(ACCOUNT_RATES_MIN, [{<<"registrations">>, 100}
-                           ,{<<"invites">>, 200}
-                           ,{<<"total_packets">>, 2000}
-                           ]).
--define(DEVICE_RATES_MIN, [{<<"registrations">>, 20}
-                          ,{<<"invites">>, 100}
-                          ,{<<"total_packets">>, 1000}
-                          ]).
+-define(ACCOUNT_RATES_SEC, [
+    {<<"registrations">>, 20},
+    {<<"invites">>, 50},
+    {<<"total_packets">>, 100}
+]).
+-define(DEVICE_RATES_SEC, [
+    {<<"registrations">>, 2},
+    {<<"invites">>, 5},
+    {<<"total_packets">>, 20}
+]).
+-define(ACCOUNT_RATES_MIN, [
+    {<<"registrations">>, 100},
+    {<<"invites">>, 200},
+    {<<"total_packets">>, 2000}
+]).
+-define(DEVICE_RATES_MIN, [
+    {<<"registrations">>, 20},
+    {<<"invites">>, 100},
+    {<<"total_packets">>, 1000}
+]).
 
--define(ACCOUNT_RATES
-       ,kz_json:from_list([{?MINUTE, kz_json:from_list(?ACCOUNT_RATES_MIN)}
-                          ,{?SECOND, kz_json:from_list(?ACCOUNT_RATES_SEC)}
-                          ])).
+-define(ACCOUNT_RATES,
+    kz_json:from_list([
+        {?MINUTE, kz_json:from_list(?ACCOUNT_RATES_MIN)},
+        {?SECOND, kz_json:from_list(?ACCOUNT_RATES_SEC)}
+    ])
+).
 
--define(DEVICE_RATES
-       ,kz_json:from_list([{?MINUTE, kz_json:from_list(?DEVICE_RATES_MIN)}
-                          ,{?SECOND, kz_json:from_list(?DEVICE_RATES_SEC)}
-                          ])).
+-define(DEVICE_RATES,
+    kz_json:from_list([
+        {?MINUTE, kz_json:from_list(?DEVICE_RATES_MIN)},
+        {?SECOND, kz_json:from_list(?DEVICE_RATES_SEC)}
+    ])
+).
 
--define(DEFAULT_RATES
-       ,kz_json:from_list([{<<"account">>, ?ACCOUNT_RATES}
-                          ,{<<"device">>, ?DEVICE_RATES}
-                          ])).
+-define(DEFAULT_RATES,
+    kz_json:from_list([
+        {<<"account">>, ?ACCOUNT_RATES},
+        {<<"device">>, ?DEVICE_RATES}
+    ])
+).
 
 -spec start_link() -> 'ignore'.
 start_link() ->

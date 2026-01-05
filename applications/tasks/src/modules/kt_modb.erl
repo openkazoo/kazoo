@@ -17,9 +17,9 @@
 
 -include("tasks.hrl").
 
--define(SHOULD_ARCHIVE_MODBS
-       ,kapps_config:get_is_true(?CONFIG_CAT, <<"should_archive_modbs">>, 'false')
-       ).
+-define(SHOULD_ARCHIVE_MODBS,
+    kapps_config:get_is_true(?CONFIG_CAT, <<"should_archive_modbs">>, 'false')
+).
 
 %%%=============================================================================
 %%% API

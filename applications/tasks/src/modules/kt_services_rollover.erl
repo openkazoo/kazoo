@@ -30,7 +30,8 @@ handle_req() ->
 handle_req({Year, Month, 1}) ->
     _P = kz_util:spawn(fun rollover_accounts/2, [Year, Month]),
     lager:info("its a new month ~p-~p, rolling over services in ~p", [Year, Month, _P]);
-handle_req({_Year, _Month, _Day}) -> 'ok'.
+handle_req({_Year, _Month, _Day}) ->
+    'ok'.
 
 -spec rollover_accounts(kz_time:year(), kz_time:month()) -> 'ok'.
 rollover_accounts(Year, Month) ->
@@ -55,7 +56,8 @@ get_page(NextStartKey) ->
 -spec query(kz_datamgr:view_options()) -> kz_datamgr:paginated_results().
 query(ViewOptions) ->
     AccountsPerPass = kapps_config:get_integer(?MOD_CAT, <<"rollover_in_parallel">>, 10),
-    kz_datamgr:paginate_results(?KZ_ACCOUNTS_DB
-                               ,<<"accounts/listing_by_id">>
-                               ,[{'page_size', AccountsPerPass} | ViewOptions]
-                               ).
+    kz_datamgr:paginate_results(
+        ?KZ_ACCOUNTS_DB,
+        <<"accounts/listing_by_id">>,
+        [{'page_size', AccountsPerPass} | ViewOptions]
+    ).

@@ -19,27 +19,29 @@
 -export([stop/1, stop/2]).
 
 %% gen_server callbacks
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("doodle.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 -include_lib("kazoo_amqp/include/kz_api.hrl").
 
--record(state, {call = kapps_im:new() :: kapps_im:im()
-               ,flow = kz_json:new() :: kz_json:object()
-               ,flows = [] :: kz_json:objects()
-               ,tf_module_pid :: kz_term:api_pid_ref()
-               ,tf_module_old_pid :: kz_term:api_pid_ref()
-               ,result = 'undefined' :: atom()
-               ,queue :: kz_term:api_ne_binary()
-               ,self = self() :: pid()
-               }).
+-record(state, {
+    call = kapps_im:new() :: kapps_im:im(),
+    flow = kz_json:new() :: kz_json:object(),
+    flows = [] :: kz_json:objects(),
+    tf_module_pid :: kz_term:api_pid_ref(),
+    tf_module_old_pid :: kz_term:api_pid_ref(),
+    result = 'undefined' :: atom(),
+    queue :: kz_term:api_ne_binary(),
+    self = self() :: pid()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -102,20 +104,22 @@ init([Im, Context]) ->
     #{channel := Channel, queue := Queue} = Context,
     ControllerQ = kapi:encode_pid(Queue),
     kz_amqp_channel:consumer_channel(Channel),
-    Funs = [{fun kapps_im:kvs_store/3, 'consumer_pid', kz_amqp_channel:consumer_pid()}
-           ,{fun kapps_im:kvs_store/3, 'consumer_channel', kz_amqp_channel:consumer_channel()}
-           ,{fun kapps_im:set_controller_queue/2, ControllerQ}
-           ],
-    {'ok', #state{call = kapps_im:exec(Funs, Im)
-                 ,queue = ControllerQ
-                 }}.
+    Funs = [
+        {fun kapps_im:kvs_store/3, 'consumer_pid', kz_amqp_channel:consumer_pid()},
+        {fun kapps_im:kvs_store/3, 'consumer_channel', kz_amqp_channel:consumer_channel()},
+        {fun kapps_im:set_controller_queue/2, ControllerQ}
+    ],
+    {'ok', #state{
+        call = kapps_im:exec(Funs, Im),
+        queue = ControllerQ
+    }}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call('queue_name', _From, #state{queue=Q}=State) ->
+handle_call('queue_name', _From, #state{queue = Q} = State) ->
     {'reply', Q, State};
 handle_call(_Request, _From, State) ->
     lager:warning("unhandled request in call: ~p : ~p", [_Request, _From]),
@@ -127,7 +131,7 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'continue', Key}, #state{flow=Flow}=State) ->
+handle_cast({'continue', Key}, #state{flow = Flow} = State) ->
     lager:info("continuing to child '~s'", [Key]),
 
     case kz_json:get_value([<<"children">>, Key], Flow) of
@@ -140,10 +144,10 @@ handle_cast({'continue', Key}, #state{flow=Flow}=State) ->
             continue(self()),
             {'noreply', State};
         NewFlow ->
-            {'noreply', launch_tf_module(State#state{flow=NewFlow})}
+            {'noreply', launch_tf_module(State#state{flow = NewFlow})}
     end;
 handle_cast({'stop', Cause}, State) ->
-    {'stop', {shutdown, Cause}, State#state{result=Cause}};
+    {'stop', {shutdown, Cause}, State#state{result = Cause}};
 handle_cast('initialize', State) ->
     initialize(State);
 handle_cast(_Msg, State) ->
@@ -161,78 +165,118 @@ handle_info({'amqp_msg', JObj}, State) ->
 handle_info({'kapi', {_, _, JObj}}, State) ->
     _ = handle_event(JObj, State),
     {'noreply', State};
-handle_info({'DOWN', Ref, 'process', Pid, 'normal'}, #state{tf_module_pid={Pid, Ref}
-                                                           ,call=Im
-                                                           }=State) ->
+handle_info(
+    {'DOWN', Ref, 'process', Pid, 'normal'},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s down normally", [kapps_im:kvs_fetch('tf_last_action', Im)]),
-    {'noreply', State#state{tf_module_pid='undefined'}};
-handle_info({'DOWN', Ref, 'process', Pid, 'killed'}, #state{tf_module_pid={Pid, Ref}
-                                                           ,call=Im
-                                                           }=State) ->
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
+handle_info(
+    {'DOWN', Ref, 'process', Pid, 'killed'},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s down normally", [kapps_im:kvs_fetch('tf_last_action', Im)]),
-    {'noreply', State#state{tf_module_pid='undefined'}};
-handle_info({'DOWN', Ref, 'process', Pid, _Reason}, #state{tf_module_pid={Pid, Ref}
-                                                          ,call=Im
-                                                          }=State) ->
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
+handle_info(
+    {'DOWN', Ref, 'process', Pid, _Reason},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     LastAction = kapps_im:kvs_fetch('tf_last_action', Im),
     lager:error("action ~s died unexpectedly: ~p", [LastAction, _Reason]),
     continue(self()),
-    {'noreply', State#state{tf_module_pid='undefined'}};
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
 handle_info({'DOWN', _Ref, 'process', _Pid, 'normal'}, State) ->
     {'noreply', State};
-handle_info({'EXIT', Pid, 'normal'}, #state{tf_module_pid={Pid, Ref}
-                                           ,call=Im
-                                           }=State) ->
+handle_info(
+    {'EXIT', Pid, 'normal'},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s down normally", [kapps_im:kvs_fetch('tf_last_action', Im)]),
-    {'noreply', State#state{tf_module_pid='undefined'}};
-handle_info({'EXIT', Pid, 'killed'}, #state{tf_module_pid={Pid, Ref}
-                                           ,call=Im
-                                           }=State) ->
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
+handle_info(
+    {'EXIT', Pid, 'killed'},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s killed normally", [kapps_im:kvs_fetch('tf_last_action', Im)]),
-    {'noreply', State#state{tf_module_pid='undefined'}};
-handle_info({'EXIT', Pid, _Reason}, #state{tf_module_pid={Pid, Ref}
-                                          ,call=Im
-                                          }=State) ->
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
+handle_info(
+    {'EXIT', Pid, _Reason},
+    #state{
+        tf_module_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     LastAction = kapps_im:kvs_fetch('tf_last_action', Im),
     lager:error_unsafe("action ~s died unexpectedly: ~p", [LastAction, _Reason]),
     continue(self()),
-    {'noreply', State#state{tf_module_pid='undefined'}};
-handle_info({'EXIT', Pid, 'normal'}, #state{tf_module_old_pid={Pid, Ref}
-                                           ,call=Im
-                                           }=State) ->
+    {'noreply', State#state{tf_module_pid = 'undefined'}};
+handle_info(
+    {'EXIT', Pid, 'normal'},
+    #state{
+        tf_module_old_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s down normally", [kapps_im:kvs_fetch('tf_old_action', Im)]),
-    {'noreply', State#state{tf_module_old_pid='undefined'}};
-handle_info({'EXIT', Pid, 'killed'}, #state{tf_module_old_pid={Pid, Ref}
-                                           ,call=Im
-                                           }=State) ->
+    {'noreply', State#state{tf_module_old_pid = 'undefined'}};
+handle_info(
+    {'EXIT', Pid, 'killed'},
+    #state{
+        tf_module_old_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     lager:debug("cf module ~s killed normally", [kapps_im:kvs_fetch('tf_old_action', Im)]),
-    {'noreply', State#state{tf_module_old_pid='undefined'}};
-handle_info({'EXIT', Pid, _Reason}, #state{tf_module_old_pid={Pid, Ref}
-                                          ,call=Im
-                                          }=State) ->
+    {'noreply', State#state{tf_module_old_pid = 'undefined'}};
+handle_info(
+    {'EXIT', Pid, _Reason},
+    #state{
+        tf_module_old_pid = {Pid, Ref},
+        call = Im
+    } = State
+) ->
     erlang:demonitor(Ref, ['flush']),
     LastAction = kapps_im:kvs_fetch('tf_old_action', Im),
     lager:error("action ~s died unexpectedly: ~p", [LastAction, _Reason]),
-    {'noreply', State#state{tf_module_old_pid='undefined'}};
-handle_info({'amqp_return', _JObj, _Returned} = Msg, #state{tf_module_pid=PidRef
-                                                           ,call=Im
-                                                           } = State) ->
+    {'noreply', State#state{tf_module_old_pid = 'undefined'}};
+handle_info(
+    {'amqp_return', _JObj, _Returned} = Msg,
+    #state{
+        tf_module_pid = PidRef,
+        call = Im
+    } = State
+) ->
     Others = kapps_im:kvs_fetch('tf_event_pids', [], Im),
-    Notify = case get_pid(PidRef) of
-                 'undefined' -> Others;
-                 ModPid -> [ModPid | Others]
-             end,
+    Notify =
+        case get_pid(PidRef) of
+            'undefined' -> Others;
+            ModPid -> [ModPid | Others]
+        end,
     relay_message(Notify, Msg),
     {'noreply', State};
-
 handle_info(_Msg, State) ->
     lager:debug("unhandled message: ~p", [_Msg]),
     {'noreply', State}.
@@ -242,14 +286,16 @@ handle_info(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_call_event:doc(), state()) -> 'ok'.
-handle_event(JObj, #state{tf_module_pid=PidRef
-                         ,call=Im
-                         }) ->
+handle_event(JObj, #state{
+    tf_module_pid = PidRef,
+    call = Im
+}) ->
     Others = kapps_im:kvs_fetch('tf_event_pids', [], Im),
-    Notify = case get_pid(PidRef) of
-                 'undefined' -> Others;
-                 ModPid -> [ModPid | Others]
-             end,
+    Notify =
+        case get_pid(PidRef) of
+            'undefined' -> Others;
+            ModPid -> [ModPid | Others]
+        end,
     relay_message(Notify, JObj).
 
 %%------------------------------------------------------------------------------
@@ -282,42 +328,47 @@ code_change(_OldVsn, State, _Extra) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec launch_tf_module(state()) -> state().
-launch_tf_module(#state{flow=?EMPTY_JSON_OBJECT}=State) ->
+launch_tf_module(#state{flow = ?EMPTY_JSON_OBJECT} = State) ->
     lager:debug("no flow left to launch, maybe stopping"),
     stop(self(), 'finish'),
     State;
-launch_tf_module(#state{flow=Flow
-                       }=State) ->
+launch_tf_module(#state{flow = Flow} = State) ->
     do_launch_tf_module(State, find_module(Flow)).
 
 -spec do_launch_tf_module(state(), atom()) -> state().
-do_launch_tf_module(#state{call=Im
-                          ,tf_module_pid=OldPidRef
-                          }=State
-                   ,'undefined'
-                   ) ->
+do_launch_tf_module(
+    #state{
+        call = Im,
+        tf_module_pid = OldPidRef
+    } = State,
+    'undefined'
+) ->
     lager:error("unknown textflow action, reverting to last action"),
     continue(self()),
     OldAction = kapps_im:kvs_fetch('tf_last_action', Im),
-    State#state{tf_module_pid='undefined'
-               ,tf_module_old_pid=OldPidRef
-               ,call=update_actions(OldAction, Im)
-               };
-do_launch_tf_module(#state{call=Im
-                          ,flow=Flow
-                          ,tf_module_pid=OldPidRef
-                          }=State
-                   ,Action
-                   ) ->
+    State#state{
+        tf_module_pid = 'undefined',
+        tf_module_old_pid = OldPidRef,
+        call = update_actions(OldAction, Im)
+    };
+do_launch_tf_module(
+    #state{
+        call = Im,
+        flow = Flow,
+        tf_module_pid = OldPidRef
+    } = State,
+    Action
+) ->
     Data = kz_json:get_json_value(<<"data">>, Flow, kz_json:new()),
     lager:info("moving to action '~s'", [Action]),
     Im1 = update_actions(Action, Im),
     PidRef = spawn_tf_module(Action, Data, Im1),
     link(get_pid(PidRef)),
-    State#state{tf_module_pid=PidRef
-               ,tf_module_old_pid=OldPidRef
-               ,call=Im1
-               }.
+    State#state{
+        tf_module_pid = PidRef,
+        tf_module_old_pid = OldPidRef,
+        call = Im1
+    }.
 
 -spec find_module(kz_json:object()) -> atom().
 find_module(Flow) ->
@@ -327,22 +378,27 @@ find_module(Flow) ->
     TFModule = kz_term:to_atom(ModuleBin, 'true'),
     IsExported = kz_module:is_exported(TFModule, 'handle', 2),
     SkipModule = kz_json:is_true(<<"skip_module">>, Data, 'false'),
-    case IsExported
-        andalso (not SkipModule)
+    case
+        IsExported andalso
+            (not SkipModule)
     of
-        'true' -> TFModule;
+        'true' ->
+            TFModule;
         'false' ->
-            lager:debug("skipping textflow module ~s (handle exported: ~s skip_module: ~s)"
-                       ,[TFModule, IsExported, SkipModule]),
+            lager:debug(
+                "skipping textflow module ~s (handle exported: ~s skip_module: ~s)",
+                [TFModule, IsExported, SkipModule]
+            ),
             'undefined'
     end.
 
 -spec update_actions(atom(), kapps_im:im()) -> kapps_im:im().
 update_actions(Action, Im) ->
     OldAction = kapps_im:kvs_fetch('tf_last_action', Im),
-    Routines = [{fun kapps_im:kvs_store/3, 'tf_old_action', OldAction}
-               ,{fun kapps_im:kvs_store/3, 'tf_last_action', Action}
-               ],
+    Routines = [
+        {fun kapps_im:kvs_store/3, 'tf_old_action', OldAction},
+        {fun kapps_im:kvs_store/3, 'tf_last_action', Action}
+    ],
     kapps_im:exec(Routines, Im).
 
 %%------------------------------------------------------------------------------
@@ -361,7 +417,8 @@ tf_module_task(TFModule, Data, Im, AMQPConsumer, AMQPChannel) ->
     _ = kz_amqp_channel:consumer_channel(AMQPChannel),
     _ = kz_amqp_channel:consumer_pid(AMQPConsumer),
     kapps_im:put_message_id(Im),
-    try TFModule:handle(Data, Im)
+    try
+        TFModule:handle(Data, Im)
     catch
         ?CATCH('exit', 'normal', _ST) ->
             lager:info("action ~s finished", [TFModule]);
@@ -371,30 +428,35 @@ tf_module_task(TFModule, Data, Im, AMQPConsumer, AMQPChannel) ->
             throw(R)
     end.
 
-
 -spec log_call_information(kapps_im:im()) -> 'ok'.
 log_call_information(Im) ->
-    lager:info("~s request ~s => ~s", [kapps_im:inception_type(Im), kapps_im:from(Im), kapps_im:to(Im)]).
+    lager:info("~s request ~s => ~s", [
+        kapps_im:inception_type(Im), kapps_im:from(Im), kapps_im:to(Im)
+    ]).
 
--spec relay_message(kz_term:pids(), kz_json:object() | {'amqp_return', kz_json:object(), kz_json:object()}) -> 'ok'.
+-spec relay_message(
+    kz_term:pids(), kz_json:object() | {'amqp_return', kz_json:object(), kz_json:object()}
+) -> 'ok'.
 relay_message(Notify, Message) ->
-    _ = [kapps_im_command:relay_event(Pid, Message)
-         || Pid <- Notify,
-            is_pid(Pid)
-        ],
+    _ = [
+        kapps_im_command:relay_event(Pid, Message)
+     || Pid <- Notify,
+        is_pid(Pid)
+    ],
     'ok'.
 
 -spec get_pid({pid(), reference()} | 'undefined') -> kz_term:api_pid().
 get_pid({Pid, _}) when is_pid(Pid) -> Pid;
 get_pid(_) -> 'undefined'.
 
--spec initialize(state()) -> {'stop', 'normal', state()} |
-          {'noreply', state()}.
-initialize(#state{call=Im}=State) ->
+-spec initialize(state()) ->
+    {'stop', 'normal', state()}
+    | {'noreply', state()}.
+initialize(#state{call = Im} = State) ->
     log_call_information(Im),
     Flow = kapps_im:kvs_fetch('tf_flow', Im),
-    {'noreply'
-    ,launch_tf_module(State#state{call=kapps_im:kvs_store('tf_exe_pid', self(), Im)
-                                 ,flow=Flow
-                                 })
-    }.
+    {'noreply',
+        launch_tf_module(State#state{
+            call = kapps_im:kvs_store('tf_exe_pid', self(), Im),
+            flow = Flow
+        })}.

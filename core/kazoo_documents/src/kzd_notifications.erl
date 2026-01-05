@@ -24,7 +24,6 @@
 -export([to_email_addresses/1, to_email_addresses/2, set_to_email_addresses/2]).
 -export([to_type/1, to_type/2, set_to_type/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

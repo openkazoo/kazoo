@@ -5,9 +5,11 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_kz_datamgr).
 
--export([seq/0, seq_kzoo_56/0
-        ,cleanup/0
-        ]).
+-export([
+    seq/0,
+    seq_kzoo_56/0,
+    cleanup/0
+]).
 
 -define(FROM_DB, <<"account%2F38%2F12%2F6201976b8666ab8c005daa7-from">>).
 -define(FROM_DOC_ID, <<?MODULE_STRING, "-to-doc">>).
@@ -25,9 +27,10 @@ run_it(F) -> F().
 -spec seq_kzoo_56() -> 'ok'.
 seq_kzoo_56() ->
     kz_datamgr:suppress_change_notice(),
-    Doc = kz_json:from_list([{<<"_id">>, ?FROM_DOC_ID}
-                             | [{kz_binary:rand_hex(4), kz_binary:rand_hex(5)} || _ <- lists:seq(1,10)]
-                            ]),
+    Doc = kz_json:from_list([
+        {<<"_id">>, ?FROM_DOC_ID}
+        | [{kz_binary:rand_hex(4), kz_binary:rand_hex(5)} || _ <- lists:seq(1, 10)]
+    ]),
 
     'true' = kz_datamgr:db_create(?FROM_DB, [{'publish_db', 'false'}]),
     'true' = kz_datamgr:db_create(?TO_DB, [{'publish_db', 'false'}]),
@@ -55,5 +58,5 @@ cleanup() ->
     lager:info("CLEANUP FINISHED").
 
 save_mp3(DB, DocId, AttId, MP3) ->
-    AttachmentName = <<"att-", (AttId+$0)>>,
+    AttachmentName = <<"att-", (AttId + $0)>>,
     {'ok', _SavedWithAtt} = kz_datamgr:put_attachment(DB, DocId, AttachmentName, MP3).

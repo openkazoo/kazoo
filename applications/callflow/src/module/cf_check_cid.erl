@@ -139,25 +139,28 @@ is_callflow_child(Name, Call) ->
 update_caller_identity(Data, Call) ->
     Name = kz_json:get_ne_binary_value([<<"caller_id">>, <<"external">>, <<"name">>], Data),
     Number = kz_json:get_ne_binary_value([<<"caller_id">>, <<"external">>, <<"number">>], Data),
-    UserId =  kz_json:get_ne_binary_value([<<"user_id">>], Data),
+    UserId = kz_json:get_ne_binary_value([<<"user_id">>], Data),
     case is_valid_caller_identity(Name, Number, UserId) of
         'true' ->
             lager:info("setting caller id to ~s <~s>", [Number, Name]),
             lager:info("setting owner id to ~s", [UserId]),
-            Updates = [fun(C) -> kapps_call:set_caller_id_number(Number, C) end
-                      ,fun(C) -> kapps_call:set_caller_id_name(Name, C) end
-                      ,fun(C) -> kapps_call:kvs_store('owner_id', UserId, C) end
-                      ],
+            Updates = [
+                fun(C) -> kapps_call:set_caller_id_number(Number, C) end,
+                fun(C) -> kapps_call:set_caller_id_name(Name, C) end,
+                fun(C) -> kapps_call:kvs_store('owner_id', UserId, C) end
+            ],
             {'ok', C} = cf_exe:get_call(Call),
             cf_exe:set_call(kapps_call:exec(Updates, C));
-        'false' -> 'ok'
+        'false' ->
+            'ok'
     end.
 
 %%------------------------------------------------------------------------------
 %% @doc validate that all required parameters are defined
 %% @end
 %%------------------------------------------------------------------------------
--spec is_valid_caller_identity(kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) -> boolean().
+-spec is_valid_caller_identity(kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary()) ->
+    boolean().
 is_valid_caller_identity('undefined', _Number, _UserId) -> 'false';
 is_valid_caller_identity(_Name, 'undefined', _UserId) -> 'false';
 is_valid_caller_identity(_Name, _Number, 'undefined') -> 'false';

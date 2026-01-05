@@ -6,12 +6,14 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_cb_recordings).
 
--export([list_recordings/2
-        ,create_recording/2
-        ,fetch_recording/3
-        ,fetch_recording_binary/3, fetch_recording_tunneled/3
-        ,delete_recording/3
-        ]).
+-export([
+    list_recordings/2,
+    create_recording/2,
+    fetch_recording/3,
+    fetch_recording_binary/3,
+    fetch_recording_tunneled/3,
+    delete_recording/3
+]).
 
 %% -export([command/2
 %%          ,next_state/3
@@ -25,14 +27,16 @@
 -define(ACCOUNT_NAMES, [<<"account_for_recordings">>]).
 
 -spec list_recordings(pqc_cb_api:state(), pqc_cb_accounts:account_id()) ->
-          {'error', 'not_found'} |
-          {'ok', kz_json:objects()}.
+    {'error', 'not_found'}
+    | {'ok', kz_json:objects()}.
 list_recordings(API, AccountId) ->
-    case pqc_cb_api:make_request(#{'response_codes' => [200]}
-                                ,fun kz_http:get/2
-                                ,recordings_url(AccountId)
-                                ,pqc_cb_api:request_headers(API)
-                                )
+    case
+        pqc_cb_api:make_request(
+            #{'response_codes' => [200]},
+            fun kz_http:get/2,
+            recordings_url(AccountId),
+            pqc_cb_api:request_headers(API)
+        )
     of
         {'error', _E} ->
             ?DEBUG("listing recordings errored: ~p", [_E]),
@@ -43,14 +47,16 @@ list_recordings(API, AccountId) ->
     end.
 
 -spec fetch_recording(pqc_cb_api:state(), pqc_cb_accounts:account_id(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', 'not_found'}.
+    {'ok', kz_json:object()}
+    | {'error', 'not_found'}.
 fetch_recording(API, AccountId, RecordingId) ->
-    case pqc_cb_api:make_request(#{'response_codes' => [200]}
-                                ,fun kz_http:get/2
-                                ,recordings_url(AccountId, RecordingId)
-                                ,pqc_cb_api:request_headers(API)
-                                )
+    case
+        pqc_cb_api:make_request(
+            #{'response_codes' => [200]},
+            fun kz_http:get/2,
+            recordings_url(AccountId, RecordingId),
+            pqc_cb_api:request_headers(API)
+        )
     of
         {'error', _E} ->
             ?DEBUG("fetching recording errored: ~p", [_E]),
@@ -61,17 +67,20 @@ fetch_recording(API, AccountId, RecordingId) ->
     end.
 
 -spec fetch_recording_binary(pqc_cb_api:state(), pqc_cb_accounts:account_id(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', 'not_found'}.
+    {'ok', kz_json:object()}
+    | {'error', 'not_found'}.
 fetch_recording_binary(API, AccountId, RecordingId) ->
-    case pqc_cb_api:make_request(#{'response_codes' => [200]
-                                  ,'response_headers' =>
-                                       [{"content-type", "audio/mpeg"}]
-                                  }
-                                ,fun kz_http:get/2
-                                ,recordings_url(AccountId, RecordingId)
-                                ,pqc_cb_api:request_headers(API, [{<<"accept">>, "audio/mpeg"}])
-                                )
+    case
+        pqc_cb_api:make_request(
+            #{
+                'response_codes' => [200],
+                'response_headers' =>
+                    [{"content-type", "audio/mpeg"}]
+            },
+            fun kz_http:get/2,
+            recordings_url(AccountId, RecordingId),
+            pqc_cb_api:request_headers(API, [{<<"accept">>, "audio/mpeg"}])
+        )
     of
         {'error', _E} ->
             ?DEBUG("fetching binary errored: ~p", [_E]),
@@ -80,18 +89,23 @@ fetch_recording_binary(API, AccountId, RecordingId) ->
             {'ok', Response}
     end.
 
--spec fetch_recording_tunneled(pqc_cb_api:state(), pqc_cb_accounts:account_id(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', 'not_found'}.
+-spec fetch_recording_tunneled(
+    pqc_cb_api:state(), pqc_cb_accounts:account_id(), kz_term:ne_binary()
+) ->
+    {'ok', kz_json:object()}
+    | {'error', 'not_found'}.
 fetch_recording_tunneled(API, AccountId, RecordingId) ->
-    case pqc_cb_api:make_request(#{'response_codes' => [200]
-                                  ,'response_headers' =>
-                                       [{"content-type", "audio/mpeg"}]
-                                  }
-                                ,fun kz_http:get/2
-                                ,recordings_url(AccountId, RecordingId) ++ "?accept=audio/mpeg"
-                                ,pqc_cb_api:request_headers(API)
-                                )
+    case
+        pqc_cb_api:make_request(
+            #{
+                'response_codes' => [200],
+                'response_headers' =>
+                    [{"content-type", "audio/mpeg"}]
+            },
+            fun kz_http:get/2,
+            recordings_url(AccountId, RecordingId) ++ "?accept=audio/mpeg",
+            pqc_cb_api:request_headers(API)
+        )
     of
         {'error', _E} ->
             ?DEBUG("fetching binary/tunneled errored: ~p", [_E]),
@@ -101,12 +115,14 @@ fetch_recording_tunneled(API, AccountId, RecordingId) ->
     end.
 
 -spec create_recording(pqc_cb_api:state(), pqc_cb_accounts:account_id()) ->
-          {'ok', kzd_call_recordings:doc()}.
+    {'ok', kzd_call_recordings:doc()}.
 create_recording(_API, AccountId) ->
     MODB = kz_util:format_account_mod_id(AccountId),
 
     BaseMediaDoc = create_recording_doc(),
-    MediaDoc = kz_doc:update_pvt_parameters(BaseMediaDoc, MODB, [{'type', kzd_call_recordings:type()}]),
+    MediaDoc = kz_doc:update_pvt_parameters(BaseMediaDoc, MODB, [
+        {'type', kzd_call_recordings:type()}
+    ]),
     ?INFO("saving to ~s: ~p", [MODB, MediaDoc]),
     {'ok', Doc} = kazoo_modb:save_doc(MODB, MediaDoc, [{'ensure_saved', 'true'}]),
     {'ok', _} = create_attachment(MODB, kz_doc:id(Doc)),
@@ -114,13 +130,15 @@ create_recording(_API, AccountId) ->
 
 -define(RECORDING_ID, <<"bf8a6522730f93248d41f2521cfe2b95">>).
 create_recording_doc() ->
-    lists:foldl(fun({F, V}, Doc) -> F(Doc, V) end
-               ,kzd_call_recordings:new()
-               ,[{fun kzd_call_recordings:set_id/2, ?RECORDING_ID}
-                ,{fun kzd_call_recordings:set_description/2, <<"pqc_cb_recordings test">>}
-                ,{fun kzd_call_recordings:set_source_type/2, kz_term:to_binary(?MODULE)}
-                ]
-               ).
+    lists:foldl(
+        fun({F, V}, Doc) -> F(Doc, V) end,
+        kzd_call_recordings:new(),
+        [
+            {fun kzd_call_recordings:set_id/2, ?RECORDING_ID},
+            {fun kzd_call_recordings:set_description/2, <<"pqc_cb_recordings test">>},
+            {fun kzd_call_recordings:set_source_type/2, kz_term:to_binary(?MODULE)}
+        ]
+    ).
 
 -define(MP3_FILE, filename:join([code:priv_dir('kazoo_proper'), <<"mp3.mp3">>])).
 create_attachment(MODB, DocId) ->
@@ -128,17 +146,21 @@ create_attachment(MODB, DocId) ->
     AName = filename:basename(File, <<".mp3">>),
     {'ok', Contents} = file:read_file(File),
     ?INFO("adding attachment to ~s/~s: ~s", [MODB, DocId, AName]),
-    kz_datamgr:put_attachment(MODB, DocId, AName, Contents, [{'content_type', kz_mime:from_filename(File)}]).
+    kz_datamgr:put_attachment(MODB, DocId, AName, Contents, [
+        {'content_type', kz_mime:from_filename(File)}
+    ]).
 
 -spec delete_recording(pqc_cb_api:state(), pqc_cb_accounts:account_id(), kz_term:ne_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', 'not_found'}.
+    {'ok', kz_json:object()}
+    | {'error', 'not_found'}.
 delete_recording(API, AccountId, RecordingId) ->
-    case pqc_cb_api:make_request(#{'response_codes' => [200, 404]}
-                                ,fun kz_http:delete/2
-                                ,recordings_url(AccountId, RecordingId)
-                                ,pqc_cb_api:request_headers(API)
-                                )
+    case
+        pqc_cb_api:make_request(
+            #{'response_codes' => [200, 404]},
+            fun kz_http:delete/2,
+            recordings_url(AccountId, RecordingId),
+            pqc_cb_api:request_headers(API)
+        )
     of
         {'error', _E} ->
             ?DEBUG("delete recording errored: ~p", [_E]),
@@ -197,7 +219,7 @@ seq() ->
         {'ok', []} = list_recordings(API, AccountId),
         ?INFO("no recordings available again", []),
 
-        io:format(?MODULE_STRING":seq/0 was successful~n")
+        io:format(?MODULE_STRING ":seq/0 was successful~n")
     catch
         _E:_R ->
             ST = erlang:get_stacktrace(),
@@ -213,12 +235,14 @@ seq() ->
 
 init() ->
     _ = kz_data_tracing:clear_all_traces(),
-    _ = [kapps_controller:start_app(App) ||
-            App <- ['crossbar']
-        ],
-    _ = [crossbar_maintenance:start_module(Mod) ||
-            Mod <- ['cb_recordings', 'cb_accounts']
-        ],
+    _ = [
+        kapps_controller:start_app(App)
+     || App <- ['crossbar']
+    ],
+    _ = [
+        crossbar_maintenance:start_module(Mod)
+     || Mod <- ['cb_recordings', 'cb_accounts']
+    ],
     ?INFO("INIT FINISHED").
 
 -spec initial_state() -> pqc_kazoo_model:model().

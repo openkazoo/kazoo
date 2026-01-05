@@ -31,7 +31,7 @@ start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
 -spec add(#kz_amqp_connection{}) -> kz_types:sup_startchild_ret().
-add(#kz_amqp_connection{}=Connection) ->
+add(#kz_amqp_connection{} = Connection) ->
     supervisor:start_child(?SERVER, [Connection]).
 
 -spec remove(pid()) -> 'ok' | {'error', any()}.

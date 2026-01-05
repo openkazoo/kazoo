@@ -12,11 +12,12 @@
 
 -export([start_link/1]).
 
--export([push/2
-        ,init/1
-        ,stop/2
-        ,async_response_handler/1
-        ]).
+-export([
+    push/2,
+    init/1,
+    stop/2,
+    async_response_handler/1
+]).
 
 -record(state, {}).
 -type state() :: #state{}.
@@ -25,21 +26,21 @@
 start_link(Args) ->
     gen_edr_backend:start_link(?MODULE, Args).
 
--spec init(backend())-> init_ret(state()).
-init(#backend{})->
+-spec init(backend()) -> init_ret(state()).
+init(#backend{}) ->
     lager:info("starting edr_be_amqp"),
     {'ok', #state{}};
-init(_Other)->
+init(_Other) ->
     'ignore'.
 
 -spec push(state(), edr_event()) -> 'ok'.
-push(_State, Event=#edr_event{})->
+push(_State, Event = #edr_event{}) ->
     kapi_edr_amqp:publish_event(Event).
 
 -spec stop(state(), any()) -> 'ok'.
-stop(_State, _Reason)->
+stop(_State, _Reason) ->
     'ok'.
 
 -spec async_response_handler(any()) -> work_result().
-async_response_handler(_Response)->
+async_response_handler(_Response) ->
     'ok'.

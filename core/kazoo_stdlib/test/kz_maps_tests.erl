@@ -24,7 +24,8 @@ merge_left_test() ->
 -ifdef(PERF).
 -define(REPEAT, 1000000).
 horse_merge_right() ->
-    horse:repeat(?REPEAT
-                ,kz_maps:merge(fun kz_maps:merge_right/2, ?M1, ?M2)
-                ).
+    horse:repeat(
+        ?REPEAT,
+        kz_maps:merge(fun kz_maps:merge_right/2, ?M1, ?M2)
+    ).
 -endif.

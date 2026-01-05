@@ -28,22 +28,25 @@ handle(Data, Call) ->
     FaxboxId = get_faxbox_id(Data),
     lager:info("receive fax for faxbox: ~s", [FaxboxId]),
     Props = props:filter_undefined(
-              props:filter_empty([{<<"Call">>, kapps_call:to_json(Call)}
-                                 ,{<<"Action">>, <<"receive">>}
-                                 ,{<<"FaxBox-ID">>, FaxboxId}
-                                 ,{<<"Fax-T38-Option">>, lookup_fax_option(Call, Data)}
-                                  | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-                                 ])),
+        props:filter_empty([
+            {<<"Call">>, kapps_call:to_json(Call)},
+            {<<"Action">>, <<"receive">>},
+            {<<"FaxBox-ID">>, FaxboxId},
+            {<<"Fax-T38-Option">>, lookup_fax_option(Call, Data)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ])
+    ),
     kapi_fax:publish_req(Props),
     cf_exe:control_usurped(Call).
 
 -spec lookup_fax_option(kapps_call:call(), kz_json:object()) -> kz_term:ne_binary().
 lookup_fax_option(Call, Data) ->
     FaxBoxId = get_faxbox_id(Data),
-    DefaultFaxBoxOption = case kz_datamgr:open_cache_doc(kapps_call:account_db(Call), FaxBoxId) of
-                              {'ok', JObj} -> kz_json:get_value(?FAX_OPTION, JObj);
-                              _ -> 'undefined'
-                          end,
+    DefaultFaxBoxOption =
+        case kz_datamgr:open_cache_doc(kapps_call:account_db(Call), FaxBoxId) of
+            {'ok', JObj} -> kz_json:get_value(?FAX_OPTION, JObj);
+            _ -> 'undefined'
+        end,
     kz_json:get_value(?FAX_OPTION, Data, DefaultFaxBoxOption).
 
 -spec get_faxbox_id(kz_json:object()) -> kz_term:api_binary().

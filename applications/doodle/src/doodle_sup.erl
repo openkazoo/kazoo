@@ -17,18 +17,19 @@
 
 -define(SERVER, ?MODULE).
 
--define(ORIGIN_BINDINGS, [[{'type', <<"callflow">>}]
-                         ,[{'type', <<"textflow">>}]
-                         ]).
+-define(ORIGIN_BINDINGS, [
+    [{'type', <<"callflow">>}],
+    [{'type', <<"textflow">>}]
+]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ]).
+-define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?WORKER('tf_exe_listener')
-                  ,?SUPER('tf_exe_sup')
-                  ,?WORKER('doodle_listener_sup')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?WORKER('tf_exe_listener'),
+    ?SUPER('tf_exe_sup'),
+    ?WORKER('doodle_listener_sup')
+]).
 
 %%==============================================================================
 %% API functions

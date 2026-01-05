@@ -14,19 +14,20 @@
 -export([start_link/0]).
 -export([init/1]).
 
--define(ORIGIN_BINDINGS, [[{'type', <<"resource">>}]
-                         ,[{'type', <<"number">>}]
-                         ,[{'type', <<"dedicated_ip">>}]
-                         ]).
+-define(ORIGIN_BINDINGS, [
+    [{'type', <<"resource">>}],
+    [{'type', <<"number">>}],
+    [{'type', <<"dedicated_ip">>}]
+]).
 
--define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}
-                     ]).
+-define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?SUPER('stepswitch_cnam_pool_sup')
-                  ,?SUPER('stepswitch_request_sup')
-                  ,?WORKER('stepswitch_listener')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?SUPER('stepswitch_cnam_pool_sup'),
+    ?SUPER('stepswitch_request_sup'),
+    ?WORKER('stepswitch_listener')
+]).
 
 %%==============================================================================
 %% API functions

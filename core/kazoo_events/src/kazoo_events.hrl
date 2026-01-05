@@ -9,6 +9,5 @@
 -define(APP_VERSION, <<"4.0.0">>).
 -define(APP, 'kazoo_events').
 
-
 -define(KAZOO_EVENTS_HRL, 'true').
 -endif.

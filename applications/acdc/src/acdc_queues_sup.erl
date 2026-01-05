@@ -13,14 +13,15 @@
 -define(SERVER, ?MODULE).
 
 %% API
--export([start_link/0
-        ,new/2
-        ,workers/0
-        ,find_acct_supervisors/1
-        ,find_queue_supervisor/2
-        ,queues_running/0
-        ,status/0
-        ]).
+-export([
+    start_link/0,
+    new/2,
+    workers/0,
+    find_acct_supervisors/1,
+    find_queue_supervisor/2,
+    queues_running/0,
+    status/0
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -66,9 +67,11 @@ is_queue_in_acct(Super, AcctId) ->
 find_queue_supervisor(AcctId, QueueId) ->
     find_queue_supervisor(AcctId, QueueId, workers()).
 
--spec find_queue_supervisor(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:pids()) -> kz_term:api_pid().
-find_queue_supervisor(_AcctId, _QueueId, []) -> 'undefined';
-find_queue_supervisor(AcctId, QueueId, [Super|Rest]) ->
+-spec find_queue_supervisor(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:pids()) ->
+    kz_term:api_pid().
+find_queue_supervisor(_AcctId, _QueueId, []) ->
+    'undefined';
+find_queue_supervisor(AcctId, QueueId, [Super | Rest]) ->
     case catch acdc_queue_manager:config(acdc_queue_sup:manager(Super)) of
         {'EXIT', _} -> find_queue_supervisor(AcctId, QueueId, Rest);
         {AcctId, QueueId} -> Super;

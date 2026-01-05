@@ -15,7 +15,6 @@
 -export([profile/1, profile/2, set_profile/2]).
 -export([type/1, type/2, set_type/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

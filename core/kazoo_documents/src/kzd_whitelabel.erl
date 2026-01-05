@@ -29,11 +29,12 @@
 -export([twoway_trunks_price/1, twoway_trunks_price/2, set_twoway_trunks_price/2]).
 
 -export([fetch_port_authority/2]).
--export([fetch/1
-        ,type/0
-        ,id/0
-        ,schema/0
-        ]).
+-export([
+    fetch/1,
+    type/0,
+    id/0,
+    schema/0
+]).
 
 -include("kz_documents.hrl").
 
@@ -46,11 +47,13 @@
 
 -spec new() -> doc().
 new() ->
-    kz_json:exec([fun(J) -> kz_doc:set_id(J, ?ID) end
-                 ,fun(J) -> kz_doc:set_type(J, ?PVT_TYPE) end
-                 ]
-                ,kz_json_schema:default_object(?SCHEMA)
-                ).
+    kz_json:exec(
+        [
+            fun(J) -> kz_doc:set_id(J, ?ID) end,
+            fun(J) -> kz_doc:set_type(J, ?PVT_TYPE) end
+        ],
+        kz_json_schema:default_object(?SCHEMA)
+    ).
 
 -spec type() -> kz_term:ne_binary().
 type() -> ?PVT_TYPE.
@@ -217,10 +220,10 @@ port_authority(Doc, Default) ->
     %% FYI: teletype port request admin template was using port authority
     %% as 'to' Email address but the UI was setting that as account id!
     case kz_json:get_ne_binary_value([<<"port">>, <<"authority">>], Doc) of
-        ?MATCH_ACCOUNT_RAW(_)=Id -> Id;
-        ?MATCH_ACCOUNT_UNENCODED(_)=Db -> kz_util:format_account_id(Db);
-        ?MATCH_ACCOUNT_ENCODED(_)=Db -> kz_util:format_account_id(Db);
-        ?MATCH_ACCOUNT_encoded(_)=Db -> kz_util:format_account_id(Db);
+        ?MATCH_ACCOUNT_RAW(_) = Id -> Id;
+        ?MATCH_ACCOUNT_UNENCODED(_) = Db -> kz_util:format_account_id(Db);
+        ?MATCH_ACCOUNT_ENCODED(_) = Db -> kz_util:format_account_id(Db);
+        ?MATCH_ACCOUNT_encoded(_) = Db -> kz_util:format_account_id(Db);
         _ -> Default
     end.
 
@@ -325,8 +328,8 @@ set_twoway_trunks_price(Doc, TwowayTrunksPrice) ->
     kz_json:set_value([<<"twoway_trunks_price">>], TwowayTrunksPrice, Doc).
 
 -spec fetch(kz_term:api_binary()) ->
-          {'ok', kz_json:object()} |
-          {'error', any()}.
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 fetch('undefined') ->
     {'error', 'account_id_undefined'};
 fetch(Account) ->

@@ -27,7 +27,6 @@
 -export([timeout/1, timeout/2, set_timeout/2]).
 -export([whitelist/1, whitelist/2, set_whitelist/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

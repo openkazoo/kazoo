@@ -6,20 +6,21 @@
 %%%-----------------------------------------------------------------------------
 -module(teletype_template_skel).
 
--export([init/0
-        ,handle_req/1
-        ]).
+-export([
+    init/0,
+    handle_req/1
+]).
 
 -include("teletype.hrl").
 
 -define(TEMPLATE_ID, <<"skel">>).
 
--define(TEMPLATE_MACROS
-       ,kz_json:from_list(
-          ?USER_MACROS
-          ++ ?COMMON_TEMPLATE_MACROS
-         )
-       ).
+-define(TEMPLATE_MACROS,
+    kz_json:from_list(
+        ?USER_MACROS ++
+            ?COMMON_TEMPLATE_MACROS
+    )
+).
 
 -define(TEMPLATE_SUBJECT, <<"Skeleton Template">>).
 -define(TEMPLATE_CATEGORY, <<"skel">>).
@@ -34,16 +35,17 @@
 -spec init() -> 'ok'.
 init() ->
     kz_util:put_callid(?MODULE),
-    teletype_templates:init(?TEMPLATE_ID, [{'macros', ?TEMPLATE_MACROS}
-                                          ,{'subject', ?TEMPLATE_SUBJECT}
-                                          ,{'category', ?TEMPLATE_CATEGORY}
-                                          ,{'friendly_name', ?TEMPLATE_NAME}
-                                          ,{'to', ?TEMPLATE_TO}
-                                          ,{'from', ?TEMPLATE_FROM}
-                                          ,{'cc', ?TEMPLATE_CC}
-                                          ,{'bcc', ?TEMPLATE_BCC}
-                                          ,{'reply_to', ?TEMPLATE_REPLY_TO}
-                                          ]),
+    teletype_templates:init(?TEMPLATE_ID, [
+        {'macros', ?TEMPLATE_MACROS},
+        {'subject', ?TEMPLATE_SUBJECT},
+        {'category', ?TEMPLATE_CATEGORY},
+        {'friendly_name', ?TEMPLATE_NAME},
+        {'to', ?TEMPLATE_TO},
+        {'from', ?TEMPLATE_FROM},
+        {'cc', ?TEMPLATE_CC},
+        {'bcc', ?TEMPLATE_BCC},
+        {'reply_to', ?TEMPLATE_REPLY_TO}
+    ]),
     teletype_bindings:bind(<<"skel">>, ?MODULE, 'handle_req').
 
 -spec handle_req(kz_json:object()) -> template_response().
@@ -68,18 +70,22 @@ handle_req(JObj, 'true') ->
 
 -spec process_req(kz_json:object()) -> template_response().
 process_req(DataJObj) ->
-    Macros = [{<<"system">>, teletype_util:system_params()}
-             ,{<<"account">>, teletype_util:account_params(DataJObj)}
-              | build_macro_data(DataJObj)
-             ],
+    Macros = [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)}
+        | build_macro_data(DataJObj)
+    ],
 
     RenderedTemplates = teletype_templates:render(?TEMPLATE_ID, Macros, DataJObj),
 
-    {'ok', TemplateMetaJObj} = teletype_templates:fetch_notification(?TEMPLATE_ID, kapi_notifications:account_id(DataJObj)),
+    {'ok', TemplateMetaJObj} = teletype_templates:fetch_notification(
+        ?TEMPLATE_ID, kapi_notifications:account_id(DataJObj)
+    ),
 
-    Subject = teletype_util:render_subject(kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj])
-                                          ,Macros
-                                          ),
+    Subject = teletype_util:render_subject(
+        kz_json:find(<<"subject">>, [DataJObj, TemplateMetaJObj]),
+        Macros
+    ),
 
     Emails = teletype_util:find_addresses(DataJObj, TemplateMetaJObj, ?TEMPLATE_ID),
 
@@ -90,21 +96,24 @@ process_req(DataJObj) ->
 
 -spec build_macro_data(kz_json:object()) -> kz_term:proplist().
 build_macro_data(DataJObj) ->
-    kz_json:foldl(fun(MacroKey, _V, Acc) ->
-                          maybe_add_macro_key(MacroKey, Acc, DataJObj)
-                  end
-                 ,[]
-                 ,?TEMPLATE_MACROS
-                 ).
+    kz_json:foldl(
+        fun(MacroKey, _V, Acc) ->
+            maybe_add_macro_key(MacroKey, Acc, DataJObj)
+        end,
+        [],
+        ?TEMPLATE_MACROS
+    ).
 
--spec maybe_add_macro_key(kz_json:path(), kz_term:proplist(), kz_json:object()) -> kz_term:proplist().
+-spec maybe_add_macro_key(kz_json:path(), kz_term:proplist(), kz_json:object()) ->
+    kz_term:proplist().
 maybe_add_macro_key(<<"user.", UserKey/binary>>, Acc, DataJObj) ->
     maybe_add_user_data(UserKey, Acc, DataJObj);
 maybe_add_macro_key(_Key, Acc, _DataJObj) ->
     lager:debug("unprocessed macro key ~s: ~p", [_Key, _DataJObj]),
     Acc.
 
--spec maybe_add_user_data(kz_json:path(), kz_term:proplist(), kz_json:object()) -> kz_term:proplist().
+-spec maybe_add_user_data(kz_json:path(), kz_term:proplist(), kz_json:object()) ->
+    kz_term:proplist().
 maybe_add_user_data(Key, Acc, DataJObj) ->
     User = get_user(DataJObj),
 
@@ -114,7 +123,8 @@ maybe_add_user_data(Key, Acc, DataJObj) ->
         'undefined' ->
             lager:debug("unprocessed user macro key ~s: ~p", [Key, User]),
             Acc;
-        V -> props:set_value(<<"user">>, [{Key, V} | UserMacros], Acc)
+        V ->
+            props:set_value(<<"user">>, [{Key, V} | UserMacros], Acc)
     end.
 
 -spec get_user(kz_json:object()) -> kz_json:object().
@@ -124,7 +134,8 @@ get_user(DataJObj) ->
     UserId = kz_json:get_value(<<"user_id">>, DataJObj),
 
     case kz_datamgr:open_cache_doc(AccountDb, UserId) of
-        {'ok', UserJObj} -> UserJObj;
+        {'ok', UserJObj} ->
+            UserJObj;
         {'error', _E} ->
             Msg = io_lib:format("failed to find user ~s in ~s: ~p", [UserId, AccountId, _E]),
             lager:debug(Msg),

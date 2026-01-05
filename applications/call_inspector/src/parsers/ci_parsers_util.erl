@@ -12,11 +12,12 @@
 -export([open_file_for_read/1]).
 -export([parse_interval/0]).
 -export([make_name/1]).
--export([call_id/1
-        ,c_seq/1
-        ,from/1
-        ,to/1
-        ]).
+-export([
+    call_id/1,
+    c_seq/1,
+    from/1,
+    to/1
+]).
 
 -export_type([parser_args/0]).
 
@@ -32,46 +33,57 @@ timestamp() ->
         kz_time:now_s().
 
 -spec timestamp(kz_term:ne_binary() | kz_time:now()) -> kz_term:api_float().
-timestamp(<<YYYY:4/binary, "-", MM:2/binary, "-", DD:2/binary, "T"
-           ,HH:2/binary, ":", MMM:2/binary, ":", SS:2/binary, "."
-           ,Micro:6/binary, "+", _H:2/binary, ":", _M:2/binary, " ", _/binary
-          >>) ->
+timestamp(
+    <<YYYY:4/binary, "-", MM:2/binary, "-", DD:2/binary, "T", HH:2/binary, ":", MMM:2/binary, ":",
+        SS:2/binary, ".", Micro:6/binary, "+", _H:2/binary, ":", _M:2/binary, " ", _/binary>>
+) ->
     kz_term:to_integer(Micro) / ?MICROSECONDS_IN_SECOND +
         calendar:datetime_to_gregorian_seconds(
-          {{kz_term:to_integer(YYYY), kz_term:to_integer(MM), kz_term:to_integer(DD)}
-          ,{kz_term:to_integer(HH), kz_term:to_integer(MMM), kz_term:to_integer(SS)}
-          }
-         );
-timestamp({_,_,_} = TS) ->
+            {{kz_term:to_integer(YYYY), kz_term:to_integer(MM), kz_term:to_integer(DD)}, {
+                kz_term:to_integer(HH), kz_term:to_integer(MMM), kz_term:to_integer(SS)
+            }}
+        );
+timestamp({_, _, _} = TS) ->
     kz_time:now_s(TS);
-timestamp(_) -> 'undefined'.
+timestamp(_) ->
+    'undefined'.
 
 -spec open_file_for_read(iodata()) -> {'ok', file:io_device()} | {'error', any()}.
 open_file_for_read(Filename) ->
-    Options = ['read'              %% Read whole file
-              ,'binary'            %% Return binaries instead of lists
-              ,'raw', 'read_ahead' %% Faster access to file
-              ],
+    %% Read whole file
+    Options = [
+        'read',
+        %% Return binaries instead of lists
+        'binary',
+        %% Faster access to file
+        'raw',
+        'read_ahead'
+    ],
     case file:open(Filename, Options) of
-        {'ok', _}=OK -> OK;
-        {'error', _FileOpenError}=Error ->
-            lager:debug("parser cannot open '~p': ~p", [Filename,_FileOpenError]),
+        {'ok', _} = OK ->
+            OK;
+        {'error', _FileOpenError} = Error ->
+            lager:debug("parser cannot open '~p': ~p", [Filename, _FileOpenError]),
             {'error', Error}
     end.
 
 -spec parse_interval() -> pos_integer().
 parse_interval() ->
-    2 * ?MILLISECONDS_IN_SECOND.  %% Milliseconds
+    %% Milliseconds
+    2 * ?MILLISECONDS_IN_SECOND.
 
--type parser_args() :: {'parser_args', kz_term:ne_binary(), any()} |
-                       {'parser_args', file:filename_all(), kz_term:ne_binary(), any()}.
+-type parser_args() ::
+    {'parser_args', kz_term:ne_binary(), any()}
+    | {'parser_args', file:filename_all(), kz_term:ne_binary(), any()}.
 
 -spec make_name(kz_term:ne_binary() | parser_args()) -> atom().
-make_name(Bin)
-  when is_binary(Bin) ->
+make_name(Bin) when
+    is_binary(Bin)
+->
     binary_to_atom(Bin, 'utf8');
-make_name({'parser_args', ListenIP, Port})
-  when is_integer(Port) ->
+make_name({'parser_args', ListenIP, Port}) when
+    is_integer(Port)
+->
     Name = <<(kz_term:to_binary(ListenIP))/binary, ":", (kz_term:to_binary(Port))/binary>>,
     make_name(Name);
 make_name({'parser_args', Filename, _IP, _Port}) ->
@@ -101,10 +113,13 @@ from(Data) ->
 -spec sip_field(kz_term:ne_binaries(), kz_term:ne_binaries()) -> kz_term:api_binary().
 sip_field(_Fields, []) ->
     'undefined';
-sip_field(Fields, [Data|Rest]) ->
-    case [Val || Field <- Fields,
-                 (Val = try_all(Data, Field)) =/= 'false'
-         ]
+sip_field(Fields, [Data | Rest]) ->
+    case
+        [
+            Val
+         || Field <- Fields,
+            (Val = try_all(Data, Field)) =/= 'false'
+        ]
     of
         [] ->
             sip_field(Fields, Rest);

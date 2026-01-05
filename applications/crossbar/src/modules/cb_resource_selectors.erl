@@ -5,14 +5,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_resource_selectors).
 
--export([init/0
-        ,authorize/1
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/4
-        ,resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/4
-        ,validate/1, validate/2, validate/3, validate/5
-        ,post/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    authorize/1,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2, allowed_methods/4,
+    resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/4,
+    validate/1, validate/2, validate/3, validate/5,
+    post/2,
+    delete/2
+]).
 
 -export([normalize_view_results/2]).
 
@@ -21,7 +22,9 @@
 -define(SRS_LIST, <<"resource_selectors/resource_listing">>).
 -define(SRS_SEARCH, <<"resource_selectors/crossbar_search">>).
 -define(MOD_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".resource_selectors">>).
--define(SUPPRESS_SRS_NOTICE, kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"suppress_selectors_change_notice">>, 'false')).
+-define(SUPPRESS_SRS_NOTICE,
+    kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"suppress_selectors_change_notice">>, 'false')
+).
 -define(NAME, <<"name">>).
 -define(RESOURCE, <<"resource">>).
 -define(RULES, <<"rules">>).
@@ -40,24 +43,26 @@
 %%------------------------------------------------------------------------------
 -spec init() -> ok.
 init() ->
-    _ = [crossbar_bindings:bind(Binding, ?MODULE, F)
-         || {Binding, F} <- [{<<"*.allowed_methods.resource_selectors">>, 'allowed_methods'}
-                            ,{<<"*.resource_exists.resource_selectors">>, 'resource_exists'}
-                            ,{<<"*.validate.resource_selectors">>, 'validate'}
-                            ,{<<"*.execute.post.resource_selectors">>, 'post'}
-                            ,{<<"*.execute.delete.resource_selectors">>, 'delete'}
-                            ,{<<"*.authorize">>, 'authorize'}
-                            ]
-        ],
+    _ = [
+        crossbar_bindings:bind(Binding, ?MODULE, F)
+     || {Binding, F} <- [
+            {<<"*.allowed_methods.resource_selectors">>, 'allowed_methods'},
+            {<<"*.resource_exists.resource_selectors">>, 'resource_exists'},
+            {<<"*.validate.resource_selectors">>, 'validate'},
+            {<<"*.execute.post.resource_selectors">>, 'post'},
+            {<<"*.execute.delete.resource_selectors">>, 'delete'},
+            {<<"*.authorize">>, 'authorize'}
+        ]
+    ],
     ok.
 
 -spec authorize(cb_context:context()) ->
-          boolean() | {'stop', cb_context:context()}.
+    boolean() | {'stop', cb_context:context()}.
 authorize(Context) ->
     authorize(Context, cb_context:req_nouns(Context)).
 
 -spec authorize(cb_context:context(), req_nouns()) ->
-          boolean() | {'stop', cb_context:context()}.
+    boolean() | {'stop', cb_context:context()}.
 authorize(Context, [{<<"resource_selectors">>, _} | _]) ->
     case cb_context:account_id(Context) of
         'undefined' -> maybe_authorize_admin(Context);
@@ -67,14 +72,15 @@ authorize(_Context, _Nouns) ->
     'false'.
 
 -spec maybe_authorize_admin(cb_context:context()) ->
-          'true' |
-          {'stop', cb_context:context()}.
+    'true'
+    | {'stop', cb_context:context()}.
 maybe_authorize_admin(Context) ->
     case cb_context:is_superduper_admin(Context) of
         'true' ->
             lager:debug("authz the request for global resources"),
             'true';
-        'false' -> {'stop', Context}
+        'false' ->
+            {'stop', Context}
     end.
 
 %%------------------------------------------------------------------------------
@@ -158,15 +164,36 @@ validate(Context, UUID) ->
 
 -spec validate(cb_context:context(), path_token(), path_token()) -> cb_context:context().
 validate(Context, ?NAME, SelectorName) ->
-    summary(set_selectors_db(Context), [SelectorName], <<"resource_selectors/name_resource_listing">>, 'true');
+    summary(
+        set_selectors_db(Context),
+        [SelectorName],
+        <<"resource_selectors/name_resource_listing">>,
+        'true'
+    );
 validate(Context, ?RESOURCE, ResourceId) ->
-    summary(set_selectors_db(Context), [ResourceId], <<"resource_selectors/resource_name_listing">>, 'true').
+    summary(
+        set_selectors_db(Context),
+        [ResourceId],
+        <<"resource_selectors/resource_name_listing">>,
+        'true'
+    ).
 
--spec validate(cb_context:context(), path_token(), path_token(),  path_token(), path_token()) -> cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 validate(Context, ?RESOURCE, ResourceId, ?NAME, SelectorName) ->
-    summary(set_selectors_db(Context), [ResourceId, SelectorName], <<"resource_selectors/resource_name_id_listing">>, 'false');
+    summary(
+        set_selectors_db(Context),
+        [ResourceId, SelectorName],
+        <<"resource_selectors/resource_name_id_listing">>,
+        'false'
+    );
 validate(Context, ?NAME, SelectorName, ?RESOURCE, ResourceId) ->
-    summary(set_selectors_db(Context), [ResourceId, SelectorName], <<"resource_selectors/resource_name_id_listing">>, 'false').
+    summary(
+        set_selectors_db(Context),
+        [ResourceId, SelectorName],
+        <<"resource_selectors/resource_name_id_listing">>,
+        'false'
+    ).
 
 -spec validate_rules(cb_context:context(), http_method()) -> cb_context:context().
 validate_rules(Context, ?HTTP_GET) ->
@@ -217,7 +244,8 @@ set_account_db(Context) ->
         'true' ->
             {'ok', MasterAccountDb} = kapps_util:get_master_account_db(),
             cb_context:set_account_db(Context, MasterAccountDb);
-        'false' -> Context
+        'false' ->
+            Context
     end.
 
 -spec delete(cb_context:context(), path_token()) -> cb_context:context().
@@ -237,19 +265,22 @@ delete(Context, _UUID) ->
 load_rules(Context) ->
     crossbar_doc:load(?RULES_PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?RULES_PVT_TYPE)).
 
--spec summary(cb_context:context(), kz_term:api_binaries(), kz_term:api_binary(), boolean()) -> cb_context:context().
+-spec summary(cb_context:context(), kz_term:api_binaries(), kz_term:api_binary(), boolean()) ->
+    cb_context:context().
 summary(Context, Prefix, ViewName, Reduce) ->
     case kz_term:is_true(Reduce) of
         'true' ->
-            Options = [{'startkey', build_start_key(Context, Prefix)}
-                      ,{'endkey', build_end_key(Context, Prefix)}
-                      ,'group'
-                      ],
+            Options = [
+                {'startkey', build_start_key(Context, Prefix)},
+                {'endkey', build_end_key(Context, Prefix)},
+                'group'
+            ],
             Fun = fun normalize_view_results/2;
         'false' ->
-            Options = [{'startkey', build_start_key(Context, Prefix)}
-                      ,{'endkey', build_end_key(Context, Prefix)}
-                      ],
+            Options = [
+                {'startkey', build_start_key(Context, Prefix)},
+                {'endkey', build_end_key(Context, Prefix)}
+            ],
             Fun = fun normalize_resource_selector_result/2
     end,
     Context1 = crossbar_doc:load_view(ViewName, Options, Context, Fun),
@@ -276,19 +307,20 @@ build_key(PrefixKeys, Suffix) ->
 
 -spec fix_envelope_start_keys(kz_json:object(), kz_term:api_binaries()) -> kz_json:object().
 fix_envelope_start_keys(JObj, Prefix) ->
-    lists:foldl(fun(K,J) ->
-                        case {kz_json:get_value(K, J), Prefix} of
-                            {'undefined', _} -> J;
-                            {[], _} -> kz_json:delete_key(K, J);
-                            {_, []} -> J;
-                            {P, P} -> kz_json:delete_key(K, J);
-                            {[P, Value], [P]} -> kz_json:set_value(K, Value, J);
-                            {[P1, P2, Value], [P1, P2]} -> kz_json:set_value(K, Value, J)
-                        end
-                end
-               ,JObj
-               ,[<<"start_key">>, <<"next_start_key">>]
-               ).
+    lists:foldl(
+        fun(K, J) ->
+            case {kz_json:get_value(K, J), Prefix} of
+                {'undefined', _} -> J;
+                {[], _} -> kz_json:delete_key(K, J);
+                {_, []} -> J;
+                {P, P} -> kz_json:delete_key(K, J);
+                {[P, Value], [P]} -> kz_json:set_value(K, Value, J);
+                {[P1, P2, Value], [P1, P2]} -> kz_json:set_value(K, Value, J)
+            end
+        end,
+        JObj,
+        [<<"start_key">>, <<"next_start_key">>]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Normalizes the results of a view.
@@ -303,23 +335,29 @@ normalize_view_results(JObj, Acc) ->
 -spec normalize_resource_selector_result(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_resource_selector_result(JObj, Acc) ->
     Props = props:filter_undefined(
-              [{<<"id">>, kz_json:get_value(<<"id">>, JObj)}
-              ,{<<"name">>, kz_json:get_value([<<"value">>, <<"name">>], JObj)}
-              ,{<<"resource">>, kz_json:get_value([<<"value">>, <<"resource">>], JObj)}
-              ,{<<"selector">>, kz_json:get_value([<<"value">>, <<"selector">>], JObj)}
-              ,{<<"value">>, kz_json:get_value([<<"value">>, <<"value">>], JObj)}
-              ,{<<"start_time">>, kz_json:get_value([<<"value">>, <<"stop_time">>], JObj)}
-              ,{<<"stop_time">>, kz_json:get_value([<<"value">>, <<"stop_time">>], JObj)}
-              ]),
+        [
+            {<<"id">>, kz_json:get_value(<<"id">>, JObj)},
+            {<<"name">>, kz_json:get_value([<<"value">>, <<"name">>], JObj)},
+            {<<"resource">>, kz_json:get_value([<<"value">>, <<"resource">>], JObj)},
+            {<<"selector">>, kz_json:get_value([<<"value">>, <<"selector">>], JObj)},
+            {<<"value">>, kz_json:get_value([<<"value">>, <<"value">>], JObj)},
+            {<<"start_time">>, kz_json:get_value([<<"value">>, <<"stop_time">>], JObj)},
+            {<<"stop_time">>, kz_json:get_value([<<"value">>, <<"stop_time">>], JObj)}
+        ]
+    ),
     [kz_json:from_list(Props) | Acc].
 
 -spec on_successful_rules_validation(cb_context:context()) -> cb_context:context().
 on_successful_rules_validation(Context) ->
-    maybe_handle_load_failure(crossbar_doc:load_merge(?RULES_PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?RULES_PVT_TYPE))).
+    maybe_handle_load_failure(
+        crossbar_doc:load_merge(?RULES_PVT_TYPE, Context, ?TYPE_CHECK_OPTION(?RULES_PVT_TYPE))
+    ).
 
 -spec on_successful_doc_validation(cb_context:context(), path_token()) -> cb_context:context().
 on_successful_doc_validation(Context, UUID) ->
-    maybe_handle_load_failure(crossbar_doc:load_merge(UUID, Context, ?TYPE_CHECK_OPTION(?DOC_PVT_TYPE))).
+    maybe_handle_load_failure(
+        crossbar_doc:load_merge(UUID, Context, ?TYPE_CHECK_OPTION(?DOC_PVT_TYPE))
+    ).
 
 -spec is_global_request(cb_context:context()) -> boolean().
 is_global_request(Context) ->
@@ -333,17 +371,23 @@ is_global_request(Context) ->
     end.
 
 -spec maybe_handle_load_failure(cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 maybe_handle_load_failure(Context) ->
     maybe_handle_load_failure(Context, cb_context:resp_error_code(Context)).
 
 -spec maybe_handle_load_failure(cb_context:context(), pos_integer()) ->
-          cb_context:context().
+    cb_context:context().
 maybe_handle_load_failure(Context, 404) ->
-    JObj = kz_doc:set_type(kz_doc:set_id(cb_context:req_data(Context),?RULES_PVT_TYPE), ?RULES_PVT_TYPE),
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, 'success'}
-                       ,{fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)}
-                       ,{fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
-                       ]);
-maybe_handle_load_failure(Context, _RespCode) -> Context.
+    JObj = kz_doc:set_type(
+        kz_doc:set_id(cb_context:req_data(Context), ?RULES_PVT_TYPE), ?RULES_PVT_TYPE
+    ),
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, 'success'},
+            {fun cb_context:set_resp_data/2, kz_doc:public_fields(JObj)},
+            {fun cb_context:set_doc/2, crossbar_doc:update_pvt_parameters(JObj, Context)}
+        ]
+    );
+maybe_handle_load_failure(Context, _RespCode) ->
+    Context.

@@ -5,110 +5,137 @@
 %%%-----------------------------------------------------------------------------
 -module(ecallmgr_maintenance).
 
--export([add_fs_node/1
-        ,add_fs_node/2
-        ]).
--export([remove_fs_node/1
-        ,remove_fs_node/2
-        ]).
+-export([
+    add_fs_node/1,
+    add_fs_node/2
+]).
+-export([
+    remove_fs_node/1,
+    remove_fs_node/2
+]).
 -export([list_fs_nodes/0]).
 -export([get_fs_nodes/0]).
 
--export([carrier_acls/0
-        ,carrier_acls/1
-        ,test_carrier_ip/1, test_carrier_ip/2
-        ]).
--export([allow_carrier/1
-        ,allow_carrier/2
-        ,allow_carrier/3
-        ]).
--export([deny_carrier/1
-        ,deny_carrier/2
-        ,deny_carrier/3
-        ]).
+-export([
+    carrier_acls/0,
+    carrier_acls/1,
+    test_carrier_ip/1, test_carrier_ip/2
+]).
+-export([
+    allow_carrier/1,
+    allow_carrier/2,
+    allow_carrier/3
+]).
+-export([
+    deny_carrier/1,
+    deny_carrier/2,
+    deny_carrier/3
+]).
 
--export([sbc_acls/0
-        ,sbc_acls/1
-        ,test_sbc_ip/1, test_sbc_ip/2
-        ]).
--export([allow_sbc/1
-        ,allow_sbc/2
-        ,allow_sbc/3
-        ]).
--export([deny_sbc/1
-        ,deny_sbc/2
-        ,deny_sbc/3
-        ]).
+-export([
+    sbc_acls/0,
+    sbc_acls/1,
+    test_sbc_ip/1, test_sbc_ip/2
+]).
+-export([
+    allow_sbc/1,
+    allow_sbc/2,
+    allow_sbc/3
+]).
+-export([
+    deny_sbc/1,
+    deny_sbc/2,
+    deny_sbc/3
+]).
 
--export([remove_acl/1
-        ,remove_acl/2
-        ]).
--export([acl_summary/0
-        ,acl_summary/1
-        ]).
+-export([
+    remove_acl/1,
+    remove_acl/2
+]).
+-export([
+    acl_summary/0,
+    acl_summary/1
+]).
 -export([reload_acls/0]).
 -export([flush_acls/0]).
 
 -export([node_summary/0]).
--export([node_details/0
-        ,node_details/1
-        ]).
--export([channel_summary/0
-        ,channel_summary/1
-        ]).
--export([channel_details/0
-        ,channel_details/1
-        ]).
--export([sync_channels/0
-        ,sync_channels/1
-        ]).
--export([conference_summary/0
-        ,conference_summary/1
-        ]).
--export([conference_details/0
-        ,conference_details/1
-        ]).
--export([sync_conferences/0
-        ,sync_conferences/1
-        ]).
+-export([
+    node_details/0,
+    node_details/1
+]).
+-export([
+    channel_summary/0,
+    channel_summary/1
+]).
+-export([
+    channel_details/0,
+    channel_details/1
+]).
+-export([
+    sync_channels/0,
+    sync_channels/1
+]).
+-export([
+    conference_summary/0,
+    conference_summary/1
+]).
+-export([
+    conference_details/0,
+    conference_details/1
+]).
+-export([
+    sync_conferences/0,
+    sync_conferences/1
+]).
 -export([flush_node_channels/1]).
 -export([flush_node_conferences/1]).
--export([flush_registrar/0
-        ,flush_registrar/1
-        ,flush_registrar/2
-        ]).
--export([registrar_summary/0
-        ,registrar_summary/1
-        ]).
--export([registrar_details/0
-        ,registrar_details/1
-        ,registrar_details/2
-        ]).
+-export([
+    flush_registrar/0,
+    flush_registrar/1,
+    flush_registrar/2
+]).
+-export([
+    registrar_summary/0,
+    registrar_summary/1
+]).
+-export([
+    registrar_details/0,
+    registrar_details/1,
+    registrar_details/2
+]).
 -export([registrar_sync/0]).
--export([flush_authn/0
-        ,flush_util/0
-        ,enable_authz/0, enable_local_resource_authz/0
-        ,disable_authz/0, disable_local_resource_authz/0
-        ]).
+-export([
+    flush_authn/0,
+    flush_util/0,
+    enable_authz/0,
+    enable_local_resource_authz/0,
+    disable_authz/0,
+    disable_local_resource_authz/0
+]).
 
 -export([show_channels/0]).
 -export([show_calls/0]).
 -export([check_sync/2]).
 
--export([limit_channel_uptime/1, limit_channel_uptime/2
-        ,hangup_long_running_channels/0, hangup_long_running_channels/1
-        ]).
+-export([
+    limit_channel_uptime/1, limit_channel_uptime/2,
+    hangup_long_running_channels/0, hangup_long_running_channels/1
+]).
 
 -include("ecallmgr.hrl").
 
--type config_fun() :: fun((kapps_config:config_category(), kapps_config:config_key(), any()) ->
-                                 {'ok', kz_json:object()} |
-                                 {'error', kz_datamgr:data_error()}
-                                     ) |
-                      fun((kapps_config:config_category(), kapps_config:config_key(), any(), node()) ->
-                                 {'ok', kz_json:object()} |
-                                 {'error', kz_datamgr:data_error()}
-                                     ).
+-type config_fun() ::
+    fun(
+        (kapps_config:config_category(), kapps_config:config_key(), any()) ->
+            {'ok', kz_json:object()}
+            | {'error', kz_datamgr:data_error()}
+    )
+    | fun(
+        (kapps_config:config_category(), kapps_config:config_key(), any(), node()) ->
+            {'ok', kz_json:object()}
+            | {'error', kz_datamgr:data_error()}
+    ).
 
 -type acl_fun() :: fun((kz_term:ne_binary()) -> kz_json:object()).
 
@@ -169,8 +196,9 @@ test_carrier_ip(IP) ->
     test_carrier_ip(IP, Nodes).
 
 -spec test_carrier_ip(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) -> 'ok'.
-test_carrier_ip(_, []) -> 'no_return';
-test_carrier_ip(IP, [Node|Nodes]) ->
+test_carrier_ip(_, []) ->
+    'no_return';
+test_carrier_ip(IP, [Node | Nodes]) ->
     _ = test_ip_against_acl(IP, Node, ?FS_CARRIER_ACL_LIST),
     test_carrier_ip(IP, Nodes);
 test_carrier_ip(IP, Node) ->
@@ -182,7 +210,8 @@ allow_carrier(Name) -> allow_carrier(Name, Name, 'false').
 -spec allow_carrier(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 allow_carrier(Name, IP) -> allow_carrier(Name, IP, 'false').
 
--spec allow_carrier(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) -> 'no_return'.
+-spec allow_carrier(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) ->
+    'no_return'.
 allow_carrier(Name, IP, AsDefault) when not is_boolean(AsDefault) ->
     allow_carrier(Name, IP, kz_term:is_true(AsDefault));
 allow_carrier(Name, IP, 'true') ->
@@ -191,7 +220,7 @@ allow_carrier(Name, IP, 'false') ->
     allow_carrier(Name, IP, get_acls(), fun kapps_config:set_node/4).
 
 -spec allow_carrier(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) ->
-          'no_return'.
+    'no_return'.
 allow_carrier(Name, IP, ACLs, SetterFun) ->
     modify_acls(Name, IP, ACLs, fun carrier_acl/1, SetterFun).
 
@@ -201,7 +230,8 @@ deny_carrier(Name) -> deny_carrier(Name, Name, 'false').
 -spec deny_carrier(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 deny_carrier(Name, IP) -> deny_carrier(Name, IP, 'false').
 
--spec deny_carrier(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) -> 'no_return'.
+-spec deny_carrier(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) ->
+    'no_return'.
 deny_carrier(Name, IP, AsDefault) when not is_boolean(AsDefault) ->
     deny_carrier(Name, IP, kz_term:is_true(AsDefault));
 deny_carrier(Name, IP, 'true') ->
@@ -210,7 +240,7 @@ deny_carrier(Name, IP, 'false') ->
     deny_carrier(Name, IP, get_acls(), fun kapps_config:set_node/4).
 
 -spec deny_carrier(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) ->
-          'no_return'.
+    'no_return'.
 deny_carrier(Name, IP, ACLs, SetterFun) ->
     modify_acls(Name, IP, ACLs, fun(_) -> carrier_acl(IP, <<"deny">>) end, SetterFun).
 
@@ -231,8 +261,9 @@ test_sbc_ip(IP) ->
     test_sbc_ip(IP, Nodes).
 
 -spec test_sbc_ip(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) -> 'ok'.
-test_sbc_ip(_, []) -> 'no_return';
-test_sbc_ip(IP, [Node|Nodes]) ->
+test_sbc_ip(_, []) ->
+    'no_return';
+test_sbc_ip(IP, [Node | Nodes]) ->
     _ = test_ip_against_acl(IP, Node, ?FS_SBC_ACL_LIST),
     test_sbc_ip(IP, Nodes);
 test_sbc_ip(IP, Node) ->
@@ -244,7 +275,8 @@ allow_sbc(Name) -> allow_sbc(Name, Name, 'false').
 -spec allow_sbc(kz_term:ne_binary(), kz_term:ne_binary()) -> 'no_return'.
 allow_sbc(Name, IP) -> allow_sbc(Name, IP, 'false').
 
--spec allow_sbc(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) -> 'no_return'.
+-spec allow_sbc(kz_term:ne_binary(), kz_term:ne_binary(), boolean() | kz_term:text()) ->
+    'no_return'.
 allow_sbc(Name, IP, AsDefault) when not is_boolean(AsDefault) ->
     allow_sbc(Name, IP, kz_term:is_true(AsDefault));
 allow_sbc(Name, IP, 'true') ->
@@ -252,7 +284,8 @@ allow_sbc(Name, IP, 'true') ->
 allow_sbc(Name, IP, 'false') ->
     allow_sbc(Name, IP, get_acls(), fun kapps_config:set_node/4).
 
--spec allow_sbc(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) -> 'no_return'.
+-spec allow_sbc(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) ->
+    'no_return'.
 allow_sbc(Name, IP, ACLs, SetterFun) ->
     modify_acls(Name, IP, ACLs, fun sbc_acl/1, SetterFun).
 
@@ -270,7 +303,8 @@ deny_sbc(Name, IP, 'true') ->
 deny_sbc(Name, IP, 'false') ->
     deny_sbc(Name, IP, get_acls(), fun kapps_config:set_node/4).
 
--spec deny_sbc(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) -> 'no_return'.
+-spec deny_sbc(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), config_fun()) ->
+    'no_return'.
 deny_sbc(Name, IP, ACLs, SetterFun) ->
     modify_acls(Name, IP, ACLs, fun(_) -> sbc_acl(IP, <<"deny">>) end, SetterFun).
 
@@ -288,24 +322,27 @@ acl_summary('false') ->
 
 -spec remove_acl(kz_term:text()) -> 'no_return'.
 remove_acl(Name) ->
-    remove_acl(kz_term:to_binary(Name)
-              ,get_acls()
-              ,fun kapps_config:set/3
-              ).
+    remove_acl(
+        kz_term:to_binary(Name),
+        get_acls(),
+        fun kapps_config:set/3
+    ).
 
 -spec remove_acl(kz_term:text(), kz_term:text() | boolean()) -> 'no_return'.
 remove_acl(Name, AsDefault) when not is_boolean(AsDefault) ->
     remove_acl(Name, kz_term:is_true(AsDefault));
 remove_acl(Name, 'true') ->
-    remove_acl(kz_term:to_binary(Name)
-              ,get_acls(<<"default">>)
-              ,fun kapps_config:set_default/3
-              );
+    remove_acl(
+        kz_term:to_binary(Name),
+        get_acls(<<"default">>),
+        fun kapps_config:set_default/3
+    );
 remove_acl(Name, 'false') ->
-    remove_acl(kz_term:to_binary(Name)
-              ,get_acls()
-              ,fun kapps_config:set_node/4
-              ).
+    remove_acl(
+        kz_term:to_binary(Name),
+        get_acls(),
+        fun kapps_config:set_node/4
+    ).
 
 -spec maybe_reload_acls(kz_term:text(), kz_term:text(), non_neg_integer()) -> 'no_return'.
 maybe_reload_acls(_Name, _Action, 0) ->
@@ -329,7 +366,8 @@ maybe_reload_acls(Name, Action, Tries) ->
 -spec has_acl(kz_term:text(), kz_term:text(), kz_json:object()) -> 'true' | 'false'.
 has_acl(Name, Action, ACLs) ->
     FilteredACLs = filter_acls(ACLs),
-    _ = case kz_json:get_value(Name, FilteredACLs) of
+    _ =
+        case kz_json:get_value(Name, FilteredACLs) of
             'undefined' when Action =:= 'modify' -> 'false';
             'undefined' when Action =:= 'remove' -> 'true';
             _ACL when Action =:= 'modify' -> 'true';
@@ -338,12 +376,13 @@ has_acl(Name, Action, ACLs) ->
 
 -spec reload_acls() -> 'no_return'.
 reload_acls() ->
-    _ = [begin
-             print_and_log("issued reload ACLs to ~s", [Node]),
-             freeswitch:bgapi(Node, 'reloadacl', "")
-         end
-         || Node <- ecallmgr_fs_nodes:connected()
-        ],
+    _ = [
+        begin
+            print_and_log("issued reload ACLs to ~s", [Node]),
+            freeswitch:bgapi(Node, 'reloadacl', "")
+        end
+     || Node <- ecallmgr_fs_nodes:connected()
+    ],
     'no_return'.
 
 -spec test_ip_against_acl(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
@@ -400,16 +439,19 @@ channel_details(UUID) ->
 
 -spec sync_channels() -> 'ok'.
 sync_channels() ->
-    lists:foreach(fun ecallmgr_fs_node:sync_channels/1
-                 ,gproc:lookup_pids({'p', 'l', 'fs_node'})).
+    lists:foreach(
+        fun ecallmgr_fs_node:sync_channels/1,
+        gproc:lookup_pids({'p', 'l', 'fs_node'})
+    ).
 
 -spec sync_channels(kz_term:text()) -> 'ok'.
 sync_channels(Node) ->
     N = kz_term:to_atom(Node, 'true'),
-    _ = [ecallmgr_fs_node:sync_channels(Srv)
-         || Srv <- gproc:lookup_pids({'p', 'l', 'fs_node'}),
-            ecallmgr_fs_node:fs_node(Srv) =:= N
-        ],
+    _ = [
+        ecallmgr_fs_node:sync_channels(Srv)
+     || Srv <- gproc:lookup_pids({'p', 'l', 'fs_node'}),
+        ecallmgr_fs_node:fs_node(Srv) =:= N
+    ],
     'ok'.
 
 -spec conference_summary() -> 'no_return'.
@@ -434,8 +476,10 @@ conference_details(UUID) ->
 
 -spec sync_conferences() -> 'ok'.
 sync_conferences() ->
-    lists:foreach(fun ecallmgr_fs_conferences:sync_node/1
-                 ,ecallmgr_fs_nodes:connected()).
+    lists:foreach(
+        fun ecallmgr_fs_conferences:sync_node/1,
+        ecallmgr_fs_nodes:connected()
+    ).
 
 -spec sync_conferences(kz_term:text()) -> 'ok'.
 sync_conferences(Node) ->
@@ -513,31 +557,37 @@ show_calls() ->
 
 -spec check_sync(kz_term:text(), kz_term:text()) -> 'ok'.
 check_sync(Username, Realm) ->
-    ecallmgr_fs_notify:notify(kz_term:to_binary(Username)
-                             ,kz_term:to_binary(Realm)
-                             ,<<"check-sync">>
-                             ).
+    ecallmgr_fs_notify:notify(
+        kz_term:to_binary(Username),
+        kz_term:to_binary(Realm),
+        <<"check-sync">>
+    ).
 
 -spec add_fs_node(kz_term:text(), kz_term:ne_binaries(), config_fun()) ->
-          'ok' |
-          {'error', any()}.
+    'ok'
+    | {'error', any()}.
 add_fs_node(FSNode, FSNodes, ConfigFun) when not is_binary(FSNode) ->
     add_fs_node(kz_term:to_binary(FSNode), FSNodes, ConfigFun);
 add_fs_node(FSNode, FSNodes, ConfigFun) ->
-    _ = case lists:member(FSNode, FSNodes) of
-            'true' -> 'ok';
+    _ =
+        case lists:member(FSNode, FSNodes) of
+            'true' ->
+                'ok';
             'false' ->
                 io:format("adding ~s to ecallmgr system config~n", [FSNode]),
                 run_config_fun(ConfigFun, <<"fs_nodes">>, [FSNode | FSNodes])
         end,
     ecallmgr_fs_nodes:add(kz_term:to_atom(FSNode, 'true')).
 
--spec remove_fs_node(kz_term:text(), kz_term:ne_binaries(), config_fun()) -> 'ok' | {'error', any()}.
+-spec remove_fs_node(kz_term:text(), kz_term:ne_binaries(), config_fun()) ->
+    'ok' | {'error', any()}.
 remove_fs_node(FSNode, FSNodes, ConfigFun) when not is_binary(FSNode) ->
     remove_fs_node(kz_term:to_binary(FSNode), FSNodes, ConfigFun);
 remove_fs_node(FSNode, FSNodes, ConfigFun) ->
-    _ = case lists:member(FSNode, FSNodes) of
-            'false' -> 'ok';
+    _ =
+        case lists:member(FSNode, FSNodes) of
+            'false' ->
+                'ok';
             'true' ->
                 io:format("removing ~s from ecallmgr system config~n", [FSNode]),
                 run_config_fun(ConfigFun, <<"fs_nodes">>, lists:delete(FSNode, FSNodes))
@@ -547,42 +597,51 @@ remove_fs_node(FSNode, FSNodes, ConfigFun) ->
 -spec get_fs_nodes(kz_term:ne_binary() | atom()) -> kz_term:ne_binaries().
 get_fs_nodes(Node) ->
     case ?FS_NODES(Node) of
-        [_|_]=FSNodes -> FSNodes;
-        [] -> [];
+        [_ | _] = FSNodes ->
+            FSNodes;
+        [] ->
+            [];
         _Other ->
             io:format("fs_nodes in ~s was misconfigured(~p), using []~n", [Node, _Other]),
             []
     end.
 
--spec modify_acls(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), acl_fun(), config_fun()) ->
-          'no_return'.
+-spec modify_acls(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), acl_fun(), config_fun()
+) ->
+    'no_return'.
 modify_acls(Name, IP0, ACLS, ACLFun, ConfigFun) ->
     case kz_network_utils:resolve(IP0) of
         [] ->
-            Identities = [{'cidr', kz_network_utils:is_cidr(IP0)}
-                         ,{'ip', kz_network_utils:is_ip(IP0)}
-                         ],
+            Identities = [
+                {'cidr', kz_network_utils:is_cidr(IP0)},
+                {'ip', kz_network_utils:is_ip(IP0)}
+            ],
             io:format("the supplied address ~s could not be processed.~n", [IP0]),
             [io:format("  is ~s: ~s~n", [Type, Bool]) || {Type, Bool} <- Identities],
             'no_return';
         [IP | _] ->
             ACL = ACLFun(IP),
-            print_and_log("updating ~s ACLs ~s(~s) to ~s traffic"
-                         ,[kz_json:get_value(<<"network-list-name">>, ACL)
-                          ,Name
-                          ,kz_json:get_value(<<"cidr">>, ACL)
-                          ,kz_json:get_value(<<"type">>, ACL)
-                          ]),
-            _ = run_config_fun(ConfigFun
-                              ,<<"acls">>
-                              ,kz_json:set_value(Name, ACL, filter_acls(ACLS))
-                              ),
+            print_and_log(
+                "updating ~s ACLs ~s(~s) to ~s traffic",
+                [
+                    kz_json:get_value(<<"network-list-name">>, ACL),
+                    Name,
+                    kz_json:get_value(<<"cidr">>, ACL),
+                    kz_json:get_value(<<"type">>, ACL)
+                ]
+            ),
+            _ = run_config_fun(
+                ConfigFun,
+                <<"acls">>,
+                kz_json:set_value(Name, ACL, filter_acls(ACLS))
+            ),
             maybe_reload_acls(Name, 'modify', 4)
     end.
 
 -spec run_config_fun(config_fun(), kz_json:key(), kz_json:json_term()) ->
-          {'ok', kz_json:object()} |
-          {'error', kz_datamgr:data_error()}.
+    {'ok', kz_json:object()}
+    | {'error', kz_datamgr:data_error()}.
 run_config_fun(ConfigFun, Key, Value) when is_function(ConfigFun, 3) ->
     ConfigFun(?APP_NAME, Key, Value);
 run_config_fun(ConfigFun, Key, Value) when is_function(ConfigFun, 4) ->
@@ -591,38 +650,55 @@ run_config_fun(ConfigFun, Key, Value) when is_function(ConfigFun, 4) ->
 -spec remove_acl(kz_term:ne_binary(), kz_json:object(), config_fun()) -> 'no_return'.
 remove_acl(Name, ACLs, ConfigFun) ->
     FilteredACLs = filter_acls(ACLs),
-    _ = case kz_json:get_value(Name, FilteredACLs) of
+    _ =
+        case kz_json:get_value(Name, FilteredACLs) of
             'undefined' ->
-                not_system_config_acl(Name
-                                     ,kz_json:get_value([Name, <<"authorizing_type">>], ACLs)
-                                     );
+                not_system_config_acl(
+                    Name,
+                    kz_json:get_value([Name, <<"authorizing_type">>], ACLs)
+                );
             ACL ->
-                io:format("removing ~s ACLs ~s(~s) from ecallmgr system config~n"
-                         ,[kz_json:get_value(<<"network-list-name">>, ACL)
-                          ,Name
-                          ,kz_json:get_value(<<"cidr">>, ACL)
-                          ]),
+                io:format(
+                    "removing ~s ACLs ~s(~s) from ecallmgr system config~n",
+                    [
+                        kz_json:get_value(<<"network-list-name">>, ACL),
+                        Name,
+                        kz_json:get_value(<<"cidr">>, ACL)
+                    ]
+                ),
                 run_config_fun(ConfigFun, <<"acls">>, kz_json:set_value(Name, 'null', FilteredACLs))
         end,
     maybe_reload_acls(Name, 'remove', 4).
 
 -spec list_acls(kz_json:object(), kz_term:api_binary()) -> 'no_return'.
 list_acls(ACLs, Network) ->
-    ThinBar  = "+--------------------------------+--------------------+---------------+-------+------------------+----------------------------------+\n",
-    ThickBar = "+================================+====================+===============+=======+==================+==================================+\n",
+    ThinBar =
+        "+--------------------------------+--------------------+---------------+-------+------------------+----------------------------------+\n",
+    ThickBar =
+        "+================================+====================+===============+=======+==================+==================================+\n",
     io:put_chars(ThinBar),
     FormatString = "| ~-30s | ~-18s | ~-13s | ~-5s | ~-16s | ~-32s |~n",
-    io:format(FormatString, [<<"Name">>, <<"CIDR">>, <<"List">>, <<"Type">>, <<"Authorizing Type">>, <<"ID">>]),
+    io:format(FormatString, [
+        <<"Name">>, <<"CIDR">>, <<"List">>, <<"Type">>, <<"Authorizing Type">>, <<"ID">>
+    ]),
     io:put_chars(ThickBar),
-    Props = kz_json:foldl(fun(Name, ACL, Acc) ->
-                                  [{kz_json:get_value(<<"network-list-name">>, ACL)
-                                   ,kz_json:set_value(<<"name">>, Name, ACL)}
-                                   | Acc
-                                  ]
-                          end, [], ACLs),
-    _ = [maybe_print_acl(Network, FormatString, ACL)
-         || {_, ACL} <- lists:sort(fun list_acls_sort/2, Props)
-        ],
+    Props = kz_json:foldl(
+        fun(Name, ACL, Acc) ->
+            [
+                {
+                    kz_json:get_value(<<"network-list-name">>, ACL),
+                    kz_json:set_value(<<"name">>, Name, ACL)
+                }
+                | Acc
+            ]
+        end,
+        [],
+        ACLs
+    ),
+    _ = [
+        maybe_print_acl(Network, FormatString, ACL)
+     || {_, ACL} <- lists:sort(fun list_acls_sort/2, Props)
+    ],
     io:put_chars(ThinBar),
     'no_return'.
 
@@ -639,15 +715,21 @@ maybe_print_acl(Network, FormatString, ACL) ->
 
 -spec print_acl(string(), kz_json:object()) -> 'ok'.
 print_acl(FormatString, ACL) ->
-    io:format(FormatString, [kz_json:get_value(<<"name">>, ACL)
-                            ,kz_json:get_value(<<"cidr">>, ACL)
-                            ,kz_json:get_value(<<"network-list-name">>, ACL)
-                            ,kz_json:get_value(<<"type">>, ACL)
-                            ,kz_json:get_value(<<"authorizing_type">>, ACL, <<"system_config">>)
-                            ,kz_json:get_first_defined([<<"account_id">>
-                                                       ,<<"authorizing_id">>
-                                                       ], ACL, <<>>)
-                            ]).
+    io:format(FormatString, [
+        kz_json:get_value(<<"name">>, ACL),
+        kz_json:get_value(<<"cidr">>, ACL),
+        kz_json:get_value(<<"network-list-name">>, ACL),
+        kz_json:get_value(<<"type">>, ACL),
+        kz_json:get_value(<<"authorizing_type">>, ACL, <<"system_config">>),
+        kz_json:get_first_defined(
+            [
+                <<"account_id">>,
+                <<"authorizing_id">>
+            ],
+            ACL,
+            <<>>
+        )
+    ]).
 
 -spec get_acls() -> kz_json:object().
 get_acls() -> get_acls(node()).
@@ -669,20 +751,22 @@ carrier_acl(IP) -> carrier_acl(IP, <<"allow">>).
 
 -spec carrier_acl(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
 carrier_acl(IP, Type) ->
-    kz_json:from_list([{<<"type">>, Type}
-                      ,{<<"network-list-name">>, ?FS_CARRIER_ACL_LIST}
-                      ,{<<"cidr">>, kz_network_utils:to_cidr(IP)}
-                      ]).
+    kz_json:from_list([
+        {<<"type">>, Type},
+        {<<"network-list-name">>, ?FS_CARRIER_ACL_LIST},
+        {<<"cidr">>, kz_network_utils:to_cidr(IP)}
+    ]).
 
 -spec sbc_acl(kz_term:ne_binary()) -> kz_json:object().
 sbc_acl(IP) -> sbc_acl(IP, <<"allow">>).
 
 -spec sbc_acl(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:object().
 sbc_acl(IP, Type) ->
-    kz_json:from_list([{<<"type">>, Type}
-                      ,{<<"network-list-name">>, ?FS_SBC_ACL_LIST}
-                      ,{<<"cidr">>, kz_network_utils:to_cidr(IP)}
-                      ]).
+    kz_json:from_list([
+        {<<"type">>, Type},
+        {<<"network-list-name">>, ?FS_SBC_ACL_LIST},
+        {<<"cidr">>, kz_network_utils:to_cidr(IP)}
+    ]).
 
 -spec enable_authz() -> 'ok'.
 enable_authz() ->
@@ -697,12 +781,16 @@ disable_authz() ->
 -spec enable_local_resource_authz() -> 'ok'.
 enable_local_resource_authz() ->
     _ = kapps_config:set_default(?APP_NAME, <<"authz_local_resources">>, 'true'),
-    io:format("turned on authz for local resources; calls to local resources will now require authorization~n").
+    io:format(
+        "turned on authz for local resources; calls to local resources will now require authorization~n"
+    ).
 
 -spec disable_local_resource_authz() -> 'ok'.
 disable_local_resource_authz() ->
     _ = kapps_config:set_default(?APP_NAME, <<"authz_local_resources">>, 'false'),
-    io:format("turned off authz for local resources; calls to local resources will no longer require authorization~n").
+    io:format(
+        "turned off authz for local resources; calls to local resources will no longer require authorization~n"
+    ).
 
 -spec limit_channel_uptime(kz_term:ne_binary()) -> 'ok'.
 limit_channel_uptime(MaxAge) ->
@@ -710,7 +798,9 @@ limit_channel_uptime(MaxAge) ->
 
 -spec limit_channel_uptime(kz_term:ne_binary(), kz_term:ne_binary() | boolean()) -> 'ok'.
 limit_channel_uptime(MaxAge, AsDefault) ->
-    ecallmgr_fs_channels:set_max_channel_uptime(kz_term:to_integer(MaxAge), kz_term:is_true(AsDefault)),
+    ecallmgr_fs_channels:set_max_channel_uptime(
+        kz_term:to_integer(MaxAge), kz_term:is_true(AsDefault)
+    ),
     io:format("updating max channel uptime to ~p (use 0 to disable check)~n", [MaxAge]).
 
 -spec hangup_long_running_channels() -> 'ok'.
@@ -728,9 +818,10 @@ hangup_long_running_channels(MaxAge) ->
 not_system_config_acl(Name, 'undefined') ->
     io:format("no ACL named ~s found~n", [Name]);
 not_system_config_acl(Name, AuthType) ->
-    io:format("~s is not managed by ecallmgr. It is of type ~s; please use the APIs to manage it.~n"
-             ,[Name, AuthType]
-             ).
+    io:format(
+        "~s is not managed by ecallmgr. It is of type ~s; please use the APIs to manage it.~n",
+        [Name, AuthType]
+    ).
 
 -spec print_and_log(string(), [any()]) -> 'ok'.
 print_and_log(FormatStr, Args) ->

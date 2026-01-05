@@ -8,7 +8,7 @@
 
 -define(APP, 'kazoo_tasks').
 -define(APP_NAME, <<"kazoo_tasks">>).
--define(APP_VERSION, <<"4.0.0">> ).
+-define(APP_VERSION, <<"4.0.0">>).
 
 -define(KZ_KAZOO_TASKS_HRL, 'true').
 -endif.

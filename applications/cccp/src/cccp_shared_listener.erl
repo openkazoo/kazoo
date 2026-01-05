@@ -7,29 +7,29 @@
 -module(cccp_shared_listener).
 -behaviour(gen_listener).
 
--export([start_link/0
-        ,handle_camping_req/2
-        ]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    start_link/0,
+    handle_camping_req/2
+]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("cccp.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(BINDINGS, [{'self', []}
-                  ,{'camping', []}
-                  ]).
--define(RESPONDERS, [{{?MODULE, 'handle_camping_req'}
-                     ,[{<<"camping">>, <<"request">>}]
-                     }
-                    ]).
+-define(BINDINGS, [
+    {'self', []},
+    {'camping', []}
+]).
+-define(RESPONDERS, [{{?MODULE, 'handle_camping_req'}, [{<<"camping">>, <<"request">>}]}]).
 -define(QUEUE_NAME, <<?MODULE_STRING>>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -44,12 +44,20 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'bindings', ?BINDINGS}
-                                     ,{'responders', ?RESPONDERS}
-                                     ,{'queue_name', ?QUEUE_NAME}       % optional to include
-                                     ,{'queue_options', ?QUEUE_OPTIONS} % optional to include
-                                     ,{'consume_options', ?CONSUME_OPTIONS} % optional to include
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', ?BINDINGS},
+            {'responders', ?RESPONDERS},
+            % optional to include
+            {'queue_name', ?QUEUE_NAME},
+            % optional to include
+            {'queue_options', ?QUEUE_OPTIONS},
+            % optional to include
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 -spec handle_camping_req(kapi_camping:req(), kz_term:proplist()) -> 'ok'.
 handle_camping_req(JObj, _Props) ->

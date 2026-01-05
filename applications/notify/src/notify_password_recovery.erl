@@ -48,25 +48,36 @@ handle_req(JObj, _Props) ->
 
     {'ok', Account} = notify_util:get_account_doc(JObj),
 
-    To = kz_json:get_value(<<"Email">>, JObj, kapps_config:get_ne_binary_or_ne_binaries(?MOD_CONFIG_CAT, <<"default_to">>)),
+    To = kz_json:get_value(
+        <<"Email">>,
+        JObj,
+        kapps_config:get_ne_binary_or_ne_binaries(?MOD_CONFIG_CAT, <<"default_to">>)
+    ),
 
     lager:debug("creating notice for request of password reset"),
 
     Props = create_template_props(JObj, Account),
 
-    CustomTxtTemplate = kz_json:get_value([<<"notifications">>, <<"password_recovery">>, <<"email_text_template">>], Account),
+    CustomTxtTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"password_recovery">>, <<"email_text_template">>], Account
+    ),
     {'ok', TxtBody} = notify_util:render_template(CustomTxtTemplate, ?DEFAULT_TEXT_TMPL, Props),
 
-    CustomHtmlTemplate = kz_json:get_value([<<"notifications">>, <<"password_recovery">>, <<"email_html_template">>], Account),
+    CustomHtmlTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"password_recovery">>, <<"email_html_template">>], Account
+    ),
     {'ok', HTMLBody} = notify_util:render_template(CustomHtmlTemplate, ?DEFAULT_HTML_TMPL, Props),
 
-    CustomSubjectTemplate = kz_json:get_value([<<"notifications">>, <<"password_recovery">>, <<"email_subject_template">>], Account),
+    CustomSubjectTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"password_recovery">>, <<"email_subject_template">>], Account
+    ),
     {'ok', Subject} = notify_util:render_template(CustomSubjectTemplate, ?DEFAULT_SUBJ_TMPL, Props),
 
-    notify_util:maybe_send_update(build_and_send_email(TxtBody, HTMLBody, Subject, To, Props)
-                                 ,RespQ
-                                 ,MsgId
-                                 ).
+    notify_util:maybe_send_update(
+        build_and_send_email(TxtBody, HTMLBody, Subject, To, Props),
+        RespQ,
+        MsgId
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc create the props used by the template render function
@@ -76,50 +87,66 @@ handle_req(JObj, _Props) ->
 create_template_props(Event, Account) ->
     User = kz_json:delete_key(<<"Request">>, Event),
     Request = kz_json:get_value(<<"Request">>, Event, kz_json:new()),
-    [{<<"user">>, notify_util:json_to_template_props(User)}
-    ,{<<"request">>, notify_util:json_to_template_props(Request)}
-    ,{<<"account">>, notify_util:json_to_template_props(Account)}
-    ,{<<"service">>, notify_util:get_service_props(Request, Account, ?MOD_CONFIG_CAT)}
-    ,{<<"link">>, kz_json:get_first_defined([<<"password_reset_link">>, <<"Password-Reset-Link">>], Request)}
+    [
+        {<<"user">>, notify_util:json_to_template_props(User)},
+        {<<"request">>, notify_util:json_to_template_props(Request)},
+        {<<"account">>, notify_util:json_to_template_props(Account)},
+        {<<"service">>, notify_util:get_service_props(Request, Account, ?MOD_CONFIG_CAT)},
+        {<<"link">>,
+            kz_json:get_first_defined(
+                [<<"password_reset_link">>, <<"Password-Reset-Link">>], Request
+            )}
     ].
 
 %%------------------------------------------------------------------------------
 %% @doc process the AMQP requests
 %% @end
 %%------------------------------------------------------------------------------
--spec build_and_send_email(iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()) -> send_email_return().
-build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To)->
+-spec build_and_send_email(
+    iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()
+) -> send_email_return().
+build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To) ->
     [build_and_send_email(TxtBody, HTMLBody, Subject, T, Props) || T <- To];
 build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
     Service = props:get_value(<<"service">>, Props),
     From = props:get_value(<<"send_from">>, Service),
 
     {ContentTypeParams, CharsetString} = notify_util:get_charset_params(Service),
-    PlainTransferEncoding = kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"text_content_transfer_encoding">>, <<"7BIT">>),
-    HTMLTransferEncoding = kapps_config:get_ne_binary(?MOD_CONFIG_CAT, <<"html_content_transfer_encoding">>, <<"7BIT">>),
+    PlainTransferEncoding = kapps_config:get_ne_binary(
+        ?MOD_CONFIG_CAT, <<"text_content_transfer_encoding">>, <<"7BIT">>
+    ),
+    HTMLTransferEncoding = kapps_config:get_ne_binary(
+        ?MOD_CONFIG_CAT, <<"html_content_transfer_encoding">>, <<"7BIT">>
+    ),
 
     %% Content Type, Subtype, Headers, Parameters, Body
-    Email = {<<"multipart">>, <<"mixed">>
-            ,[{<<"From">>, From}
-             ,{<<"To">>, To}
-             ,{<<"Subject">>, Subject}
-             ]
-            ,ContentTypeParams
-            ,[{<<"multipart">>, <<"alternative">>, [], []
-              ,[{<<"text">>, <<"plain">>
-                ,props:filter_undefined(
-                   [{<<"Content-Type">>, iolist_to_binary([<<"text/plain">>, CharsetString])}
-                   ,{<<"Content-Transfer-Encoding">>, PlainTransferEncoding}
-                   ])
-                ,[], iolist_to_binary(TxtBody)}
-               ,{<<"text">>, <<"html">>
-                ,props:filter_undefined(
-                   [{<<"Content-Type">>, iolist_to_binary([<<"text/html">>, CharsetString])}
-                   ,{<<"Content-Transfer-Encoding">>, HTMLTransferEncoding}
-                   ])
-                ,[], iolist_to_binary(HTMLBody)}
-               ]
-              }
-             ]
-            },
+    Email =
+        {<<"multipart">>, <<"mixed">>,
+            [
+                {<<"From">>, From},
+                {<<"To">>, To},
+                {<<"Subject">>, Subject}
+            ],
+            ContentTypeParams, [
+                {<<"multipart">>, <<"alternative">>, [], [], [
+                    {<<"text">>, <<"plain">>,
+                        props:filter_undefined(
+                            [
+                                {<<"Content-Type">>,
+                                    iolist_to_binary([<<"text/plain">>, CharsetString])},
+                                {<<"Content-Transfer-Encoding">>, PlainTransferEncoding}
+                            ]
+                        ),
+                        [], iolist_to_binary(TxtBody)},
+                    {<<"text">>, <<"html">>,
+                        props:filter_undefined(
+                            [
+                                {<<"Content-Type">>,
+                                    iolist_to_binary([<<"text/html">>, CharsetString])},
+                                {<<"Content-Transfer-Encoding">>, HTMLTransferEncoding}
+                            ]
+                        ),
+                        [], iolist_to_binary(HTMLBody)}
+                ]}
+            ]},
     notify_util:send_email(From, To, Email).

@@ -9,18 +9,20 @@
 -module(kazoo_im_sup).
 -behaviour(supervisor).
 
--export([start_link/0
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    init/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include("kapps_im_command.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?SUPER('kz_im_offnet_sup')
-                  ,?SUPER('kz_im_onnet_sup')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('kz_im_offnet_sup'),
+    ?SUPER('kz_im_onnet_sup')
+]).
 
 %%==============================================================================
 %% API functions

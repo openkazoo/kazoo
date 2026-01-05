@@ -9,14 +9,19 @@
 -include_lib("amqp_client/include/amqp_client.hrl").
 -include("kz_api.hrl").
 
--define(KEY_ORGN_RESOURCE_REQ, <<"orginate.resource.req">>). %% corresponds to originate_resource_req/1 api call
+%% corresponds to originate_resource_req/1 api call
+-define(KEY_ORGN_RESOURCE_REQ, <<"orginate.resource.req">>).
 -define(RESOURCE_QUEUE_NAME, <<"resource.provider">>).
 
--define(KEY_OFFNET_RESOURCE_REQ, <<"offnet.resource.req">>). %% corresponds to offnet_resource_req/1 api call
+%% corresponds to offnet_resource_req/1 api call
+-define(KEY_OFFNET_RESOURCE_REQ, <<"offnet.resource.req">>).
 
--define(KEY_CALL_MEDIA_REQ, <<"call.media">>). %% corresponds to media_req/1
--define(KEY_CALL_EVENT, <<"call.event.">>). %% corresponds to the call_event/1 api call
--define(KEY_CALL_CDR, <<"call.cdr.">>). %% corresponds to the call_cdr/1 api call
+%% corresponds to media_req/1
+-define(KEY_CALL_MEDIA_REQ, <<"call.media">>).
+%% corresponds to the call_event/1 api call
+-define(KEY_CALL_EVENT, <<"call.event.">>).
+%% corresponds to the call_cdr/1 api call
+-define(KEY_CALL_CDR, <<"call.cdr.">>).
 -define(KEY_PUBLISHER_USURP, <<"publisher.usurp.">>).
 
 -define(KEY_CONFERENCE_DISCOVERY, <<"conference.discovery">>).
@@ -149,18 +154,26 @@
 -define(EXCHANGE_TASKS, <<"tasks">>).
 -define(TYPE_TASKS, <<"topic">>).
 
-
--type kz_amqp_command() :: #'queue.declare'{} | #'queue.delete'{} |
-                           #'queue.bind'{} | #'queue.unbind'{} |
-                           #'basic.consume'{} | #'basic.cancel'{} |
-                           #'basic.ack'{} | #'basic.nack'{} |
-                           #'basic.qos'{} |
-                           #'exchange.declare'{} | #'exchange.delete'{} |
-                           #'exchange.bind'{} | #'exchange.unbind'{} |
-                           #'confirm.select'{} |
-                           #'channel.flow'{} | #'channel.flow_ok'{} |
-                           basic_publish() |
-                           '_' | 'undefined'.
+-type kz_amqp_command() ::
+    #'queue.declare'{}
+    | #'queue.delete'{}
+    | #'queue.bind'{}
+    | #'queue.unbind'{}
+    | #'basic.consume'{}
+    | #'basic.cancel'{}
+    | #'basic.ack'{}
+    | #'basic.nack'{}
+    | #'basic.qos'{}
+    | #'exchange.declare'{}
+    | #'exchange.delete'{}
+    | #'exchange.bind'{}
+    | #'exchange.unbind'{}
+    | #'confirm.select'{}
+    | #'channel.flow'{}
+    | #'channel.flow_ok'{}
+    | basic_publish()
+    | '_'
+    | 'undefined'.
 -type kz_amqp_commands() :: [kz_amqp_command()].
 
 -type kz_amqp_exchange() :: #'exchange.declare'{}.
@@ -172,69 +185,78 @@
 -type kz_amqp_queue() :: #'queue.declare'{}.
 -type kz_amqp_queues() :: [#'queue.declare'{}].
 
--type kz_command_ret_ok() :: #'basic.qos_ok'{} |
-                             #'exchange.declare_ok'{} | #'exchange.delete_ok'{} |
-                             #'exchange.bind_ok'{} | #'exchange.unbind_ok'{} |
-                             #'queue.declare_ok'{} | #'queue.delete_ok'{} |
-                             #'queue.bind_ok'{} | #'queue.unbind_ok'{} |
-                             #'basic.consume_ok'{} |
-                             #'confirm.select_ok'{} |
-                             #'basic.cancel_ok'{}.
--type command_ret() :: 'ok' |
-                       {'ok', kz_term:ne_binary() | kz_command_ret_ok()} |
-                       {'error', any()}.
+-type kz_command_ret_ok() ::
+    #'basic.qos_ok'{}
+    | #'exchange.declare_ok'{}
+    | #'exchange.delete_ok'{}
+    | #'exchange.bind_ok'{}
+    | #'exchange.unbind_ok'{}
+    | #'queue.declare_ok'{}
+    | #'queue.delete_ok'{}
+    | #'queue.bind_ok'{}
+    | #'queue.unbind_ok'{}
+    | #'basic.consume_ok'{}
+    | #'confirm.select_ok'{}
+    | #'basic.cancel_ok'{}.
+-type command_ret() ::
+    'ok'
+    | {'ok', kz_term:ne_binary() | kz_command_ret_ok()}
+    | {'error', any()}.
 
 -define(KZ_AMQP_ETS, 'kz_amqp_ets').
 
 -type kz_amqp_type() :: 'sticky' | 'float'.
 
--record(kz_amqp_assignment, {timestamp = kz_time:start_time() :: kz_time:start_time() | '_'
-                            ,consumer :: kz_term:api_pid() | '$2' | '_'
-                            ,consumer_ref :: kz_term:api_reference() | '_'
-                            ,application :: atom() | '_'
-                            ,type = 'float' :: kz_amqp_type() | 'undefined' | '_'
-                            ,channel :: kz_term:api_pid() | '$1' | '_'
-                            ,channel_ref :: kz_term:api_reference() | '_'
-                            ,connection :: kz_term:api_pid() | '$1' | '_'
-                            ,broker :: kz_term:api_binary() | '$1' | '_'
-                            ,assigned :: kz_time:start_time() | 'undefined' | '_'
-                            ,reconnect = 'false' :: boolean() | '_'
-                            ,watchers = sets:new() :: sets:set() | kz_term:pids() | '_'
-                            }).
+-record(kz_amqp_assignment, {
+    timestamp = kz_time:start_time() :: kz_time:start_time() | '_',
+    consumer :: kz_term:api_pid() | '$2' | '_',
+    consumer_ref :: kz_term:api_reference() | '_',
+    application :: atom() | '_',
+    type = 'float' :: kz_amqp_type() | 'undefined' | '_',
+    channel :: kz_term:api_pid() | '$1' | '_',
+    channel_ref :: kz_term:api_reference() | '_',
+    connection :: kz_term:api_pid() | '$1' | '_',
+    broker :: kz_term:api_binary() | '$1' | '_',
+    assigned :: kz_time:start_time() | 'undefined' | '_',
+    reconnect = 'false' :: boolean() | '_',
+    watchers = sets:new() :: sets:set() | kz_term:pids() | '_'
+}).
 
 -type kz_amqp_assignment() :: #kz_amqp_assignment{}.
 -type kz_amqp_assignments() :: [kz_amqp_assignment()].
 
 -type kz_exchanges() :: [#'exchange.declare'{}].
 
--record(kz_amqp_connection, {broker :: kz_term:ne_binary() | '_'
-                            ,params :: #'amqp_params_direct'{} | #'amqp_params_network'{} | '_'
-                            ,manager :: kz_term:api_pid() | '_'
-                            ,connection :: kz_term:api_pid() | '_'
-                            ,connection_ref :: kz_term:api_reference() | '_'
-                            ,channel :: kz_term:api_pid() | '$1' | '_'
-                            ,channel_ref :: kz_term:api_reference() | '$1' | '_'
-                            ,reconnect_ref :: kz_term:api_reference() | '_'
-                            ,available = 'false' :: boolean() | '_'
-                            ,prechannels_initialized = 'false' :: boolean() | '_'
-                            ,started = kz_time:start_time() :: kz_time:start_time() | '_'
-                            ,tags = [] :: list() | '_'
-                            ,hidden = 'false' :: boolean() | '_'
-                            ,exchanges = #{} :: map() | '_'
-                            ,bindings = #{} :: map() | '_'
-                            }).
+-record(kz_amqp_connection, {
+    broker :: kz_term:ne_binary() | '_',
+    params :: #'amqp_params_direct'{} | #'amqp_params_network'{} | '_',
+    manager :: kz_term:api_pid() | '_',
+    connection :: kz_term:api_pid() | '_',
+    connection_ref :: kz_term:api_reference() | '_',
+    channel :: kz_term:api_pid() | '$1' | '_',
+    channel_ref :: kz_term:api_reference() | '$1' | '_',
+    reconnect_ref :: kz_term:api_reference() | '_',
+    available = 'false' :: boolean() | '_',
+    prechannels_initialized = 'false' :: boolean() | '_',
+    started = kz_time:start_time() :: kz_time:start_time() | '_',
+    tags = [] :: list() | '_',
+    hidden = 'false' :: boolean() | '_',
+    exchanges = #{} :: map() | '_',
+    bindings = #{} :: map() | '_'
+}).
 -type kz_amqp_connection() :: #kz_amqp_connection{}.
 
--record(kz_amqp_connections, {connection :: kz_term:api_pid() | '$1' | '_'
-                             ,connection_ref :: kz_term:api_reference() | '_'
-                             ,broker :: kz_term:ne_binary() | '$1' | '$2' | '_'
-                             ,available='false' :: boolean() | '$1' | '$2' | '_'
-                             ,timestamp = kz_time:start_time() :: kz_time:start_time() | '_'
-                             ,zone='local' :: atom() | '$1' | '_'
-                             ,manager=self() :: pid() | '_'
-                             ,tags = [] :: list() | '_'
-                             ,hidden = 'false' :: boolean() | '$3' | '_'
-                             }).
+-record(kz_amqp_connections, {
+    connection :: kz_term:api_pid() | '$1' | '_',
+    connection_ref :: kz_term:api_reference() | '_',
+    broker :: kz_term:ne_binary() | '$1' | '$2' | '_',
+    available = 'false' :: boolean() | '$1' | '$2' | '_',
+    timestamp = kz_time:start_time() :: kz_time:start_time() | '_',
+    zone = 'local' :: atom() | '$1' | '_',
+    manager = self() :: pid() | '_',
+    tags = [] :: list() | '_',
+    hidden = 'false' :: boolean() | '$3' | '_'
+}).
 -type kz_amqp_connections() :: #kz_amqp_connections{}.
 -type kz_amqp_connections_list() :: [kz_amqp_connections()].
 
@@ -250,4 +272,3 @@
 
 -define(KZ_AMQP_HRL, 'true').
 -endif.
-

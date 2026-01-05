@@ -7,14 +7,19 @@
 -module(teletype_new_user).
 -behaviour(teletype_gen_email_template).
 
--export([id/0
-        ,init/0
-        ,macros/0, macros/1
-        ,subject/0
-        ,category/0
-        ,friendly_name/0
-        ,to/0, from/0, cc/0, bcc/0, reply_to/0
-        ]).
+-export([
+    id/0,
+    init/0,
+    macros/0, macros/1,
+    subject/0,
+    category/0,
+    friendly_name/0,
+    to/0,
+    from/0,
+    cc/0,
+    bcc/0,
+    reply_to/0
+]).
 -export([handle_req/1]).
 
 -include("teletype.hrl").
@@ -25,10 +30,12 @@ id() -> <<"new_user">>.
 -spec macros() -> kz_json:object().
 macros() ->
     kz_json:from_list(
-      [?MACRO_VALUE(<<"user.password">>, <<"password">>, <<"Password">>, <<"Password">>)
-       | ?USER_MACROS
-       ++ ?COMMON_TEMPLATE_MACROS
-      ]).
+        [
+            ?MACRO_VALUE(<<"user.password">>, <<"password">>, <<"Password">>, <<"Password">>)
+            | ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    ).
 
 -spec subject() -> kz_term:ne_binary().
 subject() -> <<"Your new VoIP services user profile has been created">>.
@@ -102,7 +109,8 @@ process_req(DataJObj) ->
 macros(DataJObj) ->
     macros(DataJObj, 'false').
 
--spec macros(kz_json:object(), boolean()) -> {kz_json:object(), kz_term:proplist()} | kz_term:proplist().
+-spec macros(kz_json:object(), boolean()) ->
+    {kz_json:object(), kz_term:proplist()} | kz_term:proplist().
 macros(DataJObj, 'true') ->
     ReqData = get_user_doc(DataJObj),
     {ReqData, create_macros(ReqData)};
@@ -113,13 +121,15 @@ macros(DataJObj, 'false') ->
 -spec create_macros(kz_json:object()) -> kz_term:proplist().
 create_macros(DataJObj) ->
     UserDoc = kz_json:get_value(<<"user">>, DataJObj, kz_json:new()),
-    UserParams = case kz_json:get_value(<<"password">>, UserDoc) of
-                     'undefined' -> teletype_util:user_params(UserDoc);
-                     Password -> [{<<"password">>, Password}|teletype_util:user_params(UserDoc)]
-                 end,
-    [{<<"system">>, teletype_util:system_params()}
-    ,{<<"account">>, teletype_util:account_params(DataJObj)}
-    ,{<<"user">>, UserParams}
+    UserParams =
+        case kz_json:get_value(<<"password">>, UserDoc) of
+            'undefined' -> teletype_util:user_params(UserDoc);
+            Password -> [{<<"password">>, Password} | teletype_util:user_params(UserDoc)]
+        end,
+    [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"user">>, UserParams}
     ].
 
 -spec get_user_doc(kz_json:object()) -> kz_json:object().
@@ -128,9 +138,10 @@ get_user_doc(DataJObj) ->
     {'ok', UserJObj} = teletype_util:open_doc(<<"user">>, UserId, DataJObj),
     Password = kz_json:get_value(<<"password">>, DataJObj),
 
-    Values = [{<<"user">>, kz_json:set_value(<<"password">>, Password, UserJObj)}
-             ,{<<"to">>, [kz_json:get_ne_value(<<"email">>, UserJObj)]}
-             ],
+    Values = [
+        {<<"user">>, kz_json:set_value(<<"password">>, Password, UserJObj)},
+        {<<"to">>, [kz_json:get_ne_value(<<"email">>, UserJObj)]}
+    ],
     ReqData = kz_json:set_values(Values, DataJObj),
 
     case teletype_util:is_preview(DataJObj) of

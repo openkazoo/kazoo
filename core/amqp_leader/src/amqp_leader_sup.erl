@@ -30,13 +30,18 @@
 start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
--spec start_leader(atom(), kz_term:atoms(), list(), atom(), list(), list()) -> kz_types:startlink_ret().
+-spec start_leader(atom(), kz_term:atoms(), list(), atom(), list(), list()) ->
+    kz_types:startlink_ret().
 start_leader(Name, Nodes, Opts, Module, [], []) ->
-    supervisor:start_child(?SERVER
-                          ,?SUPER_NAME_ARGS_TYPE(Name
-                                                ,'amqp_leader_proc_sup'
-                                                ,[Name, Nodes, Opts, Module, [], []]
-                                                ,'transient')).
+    supervisor:start_child(
+        ?SERVER,
+        ?SUPER_NAME_ARGS_TYPE(
+            Name,
+            'amqp_leader_proc_sup',
+            [Name, Nodes, Opts, Module, [], []],
+            'transient'
+        )
+    ).
 
 %%==============================================================================
 %% Supervisor callbacks

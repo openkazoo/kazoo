@@ -18,16 +18,16 @@
 
 -define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?SUPER('conf_participant_sup')
-                  ,?WORKER('conference_shared_listener')
-                  ,?WORKER('conference_listener')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?SUPER('conf_participant_sup'),
+    ?WORKER('conference_shared_listener'),
+    ?WORKER('conference_listener')
+]).
 
 %%==============================================================================
 %% API functions
 %%==============================================================================
-
 
 %%==============================================================================
 %% API functions

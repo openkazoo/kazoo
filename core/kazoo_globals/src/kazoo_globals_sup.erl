@@ -7,28 +7,31 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    init/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(ETSMGR_ARGS
-       ,[[{'table_id', kz_globals:table_id()}
-         ,{'find_me_function', fun kz_globals:find_me/0}
-         ,{'table_options', kz_globals:table_options()}
-         ,{'gift_data', kz_globals:gift_data()}
-         ]]
-       ).
+-define(ETSMGR_ARGS, [
+    [
+        {'table_id', kz_globals:table_id()},
+        {'find_me_function', fun kz_globals:find_me/0},
+        {'table_options', kz_globals:table_options()},
+        {'gift_data', kz_globals:gift_data()}
+    ]
+]).
 
--define(CHILDREN, [?WORKER('kz_globals')
-                  ,?WORKER_ARGS('kazoo_etsmgr_srv', ?ETSMGR_ARGS)
-                  ,?SUPER('kz_global_proxies_sup')
-                  ,?WORKER('kazoo_globals_init')
-                  ,?WORKER('kz_nodes')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('kz_globals'),
+    ?WORKER_ARGS('kazoo_etsmgr_srv', ?ETSMGR_ARGS),
+    ?SUPER('kz_global_proxies_sup'),
+    ?WORKER('kazoo_globals_init'),
+    ?WORKER('kz_nodes')
+]).
 
 %%==============================================================================
 %% API functions

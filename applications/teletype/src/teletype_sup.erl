@@ -6,8 +6,7 @@
 -module(teletype_sup).
 -behaviour(supervisor).
 
--export([start_link/0
-        ]).
+-export([start_link/0]).
 -export([init/1]).
 
 -include("teletype.hrl").
@@ -15,10 +14,11 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('teletype_listener')
-                  ,?WORKER('teletype_shared_listener')
-                  ,?SUPER('teletype_farms_sup')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER('teletype_listener'),
+    ?WORKER('teletype_shared_listener'),
+    ?SUPER('teletype_farms_sup')
+]).
 
 %%==============================================================================
 %% API functions

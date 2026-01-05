@@ -44,7 +44,8 @@ start_link() ->
 worker() ->
     Pids = gproc:lookup_pids({'p', 'l', 'im_onnet'}),
     case length(Pids) of
-        0 -> {'error', 'no_connections'};
+        0 ->
+            {'error', 'no_connections'};
         Size ->
             Selected = rand:uniform(Size),
             lists:nth(Selected, Pids)
@@ -71,10 +72,12 @@ init([]) ->
 
 init_workers(Pid) ->
     Workers = kapps_config:get_integer(?CONFIG_CAT, <<"onnet_listeners">>, 1),
-    _ = kz_util:spawn(fun() -> [begin
-                                    _ = supervisor:start_child(Pid, []),
-                                    timer:sleep(500)
-                                end
-                                || _N <- lists:seq(1, Workers)
-                               ]
-                      end).
+    _ = kz_util:spawn(fun() ->
+        [
+            begin
+                _ = supervisor:start_child(Pid, []),
+                timer:sleep(500)
+            end
+         || _N <- lists:seq(1, Workers)
+        ]
+    end).

@@ -9,32 +9,35 @@
 -module(webseq_diagram_srv).
 -behaviour(gen_server).
 
--export([start/1
-        ,stop/1
-        ,evt/4
-        ,title/2
-        ,note/4
-        ,trunc/1
-        ,rotate/1
-        ,process_pid/1
-        ,reg_who/3
-        ]).
+-export([
+    start/1,
+    stop/1,
+    evt/4,
+    title/2,
+    note/4,
+    trunc/1,
+    rotate/1,
+    process_pid/1,
+    reg_who/3
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,code_change/3
-        ,terminate/2
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    code_change/3,
+    terminate/2
+]).
 
 -include("webseq.hrl").
 
--record(state, {type :: diagram_type()
-               ,name :: kz_term:ne_binary()
-               ,io_device :: 'undefined' | file:io_device()
-               ,who_registry :: dict:dict()
-               }).
+-record(state, {
+    type :: diagram_type(),
+    name :: kz_term:ne_binary(),
+    io_device :: 'undefined' | file:io_device(),
+    who_registry :: dict:dict()
+}).
 -type state() :: #state{}.
 
 -spec start(diagram_type()) -> kz_types:startlink_ret().
@@ -96,9 +99,9 @@ what(IO) when is_list(IO) -> iolist_to_binary(IO).
 -spec init(diagram_type() | [diagram_type()]) -> {'ok', state()}.
 init([Type]) ->
     init(Type);
-init({'file', <<_/binary>>=Filename}) ->
+init({'file', <<_/binary>> = Filename}) ->
     init({'file', Filename, Filename});
-init({'file', Name, PreFilename}=Type) ->
+init({'file', Name, PreFilename} = Type) ->
     kz_util:put_callid(Name),
 
     Filename = create_filename(PreFilename),
@@ -106,11 +109,12 @@ init({'file', Name, PreFilename}=Type) ->
     case start_file(Filename) of
         {'ok', IO} ->
             lager:debug("webseq tracing ~s to file: ~s", [Name, Filename]),
-            {'ok', #state{io_device=IO
-                         ,name=Name
-                         ,type=Type
-                         ,who_registry=dict:new()
-                         }};
+            {'ok', #state{
+                io_device = IO,
+                name = Name,
+                type = Type,
+                who_registry = dict:new()
+            }};
         {'error', 'eaccess'} ->
             lager:info("failed to open ~s, eaccess error - check permissions", [Filename]),
             {'stop', 'eaccess'};
@@ -120,16 +124,17 @@ init({'file', Name, PreFilename}=Type) ->
     end;
 init({'db', Database}) ->
     init({'db', kz_binary:rand_hex(4), Database});
-init({'db', Name, Database}=Type) ->
+init({'db', Name, Database} = Type) ->
     kz_util:put_callid(Name),
 
     case kz_datamgr:db_exists(Database) of
         'true' ->
             lager:debug("webseq tracing ~s to db: ~s", [Name, Database]),
-            {'ok', #state{name=Name
-                         ,type=Type
-                         ,who_registry=dict:new()
-                         }};
+            {'ok', #state{
+                name = Name,
+                type = Type,
+                who_registry = dict:new()
+            }};
         'false' ->
             lager:debug("database ~s not found", [Database]),
             {'error', 'not_found'}
@@ -142,18 +147,18 @@ init({'db', Name, Database}=Type) ->
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
 handle_call('stop', _, State) ->
     {'stop', 'normal', 'ok', State};
-handle_call({'who', P}, _, #state{who_registry=Who}=State) when is_pid(P) ->
+handle_call({'who', P}, _, #state{who_registry = Who} = State) when is_pid(P) ->
     PBin = kz_term:to_binary(pid_to_list(P)),
     case dict:find(PBin, Who) of
         {'ok', V} -> {'reply', V, State};
         'error' -> {'reply', P, State}
     end;
-handle_call({'who', P}, _, #state{who_registry=Who}=State) ->
+handle_call({'who', P}, _, #state{who_registry = Who} = State) ->
     case dict:find(P, Who) of
         {'ok', V} -> {'reply', V, State};
         'error' -> {'reply', P, State}
     end;
-handle_call(_,_,S) ->
+handle_call(_, _, S) ->
     {'reply', 'ok', S}.
 
 %%------------------------------------------------------------------------------
@@ -161,38 +166,47 @@ handle_call(_,_,S) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast({'write', Str, Args}, #state{type={'file', _Name, _Filename}
-                                        ,io_device=IO
-                                        }=State) ->
+handle_cast(
+    {'write', Str, Args},
+    #state{
+        type = {'file', _Name, _Filename},
+        io_device = IO
+    } = State
+) ->
     catch file:write(IO, io_lib:format(Str, Args)),
     {'noreply', State};
-handle_cast({'write', Str, Args}, #state{type={'db', Name, Database}}=State) ->
+handle_cast({'write', Str, Args}, #state{type = {'db', Name, Database}} = State) ->
     write_to_db(Database, Name, Str, Args),
     {'noreply', State};
-
-handle_cast('trunc', #state{io_device=IO
-                           ,type={'file', _Name, _Filename}
-                           }=State) ->
+handle_cast(
+    'trunc',
+    #state{
+        io_device = IO,
+        type = {'file', _Name, _Filename}
+    } = State
+) ->
     catch file:truncate(IO),
     {'noreply', State};
-handle_cast('trunc', #state{type={'db', Name, Database}}=State) ->
+handle_cast('trunc', #state{type = {'db', Name, Database}} = State) ->
     trunc_database(Database, Name),
     {'noreply', State};
-
-handle_cast('rotate', #state{io_device=OldIO
-                            ,type={'file', _Name, Filename}
-                            }=State) ->
+handle_cast(
+    'rotate',
+    #state{
+        io_device = OldIO,
+        type = {'file', _Name, Filename}
+    } = State
+) ->
     _ = file:close(OldIO),
     {'ok', IO} = start_file(Filename),
     lager:debug("rotated ~s", [Filename]),
-    {'noreply', State#state{io_device=IO}};
-handle_cast('rotate', #state{type={'db', Name, Database}}=State) ->
+    {'noreply', State#state{io_device = IO}};
+handle_cast('rotate', #state{type = {'db', Name, Database}} = State) ->
     rotate_db(Database, Name),
     {'noreply', State};
-
-handle_cast({'reg_who', P, W}, #state{who_registry=Who}=State) when is_pid(P) ->
+handle_cast({'reg_who', P, W}, #state{who_registry = Who} = State) when is_pid(P) ->
     PBin = kz_term:to_binary(pid_to_list(P)),
-    {'noreply', State#state{who_registry=dict:store(PBin, W, Who)}};
+    {'noreply', State#state{who_registry = dict:store(PBin, W, Who)}};
 handle_cast(_Msg, S) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
     {'noreply', S}.
@@ -223,10 +237,10 @@ code_change(_, S, _) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{io_device='undefined'}) ->
+terminate(_Reason, #state{io_device = 'undefined'}) ->
     gproc:goodbye(),
     lager:debug("webseq terminating: ~p", [_Reason]);
-terminate(_Reason, #state{io_device=IO}) ->
+terminate(_Reason, #state{io_device = IO}) ->
     _ = file:close(IO),
     gproc:goodbye(),
     lager:debug("webseq terminating: ~p", [_Reason]).
@@ -234,34 +248,40 @@ terminate(_Reason, #state{io_device=IO}) ->
 -spec webseq_doc(kz_term:ne_binary(), kz_term:text(), kz_term:text()) -> kz_json:object().
 webseq_doc(Name, Str, Args) ->
     Line = iolist_to_binary(io_lib:format(Str, Args)),
-    kz_json:from_list([{<<"line">>, Line}
-                      ,{<<"name">>, Name}
-                      ]).
+    kz_json:from_list([
+        {<<"line">>, Line},
+        {<<"name">>, Name}
+    ]).
 
 -spec write_to_db(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:text(), kz_term:text()) -> 'ok'.
 write_to_db(Database, Name, Str, Args) ->
-    Doc = kz_doc:update_pvt_parameters(webseq_doc(Name, Str, Args)
-                                      ,Database
-                                      ,[{'type', <<"webseq">>}]
-                                      ),
+    Doc = kz_doc:update_pvt_parameters(
+        webseq_doc(Name, Str, Args),
+        Database,
+        [{'type', <<"webseq">>}]
+    ),
     case kz_datamgr:save_doc(Database, Doc) of
-        {'ok', _} -> 'ok';
+        {'ok', _} ->
+            'ok';
         {'error', E} ->
             lager:debug("failed to write ~s with ~s: ~p", [Str, Args, E]),
             throw(E)
     end.
 
 -spec start_file(kz_term:ne_binary()) ->
-          {'ok', file:io_device()} |
-          {'error', any()}.
+    {'ok', file:io_device()}
+    | {'error', any()}.
 start_file(Filename) ->
-    _ = file:rename(Filename, iolist_to_binary([Filename, ".", kz_term:to_binary(kz_time:now_s())])),
+    _ = file:rename(
+        Filename, iolist_to_binary([Filename, ".", kz_term:to_binary(kz_time:now_s())])
+    ),
     file:open(Filename, ['append', 'raw', 'delayed_write']).
 
 -spec trunc_database(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 trunc_database(Database, Name) ->
     case get_docs_by_name(Database, Name) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'ok', Docs} ->
             lager:debug("deleting docs for ~s in ~s", [Name, Database]),
             {'ok', _} = kz_datamgr:del_docs(Database, Docs),
@@ -275,8 +295,8 @@ trunc_database(Database, Name) ->
     end.
 
 -spec get_docs_by_name(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', kz_json:objects()} |
-          {'error', any()}.
+    {'ok', kz_json:objects()}
+    | {'error', any()}.
 get_docs_by_name(Database, Name) ->
     get_docs_by_name(Database, Name, []).
 get_docs_by_name(Database, Name, Opts) ->
@@ -286,7 +306,8 @@ get_docs_by_name(Database, Name, Opts) ->
 -spec rotate_db(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 rotate_db(Database, Name) ->
     case get_docs_by_name(Database, Name, ['include_docs']) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'ok', Docs} ->
             _ = rotate_db(Database, Name, Docs),
             lager:debug("rotated ~s in ~s", [Name, Database]);
@@ -298,7 +319,8 @@ rotate_db(Database, Name) ->
             throw(E)
     end.
 
--spec rotate_db(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:objects()) -> {'ok', kz_json:objects()}.
+-spec rotate_db(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:objects()) ->
+    {'ok', kz_json:objects()}.
 rotate_db(Database, Name, Docs) ->
     RotatedName = <<Name/binary, ".", (kz_binary:rand_hex(3))/binary>>,
     Rotated = [rotate_doc(RotatedName, kz_json:get_value(<<"doc">>, Doc)) || Doc <- Docs],
@@ -306,9 +328,11 @@ rotate_db(Database, Name, Docs) ->
 
 -spec rotate_doc(kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
 rotate_doc(RotatedName, Doc) ->
-    kz_json:set_value(<<"name">>, RotatedName
-                     ,kz_doc:update_pvt_parameters(Doc, 'undefined')
-                     ).
+    kz_json:set_value(
+        <<"name">>,
+        RotatedName,
+        kz_doc:update_pvt_parameters(Doc, 'undefined')
+    ).
 
 -spec init_db(kz_term:ne_binary()) -> 'ok'.
 init_db(Database) ->

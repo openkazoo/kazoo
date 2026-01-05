@@ -6,9 +6,10 @@
 %%%-----------------------------------------------------------------------------
 -module(konami_init).
 
--export([start_link/0
-        ,init/0
-        ]).
+-export([
+    start_link/0,
+    init/0
+]).
 
 -include("konami.hrl").
 

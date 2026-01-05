@@ -6,10 +6,11 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_schema).
 
--export([find_schema/1
-        ,properties/2
-        ,max_length/2
-        ]).
+-export([
+    find_schema/1,
+    properties/2,
+    max_length/2
+]).
 
 -include("kz_documents.hrl").
 
@@ -23,7 +24,8 @@
 -spec find_schema(kz_term:ne_binary()) -> kz_term:api_object().
 find_schema(<<_/binary>> = Schema) ->
     case kz_json_schema:load(Schema) of
-        {'ok', SchemaJObj} -> SchemaJObj;
+        {'ok', SchemaJObj} ->
+            SchemaJObj;
         {'error', _E} ->
             lager:error("failed to find schema ~s: ~p", [Schema, _E]),
             'undefined'

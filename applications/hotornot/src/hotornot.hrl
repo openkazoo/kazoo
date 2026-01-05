@@ -13,8 +13,9 @@
 
 -type trunking_options() :: kz_term:ne_binaries().
 -type prefix() :: string().
--type match_return() :: {'error', any()} |
-                        {'ok', {prefix(), kz_term:ne_binaries()}}.
+-type match_return() ::
+    {'error', any()}
+    | {'ok', {prefix(), kz_term:ne_binaries()}}.
 
 -define(HOTORNOT_HRL, 'true').
 -endif.

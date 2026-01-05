@@ -15,28 +15,33 @@
 -export([start_link/0]).
 
 %% gen_statem callbacks
--export([init/1
-        ,callback_mode/0
-        ,terminate/3
-        ,code_change/4
-        ]).
+-export([
+    init/1,
+    callback_mode/0,
+    terminate/3,
+    code_change/4
+]).
 
--export([idle/3
-        ,working/3
-        ,worker_timeout/3
-        ]).
+-export([
+    idle/3,
+    working/3,
+    worker_timeout/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
 -define(IS_ENABLED, kapps_config:is_true(?APP_NAME, <<"balance_crawler_enabled">>, 'false')).
--define(CRAWLER_CYCLE_MS, kapps_config:get_integer(?APP_NAME, <<"balance_crawler_cycle_ms">>, ?MILLISECONDS_IN_MINUTE)).
+-define(CRAWLER_CYCLE_MS,
+    kapps_config:get_integer(?APP_NAME, <<"balance_crawler_cycle_ms">>, ?MILLISECONDS_IN_MINUTE)
+).
 
 -type statem_events() :: 'start_cycle' | 'worker_stop'.
 -type statem_state() :: 'idle' | 'working' | 'worker_timeout'.
--type statem_reply() :: {'next_state', statem_state(), kz_term:api_pid()} |
-                        {'next_state', statem_state(), kz_term:api_pid(), 'hibernate'}.
+-type statem_reply() ::
+    {'next_state', statem_state(), kz_term:api_pid()}
+    | {'next_state', statem_state(), kz_term:api_pid(), 'hibernate'}.
 
 %%==============================================================================
 %% API
@@ -123,4 +128,5 @@ worker_timeout('info', Evt, State) ->
 spawn_worker(Timeout) when Timeout >= 10 * ?MILLISECONDS_IN_SECOND ->
     _ = timer:apply_after(Timeout, 'gen_statem', 'cast', [self(), 'start_cycle']),
     kz_util:spawn_link(fun ecallmgr_balance_crawler_worker:start/0);
-spawn_worker(_) -> spawn_worker(?MILLISECONDS_IN_MINUTE).
+spawn_worker(_) ->
+    spawn_worker(?MILLISECONDS_IN_MINUTE).

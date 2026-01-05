@@ -24,8 +24,7 @@
 %%------------------------------------------------------------------------------
 -spec info() -> map().
 info() ->
-    #{?CARRIER_INFO_MAX_PREFIX => 10
-     }.
+    #{?CARRIER_INFO_MAX_PREFIX => 10}.
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?
@@ -40,8 +39,9 @@ is_local() -> 'true'.
 %% @doc Check with carrier if these numbers are registered with it.
 %% @end
 %%------------------------------------------------------------------------------
--spec check_numbers(kz_term:ne_binaries()) -> {'ok', kz_json:object()} |
-          {'error', 'not_implemented'}.
+-spec check_numbers(kz_term:ne_binaries()) ->
+    {'ok', kz_json:object()}
+    | {'error', 'not_implemented'}.
 check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 
 %%------------------------------------------------------------------------------
@@ -50,28 +50,33 @@ check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_numbers(kz_term:ne_binary(), pos_integer(), knm_search:options()) ->
-          {'ok', knm_number:knm_numbers()} |
-          {'error', any()}.
+    {'ok', knm_number:knm_numbers()}
+    | {'error', any()}.
 find_numbers(Prefix, Quantity, Options) ->
     case knm_carriers:account_id(Options) of
-        'undefined' -> {'error', 'not_available'};
+        'undefined' ->
+            {'error', 'not_available'};
         _AccountId ->
             Offset = knm_carriers:offset(Options),
             QID = knm_search:query_id(Options),
             do_find_numbers(Prefix, Quantity, Offset, knm_carriers:reseller_id(Options), QID)
     end.
 
--spec do_find_numbers(kz_term:ne_binary(), pos_integer(), non_neg_integer(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          {'ok', knm_number:knm_numbers()} |
-          {'error', any()}.
-do_find_numbers(<<"+",_/binary>>=Prefix, Quantity, Offset, AccountId, QID)
-  when is_integer(Quantity), Quantity > 0 ->
+-spec do_find_numbers(
+    kz_term:ne_binary(), pos_integer(), non_neg_integer(), kz_term:ne_binary(), kz_term:ne_binary()
+) ->
+    {'ok', knm_number:knm_numbers()}
+    | {'error', any()}.
+do_find_numbers(<<"+", _/binary>> = Prefix, Quantity, Offset, AccountId, QID) when
+    is_integer(Quantity), Quantity > 0
+->
     AccountDb = kz_util:format_account_db(AccountId),
-    ViewOptions = [{'startkey', Prefix}
-                  ,{'endkey', <<Prefix/binary, "\ufff0">>}
-                  ,{'limit', Quantity}
-                  ,{skip, Offset}
-                  ],
+    ViewOptions = [
+        {'startkey', Prefix},
+        {'endkey', <<Prefix/binary, "\ufff0">>},
+        {'limit', Quantity},
+        {skip, Offset}
+    ],
     case kz_datamgr:get_results(AccountDb, <<"numbers/list_reserved">>, ViewOptions) of
         {'ok', []} ->
             lager:debug("no reserved numbers found"),
@@ -80,17 +85,26 @@ do_find_numbers(<<"+",_/binary>>=Prefix, Quantity, Offset, AccountId, QID)
             lager:debug("found reserved numbers in ~s", [AccountDb]),
             Numbers = format_numbers(QID, JObjs),
             find_more(Prefix, Quantity, Offset, AccountId, length(Numbers), QID, Numbers);
-        {'error', _R}=E ->
+        {'error', _R} = E ->
             lager:debug("failed to lookup reserved numbers in ~s: ~p", [AccountDb, _R]),
             E
     end;
 do_find_numbers(_, _, _, _, _) ->
     {'error', 'not_available'}.
 
--spec find_more(kz_term:ne_binary(), pos_integer(), non_neg_integer(), kz_term:ne_binary(), non_neg_integer(), kz_term:ne_binary(), knm_number:knm_numbers()) ->
-          {'ok', knm_number:knm_numbers()}.
-find_more(Prefix, Quantity, Offset, AccountId, NotEnough, QID, Numbers)
-  when NotEnough < Quantity ->
+-spec find_more(
+    kz_term:ne_binary(),
+    pos_integer(),
+    non_neg_integer(),
+    kz_term:ne_binary(),
+    non_neg_integer(),
+    kz_term:ne_binary(),
+    knm_number:knm_numbers()
+) ->
+    {'ok', knm_number:knm_numbers()}.
+find_more(Prefix, Quantity, Offset, AccountId, NotEnough, QID, Numbers) when
+    NotEnough < Quantity
+->
     case do_find_numbers(Prefix, Quantity - NotEnough, Offset + NotEnough, QID, AccountId) of
         {'ok', MoreNumbers} -> {'ok', Numbers ++ MoreNumbers};
         _Error -> {'ok', Numbers}
@@ -101,7 +115,13 @@ find_more(_, _, _, _, _Enough, _, Numbers) ->
 format_numbers(QID, JObjs) ->
     Nums = [kz_doc:id(JObj) || JObj <- JObjs],
     #{ok := Ns} = knm_numbers:get(Nums),
-    [{QID, {knm_phone_number:number(PN), knm_phone_number:module_name(PN), knm_phone_number:state(PN), knm_phone_number:carrier_data(PN)}}
+    [
+        {QID, {
+            knm_phone_number:number(PN),
+            knm_phone_number:module_name(PN),
+            knm_phone_number:state(PN),
+            knm_phone_number:carrier_data(PN)
+        }}
      || N <- Ns,
         PN <- [knm_number:phone_number(N)]
     ].

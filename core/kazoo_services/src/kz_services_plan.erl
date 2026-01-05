@@ -5,68 +5,78 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_services_plan).
 
--export([id/1
-        ,set_id/2
-        ]).
--export([vendor_id/1
-        ,set_vendor_id/2
-        ]).
+-export([
+    id/1,
+    set_id/2
+]).
+-export([
+    vendor_id/1,
+    set_vendor_id/2
+]).
 -export([bookkeeper_id/1]).
 -export([bookkeeper_type/1]).
 -export([bookkeeper_vendor_id/1]).
--export([default_bookkeeper/1
-        ,set_default_bookkeeper/2
-        ]).
+-export([
+    default_bookkeeper/1,
+    set_default_bookkeeper/2
+]).
 -export([ratedeck_id/1]).
 -export([ratedeck_name/1]).
 -export([applications/1]).
 -export([asr/1]).
 -export([im/1]).
 -export([limits/1]).
--export([jobj/1
-        ,set_jobj/2
-        ]).
--export([plan_jobj/1
-        ,set_plan_jobj/2
-        ]).
--export([overrides/1
-        ,set_overrides/2
-        ]).
+-export([
+    jobj/1,
+    set_jobj/2
+]).
+-export([
+    plan_jobj/1,
+    set_plan_jobj/2
+]).
+-export([
+    overrides/1,
+    set_overrides/2
+]).
 -export([bookkeeper_hash/1]).
 
 -export([empty/0]).
--export([setters/1
-        ,setters/2
-        ]).
+-export([
+    setters/1,
+    setters/2
+]).
 -export([public_json/1]).
 -export([is_plan/1]).
 
 -export([fetch/2]).
 -export([create/3]).
--export([assign/2
-        ,assign/3
-        ]).
+-export([
+    assign/2,
+    assign/3
+]).
 -export([unassign/2]).
--export([override/3
-        ,override/4
-        ]).
+-export([
+    override/3,
+    override/4
+]).
 
--record(plan, {id :: kz_term:api_ne_binary()
-              ,vendor_id :: kz_term:api_ne_binary()
-              ,jobj = kzd_service_plan:new() :: kzd_service_plan:doc()
-              ,plan_jobj = kzd_service_plan:new() :: kzd_service_plan:doc()
-              ,default_bookkeeper = kz_json:new() :: kz_json:object()
-              ,overrides = kz_json:new() :: kz_json:object()
-              }
-       ).
+-record(plan, {
+    id :: kz_term:api_ne_binary(),
+    vendor_id :: kz_term:api_ne_binary(),
+    jobj = kzd_service_plan:new() :: kzd_service_plan:doc(),
+    plan_jobj = kzd_service_plan:new() :: kzd_service_plan:doc(),
+    default_bookkeeper = kz_json:new() :: kz_json:object(),
+    overrides = kz_json:new() :: kz_json:object()
+}).
 
 -opaque plan() :: #plan{}.
 -type setter_fun() :: {fun((plan(), Value) -> plan()), Value}.
 -type setter_funs() :: [setter_fun()].
--export_type([plan/0
-             ,setter_fun/0
-             ,setter_funs/0
-             ]).
+-export_type([
+    plan/0,
+    setter_fun/0,
+    setter_funs/0
+]).
 
 -include("services.hrl").
 
@@ -75,7 +85,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec id(plan()) -> kz_term:ne_binary().
-id(#plan{id=Id}) ->
+id(#plan{id = Id}) ->
     Id.
 
 %%------------------------------------------------------------------------------
@@ -84,14 +94,14 @@ id(#plan{id=Id}) ->
 %%------------------------------------------------------------------------------
 -spec set_id(plan(), kz_term:ne_binary()) -> plan().
 set_id(Plan, Id) ->
-    Plan#plan{id=Id}.
+    Plan#plan{id = Id}.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec vendor_id(plan()) -> kz_term:ne_binary().
-vendor_id(#plan{vendor_id=VendorId}) ->
+vendor_id(#plan{vendor_id = VendorId}) ->
     VendorId.
 
 %%------------------------------------------------------------------------------
@@ -100,7 +110,7 @@ vendor_id(#plan{vendor_id=VendorId}) ->
 %%------------------------------------------------------------------------------
 -spec set_vendor_id(plan(), kz_term:ne_binary()) -> plan().
 set_vendor_id(Plan, VendorId) ->
-    Plan#plan{vendor_id=VendorId}.
+    Plan#plan{vendor_id = VendorId}.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -131,7 +141,7 @@ bookkeeper_vendor_id(Plan) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec default_bookkeeper(plan()) -> kz_json:object().
-default_bookkeeper(#plan{default_bookkeeper=Bookkeeper}) ->
+default_bookkeeper(#plan{default_bookkeeper = Bookkeeper}) ->
     Bookkeeper.
 
 %%------------------------------------------------------------------------------
@@ -141,11 +151,12 @@ default_bookkeeper(#plan{default_bookkeeper=Bookkeeper}) ->
 -spec set_default_bookkeeper(plan(), kz_json:object()) -> plan().
 set_default_bookkeeper(Plan, Bookkeeper) ->
     JObj = kz_json:merge_recursive(
-             [kz_json:from_list([{<<"bookkeeper">>, Bookkeeper}])
-             ,jobj(Plan)
-             ]
-            ),
-    set_jobj(Plan#plan{default_bookkeeper=Bookkeeper}, JObj).
+        [
+            kz_json:from_list([{<<"bookkeeper">>, Bookkeeper}]),
+            jobj(Plan)
+        ]
+    ),
+    set_jobj(Plan#plan{default_bookkeeper = Bookkeeper}, JObj).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -200,7 +211,7 @@ limits(Plan) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec jobj(plan()) -> kz_json:object().
-jobj(#plan{jobj=JObj}) ->
+jobj(#plan{jobj = JObj}) ->
     JObj.
 
 %%------------------------------------------------------------------------------
@@ -209,14 +220,14 @@ jobj(#plan{jobj=JObj}) ->
 %%------------------------------------------------------------------------------
 -spec set_jobj(plan(), kz_json:object()) -> plan().
 set_jobj(Plan, JObj) ->
-    Plan#plan{jobj=JObj}.
+    Plan#plan{jobj = JObj}.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec plan_jobj(plan()) -> kzd_service_plan:doc().
-plan_jobj(#plan{plan_jobj=PlanJObj}) ->
+plan_jobj(#plan{plan_jobj = PlanJObj}) ->
     PlanJObj.
 
 %%------------------------------------------------------------------------------
@@ -225,17 +236,18 @@ plan_jobj(#plan{plan_jobj=PlanJObj}) ->
 %%------------------------------------------------------------------------------
 -spec set_plan_jobj(plan(), kzd_service_plan:doc()) -> plan().
 set_plan_jobj(Plan, PlanJObj) ->
-    Routines = [{fun set_overrides/2, overrides(Plan)}
-               ,{fun set_default_bookkeeper/2, default_bookkeeper(Plan)}
-               ],
-    setters(Plan#plan{plan_jobj=PlanJObj}, Routines).
+    Routines = [
+        {fun set_overrides/2, overrides(Plan)},
+        {fun set_default_bookkeeper/2, default_bookkeeper(Plan)}
+    ],
+    setters(Plan#plan{plan_jobj = PlanJObj}, Routines).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec overrides(plan()) -> kz_json:object().
-overrides(#plan{overrides=Overrides}) ->
+overrides(#plan{overrides = Overrides}) ->
     Overrides.
 
 %%------------------------------------------------------------------------------
@@ -245,7 +257,8 @@ overrides(#plan{overrides=Overrides}) ->
 -spec set_overrides(plan(), kz_term:api_object()) -> plan().
 set_overrides(Plan, Overrides) ->
     case kz_term:is_empty(Overrides) of
-        'true' -> set_jobj(Plan, plan_jobj(Plan));
+        'true' ->
+            set_jobj(Plan, plan_jobj(Plan));
         'false' ->
             JObj = kz_json:merge_recursive(plan_jobj(Plan), Overrides),
             set_jobj(Plan, JObj)
@@ -258,11 +271,12 @@ set_overrides(Plan, Overrides) ->
 -spec bookkeeper_hash(plan()) -> kz_term:ne_binary().
 bookkeeper_hash(Plan) ->
     kz_binary:md5(
-      <<(kz_term:to_binary(bookkeeper_id(Plan)))/binary
-        ,(kz_term:to_binary(bookkeeper_type(Plan)))/binary
-        ,(kz_term:to_binary(bookkeeper_vendor_id(Plan)))/binary
-      >>
-     ).
+        <<
+            (kz_term:to_binary(bookkeeper_id(Plan)))/binary,
+            (kz_term:to_binary(bookkeeper_type(Plan)))/binary,
+            (kz_term:to_binary(bookkeeper_vendor_id(Plan)))/binary
+        >>
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -286,12 +300,13 @@ setters(Routines) ->
 %%------------------------------------------------------------------------------
 -spec setters(plan(), setter_funs()) -> plan().
 setters(Plan, Routines) ->
-    lists:foldl(fun({Setter, Value}, P) ->
-                        Setter(P, Value)
-                end
-               ,Plan
-               ,Routines
-               ).
+    lists:foldl(
+        fun({Setter, Value}, P) ->
+            Setter(P, Value)
+        end,
+        Plan,
+        Routines
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -321,9 +336,10 @@ fetch(VendorId, PlanId) ->
         {'ok', PlanJObj} ->
             create(VendorId, PlanId, PlanJObj);
         {'error', _R} ->
-            lager:info("unable to open service plan ~s/~s: ~p"
-                      ,[VendorId, PlanId, _R]
-                      ),
+            lager:info(
+                "unable to open service plan ~s/~s: ~p",
+                [VendorId, PlanId, _R]
+            ),
             'undefined'
     end.
 
@@ -334,17 +350,20 @@ fetch(VendorId, PlanId) ->
 -spec create(kz_term:ne_binary(), kz_term:ne_binary(), kzd_service_plan:doc()) -> plan().
 create(VendorId, PlanId, PJObj) ->
     PlanJObj = maybe_ensure_bookkeeper_vendor(PJObj, VendorId),
-    Setters = [{fun set_id/2, PlanId}
-              ,{fun set_vendor_id/2, VendorId}
-              ,{fun set_jobj/2, PlanJObj}
-              ,{fun set_plan_jobj/2, PlanJObj}
-              ],
+    Setters = [
+        {fun set_id/2, PlanId},
+        {fun set_vendor_id/2, VendorId},
+        {fun set_jobj/2, PlanJObj},
+        {fun set_plan_jobj/2, PlanJObj}
+    ],
     setters(Setters).
 
--spec maybe_ensure_bookkeeper_vendor(kzd_service_plan:doc(), kz_term:ne_binary()) -> kzd_service_plan:plan().
+-spec maybe_ensure_bookkeeper_vendor(kzd_service_plan:doc(), kz_term:ne_binary()) ->
+    kzd_service_plan:plan().
 maybe_ensure_bookkeeper_vendor(PlanJObj, VendorId) ->
-    case kz_term:is_not_empty(kzd_service_plan:bookkeeper(PlanJObj))
-        andalso kz_term:is_empty(kzd_service_plan:bookkeeper_vendor_id(PlanJObj))
+    case
+        kz_term:is_not_empty(kzd_service_plan:bookkeeper(PlanJObj)) andalso
+            kz_term:is_empty(kzd_service_plan:bookkeeper_vendor_id(PlanJObj))
     of
         'true' -> kzd_service_plan:set_bookkeeper_vendor_id(PlanJObj, VendorId);
         'false' -> PlanJObj
@@ -358,7 +377,8 @@ maybe_ensure_bookkeeper_vendor(PlanJObj, VendorId) ->
 assign(Services, PlanId) ->
     assign(Services, PlanId, []).
 
--spec assign(kz_services:services(), kz_term:ne_binary() | kz_json:object(), kz_term:proplist()) -> kz_services:services().
+-spec assign(kz_services:services(), kz_term:ne_binary() | kz_json:object(), kz_term:proplist()) ->
+    kz_services:services().
 assign(Services, PlanId, Options) when is_binary(PlanId) ->
     ResellerId = kz_services_reseller:get_id(Services),
     Plan = kz_json:from_list([{<<"vendor_id">>, ResellerId}]),
@@ -369,14 +389,16 @@ assign(Services, JObj, Options) ->
     Overrides = kz_json:get_json_value(<<"overrides">>, JObj),
     Contract = kz_json:get_json_value(<<"contract">>, JObj),
     case kz_doc:id(JObj) of
-        'undefined' -> Services;
+        'undefined' ->
+            Services;
         PlanId ->
             Plan = kz_json:from_list(
-                     [{<<"contract">>, Contract}
-                     ,{<<"vendor_id">>, VendorId}
-                     ,{<<"overrides">>, Overrides}
-                     ]
-                    ),
+                [
+                    {<<"contract">>, Contract},
+                    {<<"vendor_id">>, VendorId},
+                    {<<"overrides">>, Overrides}
+                ]
+            ),
             assign(Services, PlanId, Plan, Options)
     end.
 
@@ -384,21 +406,25 @@ assign(Services, JObj, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec assign(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_services:services().
+-spec assign(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+    kz_services:services().
 assign(Services, PlanId, Plan, Options) ->
     ServicesJObj = kz_services:services_jobj(Services),
-    lager:debug("adding service plan ~s/~s"
-               ,[kzd_services:plan_vendor_id(ServicesJObj, PlanId)
-                ,PlanId
-                ]
-               ),
+    lager:debug(
+        "adding service plan ~s/~s",
+        [
+            kzd_services:plan_vendor_id(ServicesJObj, PlanId),
+            PlanId
+        ]
+    ),
     Overrides = kz_json:get_json_value(<<"overrides">>, Plan),
     Overriden = maybe_override(ServicesJObj, PlanId, Overrides, Options),
     UpdatedServicesJObj =
-        kzd_services:set_plan(ServicesJObj
-                             ,PlanId
-                             ,kz_json:set_value(<<"overrides">>, Overriden, Plan)
-                             ),
+        kzd_services:set_plan(
+            ServicesJObj,
+            PlanId,
+            kz_json:set_value(<<"overrides">>, Overriden, Plan)
+        ),
     kz_services:set_services_jobj(Services, UpdatedServicesJObj).
 
 %%------------------------------------------------------------------------------
@@ -409,15 +435,17 @@ assign(Services, PlanId, Plan, Options) ->
 unassign(Services, PlanId) ->
     lager:debug("removing service plan ~s", [PlanId]),
     ServicesJObj = kz_services:services_jobj(Services),
-    kz_services:set_services_jobj(Services
-                                 ,kzd_services:set_plan(ServicesJObj, PlanId, 'undefined')
-                                 ).
+    kz_services:set_services_jobj(
+        Services,
+        kzd_services:set_plan(ServicesJObj, PlanId, 'undefined')
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec override(kz_services:services(), kz_term:ne_binary(), kz_json:object()) -> kz_services:services().
+-spec override(kz_services:services(), kz_term:ne_binary(), kz_json:object()) ->
+    kz_services:services().
 override(Services, PlanId, Overrides) ->
     override(Services, PlanId, Overrides, []).
 
@@ -425,15 +453,19 @@ override(Services, PlanId, Overrides) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec override(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_services:services().
+-spec override(kz_services:services(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) ->
+    kz_services:services().
 override(Services, PlanId, Overrides, Options) ->
     ServicesJObj = kz_services:services_jobj(Services),
     Overriden = maybe_override(ServicesJObj, PlanId, Overrides, Options),
-    kz_services:set_services_jobj(Services
-                                 ,kzd_services:set_plan_overrides(ServicesJObj, PlanId, Overriden)
-                                 ).
+    kz_services:set_services_jobj(
+        Services,
+        kzd_services:set_plan_overrides(ServicesJObj, PlanId, Overriden)
+    ).
 
--spec maybe_override(kz_json:object(), kz_term:ne_binary(), kz_term:api_object(), kz_term:proplist()) -> kz_json:object().
+-spec maybe_override(
+    kz_json:object(), kz_term:ne_binary(), kz_term:api_object(), kz_term:proplist()
+) -> kz_json:object().
 maybe_override(ServicesJObj, PlanId, 'undefined', _Options) ->
     kzd_services:plan_overrides(ServicesJObj, PlanId);
 maybe_override(ServicesJObj, PlanId, Overrides, Options) ->
@@ -442,7 +474,9 @@ maybe_override(ServicesJObj, PlanId, Overrides, Options) ->
         'true' -> Overrides
     end.
 
--spec set_or_merge_override(kz_json:object(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()) -> kz_json:object().
+-spec set_or_merge_override(
+    kz_json:object(), kz_term:ne_binary(), kz_json:object(), kz_term:proplist()
+) -> kz_json:object().
 set_or_merge_override(ServicesJObj, PlanId, Override, Options) ->
     case props:get_is_true('merge', Options, 'false') of
         'true' -> merge_override(ServicesJObj, PlanId, Override);
@@ -450,7 +484,7 @@ set_or_merge_override(ServicesJObj, PlanId, Override, Options) ->
     end.
 
 -spec set_override(kz_json:object(), kz_term:ne_binary(), kz_json:object()) -> kz_json:object().
-set_override(_ServicesJObj, PlanId, Overrides)  ->
+set_override(_ServicesJObj, PlanId, Overrides) ->
     lager:debug("updating overrides for ~s via set", [PlanId]),
     Overrides.
 

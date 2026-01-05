@@ -6,55 +6,61 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_modules_util).
 
--export([pass_hashes/2
-        ,get_devices_owned_by/2
-        ,cavs_from_context/1
+-export([
+    pass_hashes/2,
+    get_devices_owned_by/2,
+    cavs_from_context/1,
 
-        ,attachment_name/2
-        ,parse_media_type/1
+    attachment_name/2,
+    parse_media_type/1,
 
-        ,bucket_name/1
-        ,token_cost/1, token_cost/2, token_cost/3
-        ,bind/2
+    bucket_name/1,
+    token_cost/1, token_cost/2, token_cost/3,
+    bind/2,
 
-        ,take_sync_field/1
+    take_sync_field/1,
 
-        ,remove_plaintext_password/1
+    remove_plaintext_password/1,
 
-        ,validate_number_ownership/2
-        ,apply_assignment_updates/2
-        ,log_assignment_updates/1
+    validate_number_ownership/2,
+    apply_assignment_updates/2,
+    log_assignment_updates/1,
 
-        ,normalize_media_upload/5
+    normalize_media_upload/5,
 
-        ,get_request_action/1
-        ,normalize_alphanum_name/1
-        ]).
+    get_request_action/1,
+    normalize_alphanum_name/1
+]).
 
 -include("crossbar.hrl").
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
 -type binding() :: {kz_term:ne_binary(), atom()}.
--type bindings() :: [binding(),...].
+-type bindings() :: [binding(), ...].
 -spec bind(atom(), bindings()) -> 'ok'.
 bind(Module, Bindings) ->
-    _ = [crossbar_bindings:bind(Binding, Module, Function)
-         || {Binding, Function} <- Bindings
-        ],
+    _ = [
+        crossbar_bindings:bind(Binding, Module, Function)
+     || {Binding, Function} <- Bindings
+    ],
     'ok'.
 
--spec pass_hashes(kz_term:ne_binary(), kz_term:ne_binary()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
+-spec pass_hashes(kz_term:ne_binary(), kz_term:ne_binary()) ->
+    {kz_term:ne_binary(), kz_term:ne_binary()}.
 pass_hashes(Username, Password) ->
     kzd_module_utils:pass_hashes(Username, Password).
 
-
 -spec get_devices_owned_by(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:objects().
 get_devices_owned_by(OwnerID, DB) ->
-    case kz_datamgr:get_results(DB
-                               ,<<"attributes/owned">>
-                               ,[{'key', [OwnerID, <<"device">>]}
-                                ,'include_docs'
-                                ])
+    case
+        kz_datamgr:get_results(
+            DB,
+            <<"attributes/owned">>,
+            [
+                {'key', [OwnerID, <<"device">>]},
+                'include_docs'
+            ]
+        )
     of
         {'ok', JObjs} ->
             lager:debug("found ~b devices owned by ~s", [length(JObjs), OwnerID]),
@@ -82,26 +88,28 @@ cavs_from_request(ReqData, QueryString) ->
 %%------------------------------------------------------------------------------
 -spec attachment_name(binary(), kz_term:text()) -> kz_term:ne_binary().
 attachment_name(Filename, CT) ->
-    Generators = [fun(A) ->
-                          case kz_term:is_empty(A) of
-                              'true' -> kz_term:to_hex_binary(crypto:strong_rand_bytes(16));
-                              'false' -> A
-                          end
-                  end
-                 ,fun(A) ->
-                          case kz_term:is_empty(filename:extension(A)) of
-                              'false' -> A;
-                              'true' ->
-                                  <<A/binary, ".", (kz_mime:to_extension(CT))/binary>>
-                          end
-                  end
-                 ],
+    Generators = [
+        fun(A) ->
+            case kz_term:is_empty(A) of
+                'true' -> kz_term:to_hex_binary(crypto:strong_rand_bytes(16));
+                'false' -> A
+            end
+        end,
+        fun(A) ->
+            case kz_term:is_empty(filename:extension(A)) of
+                'false' -> A;
+                'true' -> <<A/binary, ".", (kz_mime:to_extension(CT))/binary>>
+            end
+        end
+    ],
     lists:foldl(fun(F, A) -> F(A) end, Filename, Generators).
 
--spec parse_media_type(kz_term:ne_binary()) -> media_values() |
-          {'error', 'badarg'}.
+-spec parse_media_type(kz_term:ne_binary()) ->
+    media_values()
+    | {'error', 'badarg'}.
 parse_media_type(MediaType) ->
-    try cow_http_hd:parse_accept(MediaType)
+    try
+        cow_http_hd:parse_accept(MediaType)
     catch
         _E:_R ->
             lager:debug("failed to parse ~p: ~s: ~p", [MediaType, _E, _R]),
@@ -129,7 +137,7 @@ token_cost(Context) ->
 -spec token_cost(cb_context:context(), non_neg_integer() | kz_json:path()) -> non_neg_integer().
 token_cost(Context, <<_/binary>> = Suffix) ->
     token_cost(Context, 1, [Suffix]);
-token_cost(Context, [_|_]=Suffix) ->
+token_cost(Context, [_ | _] = Suffix) ->
     token_cost(Context, 1, Suffix);
 token_cost(Context, Default) ->
     token_cost(Context, Default, []).
@@ -137,41 +145,45 @@ token_cost(Context, Default) ->
 -spec token_cost(cb_context:context(), non_neg_integer(), kz_json:path()) -> non_neg_integer().
 token_cost(Context, Default, Suffix) when is_integer(Default), Default >= 0 ->
     Costs = kapps_config:get(?CONFIG_CAT, <<"token_costs">>, 1),
-    find_token_cost(Costs
-                   ,Default
-                   ,Suffix
-                   ,cb_context:req_nouns(Context)
-                   ,cb_context:req_verb(Context)
-                   ,cb_context:account_id(Context)
-                   ).
+    find_token_cost(
+        Costs,
+        Default,
+        Suffix,
+        cb_context:req_nouns(Context),
+        cb_context:req_verb(Context),
+        cb_context:account_id(Context)
+    ).
 
--spec find_token_cost(kz_json:object() | non_neg_integer()
-                     ,Default
-                     ,kz_json:path()
-                     ,req_nouns()
-                     ,http_method()
-                     ,kz_term:api_ne_binary()
-                     ) ->
-          integer() | Default.
+-spec find_token_cost(
+    kz_json:object() | non_neg_integer(),
+    Default,
+    kz_json:path(),
+    req_nouns(),
+    http_method(),
+    kz_term:api_ne_binary()
+) ->
+    integer() | Default.
 find_token_cost(N, _Default, _Suffix, _Nouns, _ReqVerb, _AccountId) when is_integer(N) ->
     lager:debug("flat token cost of ~p configured", [N]),
     N;
 find_token_cost(JObj, Default, Suffix, [{Endpoint, _} | _], ReqVerb, 'undefined') ->
-    Keys = [[Endpoint, ReqVerb | Suffix]
-           ,[Endpoint | Suffix]
-           ],
+    Keys = [
+        [Endpoint, ReqVerb | Suffix],
+        [Endpoint | Suffix]
+    ],
     get_token_cost(JObj, Default, Keys);
-find_token_cost(JObj, Default, Suffix, [{Endpoint, _}|_], ReqVerb, AccountId) ->
-    Keys = [[AccountId, Endpoint, ReqVerb | Suffix]
-           ,[AccountId, Endpoint | Suffix]
-           ,[AccountId | Suffix]
-           ,[Endpoint, ReqVerb | Suffix]
-           ,[Endpoint | Suffix]
-           ],
+find_token_cost(JObj, Default, Suffix, [{Endpoint, _} | _], ReqVerb, AccountId) ->
+    Keys = [
+        [AccountId, Endpoint, ReqVerb | Suffix],
+        [AccountId, Endpoint | Suffix],
+        [AccountId | Suffix],
+        [Endpoint, ReqVerb | Suffix],
+        [Endpoint | Suffix]
+    ],
     get_token_cost(JObj, Default, Keys).
 
 -spec get_token_cost(kz_json:object(), Default, kz_json:paths()) ->
-          integer() | Default.
+    integer() | Default.
 get_token_cost(JObj, Default, Keys) ->
     case kz_json:get_first_defined(Keys, JObj) of
         'undefined' -> Default;
@@ -183,27 +195,32 @@ take_sync_field(Context) ->
     Doc = cb_context:doc(Context),
     ShouldSync = kz_json:is_true(<<"sync">>, Doc, 'false'),
     CleansedDoc = kz_json:delete_key(<<"sync">>, Doc),
-    cb_context:setters(Context, [{fun cb_context:store/3, 'sync', ShouldSync}
-                                ,{fun cb_context:set_doc/2, CleansedDoc}
-                                ]).
+    cb_context:setters(Context, [
+        {fun cb_context:store/3, 'sync', ShouldSync},
+        {fun cb_context:set_doc/2, CleansedDoc}
+    ]).
 
 -spec remove_plaintext_password(cb_context:context()) -> cb_context:context().
 remove_plaintext_password(Context) ->
-    Doc = kz_json:delete_keys([<<"password">>
-                              ,<<"confirm_password">>
-                              ]
-                             ,cb_context:doc(Context)
-                             ),
+    Doc = kz_json:delete_keys(
+        [
+            <<"password">>,
+            <<"confirm_password">>
+        ],
+        cb_context:doc(Context)
+    ),
     cb_context:set_doc(Context, Doc).
 
 -spec validate_number_ownership(kz_term:ne_binaries(), cb_context:context()) ->
-          cb_context:context().
+    cb_context:context().
 validate_number_ownership(Numbers, Context) ->
-    AccountId =  cb_context:auth_account_id(Context),
-    case kz_term:is_empty(AccountId)
-        orelse knm_number:validate_ownership(AccountId, Numbers)
+    AccountId = cb_context:auth_account_id(Context),
+    case
+        kz_term:is_empty(AccountId) orelse
+            knm_number:validate_ownership(AccountId, Numbers)
     of
-        'true' -> Context;
+        'true' ->
+            Context;
         {'false', Unauthorized} ->
             Prefix = <<"unauthorized to use ">>,
             NumbersStr = kz_binary:join(Unauthorized, <<", ">>),
@@ -215,16 +232,19 @@ validate_number_ownership(Numbers, Context) ->
 -type assignments_to_apply() :: [assignment_to_apply()].
 -type port_req_assignment() :: {kz_term:ne_binary(), kz_term:api_binary(), kz_json:object()}.
 -type port_req_assignments() :: [port_req_assignment()].
--type assignment_update() :: {kz_term:ne_binary(), knm_number:knm_number_return()} |
-                             {kz_term:ne_binary(), {'ok', kz_json:object()}} |
-                             {kz_term:ne_binary(), {'error', any()}}.
+-type assignment_update() ::
+    {kz_term:ne_binary(), knm_number:knm_number_return()}
+    | {kz_term:ne_binary(), {'ok', kz_json:object()}}
+    | {kz_term:ne_binary(), {'error', any()}}.
 -type assignment_updates() :: [assignment_update()].
 
 -spec apply_assignment_updates(assignments_to_apply(), cb_context:context()) ->
-          assignment_updates().
+    assignment_updates().
 apply_assignment_updates(Updates, Context) ->
     AccountId = cb_context:account_id(Context),
-    AccountUpdates = lists:foldl(fun({Num, App}, X) -> [{Num, App, AccountId} | X] end, [], Updates),
+    AccountUpdates = lists:foldl(
+        fun({Num, App}, X) -> [{Num, App, AccountId} | X] end, [], Updates
+    ),
     {PRUpdates, NumUpdates} = lists:foldl(fun split_port_requests/2, {[], []}, AccountUpdates),
     PortAssignResults = assign_to_port_number(PRUpdates),
     AssignResults = maybe_assign_to_app(NumUpdates, AccountId),
@@ -237,36 +257,43 @@ apply_assignment_updates(Updates, Context) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec split_port_requests({kz_term:ne_binary(), kz_term:api_binary(), kz_term:ne_binary()}, {port_req_assignments(), assignments_to_apply()}) ->
-          {port_req_assignments(), assignments_to_apply()}.
+-spec split_port_requests({kz_term:ne_binary(), kz_term:api_binary(), kz_term:ne_binary()}, {
+    port_req_assignments(), assignments_to_apply()
+}) ->
+    {port_req_assignments(), assignments_to_apply()}.
 split_port_requests({DID, Assign, AccountId}, {PRUpdates, NumUpdates}) ->
     Num = knm_converters:normalize(DID),
     case knm_port_request:get_portin_number(AccountId, Num) of
         {'ok', []} ->
             %% case of number not_found
-            {PRUpdates, [{DID, Assign}|NumUpdates]};
-        {'ok', [JObj|_]} ->
-            {[{Num, Assign, JObj}|PRUpdates], NumUpdates};
+            {PRUpdates, [{DID, Assign} | NumUpdates]};
+        {'ok', [JObj | _]} ->
+            {[{Num, Assign, JObj} | PRUpdates], NumUpdates};
         {'error', _} ->
-            {PRUpdates, [{DID, Assign}|NumUpdates]}
+            {PRUpdates, [{DID, Assign} | NumUpdates]}
     end.
 
 -spec assign_to_port_number(port_req_assignments()) ->
-          assignment_updates().
+    assignment_updates().
 assign_to_port_number(PRUpdates) ->
-    [{Num, knm_port_request:assign_to_app(Num, Assign, JObj)}
+    [
+        {Num, knm_port_request:assign_to_app(Num, Assign, JObj)}
      || {Num, Assign, JObj} <- PRUpdates
     ].
 
 -spec maybe_assign_to_app(assignments_to_apply(), kz_term:ne_binary()) ->
-          assignment_updates().
+    assignment_updates().
 maybe_assign_to_app(NumUpdates, AccountId) ->
     Options = [{'auth_by', AccountId}],
     Groups = group_by_assign_to(NumUpdates),
-    maps:fold(fun(Assign, Nums, Acc) ->
-                      Results = knm_numbers:assign_to_app(Nums, Assign, Options),
-                      format_assignment_results(Results) ++ Acc
-              end, [], Groups).
+    maps:fold(
+        fun(Assign, Nums, Acc) ->
+            Results = knm_numbers:assign_to_app(Nums, Assign, Options),
+            format_assignment_results(Results) ++ Acc
+        end,
+        [],
+        Groups
+    ).
 
 -type assign_to_groups() :: #{kz_term:api_binary() => kz_term:ne_binaries()}.
 
@@ -274,20 +301,24 @@ maybe_assign_to_app(NumUpdates, AccountId) ->
 group_by_assign_to(NumUpdates) ->
     group_by_assign_to(NumUpdates, #{}).
 
-group_by_assign_to([], Groups) -> Groups;
-group_by_assign_to([{DID, Assign}|NumUpdates], Groups) ->
+group_by_assign_to([], Groups) ->
+    Groups;
+group_by_assign_to([{DID, Assign} | NumUpdates], Groups) ->
     DIDs = maps:get(Assign, Groups, []),
-    Groups1 = Groups#{Assign => [DID|DIDs]},
+    Groups1 = Groups#{Assign => [DID | DIDs]},
     group_by_assign_to(NumUpdates, Groups1).
 
 -spec format_assignment_results(knm_numbers:ret()) -> assignment_updates().
-format_assignment_results(#{ok := OKs
-                           ,ko := KOs}) ->
+format_assignment_results(#{
+    ok := OKs,
+    ko := KOs
+}) ->
     format_assignment_oks(OKs) ++ format_assignment_kos(KOs).
 
 -spec format_assignment_oks(knm_number:knm_numbers()) -> assignment_updates().
 format_assignment_oks(Numbers) ->
-    [{knm_phone_number:number(PN), {'ok', Number}}
+    [
+        {knm_phone_number:number(PN), {'ok', Number}}
      || Number <- Numbers,
         PN <- [knm_number:phone_number(Number)]
     ].
@@ -297,7 +328,7 @@ format_assignment_kos(KOs) ->
     maps:fold(fun format_assignment_kos_fold/3, [], KOs).
 
 -spec format_assignment_kos_fold(knm_numbers:num(), knm_numbers:ko(), assignment_updates()) ->
-          assignment_updates().
+    assignment_updates().
 format_assignment_kos_fold(Number, Reason, Updates) when is_atom(Reason) ->
     [{Number, {'error', Reason}} | Updates];
 format_assignment_kos_fold(Number, ReasonJObj, Updates) ->
@@ -313,37 +344,53 @@ log_assignment_update({DID, {'ok', _Number}}) ->
 log_assignment_update({DID, {'error', E}}) ->
     lager:debug("failed to update ~s: ~p", [DID, E]).
 
--spec normalize_media_upload(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_media_util:normalization_options()) ->
-          {cb_context:context(), kz_json:object()}.
+-spec normalize_media_upload(
+    cb_context:context(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_json:object(),
+    kz_media_util:normalization_options()
+) ->
+    {cb_context:context(), kz_json:object()}.
 normalize_media_upload(Context, FromExt, ToExt, FileJObj, NormalizeOptions) ->
-    NormalizedResult = kz_media_util:normalize_media(FromExt
-                                                    ,ToExt
-                                                    ,kz_json:get_binary_value(<<"contents">>, FileJObj)
-                                                    ,NormalizeOptions
-                                                    ),
+    NormalizedResult = kz_media_util:normalize_media(
+        FromExt,
+        ToExt,
+        kz_json:get_binary_value(<<"contents">>, FileJObj),
+        NormalizeOptions
+    ),
     handle_normalized_upload(Context, FileJObj, ToExt, NormalizedResult).
 
--spec handle_normalized_upload(cb_context:context(), kz_json:object(), kz_term:ne_binary(), kz_media_util:normalized_media()) ->
-          {cb_context:context(), kz_json:object()}.
+-spec handle_normalized_upload(
+    cb_context:context(), kz_json:object(), kz_term:ne_binary(), kz_media_util:normalized_media()
+) ->
+    {cb_context:context(), kz_json:object()}.
 handle_normalized_upload(Context, FileJObj, ToExt, {'ok', Contents}) ->
     lager:debug("successfully normalized to ~s", [ToExt]),
     {Major, Minor, _} = cow_mimetypes:all(<<"foo.", (ToExt)/binary>>),
 
-    NewFileJObj = kz_json:set_values([{[<<"headers">>, <<"content_type">>], <<Major/binary, "/", Minor/binary>>}
-                                     ,{[<<"headers">>, <<"content_length">>], iolist_size(Contents)}
-                                     ,{<<"contents">>, Contents}
-                                     ]
-                                    ,FileJObj
-                                    ),
+    NewFileJObj = kz_json:set_values(
+        [
+            {[<<"headers">>, <<"content_type">>], <<Major/binary, "/", Minor/binary>>},
+            {[<<"headers">>, <<"content_length">>], iolist_size(Contents)},
+            {<<"contents">>, Contents}
+        ],
+        FileJObj
+    ),
 
-    UpdatedContext = cb_context:setters(Context
-                                       ,[{fun cb_context:set_req_files/2, [{<<"original_media">>, FileJObj}
-                                                                          ,{<<"normalized_media">>, NewFileJObj}
-                                                                          ]
-                                         }
-                                        ,{fun cb_context:set_doc/2, kz_json:delete_key(<<"normalization_error">>, cb_context:doc(Context))}
-                                        ]
-                                       ),
+    UpdatedContext = cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_req_files/2, [
+                {<<"original_media">>, FileJObj},
+                {<<"normalized_media">>, NewFileJObj}
+            ]},
+            {
+                fun cb_context:set_doc/2,
+                kz_json:delete_key(<<"normalization_error">>, cb_context:doc(Context))
+            }
+        ]
+    ),
     {UpdatedContext, NewFileJObj};
 handle_normalized_upload(Context, FileJObj, ToExt, {'error', _R}) ->
     lager:warning("failed to convert to ~s: ~p", [ToExt, _R]),
@@ -358,12 +405,13 @@ handle_normalized_upload(Context, FileJObj, ToExt, {'error', _R}) ->
 %% only putting "action" in "data"
 -spec get_request_action(cb_context:context()) -> kz_term:api_ne_binary().
 get_request_action(Context) ->
-    kz_json:find(<<"action">>, [cb_context:req_json(Context)
-                               ,cb_context:req_data(Context)
-                               ]
-                ).
+    kz_json:find(<<"action">>, [
+        cb_context:req_json(Context),
+        cb_context:req_data(Context)
+    ]).
 
--spec normalize_alphanum_name(kz_term:api_binary() | cb_context:context()) -> cb_context:context() | kz_term:api_binary().
+-spec normalize_alphanum_name(kz_term:api_binary() | cb_context:context()) ->
+    cb_context:context() | kz_term:api_binary().
 normalize_alphanum_name('undefined') ->
     'undefined';
 normalize_alphanum_name(Name) when is_binary(Name) ->
@@ -371,4 +419,6 @@ normalize_alphanum_name(Name) when is_binary(Name) ->
 normalize_alphanum_name(Context) ->
     Doc = cb_context:doc(Context),
     Name = kz_json:get_ne_binary_value(<<"name">>, Doc),
-    cb_context:set_doc(Context, kz_json:set_value(<<"pvt_alphanum_name">>, normalize_alphanum_name(Name), Doc)).
+    cb_context:set_doc(
+        Context, kz_json:set_value(<<"pvt_alphanum_name">>, normalize_alphanum_name(Name), Doc)
+    ).

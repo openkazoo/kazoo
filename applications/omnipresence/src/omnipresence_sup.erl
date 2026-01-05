@@ -7,9 +7,10 @@
 
 -behaviour(supervisor).
 
--export([start_link/0
-        ,subscriptions_srv/0
-        ]).
+-export([
+    start_link/0,
+    subscriptions_srv/0
+]).
 -export([init/1]).
 
 -include("omnipresence.hrl").
@@ -18,17 +19,19 @@
 
 -define(SIP_APP, <<"omni">>).
 
--define(SUBS_ETS_OPTS, [{'table_id', omnip_subscriptions:table_id()}
-                       ,{'table_options', omnip_subscriptions:table_config()}
-                       ,{'find_me_function', fun subscriptions_srv/0}
-                       ]).
+-define(SUBS_ETS_OPTS, [
+    {'table_id', omnip_subscriptions:table_id()},
+    {'table_options', omnip_subscriptions:table_config()},
+    {'find_me_function', fun subscriptions_srv/0}
+]).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER_NAME_ARGS('kazoo_etsmgr_srv', 'omnipresence_subscriptions_tbl', [?SUBS_ETS_OPTS])
-                  ,?WORKER('omnip_subscriptions')
-                  ,?WORKER('omnipresence_listener')
-                  ,?WORKER('omnipresence_shared_listener')
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_NAME_ARGS('kazoo_etsmgr_srv', 'omnipresence_subscriptions_tbl', [?SUBS_ETS_OPTS]),
+    ?WORKER('omnip_subscriptions'),
+    ?WORKER('omnipresence_listener'),
+    ?WORKER('omnipresence_shared_listener')
+]).
 
 %%==============================================================================
 %% API functions

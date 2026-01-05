@@ -6,17 +6,20 @@
 %%%-----------------------------------------------------------------------------
 -module(cccp_handlers).
 
--export([handle_route_req/2
-        ,handle_route_win/2
-        ,handle_config_change/2
-        ]).
+-export([
+    handle_route_req/2,
+    handle_route_win/2,
+    handle_config_change/2
+]).
 
 -include("cccp.hrl").
 
--define(CB_NUMBER
-       ,knm_converters:normalize(kapps_config:get_ne_binary(?CCCP_CONFIG_CAT, <<"cccp_cb_number">>))).
--define(CC_NUMBER
-       ,knm_converters:normalize(kapps_config:get_ne_binary(?CCCP_CONFIG_CAT, <<"cccp_cc_number">>))).
+-define(CB_NUMBER,
+    knm_converters:normalize(kapps_config:get_ne_binary(?CCCP_CONFIG_CAT, <<"cccp_cb_number">>))
+).
+-define(CC_NUMBER,
+    knm_converters:normalize(kapps_config:get_ne_binary(?CCCP_CONFIG_CAT, <<"cccp_cc_number">>))
+).
 
 -spec handle_route_req(kz_json:object(), kz_term:proplist()) -> any().
 handle_route_req(JObj, Props) ->
@@ -33,10 +36,11 @@ handle_route_req(JObj, Props) ->
 -spec park_call(kz_json:object(), kz_term:proplist(), kapps_call:call()) -> 'ok'.
 park_call(JObj, Props, Call) ->
     Q = props:get_value('queue', Props),
-    Resp = props:filter_undefined([{<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)}
-                                  ,{<<"Method">>, <<"park">>}
-                                   | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
-                                  ]),
+    Resp = props:filter_undefined([
+        {<<"Msg-ID">>, kz_json:get_value(<<"Msg-ID">>, JObj)},
+        {<<"Method">>, <<"park">>}
+        | kz_api:default_headers(Q, ?APP_NAME, ?APP_VERSION)
+    ]),
     ServerId = kz_json:get_value(<<"Server-ID">>, JObj),
     Publisher = fun(P) -> kapi_route:publish_resp(ServerId, P) end,
     kz_amqp_worker:cast(Resp, Publisher),
@@ -46,7 +50,7 @@ park_call(JObj, Props, Call) ->
 handle_route_win(JObj, _Props) ->
     'true' = kapi_route:win_v(JObj),
     CallId = kz_json:get_value(<<"Call-ID">>, JObj),
-    lager:info("cccp has received a route win, taking control of the call CallId: ~p",[CallId]),
+    lager:info("cccp has received a route win, taking control of the call CallId: ~p", [CallId]),
     case kapps_call:retrieve(CallId, ?APP_NAME) of
         {'ok', Call} ->
             handle_cccp_call(kapps_call:from_route_win(JObj, Call));
@@ -82,22 +86,27 @@ handle_callback(Call) ->
         {'ok', AuthJObj} ->
             maybe_call_back(AuthJObj, Call);
         E ->
-            lager:info("No caller information found for ~p. Won't call it back. (~p)", [CallerNumber, E])
+            lager:info("No caller information found for ~p. Won't call it back. (~p)", [
+                CallerNumber, E
+            ])
     end.
 
 -spec maybe_call_back(kz_json:object(), kapps_call:call()) -> any().
 maybe_call_back(JObj, Call) ->
     AccountId = kz_json:get_value(<<"account_id">>, JObj),
     UserId = kz_json:get_value(<<"user_id">>, JObj),
-    MaxConcurentCallsPerUser = kz_json:get_integer_value(<<"max_concurent_calls_per_user">>, JObj, 1),
+    MaxConcurentCallsPerUser = kz_json:get_integer_value(
+        <<"max_concurent_calls_per_user">>, JObj, 1
+    ),
     case (cccp_util:count_user_legs(UserId, AccountId) >= MaxConcurentCallsPerUser * 2) of
         'true' ->
             Media = kapps_call:get_prompt(Call, <<"cf-move-too_many_channels">>),
             kapps_call_command:response(<<"486">>, <<"User busy">>, Media, Call);
         'false' ->
             kapps_call_command:hangup(Call),
-            Values = [{<<"a_leg_name">>, kapps_call:caller_id_name(Call)}
-                     ,{<<"a_leg_number">>, knm_converters:normalize(kapps_call:caller_id_number(Call))}
-                     ],
+            Values = [
+                {<<"a_leg_name">>, kapps_call:caller_id_name(Call)},
+                {<<"a_leg_number">>, knm_converters:normalize(kapps_call:caller_id_number(Call))}
+            ],
             cccp_callback_sup:new(kz_json:set_values(Values, JObj))
     end.

@@ -8,7 +8,6 @@
 -export([new/0]).
 -export([ips/1, ips/2, set_ips/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

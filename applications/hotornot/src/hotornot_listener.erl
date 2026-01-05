@@ -8,14 +8,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("hotornot.hrl").
 
@@ -25,15 +26,14 @@
 -define(SERVER, ?MODULE).
 
 -define(BINDINGS, [{'rate', []}]).
--define(TRIE_BINDINGS, [{'conf', [{'db', <<"*">>}
-                                 ,{'action', <<"*">>}
-                                 ]
-                        }
-                       ]).
+-define(TRIE_BINDINGS, [
+    {'conf', [
+        {'db', <<"*">>},
+        {'action', <<"*">>}
+    ]}
+]).
 -define(RESPONDERS, [{'hon_rater', [{<<"rate">>, <<"req">>}]}]).
--define(TRIE_RESPONDERS, [{{'hon_trie', 'handle_db_update'}
-                          ,[{<<"configuration">>, <<"*">>}]
-                          }]).
+-define(TRIE_RESPONDERS, [{{'hon_trie', 'handle_db_update'}, [{<<"configuration">>, <<"*">>}]}]).
 -define(QUEUE_NAME, <<"hotornot_listener">>).
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
@@ -56,12 +56,17 @@ start_link() ->
             Bindings = ?BINDINGS ++ ?TRIE_BINDINGS,
             Responders = ?RESPONDERS ++ ?TRIE_RESPONDERS
     end,
-    gen_listener:start_link(?SERVER, [{'bindings', Bindings}
-                                     ,{'responders', Responders}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'bindings', Bindings},
+            {'responders', Responders},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -91,9 +96,9 @@ handle_call(_Request, _From, State) ->
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
 handle_cast({'gen_listener', {'created_queue', _QueueName}}, State) ->
     {'noreply', State};
-handle_cast({'gen_listener',{'is_consuming',_IsConsuming}}, State) ->
+handle_cast({'gen_listener', {'is_consuming', _IsConsuming}}, State) ->
     {'noreply', State};
-handle_cast({'kz_amqp_channel',{'new_channel',_IsNew}}, State) ->
+handle_cast({'kz_amqp_channel', {'new_channel', _IsNew}}, State) ->
     {'noreply', State};
 handle_cast(_Msg, State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),

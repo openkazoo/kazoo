@@ -21,15 +21,15 @@
 
 %% @equiv cmd(Command, [])
 -spec cmd(iodata()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', any(), binary()}.
+    {'ok', kz_term:ne_binary()}
+    | {'error', any(), binary()}.
 cmd(Command) ->
     cmd(Command, []).
 
 %% @equiv cmd(Command, Args, [])
 -spec cmd(iodata(), kz_term:proplist()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', any(), binary()}.
+    {'ok', kz_term:ne_binary()}
+    | {'error', any(), binary()}.
 cmd(Command, Args) ->
     cmd(Command, Args, []).
 
@@ -78,29 +78,30 @@ cmd(Command, Args) ->
 %%------------------------------------------------------------------------------
 
 -spec cmd(iodata(), kz_term:proplist(), kz_term:proplist()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', any(), binary()}.
+    {'ok', kz_term:ne_binary()}
+    | {'error', any(), binary()}.
 cmd(Command, Args, Options) ->
     Owner = props:get_value(<<"owner">>, Options, self()),
     CmdTimeout = props:get_value(<<"absolute_timeout">>, Options, ?DEFAULT_ABSOLUTE_TIMEOUT),
-    CmdOptions = [Command
-                 ,Args
-                 ,props:set_value(<<"owner">>, Owner, Options)
-                 ],
+    CmdOptions = [
+        Command,
+        Args,
+        props:set_value(<<"owner">>, Owner, Options)
+    ],
     {Pid, Ref} = erlang:spawn_monitor(?MODULE, 'run_cmd', CmdOptions),
     monitor_cmd(Pid, Ref, CmdTimeout, 'undefined').
 
 -spec monitor_cmd(pid(), reference(), non_neg_integer(), kz_term:api_port()) ->
-          {'ok', kz_term:ne_binary()}|
-          {'error', any(), binary()}.
+    {'ok', kz_term:ne_binary()}
+    | {'error', any(), binary()}.
 monitor_cmd(Pid, Ref, Timeout, Port) ->
     receive
         {'port', NewPort, Pid} ->
             monitor_cmd(Pid, Ref, Timeout, NewPort);
-        {{'ok', _}=Ok, Pid} ->
+        {{'ok', _} = Ok, Pid} ->
             _ = erlang:demonitor(Ref, ['flush']),
             Ok;
-        {{'error', _, _}=Error,Pid} ->
+        {{'error', _, _} = Error, Pid} ->
             _ = erlang:demonitor(Ref, ['flush']),
             lager:info("cmd errored: ~p", [Error]),
             Error;
@@ -111,52 +112,53 @@ monitor_cmd(Pid, Ref, Timeout, Port) ->
         Else ->
             lager:debug("unexpected message ~p", [Else]),
             monitor_cmd(Pid, Ref, Timeout, Port)
-    after
-        Timeout ->
-            maybe_kill_cmd(Port),
-            _ = erlang:demonitor(Ref, ['flush']),
-            _ = erlang:exit(Pid, 'timeout'),
-            lager:info("command timed out after ~pms", [Timeout]),
-            {'error', 'absolute_timeout', <<>>}
+    after Timeout ->
+        maybe_kill_cmd(Port),
+        _ = erlang:demonitor(Ref, ['flush']),
+        _ = erlang:exit(Pid, 'timeout'),
+        lager:info("command timed out after ~pms", [Timeout]),
+        {'error', 'absolute_timeout', <<>>}
     end.
 
 -spec run_cmd(iodata(), kz_term:proplist(), kz_term:proplist()) ->
-          {{'ok', kz_term:ne_binary()} |
-           {'error', atom(), kz_term:ne_binary()}
-          ,pid()
-          }.
+    {
+        {'ok', kz_term:ne_binary()}
+        | {'error', atom(), kz_term:ne_binary()},
+        pid()
+    }.
 run_cmd(Command, Args, Options) ->
     OwnerPid = props:get_value(<<"owner">>, Options),
     OwnerRef = erlang:monitor('process', OwnerPid),
     Timeout = props:get_value(<<"timeout">>, Options, ?DEFAULT_TIMEOUT),
     MaxSize = props:get_value(<<"max_size">>, Options, ?DEFAULT_MAX_SIZE),
     ReadMode = props:get_value(<<"read_mode">>, Options, ?DEFAULT_READ_MODE),
-    PortOptions = [ReadMode
-                  ,'binary'
-                  ,'exit_status'
-                  ,'use_stdio'
-                  ,'stderr_to_stdout'
-                  ,{'env', opts_to_strings(Args)}
-                  ],
+    PortOptions = [
+        ReadMode,
+        'binary',
+        'exit_status',
+        'use_stdio',
+        'stderr_to_stdout',
+        {'env', opts_to_strings(Args)}
+    ],
     Port = erlang:open_port({'spawn', kz_term:to_list(Command)}, PortOptions),
     OwnerPid ! {'port', Port, self()},
     Out = cmd_read({Port, MaxSize, Timeout, OwnerRef}, <<>>),
     OwnerPid ! {Out, self()}.
 
 -spec cmd_read({port(), integer(), integer(), reference()}, kz_term:binary()) ->
-          {'ok', kz_term:ne_binary()} |
-          {'error', atom(), kz_term:ne_binary()}.
-cmd_read({Port, _MaxSize, Timeout, OwnerRef}=LoopParams, Acc) ->
+    {'ok', kz_term:ne_binary()}
+    | {'error', atom(), kz_term:ne_binary()}.
+cmd_read({Port, _MaxSize, Timeout, OwnerRef} = LoopParams, Acc) ->
     receive
-        {'DOWN', OwnerRef, _, _, _}  ->
+        {'DOWN', OwnerRef, _, _, _} ->
             lager:debug("parent died - no reason to continue"),
             {'error', 'parent_died', <<>>};
         {Port, {'data', {'eol', Data}}} ->
             cmd_read_data(LoopParams, kz_binary:join([Acc, Data, <<"\n">>], <<>>));
         {Port, {'data', {'noeol', Data}}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'data', Data}} ->
-            cmd_read_data(LoopParams, <<Acc/binary,Data/binary>>);
+            cmd_read_data(LoopParams, <<Acc/binary, Data/binary>>);
         {Port, {'exit_status', 0}} ->
             {'ok', Acc};
         {Port, {'exit_status', Status}} ->
@@ -164,21 +166,20 @@ cmd_read({Port, _MaxSize, Timeout, OwnerRef}=LoopParams, Acc) ->
         Any ->
             lager:debug("unhandled message ~p", [Any]),
             cmd_read(LoopParams, Acc)
-    after
-        Timeout ->
-            lager:debug("Timeout reached on command ~p", [Timeout]),
-            _ = maybe_kill_cmd(Port),
-            {'error', 'timeout', Acc}
+    after Timeout ->
+        lager:debug("Timeout reached on command ~p", [Timeout]),
+        _ = maybe_kill_cmd(Port),
+        {'error', 'timeout', Acc}
     end.
 
-cmd_read_data({Port, MaxSize, _, _}=LoopParams, Data) ->
+cmd_read_data({Port, MaxSize, _, _} = LoopParams, Data) ->
     case byte_size(Data) of
         Len when Len >= MaxSize ->
             _ = maybe_kill_cmd(Port),
             {'error', 'max_size', Data};
-        _ -> cmd_read(LoopParams, Data)
+        _ ->
+            cmd_read(LoopParams, Data)
     end.
-
 
 -spec maybe_kill_cmd(kz_term:api_port()) -> 'ok'.
 maybe_kill_cmd('undefined') ->
@@ -195,7 +196,8 @@ maybe_kill_cmd(Port) ->
 kill(OsPid) ->
     lager:debug("killing pid: ~p with SIGINT: good day sir!", [OsPid]),
     case os:cmd(io_lib:format("kill -6 ~b", [OsPid])) of
-        "" -> 'ok';
+        "" ->
+            'ok';
         _ ->
             lager:debug("SIGINT kill failed!"),
             brutally_kill(OsPid)
@@ -205,7 +207,8 @@ kill(OsPid) ->
 brutally_kill(OsPid) ->
     lager:debug("brutally killing ~p with SIGKILL: I said good day!", [OsPid]),
     case os:cmd(io_lib:format("kill -9 ~b", [OsPid])) of
-        "" -> 'ok';
+        "" ->
+            'ok';
         _ ->
             lager:debug("brutal kill failed, process ~b is still running!", [OsPid]),
             'ok'
@@ -216,7 +219,7 @@ opts_to_strings(Args) ->
     opts_to_strings(Args, []).
 
 -spec opts_to_strings(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
-opts_to_strings([{Key, Value}|Args], Acc) ->
+opts_to_strings([{Key, Value} | Args], Acc) ->
     opts_to_strings(Args, Acc ++ [{kz_term:to_list(Key), kz_term:to_list(Value)}]);
 opts_to_strings([], Acc) ->
     Acc.

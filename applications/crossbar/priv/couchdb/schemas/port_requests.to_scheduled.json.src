@@ -1,43 +1,43 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "_id": "port_requests.to_scheduled",
-    "description": "Schema for a port request to be transitioned to the 'scheduled' state",
-    "anyOf": [
+    "$schema":"http://json-schema.org/draft-04/schema#",
+    "_id":"port_requests.to_scheduled",
+    "description":"Schema for a port request to be transitioned to the 'scheduled' state",
+    "anyOf":[
         {
-            "required": [
+            "required":[
                 "scheduled_date"
             ]
         },
         {
-            "required": [
+            "required":[
                 "schedule_on"
             ]
         }
     ],
-    "properties": {
-        "schedule_on": {
-            "description": "date-time at which to perform the porting",
-            "properties": {
-                "date_time": {
-                    "pattern": "^2\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d$",
-                    "type": "string"
+    "properties":{
+        "schedule_on":{
+            "description":"date-time at which to perform the porting",
+            "properties":{
+                "date_time":{
+                    "pattern":"^2\\d\\d\\d-\\d\\d-\\d\\d \\d\\d:\\d\\d$",
+                    "type":"string"
                 },
-                "timezone": {
-                    "enum": [
+                "timezone":{
+                    "enum":[
                         "America/Los_Angeles"
                     ]
                 }
             },
-            "required": [
+            "required":[
                 "timezone",
                 "date_time"
             ],
-            "type": "object"
+            "type":"object"
         },
-        "scheduled_date": {
-            "description": "Gregorian timestamp at which to perform the porting",
-            "type": "integer"
+        "scheduled_date":{
+            "description":"Gregorian timestamp at which to perform the porting",
+            "type":"integer"
         }
     },
-    "type": "object"
+    "type":"object"
 }

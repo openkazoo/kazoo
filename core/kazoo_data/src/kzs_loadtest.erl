@@ -15,9 +15,12 @@ start() ->
 
 -spec start(pos_integer()) -> 'ok'.
 start(Workers) ->
-    Strategies = ['none', 'async'
-                 ,'stampede', 'stampede_async'
-                 ],
+    Strategies = [
+        'none',
+        'async',
+        'stampede',
+        'stampede_async'
+    ],
     run_tests(Workers, Strategies).
 
 run_tests(Workers, Strategies) ->
@@ -65,39 +68,47 @@ run(Workers, Strategy, DocIds) ->
     MaxMs = lists:max(ElapsedMs),
     MinMs = lists:min(ElapsedMs),
 
-    io:format("~n  finished in ~pms~n  min/mean/max: ~p < ~p < ~p (~p)"
-             ,[kz_time:elapsed_ms(Start, Stop)
-              ,MinMs, TotalMs div Normal, MaxMs, TotalMs
-              ]),
-    Not > 0
-        andalso io:format(" (~p failed)", [Not]),
+    io:format(
+        "~n  finished in ~pms~n  min/mean/max: ~p < ~p < ~p (~p)",
+        [
+            kz_time:elapsed_ms(Start, Stop),
+            MinMs,
+            TotalMs div Normal,
+            MaxMs,
+            TotalMs
+        ]
+    ),
+    Not > 0 andalso
+        io:format(" (~p failed)", [Not]),
     io:format("~n"),
     percentiles(length(ElapsedMs), lists:sort(ElapsedMs)),
     stop_traces().
 
--define(PATTERNS
-       ,[{'kzs_cache', 'fetch_doc', 4}
-        ,{'kz_cache', 'store_local', 4}
-        ,{'kz_cache', 'store_local_async', 4}
-        ]
-       ).
+-define(PATTERNS, [
+    {'kzs_cache', 'fetch_doc', 4},
+    {'kz_cache', 'store_local', 4},
+    {'kz_cache', 'store_local_async', 4}
+]).
 start_traces() ->
-    _Patterns = [erlang:trace_pattern(Pattern, [], ['call_count'])
-                 || Pattern <- ?PATTERNS
-                ],
+    _Patterns = [
+        erlang:trace_pattern(Pattern, [], ['call_count'])
+     || Pattern <- ?PATTERNS
+    ],
     erlang:trace('all', 'true', ['call']).
 
 stop_traces() ->
     io:format("  calls: "),
-    _ = [io:format("~p: ~p ", [F, N])
-         || {_M,F,_A}=MFA <- ?PATTERNS,
-            {'call_count', N} <- [erlang:trace_info(MFA, 'call_count')],
-            N > 0
-        ],
+    _ = [
+        io:format("~p: ~p ", [F, N])
+     || {_M, F, _A} = MFA <- ?PATTERNS,
+        {'call_count', N} <- [erlang:trace_info(MFA, 'call_count')],
+        N > 0
+    ],
     io:format("~n"),
-    _ = [erlang:trace_pattern(Pattern, 'false', [])
-         || Pattern <- ?PATTERNS
-        ],
+    _ = [
+        erlang:trace_pattern(Pattern, 'false', [])
+     || Pattern <- ?PATTERNS
+    ],
     erlang:trace('all', 'false', ['call']).
 
 -spec worker(kz_term:ne_binaries()) -> no_return().
@@ -109,15 +120,16 @@ worker(DocIds) ->
     exit({'elapsed_ms', kz_time:elapsed_ms(Start)}).
 
 wait(PidRefs) ->
-    wait(PidRefs, {0,0,[]}).
+    wait(PidRefs, {0, 0, []}).
 
-wait([], Finished) -> Finished;
-wait([{Pid, Ref}|PidRefs], {Normal, Not, Elapsed}) ->
+wait([], Finished) ->
+    Finished;
+wait([{Pid, Ref} | PidRefs], {Normal, Not, Elapsed}) ->
     receive
-        {'DOWN', Ref, 'process', Pid, {'elapsed_ms',MS}} ->
-            wait(PidRefs, {Normal+1, Not, [MS | Elapsed]});
+        {'DOWN', Ref, 'process', Pid, {'elapsed_ms', MS}} ->
+            wait(PidRefs, {Normal + 1, Not, [MS | Elapsed]});
         {'DOWN', Ref, 'process', Pid, _Reason} ->
-            wait(PidRefs, {Normal, Not+1})
+            wait(PidRefs, {Normal, Not + 1})
     end.
 
 percentiles(Len, ElapsedMs) ->
@@ -130,12 +142,12 @@ print_percentile([], _ElapsedMs, _Index) ->
     io:format("~n");
 print_percentile([{Percentile, _Index} | Indexes], [Kth], I) ->
     io:format("~p(~p) ", [Kth, Percentile]),
-    print_percentile(Indexes, [Kth], I+1);
+    print_percentile(Indexes, [Kth], I + 1);
 print_percentile([{Percentile, Index} | Indexes], [Kth | ElapsedMs], Index) ->
     io:format("~p(~p) ", [Kth, Percentile]),
-    print_percentile(Indexes, ElapsedMs, Index+1);
+    print_percentile(Indexes, ElapsedMs, Index + 1);
 print_percentile(Indexes, [_Kth | ElapsedMs], Index) ->
-    print_percentile(Indexes, ElapsedMs, Index+1).
+    print_percentile(Indexes, ElapsedMs, Index + 1).
 
 index(Percentile, Len) ->
     kz_term:ceiling(Len * (Percentile / 100)).

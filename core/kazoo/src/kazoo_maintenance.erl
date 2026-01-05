@@ -8,21 +8,25 @@
 
 -export([crash/0]).
 -export([debug_dump/0]).
--export([hotload/1
-        ,hotload_app/1
-        ]).
--export([syslog_level/1
-        ,error_level/1
-        ,console_level/1
-        ]).
--export([gc_all/0, gc_pids/1
-        ,gc_top_mem_consumers/0, gc_top_mem_consumers/1
-        ,top_mem_consumers/0, top_mem_consumers/1
-        ,etop/0
+-export([
+    hotload/1,
+    hotload_app/1
+]).
+-export([
+    syslog_level/1,
+    error_level/1,
+    console_level/1
+]).
+-export([
+    gc_all/0,
+    gc_pids/1,
+    gc_top_mem_consumers/0, gc_top_mem_consumers/1,
+    top_mem_consumers/0, top_mem_consumers/1,
+    etop/0,
 
-        ,ets_info/0
-        ,mem_info/0, mem_info/1
-        ]).
+    ets_info/0,
+    mem_info/0, mem_info/1
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
@@ -59,8 +63,9 @@ debug_dump_process_info(FolderName) ->
     debug_dump_process_info(InfoLog, erlang:processes()).
 
 -spec debug_dump_process_info(string(), [pid()]) -> 'ok'.
-debug_dump_process_info(_, []) -> 'ok';
-debug_dump_process_info(InfoLog, [Pid|Pids]) ->
+debug_dump_process_info(_, []) ->
+    'ok';
+debug_dump_process_info(InfoLog, [Pid | Pids]) ->
     Info = erlang:process_info(Pid),
     InfoBytes = io_lib:format("~p~n~p~n~n", [Pid, Info]),
     'ok' = file:write_file(InfoLog, InfoBytes, ['append']),
@@ -73,21 +78,24 @@ debug_dump_process_status(FolderName) ->
     debug_dump_processes_status(StatusLog, erlang:processes()).
 
 -spec debug_dump_processes_status(string(), [pid()]) -> 'ok'.
-debug_dump_processes_status(_, []) -> 'ok';
-debug_dump_processes_status(StatusLog, [Pid|Pids]) ->
+debug_dump_processes_status(_, []) ->
+    'ok';
+debug_dump_processes_status(StatusLog, [Pid | Pids]) ->
     debug_dump_process_status(StatusLog, Pid),
     debug_dump_processes_status(StatusLog, Pids).
 
 -spec debug_dump_process_status(string(), pid()) -> 'ok'.
-debug_dump_process_status(StatusLog, Pid)  ->
+debug_dump_process_status(StatusLog, Pid) ->
     debug_dump_process_info(StatusLog, Pid, process_info(Pid)).
 
 -spec debug_dump_process_info(string(), pid(), kz_term:api_proplist()) -> 'ok'.
-debug_dump_process_info(_StatusLog, _Pid, 'undefined') -> 'ok';
+debug_dump_process_info(_StatusLog, _Pid, 'undefined') ->
+    'ok';
 debug_dump_process_info(StatusLog, Pid, Info) ->
     Dictionary = props:get_value('dictionary', Info, []),
     case props:get_value('$initial_call', Dictionary) =/= 'undefined' of
-        'false' -> 'ok';
+        'false' ->
+            'ok';
         'true' ->
             StatusBytes = io_lib:format("~p~n~p~n~n", [Pid, catch sys:get_status(Pid)]),
             'ok' = file:write_file(StatusLog, StatusBytes, ['append'])
@@ -103,8 +111,9 @@ debug_dump_ets(FolderName) ->
     'ok'.
 
 -spec debug_dump_ets_details(string(), [ets:tab()]) -> 'ok'.
-debug_dump_ets_details(_, []) -> 'ok';
-debug_dump_ets_details(EtsFolder, [Tab|Tabs]) ->
+debug_dump_ets_details(_, []) ->
+    'ok';
+debug_dump_ets_details(EtsFolder, [Tab | Tabs]) ->
     TabInfoLog = EtsFolder ++ "/" ++ table_name(Tab) ++ "_info",
     'ok' = start_debug_file(TabInfoLog),
     'ok' = file:write_file(TabInfoLog, io_lib:format("~p~n", [ets:info(Tab)])),
@@ -144,8 +153,9 @@ console_level(Level) ->
 hotload(Module) when is_atom(Module) ->
     _ = code:soft_purge(Module),
     case code:load_file(Module) of
-        {'module', _} -> 'ok';
-        {'error' , Reason} ->
+        {'module', _} ->
+            'ok';
+        {'error', Reason} ->
             io:format("ERROR: unable to hotload ~s: ~s~n", [Module, Reason]),
             'no_return'
     end;
@@ -169,9 +179,15 @@ hotload_app(App) ->
 gc_all() ->
     gc_pids(processes()).
 
--spec gc_pids([pid(),...]) -> 'ok'.
+-spec gc_pids([pid(), ...]) -> 'ok'.
 gc_pids(Ps) ->
-    lists:foreach(fun (P) -> erlang:garbage_collect(P), timer:sleep(500) end, Ps).
+    lists:foreach(
+        fun(P) ->
+            erlang:garbage_collect(P),
+            timer:sleep(500)
+        end,
+        Ps
+    ).
 
 -spec gc_top_mem_consumers() -> 'ok'.
 gc_top_mem_consumers() ->
@@ -180,7 +196,7 @@ gc_top_mem_consumers() ->
 -spec gc_top_mem_consumers(pos_integer()) -> 'ok'.
 gc_top_mem_consumers(N) ->
     {Top, _} = top_mem_consumers(N),
-    gc_pids([P || {P,_} <- Top]).
+    gc_pids([P || {P, _} <- Top]).
 
 -type consumers() :: {kz_term:proplist_kv(pid(), integer()), kz_term:proplist_kv(pid(), integer())}.
 
@@ -192,10 +208,11 @@ top_mem_consumers() ->
 top_mem_consumers(Len) when is_integer(Len), Len > 0 ->
     SortHeapDesc =
         lists:reverse(
-          lists:keysort(2
-                       ,[{P, erlang:process_info(P, 'total_heap_size')} || P <- processes()]
-                       )
-         ),
+            lists:keysort(
+                2,
+                [{P, erlang:process_info(P, 'total_heap_size')} || P <- processes()]
+            )
+        ),
     lists:split(Len, SortHeapDesc).
 
 -spec etop() -> 'ok'.
@@ -212,10 +229,11 @@ ets_info() ->
 -spec sort_tables([ets:tab()]) -> [{string(), integer()}].
 sort_tables(Ts) ->
     lists:reverse(
-      lists:keysort(2
-                   ,[{table_name(T), table_size(T)} || T <- Ts]
-                   )
-     ).
+        lists:keysort(
+            2,
+            [{table_name(T), table_size(T)} || T <- Ts]
+        )
+    ).
 
 -spec table_size(ets:tid()) -> integer().
 table_size(T) ->
@@ -223,14 +241,17 @@ table_size(T) ->
 
 -spec print_table({string(), integer()}) -> 'ok'.
 print_table({Name, Mem}) ->
-    io:format("  ~-25s: ~6s~n", [Name
-                                ,kz_util:pretty_print_bytes(Mem, 'truncated')
-                                ]).
+    io:format("  ~-25s: ~6s~n", [
+        Name,
+        kz_util:pretty_print_bytes(Mem, 'truncated')
+    ]).
 
 -spec log_table({string(), integer()}, file:name_all()) -> 'ok'.
 log_table({Name, Mem}, Filename) ->
-    Bytes = io_lib:format("  ~-25s: ~6s~n", [Name
-                                            ,kz_util:pretty_print_bytes(Mem, 'truncated')]),
+    Bytes = io_lib:format("  ~-25s: ~6s~n", [
+        Name,
+        kz_util:pretty_print_bytes(Mem, 'truncated')
+    ]),
     'ok' = file:write_file(Filename, Bytes, ['append']).
 
 -spec mem_info() -> 'ok'.
@@ -258,7 +279,8 @@ print_app_mem_info(Top, Info) ->
 -spec print_app_mem_info([{atom(), integer()}]) -> 'ok'.
 print_app_mem_info(Sorted) ->
     io:format("~n App Memory Info:~n"),
-    [io:format("  ~p: ~s~n", [App, kz_util:pretty_print_bytes(Mem, 'truncated')])
+    [
+        io:format("  ~p: ~s~n", [App, kz_util:pretty_print_bytes(Mem, 'truncated')])
      || {App, Mem} <- Sorted
     ],
     io:format("~n").
@@ -269,8 +291,7 @@ app_mem_info() ->
 add_mem_info(Pid, Acc) ->
     case process_info(Pid, ['dictionary']) of
         'undefined' -> Acc;
-        [{'dictionary', Dict}] ->
-            add_mem_info(Pid, Acc, props:get_value('application', Dict), Dict)
+        [{'dictionary', Dict}] -> add_mem_info(Pid, Acc, props:get_value('application', Dict), Dict)
     end.
 
 add_mem_info(_Pid, Acc, 'unknown', _Dict) ->
@@ -280,12 +301,12 @@ add_mem_info(Pid, Acc, 'undefined', Dict) ->
     {M, _, _} = props:get_value('$initial_call', Dict, Default),
     case application:get_application(M) of
         'undefined' -> Acc;
-        {'ok', App} ->
-            add_mem_info(Pid, Acc, App, Dict)
+        {'ok', App} -> add_mem_info(Pid, Acc, App, Dict)
     end;
 add_mem_info(Pid, Acc, App, _Dict) ->
     case process_info(Pid, ['total_heap_size']) of
-        'undefined' -> Acc;
+        'undefined' ->
+            Acc;
         [{'total_heap_size', Heap}] ->
             AppUsage = maps:get(App, Acc, 0),
             maps:put(App, AppUsage + Heap, Acc)

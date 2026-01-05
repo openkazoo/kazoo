@@ -57,7 +57,6 @@
 
 -export([handle/2]).
 
-
 %%------------------------------------------------------------------------------
 %% @doc Entry point for this module, creates the parameters and branches
 %% to cf_group_pickup.
@@ -71,21 +70,22 @@ handle(Data, Call) ->
         {'ok', Params} ->
             cf_group_pickup:handle(kz_json:set_values(Params, Data), Call);
         {'error', _E} ->
-            lager:info("error <<~s>> processing pickup '~s' for number ~s"
-                      ,[_E, PickupType, Number]
-                      ),
+            lager:info(
+                "error <<~s>> processing pickup '~s' for number ~s",
+                [_E, PickupType, Number]
+            ),
             _ = kapps_call_command:b_prompt(<<"park-no_caller">>, Call),
             cf_exe:stop(Call)
     end.
 
 -spec build_pickup_params(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', kz_term:ne_binary()}.
+    {'ok', kz_term:proplist()}
+    | {'error', kz_term:ne_binary()}.
 build_pickup_params(Number, <<"device">>, Call) ->
     AccountDb = kapps_call:account_db(Call),
     case cf_util:endpoint_id_by_sip_username(AccountDb, Number) of
         {'ok', EndpointId} -> {'ok', [{<<"device_id">>, EndpointId}]};
-        {'error', _}=E -> E
+        {'error', _} = E -> E
     end;
 build_pickup_params(_Number, <<"user">>, _Call) ->
     {'error', <<"work in progress">>};
@@ -100,14 +100,15 @@ build_pickup_params(Number, <<"extension">>, Call) ->
             params_from_data(Module, Data, Call);
         {'ok', _FlowDoc, 'true'} ->
             {'error', <<"no callflow with extension ", Number/binary>>};
-        {'error', _} = E -> E
+        {'error', _} = E ->
+            E
     end;
 build_pickup_params(_, Other, _) ->
-    {'error', <<Other/binary," not implemented">>}.
+    {'error', <<Other/binary, " not implemented">>}.
 
 -spec params_from_data(kz_term:ne_binary(), kz_json:object(), kapps_call:call()) ->
-          {'ok', kz_term:proplist()} |
-          {'error', kz_term:ne_binary()}.
+    {'ok', kz_term:proplist()}
+    | {'error', kz_term:ne_binary()}.
 params_from_data(<<"user">>, Data, _Call) ->
     EndpointId = kz_json:get_ne_binary_value(<<"id">>, Data),
     {'ok', [{<<"user_id">>, EndpointId}]};
@@ -115,12 +116,12 @@ params_from_data(<<"device">>, Data, _Call) ->
     EndpointId = kz_json:get_ne_binary_value(<<"id">>, Data),
     {'ok', [{<<"device_id">>, EndpointId}]};
 params_from_data(<<"ring_group">>, Data, _Call) ->
-    [Endpoint |_Endpoints] = kz_json:get_list_value(<<"endpoints">>, Data, []),
+    [Endpoint | _Endpoints] = kz_json:get_list_value(<<"endpoints">>, Data, []),
     EndpointType = kz_json:get_ne_binary_value(<<"endpoint_type">>, Endpoint),
     {'ok', [{<<EndpointType/binary, "_id">>, kz_doc:id(Endpoint)}]};
 params_from_data(<<"page_group">>, Data, _Call) ->
     params_from_data(<<"ring_group">>, Data, _Call);
 params_from_data('undefined', _, _) ->
-    {'error',<<"module not defined in callflow">>};
+    {'error', <<"module not defined in callflow">>};
 params_from_data(Other, _, _) ->
-    {'error',<<"module ", Other/binary, " not implemented">>}.
+    {'error', <<"module ", Other/binary, " not implemented">>}.

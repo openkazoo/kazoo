@@ -6,10 +6,11 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_profile).
 
--export([init/0
-        ,req_init/1
-        ,req_finish/1
-        ]).
+-export([
+    init/0,
+    req_init/1,
+    req_finish/1
+]).
 
 -include("crossbar.hrl").
 
@@ -34,22 +35,25 @@ init() ->
     _ = crossbar_bindings:bind(<<"*.finish_request.*.*">>, ?MODULE, 'req_finish').
 
 -spec req_init({cb_context:context(), cowboy_req:req()}) ->
-          {cb_context:context(), cowboy_req:req()}.
+    {cb_context:context(), cowboy_req:req()}.
 req_init({Context, _} = InitArgs) ->
     req_init(cb_context:profile_id(Context), InitArgs).
 
 -spec req_init(kz_term:api_binary(), {cb_context:context(), cowboy_req:req()}) ->
-          {cb_context:context(), cowboy_req:req()}.
+    {cb_context:context(), cowboy_req:req()}.
 req_init('undefined', InitArgs) ->
     InitArgs;
 req_init(ProfileId, InitArgs) ->
     File = list_to_binary([?TRACE_PATH, ProfileId, ".trace"]),
-    case fprof:trace(['start'
-                     ,'verbose'
-                     ,{'file', kz_term:to_list(File)}
-                     ])
+    case
+        fprof:trace([
+            'start',
+            'verbose',
+            {'file', kz_term:to_list(File)}
+        ])
     of
-        'ok' -> lager:debug("started trace ~s", [File]);
+        'ok' ->
+            lager:debug("started trace ~s", [File]);
         {'error', _R} ->
             lager:debug("failed to start tracing ~s: ~p", [File, _R]);
         {'EXIT', _SPid, _R} ->
@@ -58,13 +62,15 @@ req_init(ProfileId, InitArgs) ->
     InitArgs.
 
 -spec req_finish(cb_context:context() | kz_term:api_binary()) -> any().
-req_finish('undefined') -> 'ok';
+req_finish('undefined') ->
+    'ok';
 req_finish(ProfileId) when is_binary(ProfileId) ->
     File = list_to_binary([?TRACE_PATH, ProfileId, ".trace"]),
     lager:debug("now run: erlgrind ~s", [File]),
     lager:debug("then run kcachegrind on the .cgrind file created"),
-    fprof:trace(['stop'
-                ,{'file', kz_term:to_list(File)}
-                ]);
+    fprof:trace([
+        'stop',
+        {'file', kz_term:to_list(File)}
+    ]);
 req_finish(Context) ->
     req_finish(cb_context:profile_id(Context)).

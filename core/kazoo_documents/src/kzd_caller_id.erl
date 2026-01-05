@@ -20,7 +20,6 @@
 -export([internal_name/1, internal_name/2, set_internal_name/2]).
 -export([internal_number/1, internal_number/2, set_internal_number/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

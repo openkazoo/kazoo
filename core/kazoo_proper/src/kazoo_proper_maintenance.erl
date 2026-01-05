@@ -6,11 +6,12 @@
 %%%-----------------------------------------------------------------------------
 -module(kazoo_proper_maintenance).
 
--export([run_modules/0
-        ,run_module/1
-        ,run_seq_modules/0
-        ,run_seq_module/1
-        ]).
+-export([
+    run_modules/0,
+    run_module/1,
+    run_seq_modules/0,
+    run_seq_module/1
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -29,10 +30,11 @@ run_module(ModuleBin) ->
 
 -spec quickcheck_exports(module()) -> 'ok'.
 quickcheck_exports(Module) ->
-    _ = [quickcheck_export(Module, Function)
-         || Function <- ['correct', 'correct_parallel'],
-            kz_module:is_exported(Module, Function, 0)
-        ],
+    _ = [
+        quickcheck_export(Module, Function)
+     || Function <- ['correct', 'correct_parallel'],
+        kz_module:is_exported(Module, Function, 0)
+    ],
     'ok'.
 
 -spec quickcheck_export(module(), atom()) -> 'true'.
@@ -51,7 +53,8 @@ run_seq_module(Module) when is_atom(Module) ->
 run_seq_module(ModuleBin) ->
     run_seq_module(kz_term:to_atom(ModuleBin)).
 
-run_seq_module(_Module, 'false') -> 'no_return';
+run_seq_module(_Module, 'false') ->
+    'no_return';
 run_seq_module(Module, 'true') ->
     StartTimeMs = kz_time:now_ms(),
     Module:seq(),
@@ -61,7 +64,8 @@ run_seq_module(Module, 'true') ->
 -spec modules() -> [module()].
 modules() ->
     case application:get_key('kazoo_proper', 'modules') of
-        {'ok', Modules} -> Modules;
+        {'ok', Modules} ->
+            Modules;
         'undefined' ->
             'ok' = application:load('kazoo_proper'),
             modules()

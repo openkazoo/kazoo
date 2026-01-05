@@ -12,9 +12,10 @@
 %%%-----------------------------------------------------------------------------
 -module(bh_token_auth).
 
--export([init/0
-        ,authenticate/2
-        ]).
+-export([
+    init/0,
+    authenticate/2
+]).
 
 -include("blackhole.hrl").
 
@@ -43,8 +44,9 @@ authenticate(Context, _Payload) ->
 auth_token(Context, 'undefined') ->
     lager:debug("no token included"),
     bh_context:add_error(Context, <<"authentication token required">>);
-auth_token(Context, Token)
-  when is_binary(Token)->
+auth_token(Context, Token) when
+    is_binary(Token)
+->
     lager:debug("trying to authenticate with token: ~s", [Token]),
     case kz_auth:validate_token(Token) of
         {'ok', JObj} ->

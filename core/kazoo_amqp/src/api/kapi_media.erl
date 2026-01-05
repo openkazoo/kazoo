@@ -24,40 +24,52 @@
 %% Media Request - when streaming is needed
 -define(MEDIA_REQ_ROUTING_KEY, <<"media_req">>).
 -define(MEDIA_REQ_HEADERS, [<<"Media-Name">>]).
--define(OPTIONAL_MEDIA_REQ_HEADERS, [<<"Stream-Type">>, <<"Call-ID">>
-                                         %% TTS-related flags
-                                    ,<<"Text">>, <<"Voice">>, <<"Language">>, <<"Format">>
-                                    ,<<"Account-ID">>, <<"Protocol">>, <<"Engine">>
-                                    ]).
--define(MEDIA_REQ_VALUES, [{<<"Event-Category">>, <<"media">>}
-                          ,{<<"Event-Name">>, <<"media_req">>}
-                          ,{<<"Stream-Type">>, [<<"new">>, <<"extant">>]}
-                          ,{<<"Voice">>, [<<"male">>, <<"female">>]}
-                          ,{<<"Format">>, [<<"mp3">>, <<"wav">>]}
-                          ,{<<"Protocol">>, [<<"http">>, <<"https">>, <<"shout">>, <<"vlc">>]}
-                          ]).
+-define(OPTIONAL_MEDIA_REQ_HEADERS, [
+    <<"Stream-Type">>,
+    <<"Call-ID">>,
+    %% TTS-related flags
+    <<"Text">>,
+    <<"Voice">>,
+    <<"Language">>,
+    <<"Format">>,
+    <<"Account-ID">>,
+    <<"Protocol">>,
+    <<"Engine">>
+]).
+-define(MEDIA_REQ_VALUES, [
+    {<<"Event-Category">>, <<"media">>},
+    {<<"Event-Name">>, <<"media_req">>},
+    {<<"Stream-Type">>, [<<"new">>, <<"extant">>]},
+    {<<"Voice">>, [<<"male">>, <<"female">>]},
+    {<<"Format">>, [<<"mp3">>, <<"wav">>]},
+    {<<"Protocol">>, [<<"http">>, <<"https">>, <<"shout">>, <<"vlc">>]}
+]).
 -define(MEDIA_REQ_TYPES, []).
 
 %% Media Response
 -define(MEDIA_RESP_HEADERS, [<<"Media-Name">>, <<"Stream-URL">>]).
 -define(OPTIONAL_MEDIA_RESP_HEADERS, []).
--define(MEDIA_RESP_VALUES, [{<<"Event-Category">>, <<"media">>}
-                           ,{<<"Event-Name">>, <<"media_resp">>}
-                           ]).
--define(MEDIA_RESP_TYPES, [{<<"Stream-URL">>, fun(<<"shout://", _/binary>>) -> 'true';
-                                                 (<<"http://", _/binary>>) -> 'true';
-                                                 (<<"vlc://", _/binary>>) -> 'true';
-                                                 (_) -> 'false'
-                                              end}
-                          ]).
+-define(MEDIA_RESP_VALUES, [
+    {<<"Event-Category">>, <<"media">>},
+    {<<"Event-Name">>, <<"media_resp">>}
+]).
+-define(MEDIA_RESP_TYPES, [
+    {<<"Stream-URL">>, fun
+        (<<"shout://", _/binary>>) -> 'true';
+        (<<"http://", _/binary>>) -> 'true';
+        (<<"vlc://", _/binary>>) -> 'true';
+        (_) -> 'false'
+    end}
+]).
 
 %% Media Error
 -define(MEDIA_ERROR_HEADERS, [<<"Media-Name">>, <<"Error-Code">>]).
 -define(OPTIONAL_MEDIA_ERROR_HEADERS, [<<"Error-Msg">>]).
--define(MEDIA_ERROR_VALUES, [{<<"Event-Category">>, <<"media">>}
-                            ,{<<"Event-Name">>, <<"media_error">>}
-                            ,{<<"Error-Code">>, [<<"not_found">>, <<"no_data">>, <<"other">>]}
-                            ]).
+-define(MEDIA_ERROR_VALUES, [
+    {<<"Event-Category">>, <<"media">>},
+    {<<"Event-Name">>, <<"media_error">>},
+    {<<"Error-Code">>, [<<"not_found">>, <<"no_data">>, <<"other">>]}
+]).
 -define(MEDIA_ERROR_TYPES, []).
 
 %%------------------------------------------------------------------------------
@@ -66,19 +78,21 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec req(kz_term:api_terms()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 req(Prop) when is_list(Prop) ->
     case req_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?MEDIA_REQ_HEADERS, ?OPTIONAL_MEDIA_REQ_HEADERS);
         'false' -> {'error', "Proplist failed validation for media_req"}
     end;
-req(JObj) -> req(kz_json:to_proplist(JObj)).
+req(JObj) ->
+    req(kz_json:to_proplist(JObj)).
 
 -spec req_v(kz_term:api_terms()) -> boolean().
 req_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?MEDIA_REQ_HEADERS, ?MEDIA_REQ_VALUES, ?MEDIA_REQ_TYPES);
-req_v(JObj) -> req_v(kz_json:to_proplist(JObj)).
+req_v(JObj) ->
+    req_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Response with media.
@@ -86,19 +100,21 @@ req_v(JObj) -> req_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec resp(kz_json:object() | kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 resp(Prop) when is_list(Prop) ->
     case resp_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?MEDIA_RESP_HEADERS, ?OPTIONAL_MEDIA_RESP_HEADERS);
         'false' -> {'error', "Proplist failed validation for media_resp"}
     end;
-resp(JObj) -> resp(kz_json:to_proplist(JObj)).
+resp(JObj) ->
+    resp(kz_json:to_proplist(JObj)).
 
 -spec resp_v(kz_term:proplist() | kz_json:object()) -> boolean().
 resp_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?MEDIA_RESP_HEADERS, ?MEDIA_RESP_VALUES, ?MEDIA_RESP_TYPES);
-resp_v(JObj) -> resp_v(kz_json:to_proplist(JObj)).
+resp_v(JObj) ->
+    resp_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Media error.
@@ -106,19 +122,21 @@ resp_v(JObj) -> resp_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec error(kz_term:proplist() | kz_json:object()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 error(Prop) when is_list(Prop) ->
     case error_v(Prop) of
         'true' -> kz_api:build_message(Prop, ?MEDIA_ERROR_HEADERS, ?OPTIONAL_MEDIA_ERROR_HEADERS);
         'false' -> {'error', "Proplist failed validation for media_error"}
     end;
-error(JObj) -> error(kz_json:to_proplist(JObj)).
+error(JObj) ->
+    error(kz_json:to_proplist(JObj)).
 
 -spec error_v(kz_term:proplist() | kz_json:object()) -> boolean().
 error_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?MEDIA_ERROR_HEADERS, ?MEDIA_ERROR_VALUES, ?MEDIA_ERROR_TYPES);
-error_v(JObj) -> error_v(kz_json:to_proplist(JObj)).
+error_v(JObj) ->
+    error_v(kz_json:to_proplist(JObj)).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, _Props) ->

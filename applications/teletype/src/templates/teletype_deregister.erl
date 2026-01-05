@@ -7,14 +7,19 @@
 -module(teletype_deregister).
 -behaviour(teletype_gen_email_template).
 
--export([id/0
-        ,init/0
-        ,macros/0, macros/1
-        ,subject/0
-        ,category/0
-        ,friendly_name/0
-        ,to/0, from/0, cc/0, bcc/0, reply_to/0
-        ]).
+-export([
+    id/0,
+    init/0,
+    macros/0, macros/1,
+    subject/0,
+    category/0,
+    friendly_name/0,
+    to/0,
+    from/0,
+    cc/0,
+    bcc/0,
+    reply_to/0
+]).
 -export([handle_req/1]).
 
 -include("teletype.hrl").
@@ -25,24 +30,106 @@ id() -> <<"deregister">>.
 -spec macros() -> kz_json:object().
 macros() ->
     kz_json:from_list(
-      [?MACRO_VALUE(<<"last_registration.username">>, <<"last_registration_username">>, <<"SIP Username">>, <<"SIP username">>)
-      ,?MACRO_VALUE(<<"last_registration.status">>, <<"last_registration_status">>, <<"Status">>, <<"Status">>)
-      ,?MACRO_VALUE(<<"last_registration.user_agent">>, <<"last_registration_user_agent">>, <<"SIP User Agent">>, <<"SIP User Agent">>)
-      ,?MACRO_VALUE(<<"last_registration.call_id">>, <<"last_registration_call_id">>, <<"SIP Call ID">>, <<"SIP Call ID">>)
-      ,?MACRO_VALUE(<<"last_registration.profile_name">>, <<"last_registration_profile_name">>, <<"Profile Name">>, <<"Profile Name">>)
-      ,?MACRO_VALUE(<<"last_registration.presence_hosts">>, <<"last_registration_presence_hosts">>, <<"Presence Hosts">>, <<"Presence Hosts">>)
-      ,?MACRO_VALUE(<<"last_registration.from_user">>, <<"last_registration_from_user">>, <<"SIP From User">>, <<"SIP From User">>)
-      ,?MACRO_VALUE(<<"last_registration.from_host">>, <<"last_registration_from_host">>, <<"SIP From Host">>, <<"SIP From Host">>)
-      ,?MACRO_VALUE(<<"last_registration.to_user">>, <<"last_registration_to_user">>, <<"SIP To User">>, <<"SIP To User">>)
-      ,?MACRO_VALUE(<<"last_registration.to_host">>, <<"last_registration_to_host">>, <<"SIP To Host">>, <<"SIP To Host">>)
-      ,?MACRO_VALUE(<<"last_registration.rpid">>, <<"last_registration_rpid">>, <<"SIP RPID">>, <<"SIP RPID">>)
-      ,?MACRO_VALUE(<<"last_registration.network_ip">>, <<"last_registration_network_ip">>, <<"Network IP">>, <<"Network IP">>)
-      ,?MACRO_VALUE(<<"last_registration.network_port">>, <<"last_registration_network_port">>, <<"Network Port">>, <<"Network Port">>)
-      ,?MACRO_VALUE(<<"last_registration.contact">>, <<"last_registration_contact">>, <<"SIP Contact">>, <<"SIP Contact">>)
-      ,?MACRO_VALUE(<<"last_registration.expires">>, <<"last_registration_expires">>, <<"Expires">>, <<"Expires">>)
-      ,?MACRO_VALUE(<<"last_registration.authorizing_id">>, <<"last_registration_authorizing_id">>, <<"Authorizing ID">>, <<"Authorizing ID">>)
-       | ?COMMON_TEMPLATE_MACROS
-      ]).
+        [
+            ?MACRO_VALUE(
+                <<"last_registration.username">>,
+                <<"last_registration_username">>,
+                <<"SIP Username">>,
+                <<"SIP username">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.status">>,
+                <<"last_registration_status">>,
+                <<"Status">>,
+                <<"Status">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.user_agent">>,
+                <<"last_registration_user_agent">>,
+                <<"SIP User Agent">>,
+                <<"SIP User Agent">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.call_id">>,
+                <<"last_registration_call_id">>,
+                <<"SIP Call ID">>,
+                <<"SIP Call ID">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.profile_name">>,
+                <<"last_registration_profile_name">>,
+                <<"Profile Name">>,
+                <<"Profile Name">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.presence_hosts">>,
+                <<"last_registration_presence_hosts">>,
+                <<"Presence Hosts">>,
+                <<"Presence Hosts">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.from_user">>,
+                <<"last_registration_from_user">>,
+                <<"SIP From User">>,
+                <<"SIP From User">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.from_host">>,
+                <<"last_registration_from_host">>,
+                <<"SIP From Host">>,
+                <<"SIP From Host">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.to_user">>,
+                <<"last_registration_to_user">>,
+                <<"SIP To User">>,
+                <<"SIP To User">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.to_host">>,
+                <<"last_registration_to_host">>,
+                <<"SIP To Host">>,
+                <<"SIP To Host">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.rpid">>,
+                <<"last_registration_rpid">>,
+                <<"SIP RPID">>,
+                <<"SIP RPID">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.network_ip">>,
+                <<"last_registration_network_ip">>,
+                <<"Network IP">>,
+                <<"Network IP">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.network_port">>,
+                <<"last_registration_network_port">>,
+                <<"Network Port">>,
+                <<"Network Port">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.contact">>,
+                <<"last_registration_contact">>,
+                <<"SIP Contact">>,
+                <<"SIP Contact">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.expires">>,
+                <<"last_registration_expires">>,
+                <<"Expires">>,
+                <<"Expires">>
+            ),
+            ?MACRO_VALUE(
+                <<"last_registration.authorizing_id">>,
+                <<"last_registration_authorizing_id">>,
+                <<"Authorizing ID">>,
+                <<"Authorizing ID">>
+            )
+            | ?COMMON_TEMPLATE_MACROS
+        ]
+    ).
 
 -spec subject() -> kz_term:ne_binary().
 subject() -> <<"Loss of Registration for '{{last_registration.username}}'">>.
@@ -122,7 +209,8 @@ macros(DataJObj, []) ->
     teletype_util:send_update(DataJObj, <<"failed">>, <<"missing account">>),
     exit('normal');
 macros(DataJObj, AccountParams) ->
-    [{<<"system">>, teletype_util:system_params()}
-    ,{<<"account">>, AccountParams}
-    ,{<<"last_registration">>, kz_json:to_proplist(DataJObj)}
+    [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, AccountParams},
+        {<<"last_registration">>, kz_json:to_proplist(DataJObj)}
     ].

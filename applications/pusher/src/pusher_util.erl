@@ -15,26 +15,29 @@
 
 -include("pusher.hrl").
 
--type pki_asn1_type() :: 'Certificate' |
-                         'RSAPrivateKey'| 'RSAPublicKey' |
-                         'DSAPrivateKey' | 'DSAPublicKey' |
-                         'DHParameter' | 'SubjectPublicKeyInfo'|
-                         'PrivateKeyInfo' | 'CertificationRequest'.
+-type pki_asn1_type() ::
+    'Certificate'
+    | 'RSAPrivateKey'
+    | 'RSAPublicKey'
+    | 'DSAPrivateKey'
+    | 'DSAPublicKey'
+    | 'DHParameter'
+    | 'SubjectPublicKeyInfo'
+    | 'PrivateKeyInfo'
+    | 'CertificationRequest'.
 
--type pem_entry() :: {pki_asn1_type()
-                     ,binary()
-                     ,'not_encrypted' | cipher_info()
-                     }.
+-type pem_entry() :: {pki_asn1_type(), binary(), 'not_encrypted' | cipher_info()}.
 
 -type cipher_info() :: any().
 %% {"RC2-CBC" | "DES-CBC" | "DES-EDE3-CBC"
 %%  ,binary() | 'PBES2-params'
 %% }.
 
--type keycert() :: {'undefined' |
-                    {'PrivateKeyInfo' | 'RSAPrivateKey', binary()}
-                   ,kz_term:api_binary()
-                   }.
+-type keycert() :: {
+    'undefined'
+    | {'PrivateKeyInfo' | 'RSAPrivateKey', binary()},
+    kz_term:api_binary()
+}.
 -export_type([keycert/0]).
 
 %%==============================================================================
@@ -70,10 +73,10 @@ user_agent_push_properties(UserAgent) ->
     user_agent_push_properties(UserAgent, kz_json:values(UAs)).
 
 -spec user_agent_push_properties(kz_term:ne_binary(), kz_json:objects()) -> kz_term:api_object().
-user_agent_push_properties(_UserAgent, []) -> 'undefined';
-user_agent_push_properties(UserAgent, [JObj|UAs]) ->
+user_agent_push_properties(_UserAgent, []) ->
+    'undefined';
+user_agent_push_properties(UserAgent, [JObj | UAs]) ->
     case re:run(UserAgent, kz_json:get_value(<<"regex">>, JObj, <<"^\$">>)) of
         'nomatch' -> user_agent_push_properties(UserAgent, UAs);
-        _ ->
-            kz_json:get_value(<<"properties">>, JObj, kz_json:new())
+        _ -> kz_json:get_value(<<"properties">>, JObj, kz_json:new())
     end.

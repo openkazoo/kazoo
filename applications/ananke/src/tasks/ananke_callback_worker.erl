@@ -7,27 +7,30 @@
 -module(ananke_callback_worker).
 -behaviour(gen_server).
 
--export([start_link/2
-        ,start_link/3
-        ]).
+-export([
+    start_link/2,
+    start_link/3
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ananke.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {request      :: kz_term:proplist() | 'undefined'
-               ,timer        :: kz_term:api_reference()
-               ,schedule     :: pos_integers() | 'undefined'
-               ,check = 'true' :: check_fun()
-               }).
+-record(state, {
+    request :: kz_term:proplist() | 'undefined',
+    timer :: kz_term:api_reference(),
+    schedule :: pos_integers() | 'undefined',
+    check = 'true' :: check_fun()
+}).
 
 -type state() :: #state{}.
 
@@ -35,12 +38,14 @@
 start_link(Req, [_ | _] = Schedule) ->
     start_link(#state{request = Req, schedule = Schedule}).
 
--spec start_link(kz_term:proplist(), pos_integers(), check_fun()) -> {'ok', pid()} | {'error', any()}.
+-spec start_link(kz_term:proplist(), pos_integers(), check_fun()) ->
+    {'ok', pid()} | {'error', any()}.
 start_link(Req, [_ | _] = Schedule, CheckFun) ->
-    start_link(#state{request = Req
-                     ,schedule = Schedule
-                     ,check = CheckFun
-                     }).
+    start_link(#state{
+        request = Req,
+        schedule = Schedule,
+        check = CheckFun
+    }).
 
 -spec start_link(state()) -> {'ok', pid()} | {'error', any()}.
 start_link(#state{} = State) ->
@@ -62,10 +67,11 @@ handle_cast(_Msg, State) ->
 -spec handle_info('originate', state()) -> {'noreply', state()} | {'stop', any(), state()}.
 handle_info('originate', #state{request = Req} = State) ->
     ReqTimeout = props:get_value(<<"Timeout">>, Req) * ?MILLISECONDS_IN_SECOND,
-    Routines = [{fun maybe_set_timer/2, ReqTimeout}
-               ,{fun check_condition/2, {}}
-               ,{fun send_request/2, Req}
-               ],
+    Routines = [
+        {fun maybe_set_timer/2, ReqTimeout},
+        {fun check_condition/2, {}},
+        {fun send_request/2, Req}
+    ],
     return(State, Routines).
 
 -spec terminate(any(), state()) -> 'ok'.
@@ -80,10 +86,11 @@ code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
 -spec is_resp(kz_json:object() | kz_json:objects()) -> boolean().
-is_resp([JObj|_]) -> is_resp(JObj);
+is_resp([JObj | _]) ->
+    is_resp(JObj);
 is_resp(JObj) ->
-    kapi_resource:originate_resp_v(JObj)
-        orelse kz_api:error_resp_v(JObj).
+    kapi_resource:originate_resp_v(JObj) orelse
+        kz_api:error_resp_v(JObj).
 
 -type routine_ret() :: state() | {'stop', any(), state()} | 'stop' | 'continue'.
 -type routine_fun() :: fun((state(), any()) -> routine_ret()).
@@ -95,7 +102,8 @@ return(#state{} = State, [{Fun, Args} | Routines]) ->
     case Fun(State, Args) of
         #state{} = NewState ->
             return(NewState, Routines);
-        'stop' -> {'stop', 'normal', State};
+        'stop' ->
+            {'stop', 'normal', State};
         {'stop', _, #state{}} = Return ->
             Return;
         'continue' ->
@@ -109,14 +117,16 @@ check_condition(#state{check = 'true'}, _) ->
     'continue';
 check_condition(#state{check = {Module, Fun, Args}}, _) ->
     case erlang:apply(Module, Fun, Args) of
-        'true' -> 'continue';
+        'true' ->
+            'continue';
         'false' ->
             lager:info("condition failed, stopping"),
             'stop'
     end;
 check_condition(#state{check = Fun}, _) when is_function(Fun, 0) ->
     case Fun() of
-        'true' -> 'continue';
+        'true' ->
+            'continue';
         'false' ->
             lager:info("condition failed, stopping"),
             'stop'
@@ -126,10 +136,13 @@ check_condition(#state{check = Fun}, _) when is_function(Fun, 0) ->
 send_request(State, Req) ->
     lager:debug("sending originate request"),
     ReqTimeout = props:get_value(<<"Timeout">>, Req) * ?MILLISECONDS_IN_SECOND,
-    case kz_amqp_worker:call_collect(Req
-                                    ,fun kapi_resource:publish_originate_req/1
-                                    ,fun is_resp/1
-                                    ,ReqTimeout + 10 * ?MILLISECONDS_IN_SECOND)
+    case
+        kz_amqp_worker:call_collect(
+            Req,
+            fun kapi_resource:publish_originate_req/1,
+            fun is_resp/1,
+            ReqTimeout + 10 * ?MILLISECONDS_IN_SECOND
+        )
     of
         {'ok', [Resp | _]} ->
             handle_originate_response(Resp, State);
@@ -141,10 +154,11 @@ send_request(State, Req) ->
 -spec maybe_set_timer(state(), pos_integer()) -> state().
 maybe_set_timer(#state{schedule = [TimeoutS | Schedule]} = State, ReqTimeout) ->
     Timeout = TimeoutS * ?MILLISECONDS_IN_SECOND,
-    TimerTimeout = case (ReqTimeout > Timeout) of
-                       'true' -> ReqTimeout + Timeout;
-                       'false' -> Timeout
-                   end,
+    TimerTimeout =
+        case (ReqTimeout > Timeout) of
+            'true' -> ReqTimeout + Timeout;
+            'false' -> Timeout
+        end,
     Timer = start_originate_timer(TimerTimeout),
     State#state{timer = Timer, schedule = Schedule};
 maybe_set_timer(#state{schedule = []} = State, _ReqTimeout) ->
@@ -157,11 +171,11 @@ start_originate_timer(Timeout) ->
 
 -spec stop_originate_timer(reference()) -> 'ok' | {'error', any()}.
 stop_originate_timer('undefined') -> 'ok';
-stop_originate_timer(Timer) ->
-    erlang:cancel_timer(Timer).
+stop_originate_timer(Timer) -> erlang:cancel_timer(Timer).
 
--spec handle_originate_response(kz_json:object(), state()) -> {'stop', 'normal', state()} |
-          state().
+-spec handle_originate_response(kz_json:object(), state()) ->
+    {'stop', 'normal', state()}
+    | state().
 handle_originate_response(Resp, State) ->
     case kz_json:get_first_defined([<<"Application-Response">>, <<"Error-Message">>], Resp) of
         <<"SUCCESS">> ->

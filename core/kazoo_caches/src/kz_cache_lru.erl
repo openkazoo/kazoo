@@ -6,24 +6,27 @@
 -module(kz_cache_lru).
 -behaviour(gen_server).
 
--export([start_link/2
-        ,update_expire_period/2
-        ]).
+-export([
+    start_link/2,
+    update_expire_period/2
+]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("kz_caches.hrl").
 
--record(state, {name :: atom()
-               ,expire_period = ?EXPIRE_PERIOD_MS :: timeout()
-               ,expire_period_ref :: reference()
-               }).
+-record(state, {
+    name :: atom(),
+    expire_period = ?EXPIRE_PERIOD_MS :: timeout(),
+    expire_period_ref :: reference()
+}).
 -type state() :: #state{}.
 
 -spec start_link(atom(), timeout()) -> kz_types:startlink_ret().
@@ -39,10 +42,11 @@ init([Name, ExpirePeriod]) ->
     kz_util:put_callid(lru_name(Name)),
     lager:info("LRU expiration checks every ~pms", [ExpirePeriod]),
 
-    {'ok', #state{name=Name
-                 ,expire_period=ExpirePeriod
-                 ,expire_period_ref=start_expire_period_timer(ExpirePeriod)
-                 }}.
+    {'ok', #state{
+        name = Name,
+        expire_period = ExpirePeriod,
+        expire_period_ref = start_expire_period_timer(ExpirePeriod)
+    }}.
 
 -spec handle_call(any(), kz_types:pid_ref(), state()) -> {'noreply', state()}.
 handle_call(_Req, _From, State) ->
@@ -55,16 +59,18 @@ handle_cast(_Req, State) ->
     {'noreply', State}.
 
 -spec handle_info(any(), state()) -> {'noreply', state()}.
-handle_info({'timeout', Ref, ?EXPIRE_PERIOD_MSG}
-           ,#state{name=Name
-                  ,expire_period_ref=Ref
-                  ,expire_period=Period
-                  }=State
-           ) ->
+handle_info(
+    {'timeout', Ref, ?EXPIRE_PERIOD_MSG},
+    #state{
+        name = Name,
+        expire_period_ref = Ref,
+        expire_period = Period
+    } = State
+) ->
     _Expired = kz_cache_ets:expire_objects(Name),
-    _Expired > 0
-        andalso lager:debug("expired objects: ~p", [_Expired]),
-    {'noreply', State#state{expire_period_ref=start_expire_period_timer(Period)}};
+    _Expired > 0 andalso
+        lager:debug("expired objects: ~p", [_Expired]),
+    {'noreply', State#state{expire_period_ref = start_expire_period_timer(Period)}};
 handle_info(_Msg, State) ->
     {'noreply', State}.
 
@@ -89,23 +95,28 @@ start_expire_period_timer(ExpirePeriod) ->
     erlang:start_timer(ExpirePeriod, self(), ?EXPIRE_PERIOD_MSG).
 
 -spec maybe_update_expire_period(state(), timeout()) -> state().
-maybe_update_expire_period(#state{expire_period=ExpirePeriodMs
-                                 ,expire_period_ref=Ref
-                                 }=State
-                          ,ExpiresS
-                          )
-  when is_integer(ExpiresS)
-       andalso (ExpiresS * ?MILLISECONDS_IN_SECOND) < ExpirePeriodMs
-       ->
+maybe_update_expire_period(
+    #state{
+        expire_period = ExpirePeriodMs,
+        expire_period_ref = Ref
+    } = State,
+    ExpiresS
+) when
+    is_integer(ExpiresS) andalso
+        (ExpiresS * ?MILLISECONDS_IN_SECOND) < ExpirePeriodMs
+->
     ExpiresMs = ExpiresS * ?MILLISECONDS_IN_SECOND,
     ?LOG_INFO("updating expires period to smaller ~p (from ~p)", [ExpiresMs, ExpirePeriodMs]),
-    NewRef = case erlang:read_timer(Ref) of
-                 Left when Left =< ExpiresMs -> Ref;
-                 _Left ->
-                     _ = erlang:cancel_timer(Ref),
-                     start_expire_period_timer(ExpiresMs)
-             end,
-    State#state{expire_period=ExpiresMs
-               ,expire_period_ref=NewRef
-               };
-maybe_update_expire_period(State, _Expires) -> State.
+    NewRef =
+        case erlang:read_timer(Ref) of
+            Left when Left =< ExpiresMs -> Ref;
+            _Left ->
+                _ = erlang:cancel_timer(Ref),
+                start_expire_period_timer(ExpiresMs)
+        end,
+    State#state{
+        expire_period = ExpiresMs,
+        expire_period_ref = NewRef
+    };
+maybe_update_expire_period(State, _Expires) ->
+    State.

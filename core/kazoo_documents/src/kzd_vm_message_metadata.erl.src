@@ -15,7 +15,6 @@
 -export([timestamp/1, timestamp/2, set_timestamp/2]).
 -export([to/1, to/2, set_to/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

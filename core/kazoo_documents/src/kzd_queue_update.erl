@@ -9,7 +9,6 @@
 -export([action/1, action/2, set_action/2]).
 -export([queue_id/1, queue_id/2, set_queue_id/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

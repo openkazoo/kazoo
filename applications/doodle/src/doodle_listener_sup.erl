@@ -42,7 +42,8 @@ start_link() ->
 worker() ->
     Listeners = supervisor:which_children(?SERVER),
     case length(Listeners) of
-        0 -> {'error', 'no_connections'};
+        0 ->
+            {'error', 'no_connections'};
         Size ->
             Selected = rand:uniform(Size),
             {_, Pid, _, _} = lists:nth(Selected, Listeners),
@@ -70,10 +71,12 @@ init([]) ->
 
 init_workers(Pid) ->
     Workers = kapps_config:get_integer(?CONFIG_CAT, <<"listeners">>, 1),
-    _ = kz_util:spawn(fun() -> [begin
-                                    _ = supervisor:start_child(Pid, []),
-                                    timer:sleep(500)
-                                end
-                                || _N <- lists:seq(1, Workers)
-                               ]
-                      end).
+    _ = kz_util:spawn(fun() ->
+        [
+            begin
+                _ = supervisor:start_child(Pid, []),
+                timer:sleep(500)
+            end
+         || _N <- lists:seq(1, Workers)
+        ]
+    end).

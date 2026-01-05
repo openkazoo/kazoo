@@ -11,15 +11,18 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_basic_auth).
 
--export([init/0
-        ,authenticate/1
-        ]).
+-export([
+    init/0,
+    authenticate/1
+]).
 
 -include("crossbar.hrl").
 
 -define(DEFAULT_BASIC_AUTH_TYPE, <<"md5">>).
 -define(BASIC_AUTH_KEY, <<"basic_auth_type">>).
--define(BASIC_AUTH_TYPE, kapps_config:get_ne_binary(?AUTH_CONFIG_CAT, ?BASIC_AUTH_KEY, ?DEFAULT_BASIC_AUTH_TYPE)).
+-define(BASIC_AUTH_TYPE,
+    kapps_config:get_ne_binary(?AUTH_CONFIG_CAT, ?BASIC_AUTH_KEY, ?DEFAULT_BASIC_AUTH_TYPE)
+).
 
 -define(ACCT_MD5_LIST, <<"users/creds_by_md5">>).
 -define(ACCT_SHA1_LIST, <<"users/creds_by_sha">>).
@@ -44,33 +47,39 @@ init() ->
 %%------------------------------------------------------------------------------
 
 -spec authenticate(cb_context:context()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
 authenticate(Context) ->
     authenticate(Context, cb_context:auth_token_type(Context)).
 
 -spec authenticate(cb_context:context(), atom()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
 authenticate(Context, 'basic') ->
     _ = cb_context:put_reqid(Context),
-    case kz_buckets:consume_tokens(?APP_NAME
-                                  ,cb_modules_util:bucket_name(Context)
-                                  ,cb_modules_util:token_cost(Context)
-                                  )
+    case
+        kz_buckets:consume_tokens(
+            ?APP_NAME,
+            cb_modules_util:bucket_name(Context),
+            cb_modules_util:token_cost(Context)
+        )
     of
-        'true' -> check_basic_token(Context, cb_context:auth_token(Context));
+        'true' ->
+            check_basic_token(Context, cb_context:auth_token(Context));
         'false' ->
             lager:warning("rate limiting threshold hit for ~s!", [cb_context:client_ip(Context)]),
             {'stop', cb_context:add_system_error('too_many_requests', Context)}
     end;
-authenticate(_Context, _TokenType) -> 'false'.
+authenticate(_Context, _TokenType) ->
+    'false'.
 
 -spec check_basic_token(cb_context:context(), kz_term:api_binary()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
-check_basic_token(_Context, <<>>) -> 'false';
-check_basic_token(_Context, 'undefined') -> 'false';
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
+check_basic_token(_Context, <<>>) ->
+    'false';
+check_basic_token(_Context, 'undefined') ->
+    'false';
 check_basic_token(Context, AuthToken) ->
     case kz_cache:peek_local(?CACHE_NAME, {'basic_auth', AuthToken}) of
         {'ok', JObj} -> is_expired(Context, JObj);
@@ -78,27 +87,36 @@ check_basic_token(Context, AuthToken) ->
     end.
 
 -spec maybe_check_credentials(cb_context:context(), kz_term:api_binary()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
 maybe_check_credentials(Context, AuthToken) ->
     lager:debug("checking basic token: '~s'", [AuthToken]),
     case binary:split(base64:decode(AuthToken), <<":">>) of
-        [AccountId, Credentials] -> check_credentials(Context, AccountId, Credentials);
-        _ -> lager:debug("basic token '~s' check failed", [AuthToken]),
-             'false'
+        [AccountId, Credentials] ->
+            check_credentials(Context, AccountId, Credentials);
+        _ ->
+            lager:debug("basic token '~s' check failed", [AuthToken]),
+            'false'
     end.
 
 -spec check_credentials(cb_context:context(), kz_term:ne_binary(), kz_term:api_binary()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
 check_credentials(Context, AccountId, Credentials) ->
     lager:debug("checking credentials '~s' for account '~s'", [Credentials, AccountId]),
-    BasicType = kapps_account_config:get(AccountId, ?AUTH_CONFIG_CAT, ?BASIC_AUTH_KEY, ?BASIC_AUTH_TYPE),
+    BasicType = kapps_account_config:get(
+        AccountId, ?AUTH_CONFIG_CAT, ?BASIC_AUTH_KEY, ?BASIC_AUTH_TYPE
+    ),
     check_credentials(Context, AccountId, Credentials, BasicType).
 
--spec check_credentials(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary() | {kz_term:ne_binary(), kz_term:ne_binary()}, kz_term:ne_binary()) ->
-          'false' |
-          {'true' | 'stop', cb_context:context()}.
+-spec check_credentials(
+    cb_context:context(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary() | {kz_term:ne_binary(), kz_term:ne_binary()},
+    kz_term:ne_binary()
+) ->
+    'false'
+    | {'true' | 'stop', cb_context:context()}.
 check_credentials(Context, AccountId, {Username, Password}, _BasicType) ->
     {MD5, _SHA1} = cb_modules_util:pass_hashes(Username, Password),
     check_credentials(Context, AccountId, MD5, <<"md5">>);
@@ -118,7 +136,8 @@ check_credentials(Context, AccountId, Credentials, BasicType) ->
         _ -> 'false'
     end.
 
--spec get_credential_doc(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:api_object().
+-spec get_credential_doc(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    kz_term:api_object().
 get_credential_doc(AccountId, View, Key) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     Options = [{'key', Key}, 'include_docs'],
@@ -128,8 +147,8 @@ get_credential_doc(AccountId, View, Key) ->
     end.
 
 -spec is_expired(cb_context:context(), kz_json:object()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
+    boolean()
+    | {'stop', cb_context:context()}.
 is_expired(Context, JObj) ->
     AccountId = kz_doc:account_id(JObj),
     AccountDb = kz_util:format_account_db(AccountId),
@@ -144,18 +163,22 @@ is_expired(Context, JObj) ->
             _ = kz_util:spawn(fun crossbar_util:maybe_disable_account/1, [AccountId]),
             Cause =
                 kz_json:from_list(
-                  [{<<"message">>, <<"account expired">>}
-                  ,{<<"cause">>, Expired}
-                  ]
-                 ),
-            Context1 = cb_context:add_validation_error(<<"account">>, <<"expired">>, Cause, Context),
+                    [
+                        {<<"message">>, <<"account expired">>},
+                        {<<"cause">>, Expired}
+                    ]
+                ),
+            Context1 = cb_context:add_validation_error(
+                <<"account">>, <<"expired">>, Cause, Context
+            ),
             {'stop', Context1}
     end.
 
 -spec set_auth_doc(cb_context:context(), kz_json:object()) ->
-          cb_context:context().
+    cb_context:context().
 set_auth_doc(Context, JObj) ->
-    Setters = [{fun cb_context:set_auth_doc/2, JObj}
-              ,{fun cb_context:set_auth_account_id/2 ,kz_doc:account_id(JObj)}
-              ],
+    Setters = [
+        {fun cb_context:set_auth_doc/2, JObj},
+        {fun cb_context:set_auth_account_id/2, kz_doc:account_id(JObj)}
+    ],
     cb_context:setters(Context, Setters).

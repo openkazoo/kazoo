@@ -8,31 +8,36 @@
 %%%-----------------------------------------------------------------------------
 -module(knm_number).
 
--export([new/0, new/1
-        ,get/1, get/2
-        ,create/2
-        ,move/2, move/3
-        ,update/2, update/3
-        ,release/1, release/2
-        ,delete/2
-        ,assign_to_app/2, assign_to_app/3
-        ,lookup_account/1
-        ,reconcile/2
-        ,reserve/2
-        ]).
+-export([
+    new/0, new/1,
+    get/1, get/2,
+    create/2,
+    move/2, move/3,
+    update/2, update/3,
+    release/1, release/2,
+    delete/2,
+    assign_to_app/2, assign_to_app/3,
+    lookup_account/1,
+    reconcile/2,
+    reserve/2
+]).
 
--export([phone_number/1, set_phone_number/2
-        ,to_public_json/1
-        ,is_number/1
-        ,force_outbound_feature/1
-        ]).
+-export([
+    phone_number/1,
+    set_phone_number/2,
+    to_public_json/1,
+    is_number/1,
+    force_outbound_feature/1
+]).
 
--export([attempt/2
-        ,ensure_can_create/1
-        ,ensure_can_load_to_create/1
-        ,state_for_create/1, allowed_creation_states/1, allowed_creation_states/2
-        ,validate_ownership/2
-        ]).
+-export([
+    attempt/2,
+    ensure_can_create/1,
+    ensure_can_load_to_create/1,
+    state_for_create/1,
+    allowed_creation_states/1, allowed_creation_states/2,
+    validate_ownership/2
+]).
 
 -ifdef(TEST).
 -export([ensure_can_create/2]).
@@ -46,45 +51,44 @@
 -opaque knm_number() :: #knm_number{}.
 -type knm_numbers() :: [knm_number()].
 
--export_type([knm_number/0
-             ,knm_numbers/0
-             ,knm_number_return/0
-             ,dry_run_return/0
-             ]).
+-export_type([
+    knm_number/0,
+    knm_numbers/0,
+    knm_number_return/0,
+    dry_run_return/0
+]).
 
--type lookup_error() :: 'not_reconcilable' |
-                        'not_found' |
-                        'unassigned' |
-                        {'not_in_service', kz_term:ne_binary()} |
-                        {'account_disabled', kz_term:ne_binary()}.
+-type lookup_error() ::
+    'not_reconcilable'
+    | 'not_found'
+    | 'unassigned'
+    | {'not_in_service', kz_term:ne_binary()}
+    | {'account_disabled', kz_term:ne_binary()}.
 
--type lookup_account_return() :: {'ok', kz_term:ne_binary(), knm_number_options:extra_options()} |
-                                 {'error', lookup_error()}.
+-type lookup_account_return() ::
+    {'ok', kz_term:ne_binary(), knm_number_options:extra_options()}
+    | {'error', lookup_error()}.
 
--define(KNM_NUMBERS_CLAUSES(Num)
-       ,{'false', #{'ok' := [Number]}} ->
-               {'ok', Number};
-            {'true', #{'ok' := [_Number], 'quotes' := Quotes}} ->
-               {'dry_run', Quotes};
-            {_, #{'ko' := ErrorM}} ->
-               {'error', hd(maps:values(ErrorM))}
-                   ).
+-define(KNM_NUMBERS_CLAUSES(Num),
+    {'false', #{'ok' := [Number]}} ->
+        {'ok', Number};
+    {'true', #{'ok' := [_Number], 'quotes' := Quotes}} ->
+        {'dry_run', Quotes};
+    {_, #{'ko' := ErrorM}} ->
+        {'error', hd(maps:values(ErrorM))}
+).
 
--define(RUN_KNM_NUMBERS_FUN(F, Num, Options)
-       ,case {knm_number_options:dry_run(Options)
-             ,knm_numbers:F([Num], Options)
-             }
-        of ?KNM_NUMBERS_CLAUSES(Num)
-            end
-       ).
+-define(RUN_KNM_NUMBERS_FUN(F, Num, Options),
+    case {knm_number_options:dry_run(Options), knm_numbers:F([Num], Options)} of
+        ?KNM_NUMBERS_CLAUSES(Num)
+    end
+).
 
 -define(RUN_KNM_NUMBERS_FUN_ARGS(F, Num, Arg2, Options),
-        case {knm_number_options:dry_run(Options)
-             ,knm_numbers:F([Num], Arg2, Options)
-             }
-        of ?KNM_NUMBERS_CLAUSES(Num)
-            end
-       ).
+    case {knm_number_options:dry_run(Options), knm_numbers:F([Num], Arg2, Options)} of
+        ?KNM_NUMBERS_CLAUSES(Num)
+    end
+).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -94,8 +98,8 @@
 new() -> #knm_number{}.
 
 -spec new(knm_phone_number:knm_phone_number() | knm_numbers:collection()) ->
-          knm_numbers:collection() | knm_number().
-new(T=#{todo := PNs}) ->
+    knm_numbers:collection() | knm_number().
+new(T = #{todo := PNs}) ->
     Numbers = [new(PN) || PN <- PNs],
     knm_numbers:ok(Numbers, T);
 new(PN) ->
@@ -138,18 +142,23 @@ create(Num, Options) ->
 
 -spec state_for_create(knm_number_options:options()) -> kz_term:ne_binary().
 state_for_create(Options) ->
-    case {knm_number_options:state(Options, ?NUMBER_STATE_IN_SERVICE)
-         ,knm_number_options:ported_in(Options)
-         ,knm_number_options:module_name(Options)
-         }
+    case
+        {
+            knm_number_options:state(Options, ?NUMBER_STATE_IN_SERVICE),
+            knm_number_options:ported_in(Options),
+            knm_number_options:module_name(Options)
+        }
     of
-        {?NUMBER_STATE_PORT_IN=PortIn, _, _} -> PortIn;
-        {_, 'true', _} -> ?NUMBER_STATE_IN_SERVICE;
-        {_, _, ?CARRIER_MDN} -> ?NUMBER_STATE_IN_SERVICE;
+        {?NUMBER_STATE_PORT_IN = PortIn, _, _} ->
+            PortIn;
+        {_, 'true', _} ->
+            ?NUMBER_STATE_IN_SERVICE;
+        {_, _, ?CARRIER_MDN} ->
+            ?NUMBER_STATE_IN_SERVICE;
         {State, _, _} ->
             AuthBy = knm_number_options:auth_by(Options),
-            lists:member(State, allowed_creation_states(Options, AuthBy))
-                orelse knm_errors:unauthorized(),
+            lists:member(State, allowed_creation_states(Options, AuthBy)) orelse
+                knm_errors:unauthorized(),
             ?LOG_DEBUG("allowing picking state ~s for ~s", [State, AuthBy]),
             State
     end.
@@ -158,51 +167,56 @@ state_for_create(Options) ->
 allowed_creation_states(AuthBy) ->
     allowed_creation_states([], AuthBy).
 
--spec allowed_creation_states(knm_number_options:options(), kz_term:api_ne_binary()) -> kz_term:ne_binaries().
-allowed_creation_states(_, 'undefined') -> [];
+-spec allowed_creation_states(knm_number_options:options(), kz_term:api_ne_binary()) ->
+    kz_term:ne_binaries().
+allowed_creation_states(_, 'undefined') ->
+    [];
 allowed_creation_states(Options, AuthBy) ->
-    case {knm_phone_number:is_admin(AuthBy)
-         ,allow_number_additions(Options, AuthBy)
-         }
-    of
+    case {knm_phone_number:is_admin(AuthBy), allow_number_additions(Options, AuthBy)} of
         {'true', _} ->
-            [?NUMBER_STATE_AGING
-            ,?NUMBER_STATE_AVAILABLE
-            ,?NUMBER_STATE_IN_SERVICE
-            ,?NUMBER_STATE_PORT_IN
-            ,?NUMBER_STATE_RESERVED
+            [
+                ?NUMBER_STATE_AGING,
+                ?NUMBER_STATE_AVAILABLE,
+                ?NUMBER_STATE_IN_SERVICE,
+                ?NUMBER_STATE_PORT_IN,
+                ?NUMBER_STATE_RESERVED
             ];
         {'false', 'true'} ->
-            [?NUMBER_STATE_IN_SERVICE
-            ,?NUMBER_STATE_RESERVED
+            [
+                ?NUMBER_STATE_IN_SERVICE,
+                ?NUMBER_STATE_RESERVED
             ];
-        _ -> []
+        _ ->
+            []
     end.
 
 -spec ensure_can_load_to_create(knm_numbers:collection() | knm_phone_number:knm_phone_number()) ->
-          'true' |
-          knm_numbers:collection().
-ensure_can_load_to_create(T0=#{todo := PNs}) ->
-    F = fun (PN, T) ->
-                case attempt(fun ensure_can_load_to_create/1, [PN]) of
-                    'true' -> knm_numbers:ok(PN, T);
-                    {'error', R} ->
-                        Num = knm_phone_number:number(PN),
-                        knm_numbers:ko(Num, R, T)
-                end
-        end,
+    'true'
+    | knm_numbers:collection().
+ensure_can_load_to_create(T0 = #{todo := PNs}) ->
+    F = fun(PN, T) ->
+        case attempt(fun ensure_can_load_to_create/1, [PN]) of
+            'true' ->
+                knm_numbers:ok(PN, T);
+            {'error', R} ->
+                Num = knm_phone_number:number(PN),
+                knm_numbers:ko(Num, R, T)
+        end
+    end,
     lists:foldl(F, T0, PNs);
 ensure_can_load_to_create(PN) ->
-    ensure_state(PN, [?NUMBER_STATE_AGING
-                     ,?NUMBER_STATE_AVAILABLE
-                     ,?NUMBER_STATE_PORT_IN
-                     ]).
+    ensure_state(PN, [
+        ?NUMBER_STATE_AGING,
+        ?NUMBER_STATE_AVAILABLE,
+        ?NUMBER_STATE_PORT_IN
+    ]).
 
 -spec ensure_state(knm_phone_number:knm_phone_number(), kz_term:ne_binaries()) -> true.
 ensure_state(PN, AllowedStates) ->
     State = knm_phone_number:state(PN),
     case lists:member(State, AllowedStates) of
-        'true' -> 'true';
+        'true' ->
+            'true';
         'false' ->
             Num = knm_phone_number:number(PN),
             lager:error("~s wrong state ~s, expected one of ~p", [Num, State, AllowedStates]),
@@ -218,21 +232,22 @@ reserve(Num, Options) ->
     ?RUN_KNM_NUMBERS_FUN('reserve', Num, Options).
 
 -spec ensure_can_create(knm_numbers:collection()) -> knm_numbers:collection().
-ensure_can_create(T0=#{'todo' := Nums, 'options' := Options}) ->
-    F = fun (Num, T) ->
-                case attempt(fun ensure_can_create/2, [Num, Options]) of
-                    {'error', R} -> knm_numbers:ko(Num, R, T);
-                    'true' ->
-                        PN = knm_phone_number:from_number_with_options(Num, Options),
-                        knm_numbers:ok(PN, T)
-                end
-        end,
+ensure_can_create(T0 = #{'todo' := Nums, 'options' := Options}) ->
+    F = fun(Num, T) ->
+        case attempt(fun ensure_can_create/2, [Num, Options]) of
+            {'error', R} ->
+                knm_numbers:ko(Num, R, T);
+            'true' ->
+                PN = knm_phone_number:from_number_with_options(Num, Options),
+                knm_numbers:ok(PN, T)
+        end
+    end,
     lists:foldl(F, T0, Nums).
 
 -spec ensure_can_create(kz_term:ne_binary(), knm_number_options:options()) -> 'true'.
 ensure_can_create(Num, Options) ->
-    ensure_account_can_create(Options, knm_number_options:auth_by(Options))
-        andalso ensure_number_is_not_porting(Num, Options).
+    ensure_account_can_create(Options, knm_number_options:auth_by(Options)) andalso
+        ensure_number_is_not_porting(Num, Options).
 
 %%------------------------------------------------------------------------------
 %% @doc Return true if the numbers are all owned by the account, else return the
@@ -240,10 +255,12 @@ ensure_can_create(Num, Options) ->
 %% numbers that are not owned by the account.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_ownership(kz_term:ne_binary(), knm_numbers:num() | knm_numbers:nums()) -> 'true' | {'false', knm_numbers:nums()}.
-validate_ownership(AccountId, Number=?NE_BINARY) ->
+-spec validate_ownership(kz_term:ne_binary(), knm_numbers:num() | knm_numbers:nums()) ->
+    'true' | {'false', knm_numbers:nums()}.
+validate_ownership(AccountId, Number = ?NE_BINARY) ->
     validate_ownership(AccountId, [Number]);
-validate_ownership(_AccountId, []) -> 'true';
+validate_ownership(_AccountId, []) ->
+    'true';
 validate_ownership(AccountId, Numbers) ->
     Options = [{'auth_by', AccountId}],
     #{'ko' := KOs} = knm_numbers:get(Numbers, Options),
@@ -253,24 +270,24 @@ validate_ownership(AccountId, Numbers) ->
     end.
 
 -spec validate_ownership_fold(knm_numbers:num(), knm_numbers:ko(), kz_term:ne_binaries()) ->
-          kz_term:ne_binaries().
+    kz_term:ne_binaries().
 validate_ownership_fold(_, Reason, UnauthorizedAcc) when is_atom(Reason) ->
     %% Ignoring atom reasons, i.e. 'not_found' or 'not_reconcilable'
     UnauthorizedAcc;
 validate_ownership_fold(Number, ReasonJObj, UnauthorizedAcc) ->
     case knm_errors:error(ReasonJObj) of
-        <<"forbidden">> -> [Number|UnauthorizedAcc];
+        <<"forbidden">> -> [Number | UnauthorizedAcc];
         _ -> UnauthorizedAcc
     end.
 
 -ifdef(TEST).
--define(LOAD_ACCOUNT(Options, _AccountId)
-       ,{'ok', props:get_value(<<"auth_by_account">>, Options)}
-       ).
+-define(LOAD_ACCOUNT(Options, _AccountId),
+    {'ok', props:get_value(<<"auth_by_account">>, Options)}
+).
 -else.
--define(LOAD_ACCOUNT(_Options, AccountId)
-       ,kzd_accounts:fetch(AccountId)
-       ).
+-define(LOAD_ACCOUNT(_Options, AccountId),
+    kzd_accounts:fetch(AccountId)
+).
 -endif.
 
 -spec allow_number_additions(knm_number_options:options(), kz_term:ne_binary()) -> boolean().
@@ -284,25 +301,27 @@ ensure_account_can_create(_, ?KNM_DEFAULT_AUTH_BY) ->
     lager:info("bypassing auth"),
     'true';
 ensure_account_can_create(Options, ?MATCH_ACCOUNT_RAW(AccountId)) ->
-    knm_number_options:ported_in(Options)
-        orelse knm_number_options:state(Options) =:= ?NUMBER_STATE_PORT_IN
-        orelse allow_number_additions(Options, AccountId)
-        orelse knm_phone_number:is_admin(AccountId)
-        orelse knm_errors:unauthorized();
+    knm_number_options:ported_in(Options) orelse
+        knm_number_options:state(Options) =:= ?NUMBER_STATE_PORT_IN orelse
+        allow_number_additions(Options, AccountId) orelse
+        knm_phone_number:is_admin(AccountId) orelse
+        knm_errors:unauthorized();
 ensure_account_can_create(_, _NotAnAccountId) ->
     ?LOG_DEBUG("'~p' is not an account id", [_NotAnAccountId]),
     knm_errors:unauthorized().
 
 -spec ensure_number_is_not_porting(kz_term:ne_binary(), knm_number_options:options()) -> 'true'.
 -ifdef(TEST).
-ensure_number_is_not_porting(?TEST_CREATE_NUM, _Options) -> 'true';
+ensure_number_is_not_porting(?TEST_CREATE_NUM, _Options) ->
+    'true';
 ensure_number_is_not_porting(?TEST_AVAILABLE_NUM = Num, _Options) ->
     knm_errors:number_is_porting(Num).
 -else.
 ensure_number_is_not_porting(Num, Options) ->
     JustPorted = knm_number_options:ported_in(Options),
-    case JustPorted
-        orelse knm_port_request:get(Num)
+    case
+        JustPorted orelse
+            knm_port_request:get(Num)
     of
         'true' -> 'true';
         {'ok', _Doc} -> knm_errors:number_is_porting(Num);
@@ -320,8 +339,9 @@ ensure_number_is_not_porting(Num, Options) ->
 move(Num, MoveTo) ->
     move(Num, MoveTo, knm_number_options:default()).
 
--spec move(kz_term:ne_binary(), kz_term:ne_binary(), knm_number_options:options()) -> knm_number_return().
-move(?NE_BINARY=Num, ?NE_BINARY=MoveTo, Options) ->
+-spec move(kz_term:ne_binary(), kz_term:ne_binary(), knm_number_options:options()) ->
+    knm_number_return().
+move(?NE_BINARY = Num, ?NE_BINARY = MoveTo, Options) ->
     ?RUN_KNM_NUMBERS_FUN_ARGS('move', Num, MoveTo, Options).
 
 %%------------------------------------------------------------------------------
@@ -336,7 +356,7 @@ update(Num, Routines) ->
     update(Num, Routines, knm_number_options:default()).
 
 -spec update(kz_term:ne_binary(), knm_phone_number:set_functions(), knm_number_options:options()) ->
-          knm_number_return().
+    knm_number_return().
 update(Num, Routines, Options) ->
     ?RUN_KNM_NUMBERS_FUN_ARGS('update', Num, Routines, Options).
 
@@ -379,7 +399,8 @@ delete(Num, Options) ->
 assign_to_app(Num, App) ->
     assign_to_app(Num, App, knm_number_options:default()).
 
--spec assign_to_app(kz_term:ne_binary(), kz_term:api_ne_binary(), knm_number_options:options()) -> knm_number_return().
+-spec assign_to_app(kz_term:ne_binary(), kz_term:api_ne_binary(), knm_number_options:options()) ->
+    knm_number_return().
 assign_to_app(Num, App, Options) ->
     ?RUN_KNM_NUMBERS_FUN_ARGS('assign_to_app', Num, App, Options).
 
@@ -389,26 +410,30 @@ assign_to_app(Num, App, Options) ->
 %%------------------------------------------------------------------------------
 -spec lookup_account(kz_term:api_ne_binary()) -> lookup_account_return().
 -ifdef(TEST).
-lookup_account('undefined') -> {'error', 'not_reconcilable'};
+lookup_account('undefined') ->
+    {'error', 'not_reconcilable'};
 lookup_account(Num) ->
     %%FIXME: use knm_converters:is_reconcilable/1
     NormalizedNum = knm_converters:normalize(Num),
     fetch_account_from_number(NormalizedNum).
 -else.
-lookup_account('undefined') -> {'error', 'not_reconcilable'};
+lookup_account('undefined') ->
+    {'error', 'not_reconcilable'};
 lookup_account(Num) ->
     NormalizedNum = knm_converters:normalize(Num),
     Key = {'account_lookup', NormalizedNum},
     case kz_cache:peek_local(?CACHE_NAME, Key) of
-        {'ok', Ok} -> Ok;
+        {'ok', Ok} ->
+            Ok;
         {'error', 'not_found'} ->
             case fetch_account_from_number(NormalizedNum) of
-                {'ok', _, _}=Ok ->
+                {'ok', _, _} = Ok ->
                     NumberDb = knm_converters:to_db(NormalizedNum),
                     CacheProps = [{'origin', [{'db', NumberDb, NormalizedNum}]}],
                     kz_cache:store_local(?CACHE_NAME, Key, Ok, CacheProps),
                     Ok;
-                Else -> Else
+                Else ->
+                    Else
             end
     end.
 -endif.
@@ -417,20 +442,22 @@ fetch_account_from_number(Num) ->
     case knm_phone_number:fetch(Num) of
         {'ok', PN} ->
             check_number(PN);
-        {'error', _}=Error ->
+        {'error', _} = Error ->
             maybe_fetch_account_from_ports(Num, Error)
     end.
 
 check_number(PN) ->
     AssignedTo = knm_phone_number:assigned_to(PN),
     case kz_term:is_empty(AssignedTo) of
-        'true' -> {'error', 'unassigned'};
+        'true' ->
+            {'error', 'unassigned'};
         'false' ->
-            States = [?NUMBER_STATE_PORT_IN
-                     ,?NUMBER_STATE_IN_SERVICE
-                     ,?NUMBER_STATE_PORT_OUT
-                     ,?NUMBER_STATE_RESERVED
-                     ],
+            States = [
+                ?NUMBER_STATE_PORT_IN,
+                ?NUMBER_STATE_IN_SERVICE,
+                ?NUMBER_STATE_PORT_OUT,
+                ?NUMBER_STATE_RESERVED
+            ],
             case lists:member(knm_phone_number:state(PN), States) of
                 'true' -> check_account(PN);
                 'false' -> {'error', {'not_in_service', AssignedTo}}
@@ -446,22 +473,25 @@ is_account_enabled(AccountId) -> kzd_accounts:is_enabled(AccountId).
 check_account(PN) ->
     AssignedTo = knm_phone_number:assigned_to(PN),
     case is_account_enabled(AssignedTo) of
-        'false' -> {'error', {'account_disabled', AssignedTo}};
+        'false' ->
+            {'error', {'account_disabled', AssignedTo}};
         'true' ->
-            Props = [{'pending_port', knm_phone_number:state(PN) =:= ?NUMBER_STATE_PORT_IN}
-                    ,{'local', knm_phone_number:module_name(PN) =:= ?CARRIER_LOCAL}
-                    ,{'number', knm_phone_number:number(PN)}
-                    ,{'account_id', AssignedTo}
-                    ,{'prepend', feature_prepend(PN)}
-                    ,{'inbound_cnam', feature_inbound_cname(PN)}
-                    ,{'ringback_media', find_early_ringback(PN)}
-                    ,{'transfer_media', find_transfer_ringback(PN)}
-                    ,{'force_outbound', is_force_outbound(PN)}
-                    ],
+            Props = [
+                {'pending_port', knm_phone_number:state(PN) =:= ?NUMBER_STATE_PORT_IN},
+                {'local', knm_phone_number:module_name(PN) =:= ?CARRIER_LOCAL},
+                {'number', knm_phone_number:number(PN)},
+                {'account_id', AssignedTo},
+                {'prepend', feature_prepend(PN)},
+                {'inbound_cnam', feature_inbound_cname(PN)},
+                {'ringback_media', find_early_ringback(PN)},
+                {'transfer_media', find_transfer_ringback(PN)},
+                {'force_outbound', is_force_outbound(PN)}
+            ],
             {'ok', AssignedTo, Props}
     end.
 
--spec maybe_fetch_account_from_ports(kz_term:ne_binary(), {'error', any()}) -> lookup_account_return().
+-spec maybe_fetch_account_from_ports(kz_term:ne_binary(), {'error', any()}) ->
+    lookup_account_return().
 maybe_fetch_account_from_ports(Num, Error) ->
     case knm_config:should_fetch_account_from_ports() of
         'false' -> Error;
@@ -471,19 +501,21 @@ maybe_fetch_account_from_ports(Num, Error) ->
 -spec fetch_account_from_ports(kz_term:ne_binary(), {'error', any()}) -> lookup_account_return().
 fetch_account_from_ports(Num, Error) ->
     case knm_port_request:get(Num) of
-        {'error', _E} -> Error;
+        {'error', _E} ->
+            Error;
         {'ok', Port} ->
             AccountId = kz_doc:account_id(Port),
-            Props = [{'pending_port', 'true'}
-                    ,{'local', 'true'}
-                    ,{'number', Num}
-                    ,{'account_id', AccountId}
-                     %% No prepend
-                    ,{'inbound_cnam', 'false'}
-                     %% No ringback_media
-                     %% No transfer_media
-                    ,{'force_outbound', 'true'}
-                    ],
+            Props = [
+                {'pending_port', 'true'},
+                {'local', 'true'},
+                {'number', Num},
+                {'account_id', AccountId},
+                %% No prepend
+                {'inbound_cnam', 'false'},
+                %% No ringback_media
+                %% No transfer_media
+                {'force_outbound', 'true'}
+            ],
             {'ok', AccountId, Props}
     end.
 
@@ -506,7 +538,8 @@ feature_prepend(PhoneNumber) ->
 -spec feature_inbound_cname(knm_phone_number:knm_phone_number()) -> boolean().
 feature_inbound_cname(PhoneNumber) ->
     case knm_phone_number:feature(PhoneNumber, ?FEATURE_CNAM_INBOUND) of
-        'undefined' -> 'false';
+        'undefined' ->
+            'false';
         _ ->
             Mod = knm_phone_number:module_name(PhoneNumber),
             Module = kz_term:to_atom(Mod, 'true'),
@@ -541,18 +574,19 @@ find_transfer_ringback(PhoneNumber) ->
 %%------------------------------------------------------------------------------
 -spec is_force_outbound(knm_phone_number:knm_phone_number()) -> boolean().
 is_force_outbound(PN) ->
-    is_force_outbound(knm_phone_number:state(PN)
-                     ,knm_phone_number:module_name(PN)
-                     ,force_outbound_feature(PN)
-                     ).
+    is_force_outbound(
+        knm_phone_number:state(PN),
+        knm_phone_number:module_name(PN),
+        force_outbound_feature(PN)
+    ).
 
 -spec is_force_outbound(kz_term:ne_binary(), kz_term:ne_binary(), boolean()) -> boolean().
 is_force_outbound(?NUMBER_STATE_PORT_IN, Module, _ForceOutbound) ->
-    knm_config:should_force_port_in_outbound()
-        orelse force_module_outbound(Module);
+    knm_config:should_force_port_in_outbound() orelse
+        force_module_outbound(Module);
 is_force_outbound(?NUMBER_STATE_PORT_OUT, Module, _ForceOutbound) ->
-    knm_config:should_force_port_out_outbound()
-        orelse force_module_outbound(Module);
+    knm_config:should_force_port_out_outbound() orelse
+        force_module_outbound(Module);
 is_force_outbound(_State, ?CARRIER_LOCAL, _ForceOutbound) ->
     force_local_outbound();
 is_force_outbound(_State, ?CARRIER_MDN, _ForceOutbound) ->
@@ -578,23 +612,24 @@ force_local_outbound() ->
     knm_config:should_force_local_outbound().
 
 -spec phone_number(knm_number()) -> knm_phone_number:knm_phone_number().
-phone_number(#knm_number{knm_phone_number=PhoneNumber}) -> PhoneNumber.
+phone_number(#knm_number{knm_phone_number = PhoneNumber}) -> PhoneNumber.
 
 -spec set_phone_number(knm_number(), knm_phone_number:knm_phone_number()) ->
-          knm_number().
+    knm_number().
 set_phone_number(Number, PhoneNumber) ->
-    Number#knm_number{knm_phone_number=PhoneNumber}.
+    Number#knm_number{knm_phone_number = PhoneNumber}.
 
 -spec to_public_json(knm_number()) -> kz_json:object().
-to_public_json(#knm_number{}=Number) ->
+to_public_json(#knm_number{} = Number) ->
     knm_phone_number:to_public_json(phone_number(Number)).
 
--spec attempt(fun(), list()) -> knm_number_return() |
-          knm_phone_number_return() |
-          'true'.
+-spec attempt(fun(), list()) ->
+    knm_number_return()
+    | knm_phone_number_return()
+    | 'true'.
 attempt(Fun, Args) ->
     try apply(Fun, Args) of
-        #knm_number{}=N -> {'ok', N};
+        #knm_number{} = N -> {'ok', N};
         Resp -> Resp
     catch
         'throw':{'error', Reason} ->
@@ -605,8 +640,9 @@ attempt(Fun, Args) ->
             {'error', knm_errors:to_json(Reason, num_to_did(Number), Cause)}
     end.
 
--spec num_to_did(kz_term:api_binary() | knm_number() | knm_phone_number:knm_phone_number()) -> kz_term:api_ne_binary().
+-spec num_to_did(kz_term:api_binary() | knm_number() | knm_phone_number:knm_phone_number()) ->
+    kz_term:api_ne_binary().
 num_to_did('undefined') -> 'undefined';
 num_to_did(?NE_BINARY = DID) -> DID;
-num_to_did(#knm_number{}=Number) -> num_to_did(phone_number(Number));
+num_to_did(#knm_number{} = Number) -> num_to_did(phone_number(Number));
 num_to_did(PhoneNumber) -> knm_phone_number:number(PhoneNumber).

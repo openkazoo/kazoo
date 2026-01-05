@@ -48,13 +48,15 @@ workers() ->
 
 -spec worker(kz_term:ne_binary()) -> kz_term:api_pid().
 worker(Name) ->
-    case [Pid
-          || {Worker, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER),
-             Worker =:= Name
-         ]
+    case
+        [
+            Pid
+         || {Worker, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER),
+            Worker =:= Name
+        ]
     of
         [] -> 'undefined';
-        [P |_] -> P
+        [P | _] -> P
     end.
 
 %%==============================================================================

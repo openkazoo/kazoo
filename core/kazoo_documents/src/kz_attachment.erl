@@ -14,7 +14,8 @@
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec decode_base64(kz_term:ne_binary()) -> {kz_term:api_binary() | {'error', 'badarg'}, kz_term:ne_binary()}.
+-spec decode_base64(kz_term:ne_binary()) ->
+    {kz_term:api_binary() | {'error', 'badarg'}, kz_term:ne_binary()}.
 decode_base64(Base64) ->
     case binary:split(Base64, <<",">>) of
         %% http://tools.ietf.org/html/rfc4648

@@ -16,7 +16,6 @@
 -export([retries/1, retries/2, set_retries/2]).
 -export([uri/1, uri/2, set_uri/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

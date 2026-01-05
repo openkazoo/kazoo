@@ -1,9 +1,18 @@
-{application,media_mgr,
-             [{applications,[kazoo,kazoo_amqp,kazoo_apps,kazoo_media,
-                             kazoo_stdlib,kernel,lager,stdlib]},
-              {description,"Media Manager - Stream media via Shout from Couch"},
-              {env,[{is_kazoo_app,true}]},
-              {mod,{media_mgr_app,[]}},
-              {modules,[]},
-              {registered,[media_mgr_sup]},
-              {vsn,"4.0.0"}]}.
+{application, media_mgr, [
+    {applications, [
+        kazoo,
+        kazoo_amqp,
+        kazoo_apps,
+        kazoo_media,
+        kazoo_stdlib,
+        kernel,
+        lager,
+        stdlib
+    ]},
+    {description, "Media Manager - Stream media via Shout from Couch"},
+    {env, [{is_kazoo_app, true}]},
+    {mod, {media_mgr_app, []}},
+    {modules, []},
+    {registered, [media_mgr_sup]},
+    {vsn, "4.0.0"}
+]}.

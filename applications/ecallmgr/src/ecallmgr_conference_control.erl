@@ -7,31 +7,30 @@
 -behaviour(gen_listener).
 
 %% API
--export([start_link/3
-        ]).
+-export([start_link/3]).
 
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{fun handle_conference_command/2
-                     ,[{<<"conference">>, <<"command">>}]
-                     }
-                    ]).
+-define(RESPONDERS, [{fun handle_conference_command/2, [{<<"conference">>, <<"command">>}]}]).
 
--define(BINDINGS(Id), [{'conference', [{'restrict_to', [{'command', Id}]}
-                                      ,'federate'
-                                      ]}
-                      ]).
+-define(BINDINGS(Id), [
+    {'conference', [
+        {'restrict_to', [{'command', Id}]},
+        'federate'
+    ]}
+]).
 
 %% This queue is used to round-robin conference commands among ALL the
 %% conference listeners with the hopes that the one receiving the command
@@ -40,10 +39,11 @@
 -define(QUEUE_OPTIONS, [{'exclusive', 'false'}]).
 -define(CONSUME_OPTIONS, [{'exclusive', 'false'}]).
 
--record(state, {node :: atom()
-               ,conference_id :: kz_term:ne_binary()
-               ,instance_id :: kz_term:ne_binary()
-               }).
+-record(state, {
+    node :: atom(),
+    conference_id :: kz_term:ne_binary(),
+    instance_id :: kz_term:ne_binary()
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -56,18 +56,21 @@
 %%------------------------------------------------------------------------------
 -spec start_link(atom(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:startlink_ret().
 start_link(Node, ConferenceId, InstanceId) ->
-    lager:debug("starting conference ~s control instance ~s for node ~s in ~s"
-               ,[ConferenceId, InstanceId, Node, node()]
-               ),
-    gen_listener:start_link(?SERVER
-                           ,[{'responders', ?RESPONDERS}
-                            ,{'bindings', ?BINDINGS(ConferenceId)}
-                            ,{'queue_name', ?QUEUE_NAME(ConferenceId)}
-                            ,{'queue_options', ?QUEUE_OPTIONS}
-                            ,{'consume_options', ?CONSUME_OPTIONS}
-                            ]
-                           ,[Node, ConferenceId, InstanceId]
-                           ).
+    lager:debug(
+        "starting conference ~s control instance ~s for node ~s in ~s",
+        [ConferenceId, InstanceId, Node, node()]
+    ),
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS(ConferenceId)},
+            {'queue_name', ?QUEUE_NAME(ConferenceId)},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        [Node, ConferenceId, InstanceId]
+    ).
 
 -spec handle_conference_command(kz_json:object(), kz_term:proplist()) -> any().
 handle_conference_command(JObj, Props) ->
@@ -87,11 +90,11 @@ handle_conference_command(JObj, Props) ->
 init([Node, ConferenceId, InstanceId]) ->
     kz_util:put_callid(ConferenceId),
     lager:info("starting new conference control for ~s", [ConferenceId]),
-    {'ok', #state{node=Node
-                 ,conference_id=ConferenceId
-                 ,instance_id=InstanceId
-                 }
-    }.
+    {'ok', #state{
+        node = Node,
+        conference_id = ConferenceId,
+        instance_id = InstanceId
+    }}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -118,10 +121,14 @@ handle_cast(_Msg, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info({'stop', {Node, ConferenceId, InstanceId}}, #state{node=Node
-                                                              ,conference_id=ConferenceId
-                                                              ,instance_id=InstanceId
-                                                              }=State) ->
+handle_info(
+    {'stop', {Node, ConferenceId, InstanceId}},
+    #state{
+        node = Node,
+        conference_id = ConferenceId,
+        instance_id = InstanceId
+    } = State
+) ->
     {'stop', 'normal', State};
 handle_info(_Info, State) ->
     {'noreply', State}.
@@ -131,15 +138,16 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_event(kz_json:object(), state()) -> gen_listener:handle_event_return().
-handle_event(_JObj, #state{node=Node
-                          ,conference_id=ConferenceId
-                          ,instance_id=InstanceId
-                          }) ->
-    {'reply', [{'node', Node}
-              ,{'conference_id', ConferenceId}
-              ,{'instance_id', InstanceId}
-              ]
-    }.
+handle_event(_JObj, #state{
+    node = Node,
+    conference_id = ConferenceId,
+    instance_id = InstanceId
+}) ->
+    {'reply', [
+        {'node', Node},
+        {'conference_id', ConferenceId},
+        {'instance_id', InstanceId}
+    ]}.
 
 %%------------------------------------------------------------------------------
 %% @doc This function is called by a `gen_server' when it is about to
@@ -150,7 +158,7 @@ handle_event(_JObj, #state{node=Node
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{conference_id=ConferenceId}) ->
+terminate(_Reason, #state{conference_id = ConferenceId}) ->
     lager:debug("ecallmgr conference control for ~s terminating: ~p", [ConferenceId, _Reason]).
 
 %%------------------------------------------------------------------------------

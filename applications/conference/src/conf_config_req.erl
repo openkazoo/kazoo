@@ -5,9 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(conf_config_req).
 
--export([handle_req/2
-        ,cache_profile/1
-        ]).
+-export([
+    handle_req/2,
+    cache_profile/1
+]).
 
 -include("conference.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
@@ -22,7 +23,8 @@ cache_profile(Conference) ->
 
 cache_origin(Conference) ->
     case kapps_conference:id(Conference) of
-        undefined -> [];
+        undefined ->
+            [];
         ConferenceId ->
             AccountId = kapps_conference:account_id(Conference),
             AccountDB = kz_util:format_account_db(AccountId),
@@ -43,11 +45,12 @@ create_conference(JObj) ->
     AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj),
     ConferenceId = kz_json:get_ne_binary_value(<<"Conference-ID">>, JObj),
     lager:debug("creating conference config for ~s in account ~s", [ConferenceId, AccountId]),
-    Routines = [{fun kapps_conference:set_account_id/2, AccountId}
-               ,{fun kapps_conference:set_id/2, ConferenceId}
-               ,{fun kapps_conference:set_profile_name/2, Profile}
-               ,fun kapps_conference:reload/1
-               ],
+    Routines = [
+        {fun kapps_conference:set_account_id/2, AccountId},
+        {fun kapps_conference:set_id/2, ConferenceId},
+        {fun kapps_conference:set_profile_name/2, Profile},
+        fun kapps_conference:reload/1
+    ],
     kapps_conference:update(Routines, Conference).
 
 -spec handle_request(kz_term:ne_binary(), kz_json:object(), kapps_conference:conference()) -> 'ok'.
@@ -63,13 +66,14 @@ handle_profile_request(JObj, Conference) ->
     Controls = conference_controls(Conference),
 
     ServerId = kz_api:server_id(JObj),
-    Resp = [{<<"Profiles">>, kz_json:from_list([{ProfileName, Profile}])}
-           ,{<<"Caller-Controls">>, Controls}
-           ,{<<"Advertise">>, advertise(ProfileName)}
-           ,{<<"Chat-Permissions">>, chat_permissions(ProfileName)}
-           ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
+    Resp = [
+        {<<"Profiles">>, kz_json:from_list([{ProfileName, Profile}])},
+        {<<"Caller-Controls">>, Controls},
+        {<<"Advertise">>, advertise(ProfileName)},
+        {<<"Chat-Permissions">>, chat_permissions(ProfileName)},
+        {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
     lager:debug("returning conference profile ~s", [ProfileName]),
     lager:debug("~s", [kz_json:encode(kz_json:from_list(Resp))]),
     kapi_conference:publish_config_resp(ServerId, props:filter_undefined(Resp)).
@@ -111,7 +115,7 @@ advertise(ProfileName, Advertise) -> kz_json:from_list([{ProfileName, Advertise}
 -spec chat_permissions(kz_term:ne_binary()) -> kz_term:api_object().
 chat_permissions(?DEFAULT_PROFILE_NAME = ProfileName) ->
     chat_permissions(ProfileName, ?CHAT_PERMISSIONS(ProfileName, ?DEFAULT_CHAT_CONFIG));
-chat_permissions(?PAGE_PROFILE_NAME= ProfileName) ->
+chat_permissions(?PAGE_PROFILE_NAME = ProfileName) ->
     chat_permissions(ProfileName, ?CHAT_PERMISSIONS(ProfileName, ?PAGE_CHAT_CONFIG));
 chat_permissions(ProfileName) ->
     chat_permissions(ProfileName, ?CHAT_PERMISSIONS(ProfileName)).
@@ -122,11 +126,12 @@ chat_permissions(ProfileName, Chat) -> kz_json:from_list([{ProfileName, Chat}]).
 
 -spec fix_profile(kapps_conference:conference(), kz_json:object()) -> kz_json:object().
 fix_profile(Conference, Profile) ->
-    Routines = [fun add_conference_params/2
-               ,fun fix_entry_tones/2
-               ,fun fix_exit_tones/2
-               ,fun update_prompts/2
-               ],
+    Routines = [
+        fun add_conference_params/2,
+        fun fix_entry_tones/2,
+        fun fix_exit_tones/2,
+        fun update_prompts/2
+    ],
     lists:foldl(fun(F, P) -> F(Conference, P) end, Profile, Routines).
 
 -spec update_prompts(kapps_conference:conference(), kz_json:object()) -> kz_json:object().
@@ -139,11 +144,16 @@ update_prompts(Conference, Profile) ->
 update_prompt(Key, Value, Acc) ->
     update_prompt(kz_binary:reverse(Key), Key, Value, Acc).
 
--spec update_prompt(kz_json:key(), kz_json:key(), kz_json:json_string(), update_acc()) -> update_acc().
-update_prompt(<<"dnuos-", _/binary>>, _Key, <<>>, Acc) -> Acc;
-update_prompt(<<"dnuos-", _/binary>>, _Key, <<"tone_stream://", _/binary>>, Acc) -> Acc;
-update_prompt(<<"dnuos-", _/binary>>, _Key, <<"silence_stream://", _/binary>>, Acc) -> Acc;
-update_prompt(<<"dnuos-", _/binary>>, _Key, <<"$${", _/binary>>, Acc) -> Acc;
+-spec update_prompt(kz_json:key(), kz_json:key(), kz_json:json_string(), update_acc()) ->
+    update_acc().
+update_prompt(<<"dnuos-", _/binary>>, _Key, <<>>, Acc) ->
+    Acc;
+update_prompt(<<"dnuos-", _/binary>>, _Key, <<"tone_stream://", _/binary>>, Acc) ->
+    Acc;
+update_prompt(<<"dnuos-", _/binary>>, _Key, <<"silence_stream://", _/binary>>, Acc) ->
+    Acc;
+update_prompt(<<"dnuos-", _/binary>>, _Key, <<"$${", _/binary>>, Acc) ->
+    Acc;
 update_prompt(<<"dnuos-", _/binary>>, Key, PromptId, {Conference, Profile}) ->
     AccountId = prompt_account_id(Conference),
     Language = kapps_conference:language(Conference),
@@ -151,7 +161,8 @@ update_prompt(<<"dnuos-", _/binary>>, Key, PromptId, {Conference, Profile}) ->
 
     lager:debug("updating conference sound ~s to use ~s(~s)", [Key, PromptId, PromptUrl]),
     {Conference, kz_json:set_value(Key, PromptUrl, Profile)};
-update_prompt(_Yek, _Key, _value, Acc) -> Acc.
+update_prompt(_Yek, _Key, _value, Acc) ->
+    Acc.
 
 -spec prompt_account_id(kapps_conference:conference()) -> kz_term:ne_binary().
 prompt_account_id(Conference) ->
@@ -163,11 +174,13 @@ prompt_account_id(Conference) ->
 -spec add_conference_params(kapps_conference:conference(), kz_json:object()) -> kz_json:object().
 add_conference_params(Conference, Profile) ->
     Props = props:filter_undefined(
-              [{<<"max-members">>, max_participants(Conference)}
-              ,{<<"max-members-sound">>, max_members_sound(Conference)}
-              ,{<<"caller-controls">>, kapps_conference:caller_controls(Conference)}
-              ,{<<"moderator-controls">>, kapps_conference:moderator_controls(Conference)}
-              ]),
+        [
+            {<<"max-members">>, max_participants(Conference)},
+            {<<"max-members-sound">>, max_members_sound(Conference)},
+            {<<"caller-controls">>, kapps_conference:caller_controls(Conference)},
+            {<<"moderator-controls">>, kapps_conference:moderator_controls(Conference)}
+        ]
+    ),
     kz_json:set_values(Props, Profile).
 
 -spec fix_entry_tones(kapps_conference:conference(), kz_json:object()) -> kz_json:object().
@@ -218,10 +231,11 @@ max_members_sound(Conference) ->
             kz_media_util:get_prompt(?DEFAULT_MAX_MEMBERS_MEDIA);
         'undefined' ->
             lager:debug("getting max members prompt from account ~s", [AccountId]),
-            kz_media_util:get_account_prompt(?DEFAULT_MAX_MEMBERS_MEDIA
-                                            ,'undefined'
-                                            ,AccountId
-                                            );
+            kz_media_util:get_account_prompt(
+                ?DEFAULT_MAX_MEMBERS_MEDIA,
+                'undefined',
+                AccountId
+            );
         Media ->
             lager:debug("conference has max-members-sound: ~s", [Media]),
             Media
@@ -233,17 +247,20 @@ handle_controls_request(JObj, Conference) ->
     ControlsName = requested_controls_name(JObj),
     Controls = kapps_conference:controls(Conference, ControlsName),
     ServerId = kz_api:server_id(JObj),
-    Resp = [{<<"Caller-Controls">>, controls(ControlsName, Controls)}
-           ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-           ],
-    lager:debug("returning ~s controls profile for ~s (~s/~s)"
-               ,[ControlsName
-                ,ProfileName
-                ,kapps_conference:account_id(Conference)
-                ,kapps_conference:id(Conference)
-                ]
-               ),
+    Resp = [
+        {<<"Caller-Controls">>, controls(ControlsName, Controls)},
+        {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+        | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+    ],
+    lager:debug(
+        "returning ~s controls profile for ~s (~s/~s)",
+        [
+            ControlsName,
+            ProfileName,
+            kapps_conference:account_id(Conference),
+            kapps_conference:id(Conference)
+        ]
+    ),
     kapi_conference:publish_config_resp(ServerId, Resp).
 
 -spec requested_controls_name(kz_json:object()) -> kz_term:ne_binary().
@@ -255,7 +272,8 @@ controls(ControlsName, Controls) ->
     kz_json:from_list([{ControlsName, Controls}]).
 
 conference_controls(Conference) ->
-    ControlNames = lists:usort([kapps_conference:caller_controls(Conference)
-                               ,kapps_conference:moderator_controls(Conference)
-                               ]),
+    ControlNames = lists:usort([
+        kapps_conference:caller_controls(Conference),
+        kapps_conference:moderator_controls(Conference)
+    ]),
     kz_json:from_list([{Name, kapps_conference:controls(Conference, Name)} || Name <- ControlNames]).

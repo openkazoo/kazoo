@@ -33,14 +33,14 @@
 start_link() ->
     supervisor:start_link({'local', ?SERVER}, ?MODULE, []).
 
--spec start_azure(kz_term:ne_binary() | string(), kz_term:ne_binary() | string()) -> kz_types:sup_startchild_ret().
+-spec start_azure(kz_term:ne_binary() | string(), kz_term:ne_binary() | string()) ->
+    kz_types:sup_startchild_ret().
 start_azure(Account, Key) when is_binary(Account) ->
     start_azure(kz_term:to_list(Account), Key);
 start_azure(Account, Key) when is_binary(Key) ->
     start_azure(Account, kz_term:to_list(Key));
 start_azure(Account, Key) ->
     supervisor:start_child(?SERVER, [{local, list_to_atom("erlazure_" ++ Account)}, Account, Key]).
-
 
 -spec workers() -> kz_term:pids().
 workers() ->
@@ -50,15 +50,16 @@ workers() ->
 worker(Name) when is_binary(Name) ->
     worker(kz_term:to_list(Name));
 worker(Name) ->
-
-    case [Pid
-          || {Worker, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER),
-             Worker =:= Name
-                 orelse Worker =:= "erlazure_" ++ Name
-         ]
+    case
+        [
+            Pid
+         || {Worker, Pid, 'worker', [_]} <- supervisor:which_children(?SERVER),
+            Worker =:= Name orelse
+                Worker =:= "erlazure_" ++ Name
+        ]
     of
         [] -> whereis(list_to_atom("erlazure_" ++ Name));
-        [P |_] -> P
+        [P | _] -> P
     end.
 
 %%==============================================================================

@@ -11,10 +11,11 @@
 -include("cdr.hrl").
 
 %% API
--export([json_objs_to_csv/1,
-         json_objs_to_csv/2
-        ,test_convert/1
-        ]).
+-export([
+    json_objs_to_csv/1,
+    json_objs_to_csv/2,
+    test_convert/1
+]).
 
 -define(INCLUDE_HEADERS, 'true').
 
@@ -32,22 +33,27 @@ json_objs_to_csv(JObjs) ->
 
 -spec json_objs_to_csv(kz_json:objects(), boolean()) -> iolist().
 json_objs_to_csv([], _) -> [];
-json_objs_to_csv(JObjs, _) ->
-    kz_json:encode(JObjs).
+json_objs_to_csv(JObjs, _) -> kz_json:encode(JObjs).
 
 -spec test_convert(kz_term:ne_binary()) -> 'ok' | {'error', any()}.
 test_convert(AccountDb) ->
     ViewOptions = ['include_docs'],
     case kz_datamgr:get_results(AccountDb, <<"cdrs/crossbar_listing">>, ViewOptions) of
-        {'ok', []} -> 'ok';
+        {'ok', []} ->
+            'ok';
         {'error', _E} ->
-            lager:error("failed view ~s: ~p", [AccountDb, _E]), [];
+            lager:error("failed view ~s: ~p", [AccountDb, _E]),
+            [];
         {'ok', JObjs} ->
-            CdrDocs = lists:foldr(fun(JObj, Acc) ->
-                                          Doc = kz_json:get_value([<<"doc">>], JObj),
-                                          CdrDoc = kz_json:delete_key(<<"custom_channel_vars">>, Doc),
-                                          [CdrDoc | Acc]
-                                  end, [], JObjs),
+            CdrDocs = lists:foldr(
+                fun(JObj, Acc) ->
+                    Doc = kz_json:get_value([<<"doc">>], JObj),
+                    CdrDoc = kz_json:delete_key(<<"custom_channel_vars">>, Doc),
+                    [CdrDoc | Acc]
+                end,
+                [],
+                JObjs
+            ),
             CsvData = json_objs_to_csv(CdrDocs),
             maybe_save_csv("test.csv", CsvData)
     end.
@@ -67,7 +73,7 @@ maybe_save_csv(FileName, CsvData) ->
         'ok' ->
             FilePath = filename:join(TestPath, FileName),
             kz_util:write_file(FilePath, CsvData);
-        {'error', _}=Error ->
+        {'error', _} = Error ->
             lager:error("Error creating directory: ~p", [Error]),
             Error
     end.

@@ -21,15 +21,15 @@
 
 -define(MOD_CONFIG_CAT, <<(?KNM_CONFIG_CAT)/binary, ".telnyx">>).
 
--define(IS_SANDBOX_PROVISIONING_TRUE
-       ,kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"sandbox_provisioning">>, 'false')
-       ).
--define(IS_PROVISIONING_ENABLED
-       ,kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"enable_provisioning">>, 'true')
-       ).
--define(SHOULD_KEEP_BEST_EFFORT
-       ,kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"should_keep_best_effort">>, 'false')
-       ).
+-define(IS_SANDBOX_PROVISIONING_TRUE,
+    kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"sandbox_provisioning">>, 'false')
+).
+-define(IS_PROVISIONING_ENABLED,
+    kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"enable_provisioning">>, 'true')
+).
+-define(SHOULD_KEEP_BEST_EFFORT,
+    kapps_config:get_is_true(?MOD_CONFIG_CAT, <<"should_keep_best_effort">>, 'false')
+).
 
 %%% API
 
@@ -39,8 +39,7 @@
 %%------------------------------------------------------------------------------
 -spec info() -> map().
 info() ->
-    #{?CARRIER_INFO_MAX_PREFIX => 3
-     }.
+    #{?CARRIER_INFO_MAX_PREFIX => 3}.
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?
@@ -58,27 +57,26 @@ is_number_billable(_Number) -> 'true'.
 %% @doc Check with carrier if these numbers are registered with it.
 %% @end
 %%------------------------------------------------------------------------------
--spec check_numbers(kz_term:ne_binaries()) -> {'ok', kz_json:object()} |
-          {'error', any()}.
+-spec check_numbers(kz_term:ne_binaries()) ->
+    {'ok', kz_json:object()}
+    | {'error', any()}.
 check_numbers(_Numbers) -> {'error', 'not_implemented'}.
-
 
 %%------------------------------------------------------------------------------
 %% @doc Query the system for a quantity of available numbers in a rate center
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_numbers(kz_term:ne_binary(), pos_integer(), knm_search:options()) ->
-          {'ok', knm_number:knm_numbers()}.
-find_numbers(<<"+1", NPA:3/binary, _/binary>>=Num, Quantity, Options)
-  when ?IS_US_TOLLFREE(NPA) ->
+    {'ok', knm_number:knm_numbers()}.
+find_numbers(<<"+1", NPA:3/binary, _/binary>> = Num, Quantity, Options) when
+    ?IS_US_TOLLFREE(NPA)
+->
     Results = numbers('tollfree', Quantity, NPA, get_nxx(Num)),
     {'ok', numbers(Results, Options)};
-
-find_numbers(<<"+1", NPA:3/binary, _/binary>>=Num, Quantity, Options) ->
+find_numbers(<<"+1", NPA:3/binary, _/binary>> = Num, Quantity, Options) ->
     Results = numbers('npa', Quantity, NPA, get_nxx(Num)),
     {'ok', numbers(Results, Options)};
-
-find_numbers(<<"+",_/binary>>=_InternationalNum, Quantity, Options) ->
+find_numbers(<<"+", _/binary>> = _InternationalNum, Quantity, Options) ->
     Country = knm_search:country(Options),
     Results = numbers('region', Quantity, Country, 'undefined'),
     {'ok', international_numbers(Results, Options)}.
@@ -108,8 +106,7 @@ acquire_number(Number) ->
         'true' ->
             PhoneNumber = knm_number:phone_number(Number),
             Num = knm_phone_number:number(PhoneNumber),
-            Req = kz_json:from_list([{<<"requested_numbers">>, [Num]}
-                                    ]),
+            Req = kz_json:from_list([{<<"requested_numbers">>, [Num]}]),
             Rep = knm_telnyx_util:req('post', ["number_orders"], Req),
             case kz_json:get_ne_binary_value(<<"id">>, Rep) of
                 'undefined' ->
@@ -131,7 +128,8 @@ acquire_number(Number) ->
 disconnect_number(Number) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
-        'true' -> Number;
+        'true' ->
+            Number;
         'false' when Debug ->
             lager:debug("allowing sandbox provisioning"),
             Number;
@@ -142,20 +140,21 @@ disconnect_number(Number) ->
 -spec should_lookup_cnam() -> boolean().
 should_lookup_cnam() -> 'true'.
 
-
 %%% Internals
 
 -type kind() :: 'npa' | 'tollfree' | 'region'.
 -spec numbers(kind(), pos_integer(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
-          kz_json:objects().
+    kz_json:objects().
 numbers(SearchKind, Quantity, Prefix, NXX) ->
     Descriptor = kz_json:from_list(search_prefix(SearchKind, Prefix, NXX)),
     Req = kz_json:from_list(
-            [{<<"search_type">>, search_kind(SearchKind)}
-            ,{<<"search_descriptor">>, Descriptor}
-            ,{<<"limit">>, Quantity}
-            ,{<<"with_result">>, 'true'}
-            ]),
+        [
+            {<<"search_type">>, search_kind(SearchKind)},
+            {<<"search_descriptor">>, Descriptor},
+            {<<"limit">>, Quantity},
+            {<<"with_result">>, 'true'}
+        ]
+    ),
     Rep = knm_telnyx_util:req('post', ["number_searches"], Req),
     case SearchKind of
         'region' -> kz_json:get_value(<<"inexplicit_result">>, Rep);
@@ -164,7 +163,8 @@ numbers(SearchKind, Quantity, Prefix, NXX) ->
 
 numbers(JObjs, Options) ->
     QID = knm_search:query_id(Options),
-    [{QID, {Num, ?MODULE, ?NUMBER_STATE_DISCOVERY, Data}}
+    [
+        {QID, {Num, ?MODULE, ?NUMBER_STATE_DISCOVERY, Data}}
      || Data <- JObjs,
         Num <- [kz_json:get_ne_binary_value(<<"number_e164">>, Data)]
     ].
@@ -172,7 +172,8 @@ numbers(JObjs, Options) ->
 international_numbers(JObjs, Options) ->
     Dialcode = knm_search:dialcode(Options),
     QID = knm_search:query_id(Options),
-    [{QID, {Num, ?MODULE, ?NUMBER_STATE_DISCOVERY, Data}}
+    [
+        {QID, {Num, ?MODULE, ?NUMBER_STATE_DISCOVERY, Data}}
      || Data <- JObjs,
         Num0 <- [kz_json:get_ne_binary_value(<<"area_code">>, Data)],
         Num <- [ugly_hack(Dialcode, Num0)]
@@ -188,28 +189,34 @@ search_kind('npa') -> ?SEARCH_TYPE_NPA;
 search_kind('region') -> ?SEARCH_TYPE_INTERNATIONAL;
 search_kind('tollfree') -> ?SEARCH_TYPE_TOLEFREE.
 
--spec search_prefix(kind(), kz_term:ne_binary(), kz_term:api_ne_binary()) -> kz_json:json_proplist().
+-spec search_prefix(kind(), kz_term:ne_binary(), kz_term:api_ne_binary()) ->
+    kz_json:json_proplist().
 search_prefix('tollfree', NPA, 'undefined') ->
-    [{<<"npa">>, NPA}
-    ,should_keep_best_effort()
+    [
+        {<<"npa">>, NPA},
+        should_keep_best_effort()
     ];
 search_prefix('tollfree', NPA, NXX) ->
-    [{<<"nxx">>, NXX}
-    ,should_keep_best_effort()
-     |search_prefix('tollfree', NPA, 'undefined')
+    [
+        {<<"nxx">>, NXX},
+        should_keep_best_effort()
+        | search_prefix('tollfree', NPA, 'undefined')
     ];
 search_prefix('region', Country, _) ->
-    [{<<"country_iso">>, Country}
-    ,should_keep_best_effort()
+    [
+        {<<"country_iso">>, Country},
+        should_keep_best_effort()
     ];
 search_prefix('npa', NPA, 'undefined') ->
-    [{<<"npa">>, NPA}
-    ,should_keep_best_effort()
+    [
+        {<<"npa">>, NPA},
+        should_keep_best_effort()
     ];
 search_prefix('npa', NPA, NXX) ->
-    [{<<"nxx">>, NXX}
-    ,should_keep_best_effort()
-     |search_prefix('npa', NPA, 'undefined')
+    [
+        {<<"nxx">>, NXX},
+        should_keep_best_effort()
+        | search_prefix('npa', NPA, 'undefined')
     ].
 
 -spec should_keep_best_effort() -> {kz_term:ne_binary(), boolean()}.

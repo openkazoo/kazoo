@@ -8,21 +8,22 @@
 
 -export([fetch/2]).
 
--export([account_id/1
-        ,action/1
-        ,auth_account_id/1
-        ,category/1
-        ,end_timestamp/1
-        ,failure_count/1
-        ,file_name/1
-        ,id/1
-        ,node/1
-        ,start_timestamp/1
-        ,status/1
-        ,success_count/1
-        ,total_count/1
-        ,type/0
-        ]).
+-export([
+    account_id/1,
+    action/1,
+    auth_account_id/1,
+    category/1,
+    end_timestamp/1,
+    failure_count/1,
+    file_name/1,
+    id/1,
+    node/1,
+    start_timestamp/1,
+    status/1,
+    success_count/1,
+    total_count/1,
+    type/0
+]).
 
 -include("kz_documents.hrl").
 -include_lib("kazoo_tasks/include/tasks.hrl").
@@ -35,13 +36,13 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec fetch(kz_term:ne_binary(), kz_tasks:id()) ->
-          {ok, kz_json:object()} |
-          {error, any()}.
+    {ok, kz_json:object()}
+    | {error, any()}.
 fetch(Account, TaskId) ->
     View = ?KZ_TASKS_BY_ACCOUNT,
     ViewOptions = [{'key', [kz_util:format_account_id(Account), TaskId]}],
     case kz_datamgr:get_single_result(?KZ_TASKS_DB, View, ViewOptions) of
-        {'error', _}=E -> E;
+        {'error', _} = E -> E;
         {'ok', JObj} -> kz_json:get_value(<<"value">>, JObj)
     end.
 

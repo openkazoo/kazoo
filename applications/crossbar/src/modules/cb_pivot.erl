@@ -6,11 +6,12 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_pivot).
 
--export([init/0
-        ,allowed_methods/1, allowed_methods/2
-        ,resource_exists/1, resource_exists/2
-        ,validate/2, validate/3
-        ]).
+-export([
+    init/0,
+    allowed_methods/1, allowed_methods/2,
+    resource_exists/1, resource_exists/2,
+    validate/2, validate/3
+]).
 
 -include("crossbar.hrl").
 
@@ -78,7 +79,7 @@ resource_exists(?DEBUG_PATH_TOKEN, _) -> 'true'.
 validate(Context, ?DEBUG_PATH_TOKEN) ->
     debug_summary(Context).
 
--spec validate(cb_context:context(), path_token(), path_token()) ->cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token()) -> cb_context:context().
 validate(Context, ?DEBUG_PATH_TOKEN, CallId) ->
     debug_read(Context, CallId).
 
@@ -91,11 +92,14 @@ validate(Context, ?DEBUG_PATH_TOKEN, CallId) ->
 %%------------------------------------------------------------------------------
 -spec debug_summary(cb_context:context()) -> cb_context:context().
 debug_summary(Context) ->
-    ViewOptions = [{'mapper', crossbar_view:map_value_fun()}
-                  ,{'range_keymap', 'nil'}
-                  ,{'limit', limit_by_page_size(Context)}
-                  ],
-    maybe_normalize_debug_results(crossbar_view:load_modb(Context, ?CB_FIRST_ITERATION, ViewOptions)).
+    ViewOptions = [
+        {'mapper', crossbar_view:map_value_fun()},
+        {'range_keymap', 'nil'},
+        {'limit', limit_by_page_size(Context)}
+    ],
+    maybe_normalize_debug_results(
+        crossbar_view:load_modb(Context, ?CB_FIRST_ITERATION, ViewOptions)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Pivot debugs are store in two documents, request debug and response
@@ -108,7 +112,8 @@ limit_by_page_size(Context) ->
     case cb_context:pagination_page_size(Context) of
         Size when is_integer(Size), Size > 0 ->
             Size * 2;
-        _ -> 'undefined'
+        _ ->
+            'undefined'
     end.
 
 %%------------------------------------------------------------------------------
@@ -119,26 +124,30 @@ limit_by_page_size(Context) ->
 debug_read(Context, ?MATCH_MODB_PREFIX(Year, Month, CallId)) ->
     AccountModb = kazoo_modb:get_modb(cb_context:account_id(Context), Year, Month),
     Context1 =
-        crossbar_doc:load_view(?CB_DEBUG_LIST
-                              ,[{'endkey', [CallId, kz_json:new()]}
-                               ,{'startkey', [CallId]}
-                               ,'include_docs'
-                               ]
-                              ,cb_context:set_account_db(Context, AccountModb)
-                              ,fun normalize_debug_read/2
-                              ),
+        crossbar_doc:load_view(
+            ?CB_DEBUG_LIST,
+            [
+                {'endkey', [CallId, kz_json:new()]},
+                {'startkey', [CallId]},
+                'include_docs'
+            ],
+            cb_context:set_account_db(Context, AccountModb),
+            fun normalize_debug_read/2
+        ),
     case cb_context:resp_status(Context1) of
         'success' ->
             RespData = cb_context:resp_data(Context1),
             cb_context:set_resp_data(Context1, lists:reverse(RespData));
-        _Status -> Context1
+        _Status ->
+            Context1
     end;
 debug_read(Context, CallId) ->
-    ViewOptions = [{'mapper', fun normalize_debug_read/2}
-                  ,{'range_keymap', CallId}
-                  ,{'unchunkable', 'true'}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'mapper', fun normalize_debug_read/2},
+        {'range_keymap', CallId},
+        {'unchunkable', 'true'},
+        'include_docs'
+    ],
     crossbar_view:load_modb(Context, ?CB_DEBUG_LIST, ViewOptions).
 
 %%------------------------------------------------------------------------------
@@ -159,12 +168,19 @@ maybe_normalize_debug_results(Context) ->
 -spec normalize_debug_results(cb_context:context()) -> cb_context:context().
 normalize_debug_results(Context) ->
     Dir = crossbar_view:direction(Context),
-    {_, RespData} = lists:foldl(fun normalize_debug_results_fold/2, {sets:new(), []}, cb_context:resp_data(Context)),
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_data/2, lists:sort(fun(A, B) -> sort_by_created(A, B, Dir) end, RespData)}
-                       ,fun fix_page_size/1
-                       ]
-                      ).
+    {_, RespData} = lists:foldl(
+        fun normalize_debug_results_fold/2, {sets:new(), []}, cb_context:resp_data(Context)
+    ),
+    cb_context:setters(
+        Context,
+        [
+            {
+                fun cb_context:set_resp_data/2,
+                lists:sort(fun(A, B) -> sort_by_created(A, B, Dir) end, RespData)
+            },
+            fun fix_page_size/1
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Since view key is Call-ID, we're sure debug docs for the same Call-ID
@@ -172,19 +188,20 @@ normalize_debug_results(Context) ->
 %% the next doc with the same Call-ID are merged with list's head.
 %% @end
 %%------------------------------------------------------------------------------
--spec normalize_debug_results_fold(kz_json:object(), {sets:set(), kz_json:objects()}) -> {sets:set(), kz_json:objects()}.
+-spec normalize_debug_results_fold(kz_json:object(), {sets:set(), kz_json:objects()}) ->
+    {sets:set(), kz_json:objects()}.
 normalize_debug_results_fold(JObj, {Set, []}) ->
     CallId = kz_json:get_value(<<"call_id">>, JObj),
     NewJObj = kz_json:set_value(<<"debug_id">>, debug_id(JObj), JObj),
 
     {sets:add_element(CallId, Set), [NewJObj]};
-normalize_debug_results_fold(JObj, {Set, [H|Rest]=JObjAcc}) ->
+normalize_debug_results_fold(JObj, {Set, [H | Rest] = JObjAcc}) ->
     CallId = kz_json:get_value(<<"call_id">>, JObj),
     NewJObj = kz_json:set_value(<<"debug_id">>, debug_id(JObj), JObj),
 
     case sets:is_element(CallId, Set) of
-        'false' -> {sets:add_element(CallId, Set), [NewJObj|JObjAcc]};
-        'true' -> {Set, [kz_json:merge_jobjs(H, NewJObj)|Rest]}
+        'false' -> {sets:add_element(CallId, Set), [NewJObj | JObjAcc]};
+        'true' -> {Set, [kz_json:merge_jobjs(H, NewJObj) | Rest]}
     end.
 
 -spec sort_by_created(kz_json:object(), kz_json:object(), crossbar_view:direction()) -> boolean().
@@ -202,9 +219,10 @@ fix_page_size(Context) ->
     RespEnv = cb_context:resp_envelope(Context),
     RespData = cb_context:resp_data(Context),
     Size = erlang:length(RespData),
-    cb_context:set_resp_envelope(Context
-                                ,kz_json:set_value(<<"page_size">>, Size, RespEnv)
-                                ).
+    cb_context:set_resp_envelope(
+        Context,
+        kz_json:set_value(<<"page_size">>, Size, RespEnv)
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -220,14 +238,16 @@ normalize_debug_read(JObj, Acc) ->
 %%------------------------------------------------------------------------------
 -spec leak_pvt_field(kz_json:object()) -> kz_json:object().
 leak_pvt_field(JObj) ->
-    Routines = [fun leak_pvt_created/2
-               ,fun leak_pvt_node/2
-               ,fun set_debug_id/2
-               ],
-    lists:foldl(fun(F, Acc) -> F(JObj, Acc) end
-               ,JObj
-               ,Routines
-               ).
+    Routines = [
+        fun leak_pvt_created/2,
+        fun leak_pvt_node/2,
+        fun set_debug_id/2
+    ],
+    lists:foldl(
+        fun(F, Acc) -> F(JObj, Acc) end,
+        JObj,
+        Routines
+    ).
 
 -spec leak_pvt_created(kz_json:object(), kz_json:object()) -> kz_json:object().
 leak_pvt_created(JObj, Acc) ->

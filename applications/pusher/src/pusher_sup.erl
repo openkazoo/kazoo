@@ -15,9 +15,10 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?SUPER('pusher_module_sup')
-                  ,?WORKER('pusher_listener')
-                  ]).
+-define(CHILDREN, [
+    ?SUPER('pusher_module_sup'),
+    ?WORKER('pusher_listener')
+]).
 
 %%==============================================================================
 %% API functions

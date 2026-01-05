@@ -9,7 +9,6 @@
 -export([file_name/1, file_name/2, set_file_name/2]).
 -export([records/1, records/2, set_records/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

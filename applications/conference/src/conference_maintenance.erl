@@ -40,7 +40,9 @@ refresh() ->
 %%------------------------------------------------------------------------------
 -spec refresh(any()) -> 'ok'.
 refresh(_Account) ->
-    io:format("This function is deprecated, please use kapps_maintenance:refresh(~p) instead.", [_Account]).
+    io:format("This function is deprecated, please use kapps_maintenance:refresh(~p) instead.", [
+        _Account
+    ]).
 
 -spec flush() -> 'ok'.
 flush() ->

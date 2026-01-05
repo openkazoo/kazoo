@@ -15,16 +15,22 @@
 
 -define(VM_DELETE_NOTIFY_AMPQ_PATH, [?KEY_VOICEMAIL, ?KEY_VM_DELETE_NOTIFY_AMPQ]).
 -define(SEND_DELETE_NOTIFY_AMPQ,
-        kapps_config:get_boolean(?VM_CONFIG_CAT, ?VM_DELETE_NOTIFY_AMPQ_PATH, false)
-       ).
+    kapps_config:get_boolean(?VM_CONFIG_CAT, ?VM_DELETE_NOTIFY_AMPQ_PATH, false)
+).
 
 -define(RETENTION_PATH, [?KEY_VOICEMAIL, ?KEY_RETENTION_DURATION]).
 -define(RETENTION_DAYS,
-        kapps_config:get_integer(?VM_CONFIG_CAT, ?RETENTION_PATH, 93)  %% 93 days(3 months)
-       ).
+    %% 93 days(3 months)
+    kapps_config:get_integer(?VM_CONFIG_CAT, ?RETENTION_PATH, 93)
+).
 
 -define(TIME_BETWEEN_ACCOUNT_CRAWLS,
-        kapps_config:get_integer(?VM_CONFIG_CAT, [?KEY_VOICEMAIL, <<"migrate_interaccount_delay_ms">>], 2 * ?MILLISECONDS_IN_SECOND)).
+    kapps_config:get_integer(
+        ?VM_CONFIG_CAT,
+        [?KEY_VOICEMAIL, <<"migrate_interaccount_delay_ms">>],
+        2 * ?MILLISECONDS_IN_SECOND
+    )
+).
 
 -type db_ret() :: 'ok' | {'ok', kz_json:object() | kz_json:objects()} | {'error', any()}.
 -type vm_folder() :: kz_term:ne_binary() | {kz_term:ne_binary(), boolean()}.
@@ -32,13 +38,16 @@
 -type messages() :: kz_term:ne_binaries() | kz_json:objects().
 -type update_funs() :: [fun((kz_json:object()) -> kz_json:object())].
 
--type bulk_map() :: #{succeeded => kz_term:ne_binaries() | kz_json:objects()
-                     ,failed => [{kz_term:ne_binary(), kz_term:ne_binary()}]
-                     ,to_update_map => #{kz_term:ne_binary() => kz_json:objects()}
-                     ,enforce_set => set:sets()
-                     }.
+-type bulk_map() :: #{
+    succeeded => kz_term:ne_binaries() | kz_json:objects(),
+    failed => [{kz_term:ne_binary(), kz_term:ne_binary()}],
+    to_update_map => #{kz_term:ne_binary() => kz_json:objects()},
+    enforce_set => set:sets()
+}.
 
--type next_account() :: {kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()}.
+-type next_account() :: {
+    kz_term:ne_binary(), kz_time:gregorian_seconds(), kz_time:gregorian_seconds()
+}.
 
 -type vm_delete_reason() :: 'dtmf' | 'delete_after_notify' | 'crossbar_action'.
 

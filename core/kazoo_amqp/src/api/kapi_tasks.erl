@@ -6,11 +6,12 @@
 %%%-----------------------------------------------------------------------------
 -module(kapi_tasks).
 
--export([category/1
-        ,action/1
-        ,task_id/1
-        ,reply/1
-        ]).
+-export([
+    category/1,
+    action/1,
+    task_id/1,
+    reply/1
+]).
 
 -export([bind_q/2, unbind_q/2]).
 -export([declare_exchanges/0]).
@@ -35,72 +36,73 @@
 -export([publish_remove_req/1, publish_remove_req/2]).
 -export([publish_remove_resp/2, publish_remove_resp/3]).
 
-
 -include_lib("kz_amqp_util.hrl").
-
 
 -define(LOOKUP_REQ_HEADERS, []).
 -define(OPTIONAL_LOOKUP_REQ_HEADERS, [<<"Category">>, <<"Action">>]).
--define(LOOKUP_REQ_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                           ,{<<"Event-Name">>, <<"lookup_req">>}
-                           ]).
+-define(LOOKUP_REQ_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"lookup_req">>}
+]).
 -define(LOOKUP_REQ_TYPES, []).
 
 -define(LOOKUP_RESP_HEADERS, [<<"Help">>]).
 -define(OPTIONAL_LOOKUP_RESP_HEADERS, []).
--define(LOOKUP_RESP_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                            ,{<<"Event-Name">>, <<"lookup_resp">>}
-                            ]).
+-define(LOOKUP_RESP_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"lookup_resp">>}
+]).
 -define(LOOKUP_RESP_TYPES, []).
-
 
 -define(START_REQ_HEADERS, [<<"Task-ID">>]).
 -define(OPTIONAL_START_REQ_HEADERS, []).
--define(START_REQ_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                          ,{<<"Event-Name">>, <<"start_req">>}
-                          ]).
+-define(START_REQ_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"start_req">>}
+]).
 -define(START_REQ_TYPES, []).
 
 -define(START_RESP_HEADERS, [<<"Reply">>]).
 -define(OPTIONAL_START_RESP_HEADERS, []).
--define(START_RESP_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                           ,{<<"Event-Name">>, <<"start_resp">>}
-                           ]).
+-define(START_RESP_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"start_resp">>}
+]).
 -define(START_RESP_TYPES, []).
-
 
 -define(STOP_REQ_HEADERS, [<<"Task-ID">>]).
 -define(OPTIONAL_STOP_REQ_HEADERS, []).
--define(STOP_REQ_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                         ,{<<"Event-Name">>, <<"stop_req">>}
-                         ]).
+-define(STOP_REQ_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"stop_req">>}
+]).
 -define(STOP_REQ_TYPES, []).
 
 -define(STOP_RESP_HEADERS, [<<"Reply">>]).
 -define(OPTIONAL_STOP_RESP_HEADERS, []).
--define(STOP_RESP_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                          ,{<<"Event-Name">>, <<"stop_resp">>}
-                          ]).
+-define(STOP_RESP_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"stop_resp">>}
+]).
 -define(STOP_RESP_TYPES, []).
-
 
 -define(REMOVE_REQ_HEADERS, [<<"Task-ID">>]).
 -define(OPTIONAL_REMOVE_REQ_HEADERS, []).
--define(REMOVE_REQ_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                           ,{<<"Event-Name">>, <<"remove_req">>}
-                           ]).
+-define(REMOVE_REQ_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"remove_req">>}
+]).
 -define(REMOVE_REQ_TYPES, []).
 
 -define(REMOVE_RESP_HEADERS, [<<"Reply">>]).
 -define(OPTIONAL_REMOVE_RESP_HEADERS, []).
--define(REMOVE_RESP_VALUES, [{<<"Event-Category">>, <<"tasks">>}
-                            ,{<<"Event-Name">>, <<"remove_resp">>}
-                            ]).
+-define(REMOVE_RESP_VALUES, [
+    {<<"Event-Category">>, <<"tasks">>},
+    {<<"Event-Name">>, <<"remove_resp">>}
+]).
 -define(REMOVE_RESP_TYPES, []).
 
-
 -define(TASKS_AMQP_KEY(SubKey), <<"tasks.", SubKey>>).
-
 
 -spec category(kz_json:object()) -> kz_term:api_binary().
 category(JObj) ->
@@ -117,7 +119,6 @@ task_id(JObj) ->
 -spec reply(kz_json:object()) -> kz_json:object() | kz_term:ne_binary().
 reply(JObj) ->
     kz_json:get_value(<<"Reply">>, JObj).
-
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Q, Props) ->
@@ -142,7 +143,6 @@ unbind_from_q(_Q, []) ->
 -spec declare_exchanges() -> 'ok'.
 declare_exchanges() ->
     kz_amqp_util:tasks_exchange().
-
 
 -spec lookup_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 lookup_req(Prop) when is_list(Prop) ->
@@ -192,7 +192,6 @@ publish_lookup_resp(RespQ, JObj, ContentType) ->
     {'ok', Payload} = kz_api:prepare_api_payload(JObj, ?LOOKUP_RESP_VALUES, fun lookup_resp/1),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
-
 -spec start_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 start_req(Prop) when is_list(Prop) ->
     case start_req_v(Prop) of
@@ -241,7 +240,6 @@ publish_start_resp(RespQ, JObj, ContentType) ->
     {'ok', Payload} = kz_api:prepare_api_payload(JObj, ?START_RESP_VALUES, fun start_resp/1),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
 
-
 -spec stop_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 stop_req(Prop) when is_list(Prop) ->
     case stop_req_v(Prop) of
@@ -289,7 +287,6 @@ publish_stop_resp(RespQ, JObj) ->
 publish_stop_resp(RespQ, JObj, ContentType) ->
     {'ok', Payload} = kz_api:prepare_api_payload(JObj, ?STOP_RESP_VALUES, fun stop_resp/1),
     kz_amqp_util:targeted_publish(RespQ, Payload, ContentType).
-
 
 -spec remove_req(kz_term:api_terms()) -> {'ok', iolist()} | {'error', string()}.
 remove_req(Prop) when is_list(Prop) ->

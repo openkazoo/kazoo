@@ -20,7 +20,8 @@ init_db() ->
         'false' ->
             Result = kz_datamgr:db_create(?KZ_DEDICATED_IP_DB),
             lager:debug("~s is created: ~p", [?KZ_DEDICATED_IP_DB, Result]);
-        'true' -> 'ok'
+        'true' ->
+            'ok'
     end.
 
 -spec refresh_database(function()) -> any().

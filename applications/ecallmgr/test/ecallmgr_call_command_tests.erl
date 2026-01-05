@@ -10,16 +10,20 @@
 -include_lib("eunit/include/eunit.hrl").
 
 all_conference_flags_test() ->
-    JObj = kz_json:from_list([{<<"Mute">>, 'true'}
-                             ,{<<"Deaf">>, 'true'}
-                             ,{<<"Moderator">>, 'true'}
-                             ]),
-    ?assertEqual(<<"+flags{mute,moderator,deaf}">>, ecallmgr_call_command:get_conference_flags(JObj)).
+    JObj = kz_json:from_list([
+        {<<"Mute">>, 'true'},
+        {<<"Deaf">>, 'true'},
+        {<<"Moderator">>, 'true'}
+    ]),
+    ?assertEqual(
+        <<"+flags{mute,moderator,deaf}">>, ecallmgr_call_command:get_conference_flags(JObj)
+    ).
 
 two_conference_flags_test() ->
-    JObj = kz_json:from_list([{<<"Mute">>, 'true'}
-                             ,{<<"Moderator">>, 'true'}
-                             ]),
+    JObj = kz_json:from_list([
+        {<<"Mute">>, 'true'},
+        {<<"Moderator">>, 'true'}
+    ]),
     ?assertEqual(<<"+flags{mute,moderator}">>, ecallmgr_call_command:get_conference_flags(JObj)).
 
 one_conference_flag_test() ->
@@ -32,21 +36,22 @@ no_conference_flags_test() ->
 
 tones_test() ->
     Tones =
-        [kz_json:from_list([{<<"Frequencies">>, [1000, <<"2000">>]}
-                           ,{<<"Duration-ON">>, 30000}
-                           ,{<<"Duration-OFF">>, <<"1000">>}
-                           ]
-                          )
-        ,kz_json:from_list([{<<"Frequencies">>, [1000, <<"2000">>, 3000, <<"4000">>]}
-                           ,{<<"Duration-ON">>, <<"30000">>}
-                           ,{<<"Duration-OFF">>, 1000}
-                           ,{<<"Volume">>, 25}
-                           ,{<<"Repeat">>, 3}
-                           ]
-                          )
+        [
+            kz_json:from_list([
+                {<<"Frequencies">>, [1000, <<"2000">>]},
+                {<<"Duration-ON">>, 30000},
+                {<<"Duration-OFF">>, <<"1000">>}
+            ]),
+            kz_json:from_list([
+                {<<"Frequencies">>, [1000, <<"2000">>, 3000, <<"4000">>]},
+                {<<"Duration-ON">>, <<"30000">>},
+                {<<"Duration-OFF">>, 1000},
+                {<<"Volume">>, 25},
+                {<<"Repeat">>, 3}
+            ])
         ],
-    ?assertEqual({<<"playback">>
-                 ,"tone_stream://%(30000,1000,1000,2000);v=25;l=3;%(30000,1000,1000,2000,3000,4000)"
-                 }
-                ,ecallmgr_call_command:tones_app(Tones)
-                ).
+    ?assertEqual(
+        {<<"playback">>,
+            "tone_stream://%(30000,1000,1000,2000);v=25;l=3;%(30000,1000,1000,2000,3000,4000)"},
+        ecallmgr_call_command:tones_app(Tones)
+    ).

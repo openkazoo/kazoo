@@ -7,14 +7,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_templates).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/2
-        ,delete/2
-        ,account_created/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/2,
+    delete/2,
+    account_created/1
+]).
 
 -include("crossbar.hrl").
 
@@ -76,18 +77,20 @@ validate(Context) ->
 
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
 validate(Context, TemplateName) ->
-    validate_request(Context, cb_context:req_verb(Context), cb_context:req_nouns(Context), TemplateName).
+    validate_request(
+        Context, cb_context:req_verb(Context), cb_context:req_nouns(Context), TemplateName
+    ).
 
 -spec validate_request(cb_context:context(), http_method(), req_nouns()) -> cb_context:context().
 validate_request(Context, ?HTTP_GET, [{<<"templates">>, _}]) ->
     summary(Context).
 
 -spec validate_request(cb_context:context(), http_method(), req_nouns(), path_token()) ->
-          cb_context:context().
+    cb_context:context().
 validate_request(Context, ?HTTP_PUT, [{<<"templates">>, _}], TemplateName) ->
     case cb_context:resp_status(load_template_db(TemplateName, Context)) of
         'success' -> cb_context:add_system_error('datastore_conflict', Context);
-        _Else     -> crossbar_util:response(kz_json:new(), Context)
+        _Else -> crossbar_util:response(kz_json:new(), Context)
     end;
 validate_request(Context, ?HTTP_DELETE, [{<<"templates">>, _}], TemplateName) ->
     load_template_db(TemplateName, Context);
@@ -126,11 +129,13 @@ account_created(Context) ->
 summary(Context) ->
     case kz_datamgr:db_info() of
         {'ok', Dbs} ->
-            RespData = [format_template_name(Db, 'raw') || <<?DB_PREFIX, _/binary>>=Db <- Dbs],
-            cb_context:set_resp_status(cb_context:set_resp_data(Context, RespData)
-                                      ,'success'
-                                      );
-        _ -> cb_context:add_system_error('datastore_missing_view', Context)
+            RespData = [format_template_name(Db, 'raw') || <<?DB_PREFIX, _/binary>> = Db <- Dbs],
+            cb_context:set_resp_status(
+                cb_context:set_resp_data(Context, RespData),
+                'success'
+            );
+        _ ->
+            cb_context:add_system_error('datastore_missing_view', Context)
     end.
 
 %%------------------------------------------------------------------------------
@@ -149,10 +154,11 @@ load_template_db(TemplateName, Context) ->
             cb_context:add_system_error('datastore_missing', Context);
         'true' ->
             lager:debug("check succeeded for template db ~s", [DbName]),
-            cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'success'}
-                                        ,{fun cb_context:set_account_id/2, TemplateName}
-                                        ,{fun cb_context:set_account_db/2, DbName}
-                                        ])
+            cb_context:setters(Context, [
+                {fun cb_context:set_resp_status/2, 'success'},
+                {fun cb_context:set_account_id/2, TemplateName},
+                {fun cb_context:set_account_db/2, DbName}
+            ])
     end.
 
 %%------------------------------------------------------------------------------
@@ -188,7 +194,9 @@ create_template_db(TemplateName, Context) ->
         'true' ->
             lager:debug("created DB for template ~s", [TemplateName]),
             kz_datamgr:revise_docs_from_folder(TemplateDb, 'kazoo_apps', "account", 'false'),
-            _ = kz_datamgr:revise_doc_from_file(TemplateDb, 'kazoo_apps', <<"views/maintenance.json">>),
+            _ = kz_datamgr:revise_doc_from_file(
+                TemplateDb, 'kazoo_apps', <<"views/maintenance.json">>
+            ),
             cb_context:set_resp_status(Context, 'success')
     end.
 
@@ -198,20 +206,24 @@ create_template_db(TemplateName, Context) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec import_template(kz_term:api_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-import_template('undefined', _, _) -> 'ok';
+import_template('undefined', _, _) ->
+    'ok';
 import_template(TemplateName, AccountId, AccountDb) ->
     %%TODO: use couch replication...
     TemplateDb = format_template_name(TemplateName, 'encoded'),
     case kz_datamgr:all_docs(TemplateDb) of
         {'ok', Docs} ->
-            Ids = [Id || Doc <- Docs,
-                         begin
-                             Id = kz_doc:id(Doc),
-                             not is_design_doc_id(Id)
-                         end
-                  ],
+            Ids = [
+                Id
+             || Doc <- Docs,
+                begin
+                    Id = kz_doc:id(Doc),
+                    not is_design_doc_id(Id)
+                end
+            ],
             import_template_docs(Ids, TemplateDb, AccountId, AccountDb);
-        _ -> 'ok'
+        _ ->
+            'ok'
     end.
 
 -spec is_design_doc_id(kz_term:ne_binary()) -> boolean().
@@ -223,39 +235,64 @@ is_design_doc_id(_) -> 'true'.
 %% account database, correcting the pvt fields.
 %% @end
 %%------------------------------------------------------------------------------
--spec import_template_docs(kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-import_template_docs([], _, _, _) -> 'ok';
-import_template_docs([Id|Ids], TemplateDb, AccountId, AccountDb) ->
+-spec import_template_docs(
+    kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
+) -> 'ok'.
+import_template_docs([], _, _, _) ->
+    'ok';
+import_template_docs([Id | Ids], TemplateDb, AccountId, AccountDb) ->
     case kz_datamgr:open_doc(TemplateDb, Id) of
-        {'error', _} -> import_template_docs(Ids, TemplateDb, AccountId, AccountDb);
+        {'error', _} ->
+            import_template_docs(Ids, TemplateDb, AccountId, AccountDb);
         {'ok', JObj} ->
             import_template_doc(Id, TemplateDb, AccountId, AccountDb, JObj),
             import_template_docs(Ids, TemplateDb, AccountId, AccountDb)
     end.
 
--spec import_template_doc(kz_term:ne_binaries(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+-spec import_template_doc(
+    kz_term:ne_binaries(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_json:object()
+) -> 'ok'.
 import_template_doc(Id, TemplateDb, AccountId, AccountDb, JObj) ->
     AttachmentNames = kz_doc:attachment_names(JObj),
-    Updates = [{kz_doc:path_account_id(), AccountId}
-              ,{kz_doc:path_account_db(), AccountDb}
-               | [{Key, 'null'} || Key <- AttachmentNames]
-              ],
+    Updates = [
+        {kz_doc:path_account_id(), AccountId},
+        {kz_doc:path_account_db(), AccountDb}
+        | [{Key, 'null'} || Key <- AttachmentNames]
+    ],
 
-    UpdateOptions = [{'update', Updates}
-                    ,{'create', kz_json:to_proplist(kz_json:flatten(JObj))}
-                    ,{'ensure_saved', 'true'}
-                    ],
+    UpdateOptions = [
+        {'update', Updates},
+        {'create', kz_json:to_proplist(kz_json:flatten(JObj))},
+        {'ensure_saved', 'true'}
+    ],
     _ = kz_datamgr:update_doc(AccountDb, Id, UpdateOptions),
 
     import_template_attachments(AttachmentNames, JObj, TemplateDb, AccountDb, Id).
 
--spec import_template_attachments(kz_term:ne_binaries(), kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
-import_template_attachments([], _, _, _, _) -> 'ok';
-import_template_attachments([Attachment|Attachments], JObj, TemplateDb, AccountDb, Id) ->
+-spec import_template_attachments(
+    kz_term:ne_binaries(),
+    kz_json:object(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary()
+) -> 'ok'.
+import_template_attachments([], _, _, _, _) ->
+    'ok';
+import_template_attachments([Attachment | Attachments], JObj, TemplateDb, AccountDb, Id) ->
     import_template_attachment(Attachment, JObj, TemplateDb, AccountDb, Id),
     import_template_attachments(Attachments, JObj, TemplateDb, AccountDb, Id).
 
--spec import_template_attachment(kz_term:ne_binary(), kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+-spec import_template_attachment(
+    kz_term:ne_binary(),
+    kz_json:object(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary()
+) -> 'ok'.
 import_template_attachment(Attachment, JObj, TemplateDb, AccountDb, Id) ->
     {'ok', Bin} = kz_datamgr:fetch_attachment(TemplateDb, Id, Attachment),
     ContentType = kz_doc:attachment_content_type(JObj, Attachment),

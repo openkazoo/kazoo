@@ -8,14 +8,15 @@
 -behaviour(gen_listener).
 
 -export([start_link/0]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,handle_event/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    handle_event/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("callflow.hrl").
 
@@ -24,15 +25,15 @@
 
 -define(SERVER, ?MODULE).
 
--define(RESPONDERS, [{'cf_route_req', [{<<"dialplan">>, <<"route_req">>}]}
-                    ]).
--define(BINDINGS, [{'route', [{'types', ?RESOURCE_TYPES_HANDLED}
-                             ,{'restrict_to', ['account']}
-                             ]
-                   }
-                  ,{'self', []}
-                  ,{'call', [{'restrict_to', [<<"CHANNEL_DESTROY">>]}]}
-                  ]).
+-define(RESPONDERS, [{'cf_route_req', [{<<"dialplan">>, <<"route_req">>}]}]).
+-define(BINDINGS, [
+    {'route', [
+        {'types', ?RESOURCE_TYPES_HANDLED},
+        {'restrict_to', ['account']}
+    ]},
+    {'self', []},
+    {'call', [{'restrict_to', [<<"CHANNEL_DESTROY">>]}]}
+]).
 -define(QUEUE_NAME, <<>>).
 -define(QUEUE_OPTIONS, []).
 -define(CONSUME_OPTIONS, []).
@@ -47,12 +48,17 @@
 %%------------------------------------------------------------------------------
 -spec start_link() -> kz_types:startlink_ret().
 start_link() ->
-    gen_listener:start_link(?SERVER, [{'responders', ?RESPONDERS}
-                                     ,{'bindings', ?BINDINGS}
-                                     ,{'queue_name', ?QUEUE_NAME}
-                                     ,{'queue_options', ?QUEUE_OPTIONS}
-                                     ,{'consume_options', ?CONSUME_OPTIONS}
-                                     ], []).
+    gen_listener:start_link(
+        ?SERVER,
+        [
+            {'responders', ?RESPONDERS},
+            {'bindings', ?BINDINGS},
+            {'queue_name', ?QUEUE_NAME},
+            {'queue_options', ?QUEUE_OPTIONS},
+            {'consume_options', ?CONSUME_OPTIONS}
+        ],
+        []
+    ).
 
 %%%=============================================================================
 %%% gen_listener callbacks
@@ -106,9 +112,12 @@ handle_event(JObj, _State) ->
     case kz_api:event_name(JObj) of
         <<"CHANNEL_DESTROY">> ->
             CallId = kz_call_event:call_id(JObj),
-            gproc:send({'p', 'l', {'route_req', CallId}}, {'channel_destroy', kz_call_event:fetch_id(JObj)}),
+            gproc:send(
+                {'p', 'l', {'route_req', CallId}}, {'channel_destroy', kz_call_event:fetch_id(JObj)}
+            ),
             'ignore';
-        _ -> {'reply', []}
+        _ ->
+            {'reply', []}
     end.
 
 %%------------------------------------------------------------------------------

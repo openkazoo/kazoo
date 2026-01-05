@@ -11,9 +11,10 @@
 
 -define(SERVER, ?MODULE).
 
--export([start_link/0
-        ,init/1
-        ]).
+-export([
+    start_link/0,
+    init/1
+]).
 
 -ifdef(TEST).
 
@@ -30,11 +31,12 @@
 
 -endif.
 
--define(CHILDREN, [?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS)
-                  ,?CACHE_ARGS(?KAZOO_DATA_PLAN_CACHE, ?DP_CACHE_PROPS)
-                  ,?SUPER('kz_dataconnection_sup')
-                  ,?WORKER('kz_dataconnections')
-                  ]).
+-define(CHILDREN, [
+    ?CACHE_ARGS(?CACHE_NAME, ?CACHE_PROPS),
+    ?CACHE_ARGS(?KAZOO_DATA_PLAN_CACHE, ?DP_CACHE_PROPS),
+    ?SUPER('kz_dataconnection_sup'),
+    ?WORKER('kz_dataconnections')
+]).
 
 %%==============================================================================
 %% API functions

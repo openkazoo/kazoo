@@ -28,12 +28,14 @@ handle(Data, Call) ->
     ListIds = kz_json:get_value(<<"lists">>, Data, []),
     AccountDb = kapps_call:account_db(Call),
     lager:debug("matching ~p in ~p", [CallerNumber, AccountDb]),
-    CallerName = case match_number_in_lists(AccountDb, CallerNumber, ListIds) of
-                     'continue' ->
-                         lager:debug("matching regexps"),
-                         match_regexp_in_lists(AccountDb, CallerNumber, ListIds);
-                     {'stop', Name} -> Name
-                 end,
+    CallerName =
+        case match_number_in_lists(AccountDb, CallerNumber, ListIds) of
+            'continue' ->
+                lager:debug("matching regexps"),
+                match_regexp_in_lists(AccountDb, CallerNumber, ListIds);
+            {'stop', Name} ->
+                Name
+        end,
     handle_caller_name(Call, CallerName).
 
 -spec handle_caller_name(kapps_call:call(), kz_term:api_ne_binary()) -> 'ok'.
@@ -43,15 +45,14 @@ handle_caller_name(Call, CallerName) ->
     lager:info("setting caller name to ~p", [CallerName]),
     cf_exe:continue(kapps_call:set_caller_id_name(CallerName, Call)).
 
-
 -spec match_number_in_lists(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) ->
-          match_number_result().
+    match_number_result().
 match_number_in_lists(AccountDb, Number, Lists) ->
     Prefixes = build_keys(Number),
     match_prefixes_in_lists(AccountDb, Prefixes, Lists).
 
 -spec match_prefixes_in_lists(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binaries()) ->
-          match_number_result().
+    match_number_result().
 match_prefixes_in_lists(AccountDb, Prefixes, [ListId | Rest]) ->
     case match_prefixes_in_list(AccountDb, Prefixes, ListId) of
         {'stop', _Name} = Result -> Result;
@@ -62,19 +63,20 @@ match_prefixes_in_lists(_AccountDb, _Number, []) ->
     'continue'.
 
 -spec match_prefixes_in_list(kz_term:ne_binary(), kz_term:ne_binaries(), kz_term:ne_binary()) ->
-          match_number_result().
+    match_number_result().
 match_prefixes_in_list(AccountDb, Prefixes, ListId) ->
     Keys = [[ListId, Prefix] || Prefix <- Prefixes],
-    ViewOptions = [{'keys', Keys}
-                  ,'include_docs'
-                  ],
-    case kz_datamgr:get_results(AccountDb , <<"lists/match_prefix_in_list">>, ViewOptions) of
+    ViewOptions = [
+        {'keys', Keys},
+        'include_docs'
+    ],
+    case kz_datamgr:get_results(AccountDb, <<"lists/match_prefix_in_list">>, ViewOptions) of
         {'ok', []} ->
             'continue';
         {'ok', Entries} ->
             lager:debug("matched ~p prefixes, getting longest", [length(Entries)]),
 
-            [Entry|_] = lists:sort(fun compare_prefixes/2, Entries),
+            [Entry | _] = lists:sort(fun compare_prefixes/2, Entries),
             Doc = kz_json:get_value(<<"doc">>, Entry),
             Name = kz_json:get_value([<<"displayname">>, <<"name">>, <<"cid_name">>], Doc),
 
@@ -105,14 +107,16 @@ build_keys(<<D:1/binary, Rest/binary>>) ->
 -spec build_keys(binary(), binary(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
 build_keys(<<D:1/binary, Rest/binary>>, Prefix, Acc) ->
     build_keys(Rest, <<Prefix/binary, D/binary>>, [<<Prefix/binary, D/binary>> | Acc]);
-build_keys(<<>>, _, Acc) -> Acc.
+build_keys(<<>>, _, Acc) ->
+    Acc.
 
 -spec match_regexp_in_list(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'continue' | {'stop', kz_term:api_binary()}.
+    'continue' | {'stop', kz_term:api_binary()}.
 match_regexp_in_list(AccountDb, Number, ListId) when is_binary(ListId) ->
-    ViewOptions = [{'keys', [ListId]}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'keys', [ListId]},
+        'include_docs'
+    ],
     case kz_datamgr:get_results(AccountDb, <<"lists/regexps_in_list">>, ViewOptions) of
         {'ok', Entries} ->
             match_regexp(Entries, Number);
@@ -121,8 +125,10 @@ match_regexp_in_list(AccountDb, Number, ListId) when is_binary(ListId) ->
             'continue'
     end.
 
--spec match_regexp_in_lists(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()) ->
-          kz_term:api_ne_binary().
+-spec match_regexp_in_lists(
+    kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary() | kz_term:ne_binaries()
+) ->
+    kz_term:api_ne_binary().
 match_regexp_in_lists(AccountDb, Number, [ListId | Rest]) ->
     case match_regexp_in_list(AccountDb, Number, ListId) of
         'continue' -> match_regexp_in_lists(AccountDb, Number, Rest);
@@ -132,19 +138,23 @@ match_regexp_in_lists(_, _, []) ->
     'undefined'.
 
 -spec match_regexp(kz_json:objects(), kz_term:ne_binary()) ->
-          'continue' |
-          {'stop', kz_term:api_binary()}.
+    'continue'
+    | {'stop', kz_term:api_binary()}.
 match_regexp([Entry | Entries], Number) ->
     Regex = kz_json:get_ne_binary_value(<<"value">>, Entry),
     Doc = kz_json:get_value(<<"doc">>, Entry),
-    case Regex =/= 'undefined'
-        andalso re:run(Number, Regex)
+    case
+        Regex =/= 'undefined' andalso
+            re:run(Number, Regex)
     of
-        'false' -> match_regexp(Entries, Number);
-        'nomatch' -> match_regexp(Entries, Number);
+        'false' ->
+            match_regexp(Entries, Number);
+        'nomatch' ->
+            match_regexp(Entries, Number);
         {'match', _} ->
             lager:debug("matched regexp ~p", [kz_doc:id(Doc)]),
-            {'stop', kz_json:get_first_defined([<<"displayname">>, <<"name">>, <<"cid_name">>], Entry)}
+            {'stop',
+                kz_json:get_first_defined([<<"displayname">>, <<"name">>, <<"cid_name">>], Entry)}
     end;
 match_regexp([], _Number) ->
     'continue'.

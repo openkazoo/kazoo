@@ -5,13 +5,14 @@
 %%%-----------------------------------------------------------------------------
 -module(kzs_publish).
 
--export([maybe_publish_doc/3
-        ,maybe_publish_docs/3
-        ,publish_db/2
-        ,publish_doc/3
-        ,publish_fields/1, publish_fields/2
-        ,publish/3
-        ]).
+-export([
+    maybe_publish_doc/3,
+    maybe_publish_docs/3,
+    publish_db/2,
+    publish_doc/3,
+    publish_fields/1, publish_fields/2,
+    publish/3
+]).
 
 -include("kz_data.hrl").
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
@@ -21,20 +22,23 @@
 maybe_publish_docs(_, _, _) -> 'ok'.
 -else.
 maybe_publish_docs(Db, PreDbDocs, PostDbDocs) ->
-    _ = kz_datamgr:change_notice()
-        andalso should_publish_db_changes(Db)
-        andalso publish_docs(Db, PreDbDocs, PostDbDocs),
+    _ =
+        kz_datamgr:change_notice() andalso
+            should_publish_db_changes(Db) andalso
+            publish_docs(Db, PreDbDocs, PostDbDocs),
     kzs_cache:flush_cache_docs(Db, PostDbDocs).
 
 -spec publish_docs(kz_term:ne_binary(), kz_json:objects(), kz_json:objects()) -> 'ok'.
 publish_docs(Db, PreDbDocs, PostDbDocs) ->
     _ = kz_util:spawn(
-          fun() ->
-                  [publish_doc(Db, PreDbDoc, PostDbDoc)
-                   || {PreDbDoc, PostDbDoc} <- lists:zip(PreDbDocs, PostDbDocs),
-                      should_publish_doc(PreDbDoc)
-                  ]
-          end),
+        fun() ->
+            [
+                publish_doc(Db, PreDbDoc, PostDbDoc)
+             || {PreDbDoc, PostDbDoc} <- lists:zip(PreDbDocs, PostDbDocs),
+                should_publish_doc(PreDbDoc)
+            ]
+        end
+    ),
     'ok'.
 -endif.
 
@@ -43,10 +47,11 @@ publish_docs(Db, PreDbDocs, PostDbDocs) ->
 maybe_publish_doc(_, _, _) -> 'ok'.
 -else.
 maybe_publish_doc(Db, PreDbDoc, PostDbDoc) ->
-    _PidOrNot = kz_datamgr:change_notice()
-        andalso should_publish_db_changes(Db)
-        andalso should_publish_doc(PreDbDoc)
-        andalso kz_util:spawn(fun publish_doc/3, [Db, PreDbDoc, PostDbDoc]),
+    _PidOrNot =
+        kz_datamgr:change_notice() andalso
+            should_publish_db_changes(Db) andalso
+            should_publish_doc(PreDbDoc) andalso
+            kz_util:spawn(fun publish_doc/3, [Db, PreDbDoc, PostDbDoc]),
     lager:debug("maybe publishing db/doc change: ~p", [_PidOrNot]).
 -endif.
 
@@ -61,10 +66,11 @@ publish_db(DbName, Action) ->
 
 -spec should_publish_doc(kz_json:object()) -> boolean().
 should_publish_doc(Doc) ->
-    ExcludeList = kapps_config:get_ne_binaries(?CONFIG_CAT
-                                              ,<<"change_notice_exclude_types">>
-                                              ,?DEFAULT_PUBLISH_EXCLUDE_TYPES
-                                              ),
+    ExcludeList = kapps_config:get_ne_binaries(
+        ?CONFIG_CAT,
+        <<"change_notice_exclude_types">>,
+        ?DEFAULT_PUBLISH_EXCLUDE_TYPES
+    ),
     Type = kz_doc:type(Doc),
     case kz_doc:id(Doc) of
         <<"_design/", _/binary>> = _D -> 'false';
@@ -75,7 +81,8 @@ should_publish_doc(Doc) ->
 
 -spec should_publish_db_changes(kz_term:ne_binary()) -> boolean().
 should_publish_db_changes(DbName) ->
-    Key = <<"publish_", (kz_term:to_binary(kzs_util:db_classification(DbName)))/binary, "_changes">>,
+    Key =
+        <<"publish_", (kz_term:to_binary(kzs_util:db_classification(DbName)))/binary, "_changes">>,
     kazoo_data_config:get_is_true(Key, 'true').
 -endif.
 
@@ -90,9 +97,10 @@ should_publish_db_changes(DbName) ->
 %%------------------------------------------------------------------------------
 -spec publish_doc(kz_term:ne_binary(), kz_json:object(), kz_json:object()) -> 'ok'.
 publish_doc(DbName, PreDbDoc, PostDbDoc) ->
-    case kz_doc:is_soft_deleted(PreDbDoc)
-        orelse kz_doc:is_deleted(PreDbDoc)
-        orelse kz_doc:revision(PreDbDoc)
+    case
+        kz_doc:is_soft_deleted(PreDbDoc) orelse
+            kz_doc:is_deleted(PreDbDoc) orelse
+            kz_doc:revision(PreDbDoc)
     of
         'true' ->
             publish('deleted', kz_term:to_binary(DbName), publish_fields(PreDbDoc, PostDbDoc));
@@ -106,17 +114,20 @@ publish_doc(DbName, PreDbDoc, PostDbDoc) ->
 
 -ifndef(TEST).
 -spec do_publish_db(boolean(), kz_term:ne_binary(), kapi_conf:action()) -> 'ok'.
-do_publish_db('false', _DbName, _Action) -> 'ok';
+do_publish_db('false', _DbName, _Action) ->
+    'ok';
 do_publish_db('true', DbName, Action) ->
     Props =
-        [{<<"Type">>, <<"database">>}
-        ,{<<"ID">>, DbName}
-        ,{<<"Database">>, DbName}
-         | kz_api:default_headers(<<"configuration">>
-                                 ,<<"db_", (kz_term:to_binary(Action))/binary>>
-                                 ,?CONFIG_CAT
-                                 ,<<"1.0.0">>
-                                 )
+        [
+            {<<"Type">>, <<"database">>},
+            {<<"ID">>, DbName},
+            {<<"Database">>, DbName}
+            | kz_api:default_headers(
+                <<"configuration">>,
+                <<"db_", (kz_term:to_binary(Action))/binary>>,
+                ?CONFIG_CAT,
+                <<"1.0.0">>
+            )
         ],
     Fun = fun(P) -> kapi_conf:publish_db_update(Action, DbName, P) end,
     kz_amqp_worker:cast(Props, Fun).
@@ -129,8 +140,9 @@ do_publish_db('true', DbName, Action) ->
 %%------------------------------------------------------------------------------
 -spec publish_fields(kz_json:object()) -> kz_term:proplist().
 publish_fields(Doc) ->
-    [{Key, V} ||
-        Key <- ?PUBLISH_FIELDS,
+    [
+        {Key, V}
+     || Key <- ?PUBLISH_FIELDS,
         kz_term:is_not_empty(V = kz_json:get_value(Key, Doc))
     ].
 
@@ -155,21 +167,24 @@ publish(Action, Db, Doc) ->
     EventName = doc_change_event_name(Action, IsSoftDeleted or IsHardDeleted),
 
     Props = props:filter_undefined(
-              [{<<"ID">>, Id}
-              ,{<<"Origin-Cache">>, ?CACHE_NAME}
-              ,{<<"Type">>, Type}
-              ,{<<"Database">>, Db}
-              ,{<<"Rev">>, kz_doc:revision(Doc)}
-              ,{<<"Account-ID">>, doc_acct_id(Db, Doc)}
-              ,{<<"Date-Modified">>, kz_doc:created(Doc)}
-              ,{<<"Date-Created">>, kz_doc:modified(Doc)}
-              ,{<<"Is-Soft-Deleted">>, IsSoftDeleted}
-               | kz_api:default_headers(<<"configuration">>
-                                       ,EventName
-                                       ,?APP_NAME
-                                       ,?APP_VERSION
-                                       )
-              ]),
+        [
+            {<<"ID">>, Id},
+            {<<"Origin-Cache">>, ?CACHE_NAME},
+            {<<"Type">>, Type},
+            {<<"Database">>, Db},
+            {<<"Rev">>, kz_doc:revision(Doc)},
+            {<<"Account-ID">>, doc_acct_id(Db, Doc)},
+            {<<"Date-Modified">>, kz_doc:created(Doc)},
+            {<<"Date-Created">>, kz_doc:modified(Doc)},
+            {<<"Is-Soft-Deleted">>, IsSoftDeleted}
+            | kz_api:default_headers(
+                <<"configuration">>,
+                EventName,
+                ?APP_NAME,
+                ?APP_VERSION
+            )
+        ]
+    ),
     Fun = fun(P) -> kapi_conf:publish_doc_update(Action, Db, Type, Id, P) end,
     kz_amqp_worker:cast(Props, Fun).
 

@@ -10,7 +10,6 @@
 
 -include("media.hrl").
 
-
 -spec prompt_url(kz_term:ne_binary()) -> 'ok'.
 prompt_url(PromptId) ->
     AccountId = ?KZ_MEDIA_DB,
@@ -24,7 +23,12 @@ prompt_url(PromptId, AccountId) ->
 
 -spec prompt_url(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 prompt_url(PromptId, AccountId, Language) ->
-    case kz_media_url:playback(<<"prompt://", AccountId/binary, "/", PromptId/binary, "/", Language/binary>>, kz_json:new()) of
+    case
+        kz_media_url:playback(
+            <<"prompt://", AccountId/binary, "/", PromptId/binary, "/", Language/binary>>,
+            kz_json:new()
+        )
+    of
         {'error', _E} ->
             io:format("failed to find URL for ~s/~s/~s: ~p~n", [AccountId, PromptId, Language, _E]);
         URL ->

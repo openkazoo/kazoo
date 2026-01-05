@@ -9,11 +9,13 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0
-        ,start_trie/1, restart_trie/1
-        ,stop_trie/1
-        ,upgrade/0
-        ]).
+-export([
+    start_link/0,
+    start_trie/1,
+    restart_trie/1,
+    stop_trie/1,
+    upgrade/0
+]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -22,9 +24,10 @@
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, [?WORKER_NAME_ARGS('hon_trie', Ratedeck, [Ratedeck])
-                   || Ratedeck <- hotornot_config:ratedecks()
-                  ]).
+-define(CHILDREN, [
+    ?WORKER_NAME_ARGS('hon_trie', Ratedeck, [Ratedeck])
+ || Ratedeck <- hotornot_config:ratedecks()
+]).
 
 %%==============================================================================
 %% API functions
@@ -50,16 +53,20 @@ restart_trie(Ratedeck) ->
 
 -spec stop_trie(kz_types:server_ref()) -> 'ok' | {'error', any()}.
 stop_trie(Pid) when is_pid(Pid) ->
-    case [Id || {Id, P, _, _} <- supervisor:which_children(?SERVER),
-                Pid =:= P
-         ]
+    case
+        [
+            Id
+         || {Id, P, _, _} <- supervisor:which_children(?SERVER),
+            Pid =:= P
+        ]
     of
         [Id] -> supervisor:terminate_child(?SERVER, Id);
         [] -> 'ok'
     end;
-stop_trie('undefined') -> 'ok';
-stop_trie(Name) -> stop_trie(whereis(Name)).
-
+stop_trie('undefined') ->
+    'ok';
+stop_trie(Name) ->
+    stop_trie(whereis(Name)).
 
 %% @doc Add processes if necessary.
 %% @end
@@ -71,10 +78,13 @@ upgrade() ->
     New = sets:from_list([Name || {Name, _, _, _, _, _} <- Specs]),
     Kill = sets:subtract(Old, New),
 
-    lists:foreach(fun (Id) ->
-                          _ = supervisor:terminate_child(?SERVER, Id),
-                          supervisor:delete_child(?SERVER, Id)
-                  end, sets:to_list(Kill)),
+    lists:foreach(
+        fun(Id) ->
+            _ = supervisor:terminate_child(?SERVER, Id),
+            supervisor:delete_child(?SERVER, Id)
+        end,
+        sets:to_list(Kill)
+    ),
     lists:foreach(fun(Spec) -> supervisor:start_child(?SERVER, Spec) end, Specs).
 
 %%==============================================================================

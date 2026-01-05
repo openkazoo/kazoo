@@ -12,20 +12,22 @@
 -module(pqc_cb_media).
 
 %% API requests
--export([summary/2
-        ,create/3
-        ,fetch/3, fetch/4
-        ,fetch_binary/3
-        ,update/3, update/4
-        ,update_binary/4
-        ,patch/4
-        ,delete/3
-        ]).
+-export([
+    summary/2,
+    create/3,
+    fetch/3, fetch/4,
+    fetch_binary/3,
+    update/3, update/4,
+    update_binary/4,
+    patch/4,
+    delete/3
+]).
 
--export([seq/0
-        ,cleanup/0
-        ,new_media_doc/0
-        ]).
+-export([
+    seq/0,
+    cleanup/0,
+    new_media_doc/0
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -34,137 +36,166 @@
 -spec summary(pqc_cb_api:state(), kz_term:ne_binary()) -> pqc_cb_api:response().
 summary(API, AccountId) ->
     Expectations = [#{response_codes => [200]}],
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,media_url(AccountId)
-                           ,pqc_cb_api:request_headers(API)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        media_url(AccountId),
+        pqc_cb_api:request_headers(API)
+    ).
 
 -spec create(pqc_cb_api:state(), kz_term:ne_binary(), kzd_media:doc()) -> pqc_cb_api:response().
 create(API, AccountId, MediaJObj) ->
     URL = media_url(AccountId),
 
-    Expectations = [#{response_codes => [201]
-                     ,response_headers => [{"content-type", "application/json"}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [201],
+            response_headers => [{"content-type", "application/json"}]
+        }
+    ],
 
     Envelope = pqc_cb_api:create_envelope(MediaJObj),
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:put/3
-                           ,URL
-                           ,pqc_cb_api:request_headers(API)
-                           ,kz_json:encode(Envelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:put/3,
+        URL,
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(Envelope)
+    ).
 
 -spec fetch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
 fetch(API, AccountId, MediaId) ->
     fetch(API, AccountId, MediaId, <<"application/json">>).
 
--spec fetch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec fetch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 fetch(API, AccountId, MediaId, AcceptType) ->
-    Expectations = [#{response_codes => [200]
-                     ,response_headers => [{"content-type", kz_term:to_list(AcceptType)}]
-                     }],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", kz_term:to_list(AcceptType)}]
+        }
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,media_url(AccountId, MediaId)
-                           ,pqc_cb_api:request_headers(API, [{<<"accept">>, kz_term:to_list(AcceptType)}])
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        media_url(AccountId, MediaId),
+        pqc_cb_api:request_headers(API, [{<<"accept">>, kz_term:to_list(AcceptType)}])
+    ).
 
--spec fetch_binary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
+-spec fetch_binary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    pqc_cb_api:response().
 fetch_binary(API, AccountId, MediaId) ->
     AcceptType = "audio/mp3",
-    Expectations = [#{response_codes => [200]
-                     ,response_headers => [{"content-type", AcceptType}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", AcceptType}]
+        }
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,media_bin_url(AccountId, MediaId)
-                           ,pqc_cb_api:request_headers(API, [{<<"accept">>, AcceptType}])
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        media_bin_url(AccountId, MediaId),
+        pqc_cb_api:request_headers(API, [{<<"accept">>, AcceptType}])
+    ).
 
 -spec update(pqc_cb_api:state(), kz_term:ne_binary(), kzd_media:doc()) -> pqc_cb_api:response().
 update(API, AccountId, MediaJObj) ->
     URL = media_url(AccountId, kz_doc:id(MediaJObj)),
 
-    Expectations = [#{response_codes => [200]
-                     ,response_headers => [{"content-type", "application/json"}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", "application/json"}]
+        }
+    ],
 
     Envelope = pqc_cb_api:create_envelope(MediaJObj),
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:post/3
-                           ,URL
-                           ,pqc_cb_api:request_headers(API)
-                           ,kz_json:encode(Envelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:post/3,
+        URL,
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(Envelope)
+    ).
 
--spec update(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), iodata()) -> pqc_cb_api:response().
+-spec update(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), iodata()) ->
+    pqc_cb_api:response().
 update(API, AccountId, MediaId, Data) ->
     URL = media_url(AccountId, MediaId),
 
-    Expectations = [#{response_codes => [200]
-                     ,response_headers => [{"content-type", "application/json"}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", "application/json"}]
+        }
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:post/3
-                           ,URL
-                           ,pqc_cb_api:request_headers(API, [{<<"content-type">>, "audio/mp3"}])
-                           ,Data
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:post/3,
+        URL,
+        pqc_cb_api:request_headers(API, [{<<"content-type">>, "audio/mp3"}]),
+        Data
+    ).
 
--spec update_binary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), iodata()) -> pqc_cb_api:response().
+-spec update_binary(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), iodata()) ->
+    pqc_cb_api:response().
 update_binary(API, AccountId, MediaId, Data) ->
     URL = media_bin_url(AccountId, MediaId),
 
-    Expectations = [#{response_codes =>[200]
-                     ,response_headers => [{"content-type", "application/json"}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", "application/json"}]
+        }
+    ],
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:post/3
-                           ,URL
-                           ,pqc_cb_api:request_headers(API, [{<<"content-type">>, "audio/mp3"}])
-                           ,Data
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:post/3,
+        URL,
+        pqc_cb_api:request_headers(API, [{<<"content-type">>, "audio/mp3"}]),
+        Data
+    ).
 
--spec patch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> pqc_cb_api:response().
+-spec patch(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) ->
+    pqc_cb_api:response().
 patch(API, AccountId, MediaId, PatchJObj) ->
     URL = media_url(AccountId, MediaId),
 
-    Expectations = [#{response_codes =>[200]
-                     ,response_headers => [{"content-type", "application/json"}]
-                     }
-                   ],
+    Expectations = [
+        #{
+            response_codes => [200],
+            response_headers => [{"content-type", "application/json"}]
+        }
+    ],
 
     Envelope = pqc_cb_api:create_envelope(PatchJObj),
 
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:patch/3
-                           ,URL
-                           ,pqc_cb_api:request_headers(API)
-                           ,kz_json:encode(Envelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:patch/3,
+        URL,
+        pqc_cb_api:request_headers(API),
+        kz_json:encode(Envelope)
+    ).
 
 -spec delete(pqc_cb_api:state(), kz_term:ne_binary(), kz_term:ne_binary()) -> pqc_cb_api:response().
 delete(API, AccountId, MediaId) ->
     URL = media_url(AccountId, MediaId),
-    Expectations = [#{response_codes =>[200]}],
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:delete/2
-                           ,URL
-                           ,pqc_cb_api:request_headers(API)
-                           ).
+    Expectations = [#{response_codes => [200]}],
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:delete/2,
+        URL,
+        pqc_cb_api:request_headers(API)
+    ).
 
 -spec media_url(kz_term:ne_binary()) -> string().
 media_url(AccountId) ->
@@ -172,20 +203,22 @@ media_url(AccountId) ->
 
 -spec media_bin_url(kz_term:ne_binary(), kz_term:ne_binaryy()) -> string().
 media_bin_url(AccountId, MediaId) ->
-    string:join([pqc_cb_accounts:account_url(AccountId), "media", kz_term:to_list(MediaId), "raw"], "/").
+    string:join(
+        [pqc_cb_accounts:account_url(AccountId), "media", kz_term:to_list(MediaId), "raw"], "/"
+    ).
 
 -spec media_url(kz_term:ne_binary(), kz_term:ne_binary()) -> string().
 media_url(AccountId, MediaId) ->
     string:join([media_url(AccountId), kz_term:to_list(MediaId)], "/").
-
 
 -spec seq() -> 'ok'.
 seq() ->
     Fs = [fun seq_media_file/0],
     run_funs(Fs).
 
-run_funs([]) -> 'ok';
-run_funs([F|Fs]) ->
+run_funs([]) ->
+    'ok';
+run_funs([F | Fs]) ->
     _ = F(),
     cleanup(),
     run_funs(Fs).
@@ -219,10 +252,12 @@ seq_media_file() ->
     lager:info("fetched binary: ~p", [FetchedMedia]),
     MP3 = FetchedMedia,
 
-    MediaName = kz_media_util:media_path(<<"/", AccountId/binary, "/", MediaId/binary>>, kz_binary:rand_hex(16)),
+    MediaName = kz_media_util:media_path(
+        <<"/", AccountId/binary, "/", MediaId/binary>>, kz_binary:rand_hex(16)
+    ),
 
     lager:info("fetching URL for ~s", [MediaName]),
-    {'ok', [AMQPResp|_]} = pqc_media_mgr:request_media_url(MediaName, <<"new">>),
+    {'ok', [AMQPResp | _]} = pqc_media_mgr:request_media_url(MediaName, <<"new">>),
     lager:info("fetched URL for ~s: ~p", [MediaName, AMQPResp]),
     StreamURL = kz_json:get_ne_binary_value(<<"Stream-URL">>, AMQPResp),
     lager:info("streaming from ~s", [StreamURL]),

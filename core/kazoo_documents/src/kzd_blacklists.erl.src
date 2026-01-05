@@ -11,7 +11,6 @@
 -export([numbers/1, numbers/2, set_numbers/2]).
 -export([should_block_anonymous/1, should_block_anonymous/2, set_should_block_anonymous/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

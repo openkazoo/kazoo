@@ -6,22 +6,32 @@
 %%%-----------------------------------------------------------------------------
 -module(kzd_alert).
 
--export([new/0
-        ,type/0
-        ,id/1
-        ,fetch/1
-        ]).
+-export([
+    new/0,
+    type/0,
+    id/1,
+    fetch/1
+]).
 
--export([title/0, title/1, title/2, set_title/2
-        ,category/0 ,category/1, category/2, set_category/2
-        ,message/0, message/1, message/2, set_message/2
-        ,metadata/0, metadata/1, metadata/2, set_metadata/2
-        ,level/0, level/1, level/2, set_level/2
-        ,from/0, from/1, from/2, set_from/2
-        ,to/0, to/1, to/2, set_to/2
-        ,expiration_date/0, expiration_date/1, expiration_date/2, set_expiration_date/2
-        ,expired/1
-        ]).
+-export([
+    title/0, title/1, title/2,
+    set_title/2,
+    category/0, category/1, category/2,
+    set_category/2,
+    message/0, message/1, message/2,
+    set_message/2,
+    metadata/0, metadata/1, metadata/2,
+    set_metadata/2,
+    level/0, level/1, level/2,
+    set_level/2,
+    from/0, from/1, from/2,
+    set_from/2,
+    to/0, to/1, to/2,
+    set_to/2,
+    expiration_date/0, expiration_date/1, expiration_date/2,
+    set_expiration_date/2,
+    expired/1
+]).
 
 -define(ID, <<"_id">>).
 -define(PVT_TYPE, <<"alert">>).
@@ -67,8 +77,9 @@ id(JObj) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch(kz_term:api_binary()) -> {'ok', doc()} |
-          {'error', any()}.
+-spec fetch(kz_term:api_binary()) ->
+    {'ok', doc()}
+    | {'error', any()}.
 fetch('undefined') ->
     {'error', 'invalid_db_name'};
 fetch(<<_/binary>> = AlertId) ->
@@ -150,7 +161,7 @@ metadata() ->
 metadata(JObj) ->
     metadata(JObj, kz_json:new()).
 
--spec metadata(doc(), Default) ->  kz_json:object() | Default.
+-spec metadata(doc(), Default) -> kz_json:object() | Default.
 metadata(JObj, Default) ->
     kz_json:get_value(?METADATA, JObj, Default).
 
@@ -192,7 +203,7 @@ from() ->
 from(JObj) ->
     from(JObj, kz_json:new()).
 
--spec from(doc(), Default) ->  kz_json:objects() | Default.
+-spec from(doc(), Default) -> kz_json:objects() | Default.
 from(JObj, Default) ->
     kz_json:get_value(?FROM, JObj, Default).
 
@@ -213,7 +224,7 @@ to() ->
 to(JObj) ->
     to(JObj, []).
 
--spec to(doc(), Default) ->  kz_json:objects() | Default.
+-spec to(doc(), Default) -> kz_json:objects() | Default.
 to(JObj, Default) ->
     kz_json:get_value(?TO, JObj, Default).
 
@@ -234,7 +245,7 @@ expiration_date() ->
 expiration_date(JObj) ->
     expiration_date(JObj, kz_json:new()).
 
--spec expiration_date(doc(), Default) ->  kz_json:object() | Default.
+-spec expiration_date(doc(), Default) -> kz_json:object() | Default.
 expiration_date(JObj, Default) ->
     kz_json:get_value(?EXPIRATION_DATE, JObj, Default).
 

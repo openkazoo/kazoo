@@ -35,5 +35,7 @@ start(_StartType, _StartArgs) ->
 -spec stop(any()) -> any().
 stop(_State) ->
     _ = kapps_maintenance:unbind('register_views', 'acdc_maintenance', 'register_views'),
-    _ = kapps_maintenance:unbind({'refresh_account', <<"*">>}, 'acdc_maintenance', 'refresh_account'),
+    _ = kapps_maintenance:unbind(
+        {'refresh_account', <<"*">>}, 'acdc_maintenance', 'refresh_account'
+    ),
     'ok'.

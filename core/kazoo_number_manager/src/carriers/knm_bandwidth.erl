@@ -21,24 +21,26 @@
 -define(KNM_BW_CONFIG_CAT, <<(?KNM_CONFIG_CAT)/binary, ".bandwidth">>).
 
 -define(BW_XML_PROLOG, "<?xml version=\"1.0\"?>").
--define(BW_XML_NAMESPACE
-       ,[{'xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance"}
-        ,{'xmlns:xsd', "http://www.w3.org/2001/XMLSchema"}
-        ,{'xmlns', "http://www.bandwidth.com/api/"}
-        ]).
--define(BW_NUMBER_URL
-       ,kapps_config:get_string(?KNM_BW_CONFIG_CAT
-                               ,<<"numbers_api_url">>
-                               ,"https://api.bandwidth.com/public/v2/numbers.api"
-                               )
-       ).
+-define(BW_XML_NAMESPACE, [
+    {'xmlns:xsi', "http://www.w3.org/2001/XMLSchema-instance"},
+    {'xmlns:xsd', "http://www.w3.org/2001/XMLSchema"},
+    {'xmlns', "http://www.bandwidth.com/api/"}
+]).
+-define(BW_NUMBER_URL,
+    kapps_config:get_string(
+        ?KNM_BW_CONFIG_CAT,
+        <<"numbers_api_url">>,
+        "https://api.bandwidth.com/public/v2/numbers.api"
+    )
+).
 
--define(BW_CDR_URL
-       ,kapps_config:get_string(?KNM_BW_CONFIG_CAT
-                               ,<<"cdrs_api_url">>
-                               ,"https://api.bandwidth.com/api/public/v2/cdrs.api"
-                               )
-       ).
+-define(BW_CDR_URL,
+    kapps_config:get_string(
+        ?KNM_BW_CONFIG_CAT,
+        <<"cdrs_api_url">>,
+        "https://api.bandwidth.com/api/public/v2/cdrs.api"
+    )
+).
 
 -ifdef(TEST).
 -define(NPAN_RESPONSE, knm_util:fixture("bandwidth_numbersearch_response.xml")).
@@ -49,21 +51,24 @@
 -define(BW_DEBUG, kapps_config:get_is_true(?KNM_BW_CONFIG_CAT, <<"debug">>, 'false')).
 -define(BW_DEBUG_FILE, "/tmp/bandwidth.com.xml").
 -define(BW_DEBUG(Format, Args),
-        _ = ?BW_DEBUG
-        andalso file:write_file(?BW_DEBUG_FILE, io_lib:format(Format, Args), ['append'])
-       ).
+    _ =
+        ?BW_DEBUG andalso
+            file:write_file(?BW_DEBUG_FILE, io_lib:format(Format, Args), ['append'])
+).
 -endif.
 
 -define(IS_SANDBOX_PROVISIONING_TRUE,
-        kapps_config:get_is_true(?KNM_BW_CONFIG_CAT, <<"sandbox_provisioning">>, 'true')).
+    kapps_config:get_is_true(?KNM_BW_CONFIG_CAT, <<"sandbox_provisioning">>, 'true')
+).
 -define(IS_PROVISIONING_ENABLED,
-        kapps_config:get_is_true(?KNM_BW_CONFIG_CAT, <<"enable_provisioning">>, 'true')).
+    kapps_config:get_is_true(?KNM_BW_CONFIG_CAT, <<"enable_provisioning">>, 'true')
+).
 -define(BW_ORDER_NAME_PREFIX,
-        kapps_config:get_string(?KNM_BW_CONFIG_CAT, <<"order_name_prefix">>, "Kazoo")).
+    kapps_config:get_string(?KNM_BW_CONFIG_CAT, <<"order_name_prefix">>, "Kazoo")
+).
 
 -define(BW_ENDPOINTS, kapps_config:get(?KNM_BW_CONFIG_CAT, <<"endpoints">>)).
 -define(BW_DEVELOPER_KEY, kapps_config:get_string(?KNM_BW_CONFIG_CAT, <<"developer_key">>, "")).
-
 
 %%% API
 
@@ -73,8 +78,7 @@
 %%------------------------------------------------------------------------------
 -spec info() -> map().
 info() ->
-    #{?CARRIER_INFO_MAX_PREFIX => 3
-     }.
+    #{?CARRIER_INFO_MAX_PREFIX => 3}.
 
 %%------------------------------------------------------------------------------
 %% @doc Is this carrier handling numbers local to the system?
@@ -89,8 +93,9 @@ is_local() -> 'false'.
 %% @doc Check with carrier if these numbers are registered with it.
 %% @end
 %%------------------------------------------------------------------------------
--spec check_numbers(kz_term:ne_binaries()) -> {'ok', kz_json:object()} |
-          {'error', 'not_implemented'}.
+-spec check_numbers(kz_term:ne_binaries()) ->
+    {'ok', kz_json:object()}
+    | {'error', 'not_implemented'}.
 check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 
 %%------------------------------------------------------------------------------
@@ -99,40 +104,42 @@ check_numbers(_Numbers) -> {'error', 'not_implemented'}.
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_numbers(kz_term:ne_binary(), pos_integer(), knm_carriers:options()) ->
-          {'ok', knm_number:knm_numbers()} |
-          {'error', any()}.
+    {'ok', knm_number:knm_numbers()}
+    | {'error', any()}.
 find_numbers(<<"+", Rest/binary>>, Quantity, Options) ->
     find_numbers(Rest, Quantity, Options);
 find_numbers(<<"1", Rest/binary>>, Quantity, Options) ->
     find_numbers(Rest, Quantity, Options);
 find_numbers(<<NPA:3/binary>>, Quantity, Options) ->
-    Props = [{'areaCode', [kz_term:to_list(NPA)]}
-            ,{'maxQuantity', [kz_term:to_list(Quantity)]}
-            ],
+    Props = [
+        {'areaCode', [kz_term:to_list(NPA)]},
+        {'maxQuantity', [kz_term:to_list(Quantity)]}
+    ],
     case make_numbers_request('areaCodeNumberSearch', Props) of
-        {'error', _}=E -> E;
+        {'error', _} = E -> E;
         {'ok', Xml} -> process_numbers_search_resp(Xml, Options)
     end;
 find_numbers(Search, Quantity, Options) ->
     NpaNxx = kz_binary:truncate_right(Search, 6),
-    Props = [{'npaNxx', [kz_term:to_list(NpaNxx)]}
-            ,{'maxQuantity', [kz_term:to_list(Quantity)]}
-            ],
+    Props = [
+        {'npaNxx', [kz_term:to_list(NpaNxx)]},
+        {'maxQuantity', [kz_term:to_list(Quantity)]}
+    ],
     case make_numbers_request('npaNxxNumberSearch', Props) of
-        {'error', _}=E -> E;
+        {'error', _} = E -> E;
         {'ok', Xml} -> process_numbers_search_resp(Xml, Options)
     end.
 
 -spec process_numbers_search_resp(kz_types:xml_el(), knm_search:options()) ->
-          {'ok', list()}.
+    {'ok', list()}.
 process_numbers_search_resp(Xml, Options) ->
     TelephoneNumbers = "/numberSearchResponse/telephoneNumbers/telephoneNumber",
     QID = knm_search:query_id(Options),
-    {'ok', [N
-            || Number <- xmerl_xpath:string(TelephoneNumbers, Xml),
-               N <- [found_number_to_KNM(Number, QID)]
-           ]
-    }.
+    {'ok', [
+        N
+     || Number <- xmerl_xpath:string(TelephoneNumbers, Xml),
+        N <- [found_number_to_KNM(Number, QID)]
+    ]}.
 
 -spec found_number_to_KNM(kz_types:xml_el() | kz_types:xml_els(), kz_term:ne_binary()) -> tuple().
 found_number_to_KNM(Found, QID) ->
@@ -145,7 +152,7 @@ found_number_to_KNM(Found, QID) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec acquire_number(knm_number:knm_number()) ->
-          knm_number:knm_number().
+    knm_number:knm_number().
 acquire_number(Number) ->
     Debug = ?IS_SANDBOX_PROVISIONING_TRUE,
     case ?IS_PROVISIONING_ENABLED of
@@ -159,30 +166,34 @@ acquire_number(Number) ->
     end.
 
 -spec acquire_and_provision_number(knm_number:knm_number()) ->
-          knm_number:knm_number().
+    knm_number:knm_number().
 acquire_and_provision_number(Number) ->
     PhoneNumber = knm_number:phone_number(Number),
     AuthBy = knm_phone_number:auth_by(PhoneNumber),
     AssignedTo = knm_phone_number:assigned_to(PhoneNumber),
     Id = kz_json:get_string_value(<<"number_id">>, knm_phone_number:carrier_data(PhoneNumber)),
-    Hosts = case ?BW_ENDPOINTS of
-                'undefined' -> [];
-                Endpoint when is_binary(Endpoint) ->
-                    [{'endPoints', [{'host', [kz_term:to_list(Endpoint)]}]}];
-                Endpoints ->
-                    [{'endPoints', [{'host', [kz_term:to_list(E)]} || E <- Endpoints]}]
-            end,
+    Hosts =
+        case ?BW_ENDPOINTS of
+            'undefined' ->
+                [];
+            Endpoint when is_binary(Endpoint) ->
+                [{'endPoints', [{'host', [kz_term:to_list(Endpoint)]}]}];
+            Endpoints ->
+                [{'endPoints', [{'host', [kz_term:to_list(E)]} || E <- Endpoints]}]
+        end,
     OrderName = lists:flatten([?BW_ORDER_NAME_PREFIX, "-", integer_to_list(kz_time:now_s())]),
-    AcquireFor = case kz_term:is_empty(AssignedTo) of
-                     'true' -> "no_assigned_account";
-                     'false' -> binary_to_list(AssignedTo)
-                 end,
-    Props = [{'orderName', [OrderName]}
-            ,{'extRefID', [binary_to_list(AuthBy)]}
-            ,{'numberIDs', [{'id', [Id]}]}
-            ,{'subscriber', [kz_term:to_list(AcquireFor)]}
-             | Hosts
-            ],
+    AcquireFor =
+        case kz_term:is_empty(AssignedTo) of
+            'true' -> "no_assigned_account";
+            'false' -> binary_to_list(AssignedTo)
+        end,
+    Props = [
+        {'orderName', [OrderName]},
+        {'extRefID', [binary_to_list(AuthBy)]},
+        {'numberIDs', [{'id', [Id]}]},
+        {'subscriber', [kz_term:to_list(AcquireFor)]}
+        | Hosts
+    ],
     case make_numbers_request('basicNumberOrder', Props) of
         {'error', Error} ->
             knm_errors:by_carrier(?MODULE, Error, Number);
@@ -224,8 +235,8 @@ should_lookup_cnam() -> 'true'.
 %% @end
 %%------------------------------------------------------------------------------
 -spec make_numbers_request(atom(), kz_term:proplist()) ->
-          {'ok', any()} |
-          {'error', any()}.
+    {'ok', any()}
+    | {'error', any()}.
 
 -ifdef(TEST).
 make_numbers_request('npaNxxNumberSearch', _Props) ->
@@ -237,25 +248,29 @@ make_numbers_request('areaCodeNumberSearch', _Props) ->
 -else.
 make_numbers_request(Verb, Props) ->
     lager:debug("making ~s request to bandwidth.com ~s", [Verb, ?BW_NUMBER_URL]),
-    Request = [{'developerKey', [?BW_DEVELOPER_KEY]}
-               | Props
-              ],
+    Request = [
+        {'developerKey', [?BW_DEVELOPER_KEY]}
+        | Props
+    ],
     Body = unicode:characters_to_binary(
-             xmerl:export_simple([{Verb, ?BW_XML_NAMESPACE, Request}]
-                                ,'xmerl_xml'
-                                ,[{'prolog', ?BW_XML_PROLOG}]
-                                )
-            ),
-    Headers = [{"Accept", "*/*"}
-              ,{"User-Agent", ?KNM_USER_AGENT}
-              ,{"X-BWC-IN-Control-Processing-Type", "process"}
-              ,{"Content-Type", "text/xml"}
-              ],
-    HTTPOptions = [{'ssl', [{'verify', 'verify_none'}]}
-                  ,{'timeout', 180 * ?MILLISECONDS_IN_SECOND}
-                  ,{'connect_timeout', 180 * ?MILLISECONDS_IN_SECOND}
-                  , {'body_format', 'string'}
-                  ],
+        xmerl:export_simple(
+            [{Verb, ?BW_XML_NAMESPACE, Request}],
+            'xmerl_xml',
+            [{'prolog', ?BW_XML_PROLOG}]
+        )
+    ),
+    Headers = [
+        {"Accept", "*/*"},
+        {"User-Agent", ?KNM_USER_AGENT},
+        {"X-BWC-IN-Control-Processing-Type", "process"},
+        {"Content-Type", "text/xml"}
+    ],
+    HTTPOptions = [
+        {'ssl', [{'verify', 'verify_none'}]},
+        {'timeout', 180 * ?MILLISECONDS_IN_SECOND},
+        {'connect_timeout', 180 * ?MILLISECONDS_IN_SECOND},
+        {'body_format', 'string'}
+    ],
     ?BW_DEBUG("Request:~n~s ~s~n~s~n", ['post', ?BW_NUMBER_URL, Body]),
     case kz_http:post(?BW_NUMBER_URL, Headers, Body, HTTPOptions) of
         {'ok', 401, _, _Response} ->
@@ -278,7 +293,7 @@ make_numbers_request(Verb, Props) ->
             ?BW_DEBUG("Response:~n503~n~s~n", [_Response]),
             lager:debug("bandwidth.com request error: 503"),
             {'error', 'server_error'};
-        {'ok', Code, _, "<?xml"++_=Response} ->
+        {'ok', Code, _, "<?xml" ++ _ = Response} ->
             ?BW_DEBUG("Response:~n~p~n~s~n", [Code, Response]),
             lager:debug("received response from bandwidth.com"),
             try
@@ -293,7 +308,7 @@ make_numbers_request(Verb, Props) ->
             ?BW_DEBUG("Response:~n~p~n~s~n", [Code, _Response]),
             lager:debug("bandwidth.com empty response: ~p", [Code]),
             {'error', 'empty_response'};
-        {'error', _}=E ->
+        {'error', _} = E ->
             lager:debug("bandwidth.com request error: ~p", [E]),
             E
     end.
@@ -310,18 +325,20 @@ number_order_response_to_json([Xml]) ->
     number_order_response_to_json(Xml);
 number_order_response_to_json(Xml) ->
     kz_json:from_list(
-      [{<<"order_id">>, get_cleaned("orderID/text()", Xml)}
-      ,{<<"order_number">>, get_cleaned("orderNumber/text()", Xml)}
-      ,{<<"order_name">>, get_cleaned("orderName/text()", Xml)}
-      ,{<<"ext_ref_id">>, get_cleaned("extRefID/text()", Xml)}
-      ,{<<"accountID">>, get_cleaned("accountID/text()", Xml)}
-      ,{<<"accountName">>, get_cleaned("accountName/text()", Xml)}
-      ,{<<"quantity">>, get_cleaned("quantity/text()", Xml)}
-      ,{<<"number">>, number_search_response_to_json(
-                        xmerl_xpath:string("telephoneNumbers/telephoneNumber", Xml)
-                       )
-       }
-      ]).
+        [
+            {<<"order_id">>, get_cleaned("orderID/text()", Xml)},
+            {<<"order_number">>, get_cleaned("orderNumber/text()", Xml)},
+            {<<"order_name">>, get_cleaned("orderName/text()", Xml)},
+            {<<"ext_ref_id">>, get_cleaned("extRefID/text()", Xml)},
+            {<<"accountID">>, get_cleaned("accountID/text()", Xml)},
+            {<<"accountName">>, get_cleaned("accountName/text()", Xml)},
+            {<<"quantity">>, get_cleaned("quantity/text()", Xml)},
+            {<<"number">>,
+                number_search_response_to_json(
+                    xmerl_xpath:string("telephoneNumbers/telephoneNumber", Xml)
+                )}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Convert a number search response XML entity to json
@@ -334,14 +351,16 @@ number_search_response_to_json([Xml]) ->
     number_search_response_to_json(Xml);
 number_search_response_to_json(Xml) ->
     kz_json:from_list(
-      [{<<"number_id">>, get_cleaned("numberID/text()", Xml)}
-      ,{<<"ten_digit">>, get_cleaned("tenDigit/text()", Xml)}
-      ,{<<"formatted_number">>, get_cleaned("formattedNumber/text()", Xml)}
-      ,{<<"e164">>, get_cleaned("e164/text()", Xml)}
-      ,{<<"npa_nxx">>, get_cleaned("npaNxx/text()", Xml)}
-      ,{<<"status">>, get_cleaned("status/text()", Xml)}
-      ,{<<"rate_center">>, rate_center_to_json(xmerl_xpath:string("rateCenter", Xml))}
-      ]).
+        [
+            {<<"number_id">>, get_cleaned("numberID/text()", Xml)},
+            {<<"ten_digit">>, get_cleaned("tenDigit/text()", Xml)},
+            {<<"formatted_number">>, get_cleaned("formattedNumber/text()", Xml)},
+            {<<"e164">>, get_cleaned("e164/text()", Xml)},
+            {<<"npa_nxx">>, get_cleaned("npaNxx/text()", Xml)},
+            {<<"status">>, get_cleaned("status/text()", Xml)},
+            {<<"rate_center">>, rate_center_to_json(xmerl_xpath:string("rateCenter", Xml))}
+        ]
+    ).
 
 -spec get_cleaned(kz_term:deeplist(), kz_types:xml_el()) -> kz_term:api_binary().
 get_cleaned(Path, Xml) ->
@@ -361,10 +380,12 @@ rate_center_to_json([Xml]) ->
     rate_center_to_json(Xml);
 rate_center_to_json(Xml) ->
     kz_json:from_list(
-      [{<<"name">>, get_cleaned("name/text()", Xml)}
-      ,{<<"lata">>, get_cleaned("lata/text()", Xml)}
-      ,{<<"state">>, get_cleaned("state/text()", Xml)}
-      ]).
+        [
+            {<<"name">>, get_cleaned("name/text()", Xml)},
+            {<<"lata">>, get_cleaned("lata/text()", Xml)},
+            {<<"state">>, get_cleaned("state/text()", Xml)}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Determine if the request was successful, and if not extract any
@@ -372,8 +393,8 @@ rate_center_to_json(Xml) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec verify_response(kz_types:xml_el()) ->
-          {'ok', kz_types:xml_el()} |
-          {'error', kz_term:api_binary() | kz_term:ne_binaries()}.
+    {'ok', kz_types:xml_el()}
+    | {'error', kz_term:api_binary() | kz_term:ne_binaries()}.
 verify_response(Xml) ->
     case get_cleaned("/*/status/text()", Xml) of
         <<"success">> ->

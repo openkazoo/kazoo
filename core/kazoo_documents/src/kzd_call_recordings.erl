@@ -348,4 +348,6 @@ set_id(Doc, RecordingId) ->
 
 -spec set_id(doc(), kz_term:ne_binary(), kz_time:year(), kz_time:month()) -> doc().
 set_id(Doc, RecordingId, Year, Month) when is_integer(Year), is_integer(Month) ->
-    kz_doc:set_id(Doc, ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), RecordingId)).
+    kz_doc:set_id(
+        Doc, ?MATCH_MODB_PREFIX(kz_term:to_binary(Year), kz_date:pad_month(Month), RecordingId)
+    ).

@@ -7,39 +7,45 @@
 -module(kz_csv).
 
 %% Public API
--export([count_rows/1
-        ,fold/3
-        ,take_row/1, take_mapped_row/2
-        ,pad_row_to/2
-        ,associator/3
-        ,verify_mapped_row/2
-        ,row_to_iolist/1, mapped_row_to_iolist/2
-        ,json_to_iolist/1, json_to_iolist/2
+-export([
+    count_rows/1,
+    fold/3,
+    take_row/1,
+    take_mapped_row/2,
+    pad_row_to/2,
+    associator/3,
+    verify_mapped_row/2,
+    row_to_iolist/1,
+    mapped_row_to_iolist/2,
+    json_to_iolist/1, json_to_iolist/2,
 
-        ,jobjs_to_file/1, jobjs_to_file/2
-        ,write_header_to_file/1, write_header_to_file/2
+    jobjs_to_file/1, jobjs_to_file/2,
+    write_header_to_file/1, write_header_to_file/2,
 
-        ,from_jobjs/1 ,from_jobjs/2
-        ]).
+    from_jobjs/1, from_jobjs/2
+]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_csv/include/kazoo_csv.hrl").
 
 -type cell() :: binary() | ?ZILCH.
--type header() :: [kz_term:ne_binary(),...].
--type row() :: [cell(),...].
+-type header() :: [kz_term:ne_binary(), ...].
+-type row() :: [cell(), ...].
 -type mapped_row() :: #{kz_term:ne_binary() => cell()}.
 -type csv() :: binary().
 
--export_type([cell/0
-             ,header/0
-             ,row/0, mapped_row/0
-             ,csv/0
-             ,folder/1
-             ,fassoc/0, verifier/0
-             ,mapped_row_verifier/0
-             ,file_return/0
-             ]).
+-export_type([
+    cell/0,
+    header/0,
+    row/0,
+    mapped_row/0,
+    csv/0,
+    folder/1,
+    fassoc/0,
+    verifier/0,
+    mapped_row_verifier/0,
+    file_return/0
+]).
 
 -ifdef(TEST).
 -export([take_line/1]).
@@ -56,7 +62,8 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec count_rows(csv()) -> non_neg_integer().
-count_rows(<<>>) -> 0;
+count_rows(<<>>) ->
+    0;
 count_rows(CSV) when is_binary(CSV) ->
     try fold(CSV, fun throw_bad/2, {-1, 0}) of
         {_, TotalRows} -> TotalRows
@@ -77,7 +84,8 @@ throw_bad(Header, {-1, 0}) ->
     end;
 throw_bad(Row, {MaxRow, RowsCounted}) ->
     case length(Row) of
-        MaxRow -> {MaxRow, RowsCounted + 1};
+        MaxRow ->
+            {MaxRow, RowsCounted + 1};
         _Len ->
             lager:error("bad row length ~p instead of ~p in ~p", [_Len, MaxRow, Row]),
             throw({'error', 'bad_csv_row'})
@@ -89,11 +97,13 @@ throw_bad(Row, {MaxRow, RowsCounted}) ->
 %%------------------------------------------------------------------------------
 -type folder(T) :: fun((row(), T) -> T).
 -spec fold(csv(), folder(T), T) -> T.
-fold(CSV, Fun, Acc)
-  when is_binary(CSV),
-       is_function(Fun, 2) ->
+fold(CSV, Fun, Acc) when
+    is_binary(CSV),
+    is_function(Fun, 2)
+->
     case take_row(CSV) of
-        'eof' -> Acc;
+        'eof' ->
+            Acc;
         {Row, CSVRest} ->
             NewAcc = Fun(Row, Acc),
             fold(CSVRest, Fun, NewAcc)
@@ -104,15 +114,15 @@ fold(CSV, Fun, Acc)
 %% @end
 %%------------------------------------------------------------------------------
 -spec take_row(csv()) -> {row(), csv()} | 'eof'.
-take_row(<<>>) -> 'eof';
-take_row(CSV)
-  when is_binary(CSV) ->
+take_row(<<>>) ->
+    'eof';
+take_row(CSV) when
+    is_binary(CSV)
+->
     case take_line(CSV) of
         'eof' -> 'eof';
-        [Line] ->
-            {parse_row(Line), <<>>};
-        [Line, CSVRest] ->
-            {parse_row(Line), CSVRest}
+        [Line] -> {parse_row(Line), <<>>};
+        [Line, CSVRest] -> {parse_row(Line), CSVRest}
     end.
 
 %%------------------------------------------------------------------------------
@@ -120,10 +130,12 @@ take_row(CSV)
 %% @end
 %%------------------------------------------------------------------------------
 -spec take_mapped_row(row(), csv()) -> {mapped_row(), csv()} | 'eof'.
-take_mapped_row(Header, CSV)
-  when is_binary(CSV) ->
+take_mapped_row(Header, CSV) when
+    is_binary(CSV)
+->
     case take_row(CSV) of
-        'eof' -> 'eof';
+        'eof' ->
+            'eof';
         {Row, CSVRest} ->
             MappedRow = maps:from_list(lists:zip(Header, Row)),
             {MappedRow, CSVRest}
@@ -134,8 +146,9 @@ take_mapped_row(Header, CSV)
 %% @end
 %%------------------------------------------------------------------------------
 -spec pad_row_to(non_neg_integer(), row()) -> row().
-pad_row_to(N, Row)
-  when N > length(Row) ->
+pad_row_to(N, Row) when
+    N > length(Row)
+->
     Row ++ lists:duplicate(N - length(Row), ?ZILCH);
 pad_row_to(_, Row) ->
     Row.
@@ -152,26 +165,29 @@ associator(CSVHeader, TaskFields, Verifier) ->
     Header = complete_header(TaskFields, CSVHeader),
     Max = length(Header),
     Map = map_io_indices(Header, CSVHeader),
-    fun (Row0) ->
-            Row = pad_row_to(Max, Row0),
-            F = fun (_, ?NE_BINARY=Field) -> Field;
-                    (I, MappedRow) when is_map(MappedRow) ->
-                        case verify(Verifier, Header, Row, I, Map) of
-                            {Key, Cell} -> MappedRow#{Key => Cell};
-                            Field -> Field
-                        end
-                end,
-            case lists:foldl(F, #{}, lists:seq(1, Max)) of
-                MappedRow when is_map(MappedRow) -> {'ok', MappedRow};
-                Field -> {'error', Field}
-            end
+    fun(Row0) ->
+        Row = pad_row_to(Max, Row0),
+        F = fun
+            (_, ?NE_BINARY = Field) ->
+                Field;
+            (I, MappedRow) when is_map(MappedRow) ->
+                case verify(Verifier, Header, Row, I, Map) of
+                    {Key, Cell} -> MappedRow#{Key => Cell};
+                    Field -> Field
+                end
+        end,
+        case lists:foldl(F, #{}, lists:seq(1, Max)) of
+            MappedRow when is_map(MappedRow) -> {'ok', MappedRow};
+            Field -> {'error', Field}
+        end
     end.
 
 verify(Verifier, Header, Row, I, Map) ->
-    Cell = case maps:get(I, Map, 'undefined') of
-               'undefined' -> ?ZILCH;
-               J -> lists:nth(J, Row)
-           end,
+    Cell =
+        case maps:get(I, Map, 'undefined') of
+            'undefined' -> ?ZILCH;
+            J -> lists:nth(J, Row)
+        end,
     Field = lists:nth(I, Header),
     case Verifier(Field, Cell) of
         'false' -> Field;
@@ -184,14 +200,16 @@ verify(Verifier, Header, Row, I, Map) ->
 %%------------------------------------------------------------------------------
 -type mapped_row_verifier() :: fun((kz_term:ne_binary(), cell()) -> boolean()).
 -spec verify_mapped_row(mapped_row_verifier(), mapped_row()) -> [] | header().
-verify_mapped_row(Pred, MappedRow) when is_function(Pred, 2),
-                                        is_map(MappedRow) ->
-    F = fun (K, V, Acc) ->
-                case Pred(K, V) of
-                    'true' -> Acc;
-                    'false' -> [K|Acc]
-                end
-        end,
+verify_mapped_row(Pred, MappedRow) when
+    is_function(Pred, 2),
+    is_map(MappedRow)
+->
+    F = fun(K, V, Acc) ->
+        case Pred(K, V) of
+            'true' -> Acc;
+            'false' -> [K | Acc]
+        end
+    end,
     maps:fold(F, [], MappedRow).
 
 %%------------------------------------------------------------------------------
@@ -205,7 +223,7 @@ verify_mapped_row(Pred, MappedRow) when is_function(Pred, 2),
 %% @end
 %%------------------------------------------------------------------------------
 -spec row_to_iolist(row()) -> iodata().
-row_to_iolist(Cells=[_|_]) ->
+row_to_iolist(Cells = [_ | _]) ->
     [lists:join($,, [cell_to_binary(Cell) || Cell <- Cells]), $\n].
 
 %%------------------------------------------------------------------------------
@@ -230,36 +248,38 @@ json_to_iolist(Records) ->
     json_to_iolist(Records, kz_json:get_keys(hd(Records))).
 
 -spec json_to_iolist(nonempty_list(kz_json:object()), header()) -> iodata().
-json_to_iolist(Records, Fields)
-  when is_list(Records),
-       is_list(Fields) ->
+json_to_iolist(Records, Fields) when
+    is_list(Records),
+    is_list(Fields)
+->
     Tmp = <<"/tmp/json_", (kz_binary:rand_hex(11))/binary, ".csv">>,
     'ok' = file:write_file(Tmp, row_to_iolist(Fields)),
-    lists:foreach(fun (Record) ->
-                          Row = [kz_json:get_ne_binary_value(Field, Record, ?ZILCH) || Field <- Fields],
-                          _ = file:write_file(Tmp, [row_to_iolist(Row)], ['append'])
-                  end
-                 ,Records
-                 ),
+    lists:foreach(
+        fun(Record) ->
+            Row = [kz_json:get_ne_binary_value(Field, Record, ?ZILCH) || Field <- Fields],
+            _ = file:write_file(Tmp, [row_to_iolist(Row)], ['append'])
+        end,
+        Records
+    ),
     {'ok', IOData} = file:read_file(Tmp),
     kz_util:delete_file(Tmp),
     IOData.
 
 -spec write_header_to_file(file_return()) -> file_return().
-write_header_to_file({'undefined', _}=CSVAcc) -> CSVAcc;
-write_header_to_file({File, CellOrdering}) ->
-    write_header_to_file({File, CellOrdering}, []).
+write_header_to_file({'undefined', _} = CSVAcc) -> CSVAcc;
+write_header_to_file({File, CellOrdering}) -> write_header_to_file({File, CellOrdering}, []).
 
 -spec write_header_to_file(file_return(), kz_term:proplist()) -> file_return().
 write_header_to_file({File, CellOrdering}, HeaderMap) ->
     HeaderFile = <<File/binary, ".header">>,
 
-    Headers = [begin
-                   Heading = kz_binary:join(Cells, <<"_">>),
-                   props:get_value(Heading, HeaderMap, Heading)
-               end
-               || Cells <- CellOrdering
-              ],
+    Headers = [
+        begin
+            Heading = kz_binary:join(Cells, <<"_">>),
+            props:get_value(Heading, HeaderMap, Heading)
+        end
+     || Cells <- CellOrdering
+    ],
 
     'ok' = file:write_file(HeaderFile, row_to_iolist(Headers)),
 
@@ -272,17 +292,19 @@ write_header_to_file({File, CellOrdering}, HeaderMap) ->
 
 -type file_return() :: {'undefined' | file:filename_all(), kz_json:paths()}.
 -spec jobjs_to_file(kz_json:objects()) -> file_return().
-jobjs_to_file([]) -> {'undefined', []};
-jobjs_to_file([JObj | _]=JObjs) ->
+jobjs_to_file([]) ->
+    {'undefined', []};
+jobjs_to_file([JObj | _] = JObjs) ->
     CellOrdering = maybe_update_ordering([], kz_json:flatten(JObj)),
     jobjs_to_file(JObjs, CellOrdering).
 
 -spec jobjs_to_file(kz_json:objects(), file_return() | kz_json:paths()) -> file_return().
 jobjs_to_file(JObjs, {File, CellOrdering}) ->
-    lists:foldl(fun jobj_to_file/2
-               ,{File, CellOrdering}
-               ,JObjs
-               );
+    lists:foldl(
+        fun jobj_to_file/2,
+        {File, CellOrdering},
+        JObjs
+    );
 jobjs_to_file(JObjs, CellOrdering) ->
     jobjs_to_file(JObjs, {csv_filename(), CellOrdering}).
 
@@ -309,7 +331,8 @@ maybe_add_field(Field, Value, CellOrdering) ->
         'false' ->
             lager:debug("skipping JSON field ~p: ~p", [Field, Value]),
             CellOrdering;
-        'true' -> CellOrdering
+        'true' ->
+            CellOrdering
     end.
 
 %%------------------------------------------------------------------------------
@@ -322,21 +345,23 @@ from_jobjs(JObjs) ->
 
 -spec from_jobjs(kz_json:objects(), kz_term:proplist()) -> iolist().
 from_jobjs(JObjs, Options) ->
-    Routines = [fun maybe_transform/2
-               ,fun check_integrity/2
-               ,fun json_objs_to_csv/2
-               ],
+    Routines = [
+        fun maybe_transform/2,
+        fun check_integrity/2,
+        fun json_objs_to_csv/2
+    ],
     lists:foldl(fun(F, J) -> F(J, Options) end, JObjs, Routines).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec take_line(csv()) -> [csv(),...] | 'eof'.
-take_line(<<>>) -> 'eof';
+-spec take_line(csv()) -> [csv(), ...] | 'eof'.
+take_line(<<>>) ->
+    'eof';
 take_line(CSV) ->
     case binary:split(CSV, [<<"\r\n">>, <<"\n\r">>, <<"\r\r">>, <<$\n>>, <<$\r>>]) of
-        [<<>>|_] -> 'eof';
+        [<<>> | _] -> 'eof';
         Split -> Split
     end.
 
@@ -353,54 +378,45 @@ take_line(CSV) ->
 %%------------------------------------------------------------------------------
 -spec parse_row(kz_term:ne_binary()) -> row().
 parse_row(<<>>) -> [?ZILCH];
-parse_row(Line) ->
-    parse_row(kz_term:to_list(Line), [], [], 'normal').
+parse_row(Line) -> parse_row(kz_term:to_list(Line), [], [], 'normal').
 
 -spec parse_row(list(), list(), list(), atom()) -> row().
 %% The end of the Line
 %% Add the last CellAcc to RowAcc and return the reverse
 parse_row([], CellAcc, RowAcc, State) ->
     Cell = cell_acc_to_cell(CellAcc, State),
-    lists:reverse([Cell|RowAcc]);
-
+    lists:reverse([Cell | RowAcc]);
 %% 1 double quote when not in escaped state,
 %% Enter double quote escaped state and drop the double quote
 %% Discard any CellAcc to this point
-parse_row([$"|T], _CellAcc, RowAcc, 'normal') ->
+parse_row([$" | T], _CellAcc, RowAcc, 'normal') ->
     parse_row(T, [], RowAcc, 'escaped');
-
 %% 2 double quotes when in escaped state,
 %% Drop the escaping leading double quote
-parse_row([$",$"=H|T], CellAcc, RowAcc, 'escaped') ->
-    parse_row(T, [H|CellAcc], RowAcc, 'escaped');
-
+parse_row([$", $" = H | T], CellAcc, RowAcc, 'escaped') ->
+    parse_row(T, [H | CellAcc], RowAcc, 'escaped');
 %% 1 double quote when in escaped state,
 %% Exit double quote escaped state and drop the double quote
-parse_row([$"|T], CellAcc, RowAcc, 'escaped') ->
+parse_row([$" | T], CellAcc, RowAcc, 'escaped') ->
     parse_row(T, CellAcc, RowAcc, 'was_escaped');
-
 %% Comma when in escaped state,
 %% Do not split, Its escaped!, Add it to the cell
-parse_row([$,=H|T], CellAcc, RowAcc, 'escaped') ->
-    parse_row(T, [H|CellAcc], RowAcc, 'escaped');
-
+parse_row([$, = H | T], CellAcc, RowAcc, 'escaped') ->
+    parse_row(T, [H | CellAcc], RowAcc, 'escaped');
 %% Comma when not in escaped state,
 %% Split the line here and drop the comma
 %% Add the binary reverse of the CellAcc to the RowAcc
-parse_row([$,|T], CellAcc, RowAcc, State) ->
+parse_row([$, | T], CellAcc, RowAcc, State) ->
     Cell = cell_acc_to_cell(CellAcc, State),
-    parse_row(T, [], [Cell|RowAcc], 'normal');
-
+    parse_row(T, [], [Cell | RowAcc], 'normal');
 %% All other characters received before the comma but after an escaped cell
 %% Discard them
-parse_row([_|T], CellAcc, RowAcc, 'was_escaped') ->
+parse_row([_ | T], CellAcc, RowAcc, 'was_escaped') ->
     parse_row(T, CellAcc, RowAcc, 'was_escaped');
-
 %% All other characters in both escaped and not escaped state,
 %% Add them to the CellAcc list
-parse_row([H|T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'escaped' ->
-    parse_row(T, [H|CellAcc], RowAcc, State).
-
+parse_row([H | T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'escaped' ->
+    parse_row(T, [H | CellAcc], RowAcc, State).
 
 %%------------------------------------------------------------------------------
 %% @doc Convert the CellAcc from the function parse_row/4 to a binary
@@ -410,8 +426,10 @@ parse_row([H|T], CellAcc, RowAcc, State) when State =:= 'normal'; State =:= 'esc
 %% @end
 %%------------------------------------------------------------------------------
 -spec cell_acc_to_cell(list(), 'normal' | 'was_escaped') -> kz_term:binary() | 'undefined'.
-cell_acc_to_cell([], 'normal') -> ?ZILCH;
-cell_acc_to_cell([], 'was_escaped') -> <<>>;
+cell_acc_to_cell([], 'normal') ->
+    ?ZILCH;
+cell_acc_to_cell([], 'was_escaped') ->
+    <<>>;
 cell_acc_to_cell(CellAcc, State) when State =:= 'normal'; State =:= 'was_escaped' ->
     kz_term:to_binary(lists:reverse(CellAcc)).
 
@@ -420,18 +438,17 @@ find_position(Item, Items) ->
     find_position(Item, Items, 1).
 
 -spec find_position(kz_term:ne_binary(), kz_term:ne_binaries(), pos_integer()) -> pos_integer().
-find_position(Item, [Item|_], Pos) -> Pos;
-find_position(Item, [_|Items], N) ->
-    find_position(Item, Items, N+1).
+find_position(Item, [Item | _], Pos) -> Pos;
+find_position(Item, [_ | Items], N) -> find_position(Item, Items, N + 1).
 
 complete_header(Fields, CSVHeader) ->
     Diff = CSVHeader -- Fields,
     Fields ++ Diff.
 
 map_io_indices(Header, CSVHeader) ->
-    MapF = fun ({I, Head}, M) ->
-                   M#{find_position(Head, Header) => I}
-           end,
+    MapF = fun({I, Head}, M) ->
+        M#{find_position(Head, Header) => I}
+    end,
     IndexToCSVHeader = lists:zip(lists:seq(1, length(CSVHeader)), CSVHeader),
     lists:foldl(MapF, #{}, IndexToCSVHeader).
 
@@ -448,9 +465,11 @@ map_io_indices(Header, CSVHeader) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec cell_to_binary(cell()) -> binary().
-cell_to_binary(?ZILCH) -> <<>>;
-cell_to_binary(<<>>) -> <<"\"\"">>;
-cell_to_binary(Cell=?NE_BINARY) ->
+cell_to_binary(?ZILCH) ->
+    <<>>;
+cell_to_binary(<<>>) ->
+    <<"\"\"">>;
+cell_to_binary(Cell = ?NE_BINARY) ->
     <<"\"", (binary:replace(Cell, <<"\"">>, <<"\"\"">>, ['global']))/binary, "\"">>;
 cell_to_binary(Cell) when is_list(Cell) ->
     cell_to_binary(try_to_binary(lists:join(",", Cell), ?ZILCH));
@@ -464,9 +483,11 @@ cell_to_binary(Cell) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec try_to_binary(any(), Default) -> kz_term:binary() | Default.
-try_to_binary(?ZILCH, _) -> ?ZILCH;
+try_to_binary(?ZILCH, _) ->
+    ?ZILCH;
 try_to_binary(Value, Default) ->
-    try kz_term:to_binary(Value)
+    try
+        kz_term:to_binary(Value)
     catch
         _E:_R -> Default
     end.
@@ -484,21 +505,22 @@ check_integrity(JObjs, _Options) ->
     check_integrity(JObjs, Headers, []).
 
 -spec check_integrity(kz_json:objects(), kz_term:ne_binaries(), kz_json:objects()) ->
-          kz_json:objects().
+    kz_json:objects().
 check_integrity([], _, Acc) ->
     lists:reverse(Acc);
-check_integrity([JObj|JObjs], Headers, Acc) ->
+check_integrity([JObj | JObjs], Headers, Acc) ->
     NJObj = lists:foldl(fun check_integrity_fold/2, JObj, Headers),
     NJObj1 = kz_json:from_list(lists:keysort(1, kz_json:to_proplist(NJObj))),
-    check_integrity(JObjs, Headers, [NJObj1|Acc]).
+    check_integrity(JObjs, Headers, [NJObj1 | Acc]).
 
 -spec check_integrity_fold(kz_json:path(), kz_json:object()) ->
-          kz_json:json_term().
+    kz_json:json_term().
 check_integrity_fold(Header, JObj) ->
     case kz_json:get_value(Header, JObj) of
         'undefined' ->
             kz_json:set_value(Header, <<>>, JObj);
-        _ -> JObj
+        _ ->
+            JObj
     end.
 
 -spec get_headers(kz_json:objects()) -> kz_term:ne_binaries().
@@ -512,31 +534,36 @@ fold_over_objects(JObj, Headers) ->
 -spec fold_over_keys(kz_term:ne_binary(), kz_term:ne_binaries()) -> kz_term:ne_binaries().
 fold_over_keys(Key, Hs) ->
     case lists:member(Key, Hs) of
-        'false' -> [Key|Hs];
+        'false' -> [Key | Hs];
         'true' -> Hs
     end.
 
 -spec create_csv_header(kz_json:objects(), kz_term:proplist()) -> iolist().
 create_csv_header(JObjs, Options) ->
-    HeadersReversed = case props:get_value('header_map', Options) of
-                          'undefined' -> get_headers(JObjs);
-                          HeaderMap ->
-                              lists:map(fun(JObjHeader) -> header_map(JObjHeader, HeaderMap) end
-                                       ,get_headers(JObjs)
-                                       )
-                      end,
+    HeadersReversed =
+        case props:get_value('header_map', Options) of
+            'undefined' ->
+                get_headers(JObjs);
+            HeaderMap ->
+                lists:map(
+                    fun(JObjHeader) -> header_map(JObjHeader, HeaderMap) end,
+                    get_headers(JObjs)
+                )
+        end,
     Headers = lists:reverse(HeadersReversed),
     row_to_iolist(Headers).
 
 -spec header_map(kz_term:ne_binary(), kz_term:proplist()) -> kz_term:ne_binary().
 header_map(JObjHeader, HeaderMap) ->
     case props:get_value(JObjHeader, HeaderMap) of
-        'undefined' -> JObjHeader; % doesn't change Header to HeaderMap's "friendly" version
+        % doesn't change Header to HeaderMap's "friendly" version
+        'undefined' -> JObjHeader;
         FriendlyHeader -> FriendlyHeader
     end.
 
 -spec json_objs_to_csv(kz_json:objects(), kz_term:proplist()) -> iolist().
-json_objs_to_csv([], _) -> [];
+json_objs_to_csv([], _) ->
+    [];
 json_objs_to_csv(JObjs, Options) ->
     case props:is_true('build_headers', Options, 'true') of
         'true' -> [create_csv_header(JObjs, Options), [json_to_csv(JObj) || JObj <- JObjs]];

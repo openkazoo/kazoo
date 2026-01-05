@@ -7,15 +7,16 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_connectivity).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1
-        ,resource_exists/0, resource_exists/1
-        ,validate/1, validate/2
-        ,put/1
-        ,post/2
-        ,patch/2
-        ,delete/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1,
+    resource_exists/0, resource_exists/1,
+    validate/1, validate/2,
+    put/1,
+    post/2,
+    patch/2,
+    delete/2
+]).
 
 -include("crossbar.hrl").
 
@@ -106,7 +107,8 @@ post(Context, _) ->
             'ok' = track_assignment('post', Context),
             _ = crossbar_util:maybe_refresh_fs_xml('sys_info', Context),
             Context1;
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec patch(cb_context:context(), path_token()) -> cb_context:context().
@@ -120,7 +122,8 @@ put(Context) ->
         'success' ->
             registration_update(Context),
             Context1;
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 -spec delete(cb_context:context(), path_token()) -> cb_context:context().
@@ -132,7 +135,8 @@ delete(Context, _) ->
             'ok' = track_assignment('delete', Context),
             _ = crossbar_util:maybe_refresh_fs_xml('sys_info', Context),
             Context1;
-        _Status -> Context1
+        _Status ->
+            Context1
     end.
 
 %%%=============================================================================
@@ -146,25 +150,27 @@ delete(Context, _) ->
 -spec registration_update(cb_context:context()) -> 'ok'.
 registration_update(Context) ->
     crossbar_util:flush_registrations(
-      kzd_accounts:fetch_realm(cb_context:account_id(Context))
-     ).
+        kzd_accounts:fetch_realm(cb_context:account_id(Context))
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec  track_assignment(atom(), cb_context:context()) -> 'ok'.
+-spec track_assignment(atom(), cb_context:context()) -> 'ok'.
 track_assignment('post', Context) ->
     OldNums = get_numbers(cb_context:fetch(Context, 'db_doc')),
     NewNums = get_numbers(cb_context:doc(Context)),
-    Assigned = [{Num, <<"trunkstore">>}
-                || Num <- NewNums,
-                   not (lists:member(Num, OldNums))
-               ],
-    Unassigned = [{Num, 'undefined'}
-                  || Num <- OldNums,
-                     not (lists:member(Num, NewNums))
-                 ],
+    Assigned = [
+        {Num, <<"trunkstore">>}
+     || Num <- NewNums,
+        not (lists:member(Num, OldNums))
+    ],
+    Unassigned = [
+        {Num, 'undefined'}
+     || Num <- OldNums,
+        not (lists:member(Num, NewNums))
+    ],
 
     Updates = cb_modules_util:apply_assignment_updates(Assigned ++ Unassigned, Context),
     cb_modules_util:log_assignment_updates(Updates);
@@ -179,7 +185,7 @@ track_assignment('delete', Context) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec  get_numbers(kz_json:object()) -> kz_term:ne_binaries().
+-spec get_numbers(kz_json:object()) -> kz_term:ne_binaries().
 get_numbers(JObj) ->
     Servers = kz_json:get_value(<<"servers">>, JObj, []),
     lists:foldl(fun get_numbers_fold/2, [], Servers).
@@ -195,16 +201,16 @@ get_numbers_fold(Server, Acc) ->
 -spec create(cb_context:context()) -> cb_context:context().
 create(Context) ->
     OnSuccess = fun(C) ->
-                        C1 = on_successful_validation('undefined', C),
+        C1 = on_successful_validation('undefined', C),
 
-                        Doc = cb_context:doc(C1),
-                        Nums = get_numbers(Doc),
+        Doc = cb_context:doc(C1),
+        Nums = get_numbers(Doc),
 
-                        AccountDoc = cb_context:account_doc(Context),
-                        WithRealm = kzd_connectivity:set_account_auth_realm(Doc, kzd_accounts:realm(AccountDoc)),
+        AccountDoc = cb_context:account_doc(Context),
+        WithRealm = kzd_connectivity:set_account_auth_realm(Doc, kzd_accounts:realm(AccountDoc)),
 
-                        cb_modules_util:validate_number_ownership(Nums, cb_context:set_doc(C1, WithRealm))
-                end,
+        cb_modules_util:validate_number_ownership(Nums, cb_context:set_doc(C1, WithRealm))
+    end,
     cb_context:validate_request_data(<<"connectivity">>, Context, OnSuccess).
 
 %%------------------------------------------------------------------------------
@@ -223,16 +229,16 @@ read(Id, Context) ->
 -spec update(kz_term:ne_binary(), cb_context:context()) -> cb_context:context().
 update(Id, Context) ->
     OnSuccess = fun(C) ->
-                        C1 = on_successful_validation(Id, C),
+        C1 = on_successful_validation(Id, C),
 
-                        Doc = cb_context:doc(C1),
-                        Nums = get_numbers(Doc),
+        Doc = cb_context:doc(C1),
+        Nums = get_numbers(Doc),
 
-                        AccountDoc = cb_context:account_doc(Context),
-                        WithRealm = kzd_connectivity:set_account_auth_realm(Doc, kzd_accounts:realm(AccountDoc)),
+        AccountDoc = cb_context:account_doc(Context),
+        WithRealm = kzd_connectivity:set_account_auth_realm(Doc, kzd_accounts:realm(AccountDoc)),
 
-                        cb_modules_util:validate_number_ownership(Nums, cb_context:set_doc(C1, WithRealm))
-                end,
+        cb_modules_util:validate_number_ownership(Nums, cb_context:set_doc(C1, WithRealm))
+    end,
     cb_context:validate_request_data(<<"connectivity">>, Context, OnSuccess).
 
 %%------------------------------------------------------------------------------
@@ -262,11 +268,12 @@ on_successful_validation(Id, Context) ->
 %%------------------------------------------------------------------------------
 -spec summary(cb_context:context()) -> cb_context:context().
 summary(Context) ->
-    crossbar_doc:load_view(?CB_LIST
-                          ,[{'reduce', 'false'}]
-                          ,Context
-                          ,fun normalize_view_results/2
-                          ).
+    crossbar_doc:load_view(
+        ?CB_LIST,
+        [{'reduce', 'false'}],
+        Context,
+        fun normalize_view_results/2
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc Normalizes the results of a view.

@@ -11,19 +11,20 @@
 -type http_verb() :: 'get' | 'post'.
 -type hook_retries() :: 1..5.
 
--record(webhook, {id :: kz_term:api_ne_binary() | '_'
-                 ,uri :: kz_term:api_ne_binary() | '_'
-                 ,http_verb = 'get' :: http_verb() | '_'
-                 ,hook_event :: kz_term:api_ne_binary() | '_' | '$1' | '$2'
-                 ,hook_id :: kz_term:api_ne_binary() | '_'
-                 ,retries = 3 :: hook_retries() | '_'
-                 ,account_id :: kz_term:api_ne_binary() | '_' | '$1'
-                 ,include_subaccounts = 'false' :: boolean() | '_' | '$3'
-                 ,include_loopback = 'true' :: boolean() | '_'
-                 ,custom_data :: kz_term:api_object() | '_'
-                 ,modifiers :: kz_term:api_object() | '_'
-                 ,format = 'form-data' :: 'form-data' | 'json' | '_'
-                 }).
+-record(webhook, {
+    id :: kz_term:api_ne_binary() | '_',
+    uri :: kz_term:api_ne_binary() | '_',
+    http_verb = 'get' :: http_verb() | '_',
+    hook_event :: kz_term:api_ne_binary() | '_' | '$1' | '$2',
+    hook_id :: kz_term:api_ne_binary() | '_',
+    retries = 3 :: hook_retries() | '_',
+    account_id :: kz_term:api_ne_binary() | '_' | '$1',
+    include_subaccounts = 'false' :: boolean() | '_' | '$3',
+    include_loopback = 'true' :: boolean() | '_',
+    custom_data :: kz_term:api_object() | '_',
+    modifiers :: kz_term:api_object() | '_',
+    format = 'form-data' :: 'form-data' | 'json' | '_'
+}).
 -type webhook() :: #webhook{}.
 -type webhooks() :: [webhook()].
 
@@ -33,9 +34,9 @@
 -define(FAILURE_COUNT_KEY, <<"attempt_failure_count">>).
 -define(DEFAULT_FAILURE_COUNT, 6).
 
--define(FAILURE_CACHE_KEY(AccountId, HookId, Timestamp)
-       ,{'failure', AccountId, HookId, Timestamp}
-       ).
+-define(FAILURE_CACHE_KEY(AccountId, HookId, Timestamp),
+    {'failure', AccountId, HookId, Timestamp}
+).
 
 -define(WEBHOOK_META_LIST, <<"webhooks/webhook_meta_listing">>).
 

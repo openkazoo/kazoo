@@ -9,9 +9,10 @@
 -include("kz_data.hrl").
 
 -define(CACHE_PROFILE_FROM_FILE, kz_json:load_fixture_from_file(?APP, "defaults", "perf.json")).
--define(CACHE_PROFILE_OPTS, [{'origin', [{'db', ?KZ_CONFIG_DB, ?CONFIG_CAT}]}
-                            ,{'expires', 'infinity'}
-                            ]).
+-define(CACHE_PROFILE_OPTS, [
+    {'origin', [{'db', ?KZ_CONFIG_DB, ?CONFIG_CAT}]},
+    {'expires', 'infinity'}
+]).
 
 %%==============================================================================
 %% API functions
@@ -20,7 +21,7 @@
 -export([profile/2]).
 
 -spec profile(mfa(), list()) -> any().
-profile({Mod, Fun, Arity}=MFA, Args) ->
+profile({Mod, Fun, Arity} = MFA, Args) ->
     case profile_match(Mod, Fun, Arity) of
         #{} -> do_profile(MFA, Args, #{});
         _ -> erlang:apply(Mod, Fun, Args)
@@ -53,7 +54,8 @@ profile_config() ->
             kz_util:spawn(fun update_profile_config/0),
             Config = load_profile_config_from_disk(),
             update_profile_config(Config);
-        {'ok', Map} -> Map
+        {'ok', Map} ->
+            Map
     end.
 
 -spec update_profile_config() -> map().
@@ -71,7 +73,7 @@ update_profile_config(JObj) ->
 -spec profile_match(atom(), atom(), arity()) -> map() | 'undefined'.
 profile_match(Mod, Fun, Arity) ->
     try
-        #{ Mod := #{ Fun := #{'arity' := Arity, 'enabled' := 'true'}=M}} = profile_config(),
+        #{Mod := #{Fun := #{'arity' := Arity, 'enabled' := 'true'} = M}} = profile_config(),
         M
     catch
         _E:_R -> 'undefined'
@@ -82,17 +84,22 @@ do_profile({Mod, Fun, _Arity}, Args, PD) ->
     [Plan, DbName | Others] = Args,
     {Time, Result} = timer:tc(Mod, Fun, Args),
     From = kz_util:calling_process(),
-    FromList = [{kz_term:to_atom(<<"from_", (kz_term:to_binary(K))/binary>>, true), V} || {K,V} <- maps:to_list(From)],
+    FromList = [
+        {kz_term:to_atom(<<"from_", (kz_term:to_binary(K))/binary>>, true), V}
+     || {K, V} <- maps:to_list(From)
+    ],
     MD = FromList ++ maps:to_list(maps:merge(Plan, PD)),
-    _ = data:debug([{'mod', Mod}
-                   ,{'func', Fun}
-                   ,{'plan', Plan}
-                   ,{'duration', Time}
-                   ,{'database', DbName}
-                   ,{'from', From}
-                    | MD
-                   ]
-                  ,"execution of {~s:~s} in database ~s with args ~p took ~b μs"
-                  ,[Mod, Fun, DbName, Others, Time]
-                  ),
+    _ = data:debug(
+        [
+            {'mod', Mod},
+            {'func', Fun},
+            {'plan', Plan},
+            {'duration', Time},
+            {'database', DbName},
+            {'from', From}
+            | MD
+        ],
+        "execution of {~s:~s} in database ~s with args ~p took ~b μs",
+        [Mod, Fun, DbName, Others, Time]
+    ),
     Result.

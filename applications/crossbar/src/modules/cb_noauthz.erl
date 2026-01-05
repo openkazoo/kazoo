@@ -10,9 +10,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_noauthz).
 
--export([init/0
-        ,authorize/1
-        ]).
+-export([
+    init/0,
+    authorize/1
+]).
 
 -include("crossbar.hrl").
 

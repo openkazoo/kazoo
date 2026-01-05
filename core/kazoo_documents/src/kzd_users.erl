@@ -7,13 +7,24 @@
 
 -export([new/0]).
 -export([call_forward/1, call_forward/2, set_call_forward/2]).
--export([call_forward_direct_calls_only/1, call_forward_direct_calls_only/2, set_call_forward_direct_calls_only/2]).
+-export([
+    call_forward_direct_calls_only/1, call_forward_direct_calls_only/2,
+    set_call_forward_direct_calls_only/2
+]).
 -export([call_forward_enabled/1, call_forward_enabled/2, set_call_forward_enabled/2]).
 -export([call_forward_failover/1, call_forward_failover/2, set_call_forward_failover/2]).
--export([call_forward_ignore_early_media/1, call_forward_ignore_early_media/2, set_call_forward_ignore_early_media/2]).
--export([call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2]).
+-export([
+    call_forward_ignore_early_media/1, call_forward_ignore_early_media/2,
+    set_call_forward_ignore_early_media/2
+]).
+-export([
+    call_forward_keep_caller_id/1, call_forward_keep_caller_id/2, set_call_forward_keep_caller_id/2
+]).
 -export([call_forward_number/1, call_forward_number/2, set_call_forward_number/2]).
--export([call_forward_require_keypress/1, call_forward_require_keypress/2, set_call_forward_require_keypress/2]).
+-export([
+    call_forward_require_keypress/1, call_forward_require_keypress/2,
+    set_call_forward_require_keypress/2
+]).
 -export([call_forward_substitute/1, call_forward_substitute/2, set_call_forward_substitute/2]).
 -export([call_recording/1, call_recording/2, set_call_recording/2]).
 -export([call_restriction/1, call_restriction/2, set_call_restriction/2]).
@@ -34,7 +45,10 @@
 -export([hotdesk/1, hotdesk/2, set_hotdesk/2]).
 -export([hotdesk_enabled/1, hotdesk_enabled/2, set_hotdesk_enabled/2]).
 -export([hotdesk_id/1, hotdesk_id/2, set_hotdesk_id/2]).
--export([hotdesk_keep_logged_in_elsewhere/1, hotdesk_keep_logged_in_elsewhere/2, set_hotdesk_keep_logged_in_elsewhere/2]).
+-export([
+    hotdesk_keep_logged_in_elsewhere/1, hotdesk_keep_logged_in_elsewhere/2,
+    set_hotdesk_keep_logged_in_elsewhere/2
+]).
 -export([hotdesk_pin/1, hotdesk_pin/2, set_hotdesk_pin/2]).
 -export([hotdesk_require_pin/1, hotdesk_require_pin/2, set_hotdesk_require_pin/2]).
 -export([language/1, language/2, set_language/2]).
@@ -61,18 +75,20 @@
 -export([voicemail_notify/1, voicemail_notify/2, set_voicemail_notify/2]).
 -export([voicemail_notify_callback/1, voicemail_notify_callback/2, set_voicemail_notify_callback/2]).
 
-
--export([fetch/2
-        ,to_vcard/1
-        ,enable/1, disable/1
-        ,type/0
-        ,fax_settings/1
-        ,name/1
-        ,is_account_admin/1, is_account_admin/2
-        ,classifier_restriction/2, classifier_restriction/3, set_classifier_restriction/3
-        ,full_name/1, full_name/2, full_name/3
-        ,validate/3
-        ]).
+-export([
+    fetch/2,
+    to_vcard/1,
+    enable/1,
+    disable/1,
+    type/0,
+    fax_settings/1,
+    name/1,
+    is_account_admin/1, is_account_admin/2,
+    classifier_restriction/2, classifier_restriction/3,
+    set_classifier_restriction/3,
+    full_name/1, full_name/2, full_name/3,
+    validate/3
+]).
 
 -include("kz_documents.hrl").
 
@@ -85,15 +101,15 @@
 -define(LIST_BY_HOTDESK_ID, <<"users/list_by_hotdesk_id">>).
 
 -define(SYSCONFIG_CB_USERS, <<"crossbar.users">>).
--define(SHOULD_GENERATE_USER_PASSWORD_IF_EMPTY
-       ,kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"generate_password_if_empty">>, 'false')
-       ).
--define(SHOULD_GENERATE_USER_USERNAME_IF_EMPTY
-       ,kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"generate_username_if_empty">>, 'true')
-       ).
--define(SHOULD_RESET_IDENTITY_SECRET_ON_REHASH
-       ,kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"reset_identity_secret_on_rehash">>, 'true')
-       ).
+-define(SHOULD_GENERATE_USER_PASSWORD_IF_EMPTY,
+    kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"generate_password_if_empty">>, 'false')
+).
+-define(SHOULD_GENERATE_USER_USERNAME_IF_EMPTY,
+    kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"generate_username_if_empty">>, 'true')
+).
+-define(SHOULD_RESET_IDENTITY_SECRET_ON_REHASH,
+    kapps_config:get_is_true(?SYSCONFIG_CB_USERS, <<"reset_identity_secret_on_rehash">>, 'true')
+).
 
 -spec new() -> doc().
 new() ->
@@ -121,7 +137,9 @@ call_forward_direct_calls_only(Doc, Default) ->
 
 -spec set_call_forward_direct_calls_only(doc(), boolean()) -> doc().
 set_call_forward_direct_calls_only(Doc, CallForwardDirectCallsOnly) ->
-    kz_json:set_value([<<"call_forward">>, <<"direct_calls_only">>], CallForwardDirectCallsOnly, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"direct_calls_only">>], CallForwardDirectCallsOnly, Doc
+    ).
 
 -spec call_forward_enabled(doc()) -> boolean().
 call_forward_enabled(Doc) ->
@@ -157,7 +175,9 @@ call_forward_ignore_early_media(Doc, Default) ->
 
 -spec set_call_forward_ignore_early_media(doc(), boolean()) -> doc().
 set_call_forward_ignore_early_media(Doc, CallForwardIgnoreEarlyMedia) ->
-    kz_json:set_value([<<"call_forward">>, <<"ignore_early_media">>], CallForwardIgnoreEarlyMedia, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"ignore_early_media">>], CallForwardIgnoreEarlyMedia, Doc
+    ).
 
 -spec call_forward_keep_caller_id(doc()) -> boolean().
 call_forward_keep_caller_id(Doc) ->
@@ -193,7 +213,9 @@ call_forward_require_keypress(Doc, Default) ->
 
 -spec set_call_forward_require_keypress(doc(), boolean()) -> doc().
 set_call_forward_require_keypress(Doc, CallForwardRequireKeypress) ->
-    kz_json:set_value([<<"call_forward">>, <<"require_keypress">>], CallForwardRequireKeypress, Doc).
+    kz_json:set_value(
+        [<<"call_forward">>, <<"require_keypress">>], CallForwardRequireKeypress, Doc
+    ).
 
 -spec call_forward_substitute(doc()) -> boolean().
 call_forward_substitute(Doc) ->
@@ -445,7 +467,9 @@ hotdesk_keep_logged_in_elsewhere(Doc, Default) ->
 
 -spec set_hotdesk_keep_logged_in_elsewhere(doc(), boolean()) -> doc().
 set_hotdesk_keep_logged_in_elsewhere(Doc, HotdeskKeepLoggedInElsewhere) ->
-    kz_json:set_value([<<"hotdesk">>, <<"keep_logged_in_elsewhere">>], HotdeskKeepLoggedInElsewhere, Doc).
+    kz_json:set_value(
+        [<<"hotdesk">>, <<"keep_logged_in_elsewhere">>], HotdeskKeepLoggedInElsewhere, Doc
+    ).
 
 -spec hotdesk_pin(doc()) -> kz_term:api_ne_binary().
 hotdesk_pin(Doc) ->
@@ -672,7 +696,8 @@ timezone(Doc) ->
 timezone(Doc, Default) ->
     case kz_json:get_ne_binary_value([<<"timezone">>], Doc, Default) of
         'undefined' -> kzd_accounts:timezone(kz_doc:account_id(Doc));
-        <<"inherit">> -> kzd_accounts:timezone(kz_doc:account_id(Doc)); %% UI-1808
+        %% UI-1808
+        <<"inherit">> -> kzd_accounts:timezone(kz_doc:account_id(Doc));
         TZ -> TZ
     end.
 -else.
@@ -754,51 +779,56 @@ voicemail_notify_callback(Doc, Default) ->
 
 -spec set_voicemail_notify_callback(doc(), kz_json:object()) -> doc().
 set_voicemail_notify_callback(Doc, VoicemailNotifyCallback) ->
-    kz_json:set_value([<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc).
+    kz_json:set_value(
+        [<<"voicemail">>, <<"notify">>, <<"callback">>], VoicemailNotifyCallback, Doc
+    ).
 
 -spec fetch(kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
-          {'ok', doc()} |
-          kz_datamgr:data_error().
+    {'ok', doc()}
+    | kz_datamgr:data_error().
 fetch('undefined', _UserId) ->
     {'error', 'invalid_db_name'};
 fetch(_Account, 'undefined') ->
     {'error', 'not_found'};
-fetch(Account, UserId=?NE_BINARY) ->
+fetch(Account, UserId = ?NE_BINARY) ->
     AccountDb = kz_util:format_account_db(Account),
     kz_datamgr:open_cache_doc(AccountDb, UserId).
 
 -spec to_vcard(doc()) -> binary().
 to_vcard(User) ->
     %% TODO add SOUND, AGENT (X-ASSISTANT), X-MANAGER
-    Fields = [<<"BEGIN">>
-             ,<<"VERSION">>
-             ,<<"FN">>
-             ,<<"N">>
-             ,<<"ORG">>
-             ,<<"PHOTO">>
-             ,<<"EMAIL">>
-             ,<<"BDAY">>
-             ,<<"NOTE">>
-             ,<<"TITLE">>
-             ,<<"ROLE">>
-             ,<<"TZ">>
-             ,<<"NICKNAME">>
-             ,<<"TEL">>
-             ,<<"ADR">>
-             ,<<"END">>
-             ],
-    NotEmptyFields = lists:foldl(fun vcard_fields_acc/2
-                                ,[]
-                                ,[card_field(Key, User) || Key <- Fields]
-                                ),
+    Fields = [
+        <<"BEGIN">>,
+        <<"VERSION">>,
+        <<"FN">>,
+        <<"N">>,
+        <<"ORG">>,
+        <<"PHOTO">>,
+        <<"EMAIL">>,
+        <<"BDAY">>,
+        <<"NOTE">>,
+        <<"TITLE">>,
+        <<"ROLE">>,
+        <<"TZ">>,
+        <<"NICKNAME">>,
+        <<"TEL">>,
+        <<"ADR">>,
+        <<"END">>
+    ],
+    NotEmptyFields = lists:foldl(
+        fun vcard_fields_acc/2,
+        [],
+        [card_field(Key, User) || Key <- Fields]
+    ),
     PackedFields = lists:reverse(
-                     [kz_binary:join([X, Y], <<":">>) ||
-                         {X, Y} <- NotEmptyFields
-                     ]
-                    ),
+        [
+            kz_binary:join([X, Y], <<":">>)
+         || {X, Y} <- NotEmptyFields
+        ]
+    ),
     DividedFields = lists:reverse(
-                      lists:foldl(fun vcard_field_divide_by_length/2, [], PackedFields)
-                     ),
+        lists:foldl(fun vcard_field_divide_by_length/2, [], PackedFields)
+    ),
     kz_binary:join(DividedFields, <<"\n">>).
 
 -spec vcard_escape_chars(binary()) -> binary().
@@ -807,13 +837,16 @@ vcard_escape_chars(Val) ->
     Val1 = re:replace(Val, "(:|;|,)", "\\\\&", Opts),
     re:replace(Val1, "\n", "\\\\n", Opts).
 
--spec vcard_fields_acc(vcard_field(), [{kz_term:ne_binary(), binary()}]) -> [{kz_term:ne_binary(), binary()}].
-vcard_fields_acc({_, Val}, Acc)
-  when Val =:= 'undefined'; Val =:= []; Val =:= <<>> ->
+-spec vcard_fields_acc(vcard_field(), [{kz_term:ne_binary(), binary()}]) ->
+    [{kz_term:ne_binary(), binary()}].
+vcard_fields_acc({_, Val}, Acc) when
+    Val =:= 'undefined'; Val =:= []; Val =:= <<>>
+->
     Acc;
 vcard_fields_acc({Type, Val}, Acc) ->
     case vcard_normalize_val(Val) of
-        <<>> -> Acc;
+        <<>> ->
+            Acc;
         ValN ->
             TypeN = vcard_normalize_type(Type),
             [{TypeN, ValN} | Acc]
@@ -829,10 +862,15 @@ vcard_normalize_val({Separator, Vals}) when is_list(Vals) ->
 vcard_normalize_val(Val) when is_binary(Val) ->
     vcard_escape_chars(Val).
 
--spec vcard_normalize_type(list() | {kz_term:ne_binary(), kz_term:ne_binary()} | kz_term:ne_binary()) -> kz_term:ne_binary().
-vcard_normalize_type(T) when is_list(T) -> kz_binary:join([vcard_normalize_type(X) || X <- T], <<";">>);
-vcard_normalize_type({T, V}) -> kz_binary:join([T, V], <<"=">>);
-vcard_normalize_type(T) -> T.
+-spec vcard_normalize_type(
+    list() | {kz_term:ne_binary(), kz_term:ne_binary()} | kz_term:ne_binary()
+) -> kz_term:ne_binary().
+vcard_normalize_type(T) when is_list(T) ->
+    kz_binary:join([vcard_normalize_type(X) || X <- T], <<";">>);
+vcard_normalize_type({T, V}) ->
+    kz_binary:join([T, V], <<"=">>);
+vcard_normalize_type(T) ->
+    T.
 
 -type vcard_val() :: binary() | {char(), kz_term:binaries()} | 'undefined'.
 -type vcard_type_token() :: kz_term:ne_binary() | {kz_term:ne_binary(), kz_term:ne_binary()}.
@@ -851,13 +889,15 @@ card_field(Key = <<"FN">>, User) ->
     FirstName = first_name(User),
     LastName = last_name(User),
     MiddleName = kz_json:get_ne_binary_value(<<"middle_name">>, User),
-    {Key
-    ,kz_binary:join([X || X <- [FirstName, MiddleName, LastName],
-                          not kz_term:is_empty(X)
-                    ]
-                   ,<<" ">>
-                   )
-    };
+    {Key,
+        kz_binary:join(
+            [
+                X
+             || X <- [FirstName, MiddleName, LastName],
+                not kz_term:is_empty(X)
+            ],
+            <<" ">>
+        )};
 card_field(Key = <<"N">>, User) ->
     FirstName = first_name(User),
     LastName = last_name(User),
@@ -867,7 +907,8 @@ card_field(Key = <<"ORG">>, User) ->
     {Key, kz_json:get_value(<<"org">>, User)};
 card_field(Key = <<"PHOTO">>, User) ->
     case kz_json:get_json_value(<<"photo">>, User) of
-        'undefined' -> {Key, 'undefined'};
+        'undefined' ->
+            {Key, 'undefined'};
         PhotoJObj ->
             [{CT, PhotoBin}] = kz_json:to_proplist(PhotoJObj),
             TypeType = content_type_to_type(CT),
@@ -882,8 +923,9 @@ card_field(Key = <<"TEL">>, User) ->
     Internal = kz_json:get_ne_binary_value(<<"internal">>, CallerId),
     External = kz_json:get_ne_binary_value(<<"external">>, CallerId),
 
-    [{Key, Internal}
-    ,{Key, External}
+    [
+        {Key, Internal},
+        {Key, External}
     ];
 card_field(Key = <<"EMAIL">>, User) ->
     {Key, email(User)};
@@ -913,10 +955,11 @@ vcard_field_divide_by_length(Row, Acc) ->
 
 -spec normalize_address(kz_json:object()) -> {kz_term:ne_binary(), binary()}.
 normalize_address(AddressJObj) ->
-    Types = case kz_json:get_list_value(<<"types">>, AddressJObj) of
-                'undefined' -> [<<"intl">>, <<"postal">>, <<"parcel">>, <<"work">>];
-                T -> T
-            end,
+    Types =
+        case kz_json:get_list_value(<<"types">>, AddressJObj) of
+            'undefined' -> [<<"intl">>, <<"postal">>, <<"parcel">>, <<"work">>];
+            T -> T
+        end,
     Address = kz_json:get_ne_binary_value(<<"address">>, AddressJObj),
     {kz_binary:join(Types, <<",">>), Address}.
 
@@ -948,15 +991,17 @@ name(Doc) ->
 
 -spec is_account_admin(kz_term:api_object()) -> boolean().
 is_account_admin('undefined') -> 'false';
-is_account_admin(Doc) ->
-    priv_level(Doc) =:= <<"admin">>.
+is_account_admin(Doc) -> priv_level(Doc) =:= <<"admin">>.
 
 -spec is_account_admin(kz_term:api_binary(), kz_term:api_binary()) -> boolean().
-is_account_admin('undefined', _) -> 'false';
-is_account_admin(_, 'undefined') -> 'false';
+is_account_admin('undefined', _) ->
+    'false';
+is_account_admin(_, 'undefined') ->
+    'false';
 is_account_admin(Account, UserId) ->
     case fetch(Account, UserId) of
-        {'ok', JObj} -> is_account_admin(JObj);
+        {'ok', JObj} ->
+            is_account_admin(JObj);
         {'error', _R} ->
             lager:debug("unable to open user ~s definition in account ~s: ~p", [UserId, Account, _R]),
             'false'
@@ -974,9 +1019,10 @@ classifier_restriction(Doc, Classifier, Default) ->
 -spec set_classifier_restriction(doc(), kz_term:ne_binary(), kz_term:ne_binary()) -> doc().
 set_classifier_restriction(Doc, Classifier, Action) ->
     Restrictions = call_restriction(Doc),
-    set_call_restriction(Doc
-                        ,kz_json:set_value([Classifier, <<"action">>], Action, Restrictions)
-                        ).
+    set_call_restriction(
+        Doc,
+        kz_json:set_value([Classifier, <<"action">>], Action, Restrictions)
+    ).
 
 -spec full_name(kz_json:object()) -> kz_term:api_ne_binary().
 full_name(Doc) ->
@@ -986,7 +1032,8 @@ full_name(Doc) ->
 full_name(Doc, Default) ->
     full_name(first_name(Doc), last_name(Doc), Default).
 
--spec full_name(kz_term:api_binary(), kz_term:api_binary(), Default) -> kz_term:ne_binary() | Default.
+-spec full_name(kz_term:api_binary(), kz_term:api_binary(), Default) ->
+    kz_term:ne_binary() | Default.
 full_name(?NE_BINARY = First, ?NE_BINARY = Last, _) ->
     <<First/binary, " ", Last/binary>>;
 full_name(_, ?NE_BINARY = Last, _) ->
@@ -1003,22 +1050,24 @@ full_name(_, _, Default) ->
 %% or returns the validation error {Path, ErrorType, ErrorMessage}
 %% @end
 %%------------------------------------------------------------------------------
--spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) -> kazoo_documents:doc_validation_return().
+-spec validate(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc()) ->
+    kazoo_documents:doc_validation_return().
 validate(AccountId, UserId, ReqJObj) ->
-    ValidateFuns = [fun maybe_normalize_username/3
-                   ,fun maybe_validate_username_is_unique/3
-                   ,fun maybe_normalize_emergency_caller_id_number/3
-                   ,fun maybe_import_credentials/3
-                    %% check_user_schema will load and merge the current doc's pvt fields
-                   ,fun validate_user_schema/3
-                    %% this check must have the current doc
-                   ,fun maybe_set_identity_secret/3
-                    %% this check must have the current doc
-                   ,fun maybe_validate_hotdesk_id_is_unique/3
-                    %% this check must have the current doc
-                   ,fun maybe_rehash_creds/3
-                   ,fun validate_call_forward/3
-                   ],
+    ValidateFuns = [
+        fun maybe_normalize_username/3,
+        fun maybe_validate_username_is_unique/3,
+        fun maybe_normalize_emergency_caller_id_number/3,
+        fun maybe_import_credentials/3,
+        %% check_user_schema will load and merge the current doc's pvt fields
+        fun validate_user_schema/3,
+        %% this check must have the current doc
+        fun maybe_set_identity_secret/3,
+        %% this check must have the current doc
+        fun maybe_validate_hotdesk_id_is_unique/3,
+        %% this check must have the current doc
+        fun maybe_rehash_creds/3,
+        fun validate_call_forward/3
+    ],
     try do_validation(AccountId, UserId, ReqJObj, ValidateFuns) of
         {UserDoc, []} -> {'true', UserDoc};
         {_UserDoc, ValidationErrors} -> {'validation_errors', ValidationErrors}
@@ -1026,24 +1075,30 @@ validate(AccountId, UserId, ReqJObj) ->
         'throw':SystemError -> SystemError
     end.
 
--spec do_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc(), [kazoo_documents:doc_validation_fun()]) ->
-          {'true', doc()} |
-          {'validation_errors', kazoo_documents:doc_validation_errors()}.
+-spec do_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), doc(), [
+    kazoo_documents:doc_validation_fun()
+]) ->
+    {'true', doc()}
+    | {'validation_errors', kazoo_documents:doc_validation_errors()}.
 do_validation(AccountId, UserId, ReqJObj, ValidateFuns) ->
-    lists:foldl(fun(F, Acc) -> F(AccountId, UserId, Acc) end
-               ,{ReqJObj, []}
-               ,ValidateFuns
-               ).
+    lists:foldl(
+        fun(F, Acc) -> F(AccountId, UserId, Acc) end,
+        {ReqJObj, []},
+        ValidateFuns
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc If set, Normalize the user's username by converting it to lower case.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_normalize_username(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec maybe_normalize_username(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 maybe_normalize_username(_AccountId, _UserId, {Doc, Errors}) ->
     case username(Doc) of
-        'undefined' -> {Doc, Errors};
+        'undefined' ->
+            {Doc, Errors};
         Username ->
             NormalizedUsername = kz_term:to_lower_binary(Username),
             lager:debug("normalized username '~s' to '~s'", [Username, NormalizedUsername]),
@@ -1054,28 +1109,38 @@ maybe_normalize_username(_AccountId, _UserId, {Doc, Errors}) ->
 %% @doc If set, Validate the user's username is unique within the account.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_validate_username_is_unique(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec maybe_validate_username_is_unique(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 maybe_validate_username_is_unique(AccountId, UserId, {Doc, Errors}) ->
     Username = username(Doc),
-    CurrentUsername = case fetch(AccountId, UserId) of
-                          {'ok', CurrentDoc} -> username(CurrentDoc);
-                          {'error', _R} -> 'undefined'
-                      end,
+    CurrentUsername =
+        case fetch(AccountId, UserId) of
+            {'ok', CurrentDoc} -> username(CurrentDoc);
+            {'error', _R} -> 'undefined'
+        end,
 
-    case kz_term:is_empty(Username)
-        orelse Username =:= CurrentUsername
-        orelse is_username_unique(AccountId, UserId, Username)
+    case
+        kz_term:is_empty(Username) orelse
+            Username =:= CurrentUsername orelse
+            is_username_unique(AccountId, UserId, Username)
     of
         'true' ->
-            lager:debug("username '~s' (currently '~s') is unique within account", [Username, CurrentUsername]),
+            lager:debug("username '~s' (currently '~s') is unique within account", [
+                Username, CurrentUsername
+            ]),
             {Doc, Errors};
         'false' ->
-            lager:error("username '~s' (currently '~s') is not unique within account", [Username, CurrentUsername]),
+            lager:error("username '~s' (currently '~s') is not unique within account", [
+                Username, CurrentUsername
+            ]),
             Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Username must be unique within account">>}
-                    ,{<<"cause">>, Username}
-                    ]),
+                [
+                    {<<"message">>, <<"Username must be unique within account">>},
+                    {<<"cause">>, Username}
+                ]
+            ),
             {Doc, [{[<<"username">>], <<"unique">>, Msg} | Errors]}
     end.
 
@@ -1084,7 +1149,8 @@ maybe_validate_username_is_unique(AccountId, UserId, {Doc, Errors}) ->
 %% return false.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_username_unique(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) -> boolean().
+-spec is_username_unique(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kz_term:api_ne_binary()) ->
+    boolean().
 is_username_unique(AccountId, UserId, Username) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     ViewOptions = [{'key', Username}],
@@ -1098,8 +1164,11 @@ is_username_unique(AccountId, UserId, Username) ->
 %% @doc If set, Normalize the user's emergency caller id number.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_normalize_emergency_caller_id_number(kz_term:api_ne_binary(), kz_term:api_ne_binary()
-                                                ,kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec maybe_normalize_emergency_caller_id_number(
+    kz_term:api_ne_binary(),
+    kz_term:api_ne_binary(),
+    kazoo_documents:doc_validation_acc()
+) -> kazoo_documents:doc_validation_acc().
 maybe_normalize_emergency_caller_id_number(_AccountId, _UserId, {Doc, Errors}) ->
     {kzd_module_utils:maybe_normalize_emergency_caller_id_number(Doc), Errors}.
 
@@ -1107,18 +1176,22 @@ maybe_normalize_emergency_caller_id_number(_AccountId, _UserId, {Doc, Errors}) -
 %% @doc Import user credentials if `<<"credentials">>' key is set.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_import_credentials(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec maybe_import_credentials(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 maybe_import_credentials(_AccountId, _UserId, {Doc, Errors}) ->
     case kz_json:get_ne_value(<<"credentials">>, Doc) of
-        'undefined' -> {Doc, Errors};
+        'undefined' ->
+            {Doc, Errors};
         Creds ->
             lager:debug("importing user credentials"),
             RemoveKeys = [<<"credentials">>, <<"pvt_sha1_auth">>],
-            kz_json:set_value(<<"pvt_md5_auth">>
-                             ,Creds
-                             ,kz_json:delete_keys(RemoveKeys, Doc)
-                             )
+            kz_json:set_value(
+                <<"pvt_md5_auth">>,
+                Creds,
+                kz_json:delete_keys(RemoveKeys, Doc)
+            )
     end.
 
 %%------------------------------------------------------------------------------
@@ -1126,10 +1199,14 @@ maybe_import_credentials(_AccountId, _UserId, {Doc, Errors}) ->
 %% On Success merge the private fields from the current user doc into Doc.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_user_schema(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec validate_user_schema(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 validate_user_schema(AccountId, UserId, {Doc, Errors}) ->
-    OnSuccess = fun(ValidateAcc) -> on_successful_schema_validation(AccountId, UserId, ValidateAcc) end,
+    OnSuccess = fun(ValidateAcc) ->
+        on_successful_schema_validation(AccountId, UserId, ValidateAcc)
+    end,
     kzd_module_utils:validate_schema(<<"users">>, {Doc, Errors}, OnSuccess).
 
 %%------------------------------------------------------------------------------
@@ -1138,8 +1215,10 @@ validate_user_schema(AccountId, UserId, {Doc, Errors}) ->
 %% into Doc.
 %% @end
 %%------------------------------------------------------------------------------
--spec on_successful_schema_validation(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec on_successful_schema_validation(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 on_successful_schema_validation(AccountId, 'undefined', {Doc, Errors}) ->
     lager:debug("new user doc passed schema validation"),
     Props = [{<<"pvt_type">>, kzd_user:type()}],
@@ -1161,7 +1240,8 @@ maybe_merge_current_private_fields(AccountId, UserId, Doc) ->
     case fetch(AccountId, UserId) of
         {'ok', CurrentDoc} ->
             kz_json:merge_jobjs(kz_doc:private_fields(CurrentDoc), Doc);
-        {'error', _R} -> Doc
+        {'error', _R} ->
+            Doc
     end.
 
 %%------------------------------------------------------------------------------
@@ -1169,11 +1249,14 @@ maybe_merge_current_private_fields(AccountId, UserId, Doc) ->
 %% If set then update `pvt_signature_secret'.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_set_identity_secret(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec maybe_set_identity_secret(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 maybe_set_identity_secret(_AccountId, _UserId, {Doc, Errors}) ->
     case kz_auth_identity:has_doc_secret(Doc) of
-        'true' -> {Doc, Errors};
+        'true' ->
+            {Doc, Errors};
         'false' ->
             lager:debug("initializing identity secret"),
             {kz_auth_identity:reset_doc_secret(Doc), Errors}
@@ -1183,28 +1266,38 @@ maybe_set_identity_secret(_AccountId, _UserId, {Doc, Errors}) ->
 %% @doc If set, Validate the user's hotdesk id is unique within the account.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_validate_hotdesk_id_is_unique(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec maybe_validate_hotdesk_id_is_unique(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 maybe_validate_hotdesk_id_is_unique(AccountId, UserId, {Doc, Errors}) ->
     HotdeskId = hotdesk_id(Doc),
-    CurrentHotdeskId = case fetch(AccountId, UserId) of
-                           {'ok', CurrentDoc} -> hotdesk_id(CurrentDoc);
-                           {'error', _R} -> 'undefined'
-                       end,
+    CurrentHotdeskId =
+        case fetch(AccountId, UserId) of
+            {'ok', CurrentDoc} -> hotdesk_id(CurrentDoc);
+            {'error', _R} -> 'undefined'
+        end,
 
-    case kz_term:is_empty(HotdeskId)
-        orelse HotdeskId =:= CurrentHotdeskId
-        orelse is_hotdesk_id_unique(AccountId, UserId, HotdeskId)
+    case
+        kz_term:is_empty(HotdeskId) orelse
+            HotdeskId =:= CurrentHotdeskId orelse
+            is_hotdesk_id_unique(AccountId, UserId, HotdeskId)
     of
         'true' ->
-            lager:debug("hotdesk id '~s' (currently '~s') is unique within account", [HotdeskId, CurrentHotdeskId]),
+            lager:debug("hotdesk id '~s' (currently '~s') is unique within account", [
+                HotdeskId, CurrentHotdeskId
+            ]),
             {Doc, Errors};
         'false' ->
-            lager:error("hotdesk id '~s' (currently '~s') is not unique within account", [HotdeskId, CurrentHotdeskId]),
+            lager:error("hotdesk id '~s' (currently '~s') is not unique within account", [
+                HotdeskId, CurrentHotdeskId
+            ]),
             Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Hotdesk ID must be unique within account">>}
-                    ,{<<"cause">>, HotdeskId}
-                    ]),
+                [
+                    {<<"message">>, <<"Hotdesk ID must be unique within account">>},
+                    {<<"cause">>, HotdeskId}
+                ]
+            ),
             {Doc, [{[<<"hotdesk">>, <<"id">>], <<"unique">>, Msg} | Errors]}
     end.
 
@@ -1213,7 +1306,8 @@ maybe_validate_hotdesk_id_is_unique(AccountId, UserId, {Doc, Errors}) ->
 %% return false.
 %% @end
 %%------------------------------------------------------------------------------
--spec is_hotdesk_id_unique(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> boolean().
+-spec is_hotdesk_id_unique(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    boolean().
 is_hotdesk_id_unique(AccountId, UserId, HotdeskId) ->
     AccountDb = kz_util:format_account_id(AccountId, 'encoded'),
     ViewOptions = [{'key', HotdeskId}],
@@ -1227,35 +1321,36 @@ is_hotdesk_id_unique(AccountId, UserId, HotdeskId) ->
 %% @doc Maybe rehash the user's creds if needed.
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_rehash_creds(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
-maybe_rehash_creds(AccountId, UserId, {Doc, _Errors}=ValidateAcc) ->
+-spec maybe_rehash_creds(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
+maybe_rehash_creds(AccountId, UserId, {Doc, _Errors} = ValidateAcc) ->
     Username = username(Doc),
     Password = password(Doc),
-    CurrentDoc = case fetch(AccountId, UserId) of
-                     {'ok', JObj} -> JObj;
-                     {'error', _R} -> kz_json:new()
-                 end,
+    CurrentDoc =
+        case fetch(AccountId, UserId) of
+            {'ok', JObj} -> JObj;
+            {'error', _R} -> kz_json:new()
+        end,
     CurrentUsername = username(CurrentDoc),
     GeneratePassword = ?SHOULD_GENERATE_USER_PASSWORD_IF_EMPTY,
     GenerateUsername = ?SHOULD_GENERATE_USER_USERNAME_IF_EMPTY,
     GenerateCreds =
-        GenerateUsername
-        andalso GeneratePassword,
-    case
-        {Username =:= CurrentUsername
-        ,kz_term:is_empty(Username)
-        ,kz_term:is_empty(Password)}
-    of
+        GenerateUsername andalso
+            GeneratePassword,
+    case {Username =:= CurrentUsername, kz_term:is_empty(Username), kz_term:is_empty(Password)} of
         {'false', 'false', 'false'} ->
-            lager:debug("requested different username (new: ~s current: ~s) with a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug(
+                "requested different username (new: ~s current: ~s) with a password",
+                [Username, CurrentUsername]
+            ),
             rehash_creds(Username, Password, ValidateAcc);
         {'false', 'false', 'true'} ->
-            lager:debug("requested different username (new: ~s current: ~s) without a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug(
+                "requested different username (new: ~s current: ~s) without a password",
+                [Username, CurrentUsername]
+            ),
             maybe_generate_password_hash(GeneratePassword, Username, ValidateAcc);
         {'false', 'true', 'false'} ->
             lager:debug("requested no username but provided a password"),
@@ -1264,19 +1359,22 @@ maybe_rehash_creds(AccountId, UserId, {Doc, _Errors}=ValidateAcc) ->
             lager:debug("requested no username or password"),
             maybe_generate_creds_hash(GenerateCreds, ValidateAcc);
         {'true', 'false', 'false'} ->
-            lager:debug("requested same username (new: ~s current: ~s) with a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug(
+                "requested same username (new: ~s current: ~s) with a password",
+                [Username, CurrentUsername]
+            ),
             rehash_creds(Username, Password, ValidateAcc);
         {'true', 'false', 'true'} ->
-            lager:debug("requested same username (new: ~s current: ~s) without a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug(
+                "requested same username (new: ~s current: ~s) without a password",
+                [Username, CurrentUsername]
+            ),
             ValidateAcc;
         {'true', 'true', 'false'} ->
-            lager:debug("requested no username (new: ~s current: ~s) with a password"
-                       ,[Username, CurrentUsername]
-                       ),
+            lager:debug(
+                "requested no username (new: ~s current: ~s) with a password",
+                [Username, CurrentUsername]
+            ),
             maybe_generated_username_hash(GenerateUsername, Password, ValidateAcc);
         {'true', 'true', 'true'} ->
             lager:debug("requested no username, no current username, and no password"),
@@ -1287,12 +1385,17 @@ maybe_rehash_creds(AccountId, UserId, {Doc, _Errors}=ValidateAcc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generate_password_hash(boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec maybe_generate_password_hash(
+    boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()
+) -> kazoo_documents:doc_validation_acc().
 maybe_generate_password_hash('false', _Username, {Doc, Errors}) ->
     Msg = kz_json:from_list(
-            [{<<"message">>, <<"The password must be provided when creating / updating the user name">>}
-            ,{<<"cause">>, username(Doc)}
-            ]),
+        [
+            {<<"message">>,
+                <<"The password must be provided when creating / updating the user name">>},
+            {<<"cause">>, username(Doc)}
+        ]
+    ),
     {Doc, [{[<<"password">>], <<"required">>, Msg} | Errors]};
 maybe_generate_password_hash('true', Username, ValidateAcc) ->
     rehash_creds(Username, generate_password(), ValidateAcc).
@@ -1301,12 +1404,16 @@ maybe_generate_password_hash('true', Username, ValidateAcc) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generated_username_hash(boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec maybe_generated_username_hash(
+    boolean(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()
+) -> kazoo_documents:doc_validation_acc().
 maybe_generated_username_hash('false', _Password, {Doc, Errors}) ->
     Msg = kz_json:from_list(
-            [{<<"message">>, <<"The username must be provided when updating the password">>}
-            ,{<<"cause">>, username(Doc)}
-            ]),
+        [
+            {<<"message">>, <<"The username must be provided when updating the password">>},
+            {<<"cause">>, username(Doc)}
+        ]
+    ),
     {Doc, [{[<<"username">>], <<"required">>, Msg} | Errors]};
 maybe_generated_username_hash('true', Password, {Doc, Errors}) ->
     Username = generate_username(),
@@ -1317,7 +1424,8 @@ maybe_generated_username_hash('true', Password, {Doc, Errors}) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec maybe_generate_creds_hash(boolean(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec maybe_generate_creds_hash(boolean(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 maybe_generate_creds_hash('false', {Doc, Errors}) ->
     {remove_creds(Doc), Errors};
 maybe_generate_creds_hash('true', {Doc, Errors}) ->
@@ -1358,26 +1466,33 @@ remove_creds(Doc) ->
 %% @doc Rehash the users creds
 %% @end
 %%------------------------------------------------------------------------------
--spec rehash_creds(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) -> kazoo_documents:doc_validation_acc().
+-spec rehash_creds(kz_term:ne_binary(), kz_term:ne_binary(), kazoo_documents:doc_validation_acc()) ->
+    kazoo_documents:doc_validation_acc().
 rehash_creds(Username, Password, {Doc, Errors}) ->
     lager:debug("updating cred hashes for user ~s", [Username]),
     DocMD5 = kz_json:get_ne_value(<<"pvt_md5_auth">>, Doc),
     DocSHA1 = kz_json:get_ne_value(<<"pvt_sha1_auth">>, Doc),
     {MD5, SHA1} = kzd_module_utils:pass_hashes(Username, Password),
-    UpdatedDoc = kz_json:set_values([{<<"pvt_md5_auth">>, MD5}
-                                    ,{<<"pvt_sha1_auth">>, SHA1}
-                                    ]
-                                   ,Doc
-                                   ),
-    case ?SHOULD_RESET_IDENTITY_SECRET_ON_REHASH
-        andalso (DocMD5 =/= MD5
-                 orelse DocSHA1 =/= SHA1)
+    UpdatedDoc = kz_json:set_values(
+        [
+            {<<"pvt_md5_auth">>, MD5},
+            {<<"pvt_sha1_auth">>, SHA1}
+        ],
+        Doc
+    ),
+    case
+        ?SHOULD_RESET_IDENTITY_SECRET_ON_REHASH andalso
+            (DocMD5 =/= MD5 orelse
+                DocSHA1 =/= SHA1)
     of
         'false' ->
             {kz_json:delete_key(<<"password">>, UpdatedDoc), Errors};
         'true' ->
             lager:debug("resetting identity secret"),
-            {kz_auth_identity:reset_doc_secret(kz_json:delete_key(<<"password">>, UpdatedDoc)), Errors}
+            {
+                kz_auth_identity:reset_doc_secret(kz_json:delete_key(<<"password">>, UpdatedDoc)),
+                Errors
+            }
     end.
 
 %%------------------------------------------------------------------------------
@@ -1385,18 +1500,25 @@ rehash_creds(Username, Password, {Doc, Errors}) ->
 %% empty.
 %% @end
 %%------------------------------------------------------------------------------
--spec validate_call_forward(kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()) ->
-          kazoo_documents:doc_validation_acc().
+-spec validate_call_forward(
+    kz_term:api_ne_binary(), kz_term:api_ne_binary(), kazoo_documents:doc_validation_acc()
+) ->
+    kazoo_documents:doc_validation_acc().
 validate_call_forward(_AccountId, _UserId, {Doc, Errors}) ->
     CallForwardNumber = call_forward_number(Doc),
-    case call_forward_enabled(Doc)
-        andalso not kz_term:is_ne_binary(CallForwardNumber)
+    case
+        call_forward_enabled(Doc) andalso
+            not kz_term:is_ne_binary(CallForwardNumber)
     of
         'true' ->
             Msg = kz_json:from_list(
-                    [{<<"message">>, <<"Call forward number cannot be empty when call forward is enabled">>}
-                    ,{<<"cause">>, CallForwardNumber}
-                    ]),
+                [
+                    {<<"message">>,
+                        <<"Call forward number cannot be empty when call forward is enabled">>},
+                    {<<"cause">>, CallForwardNumber}
+                ]
+            ),
             {Doc, [{[<<"call_forward.number">>], <<"required">>, Msg} | Errors]};
-        'false' -> {Doc, Errors}
+        'false' ->
+            {Doc, Errors}
     end.

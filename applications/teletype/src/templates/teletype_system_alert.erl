@@ -7,18 +7,22 @@
 -module(teletype_system_alert).
 -behaviour(teletype_gen_email_template).
 
--export([id/0
-        ,init/0
-        ,macros/0, macros/1
-        ,subject/0
-        ,category/0
-        ,friendly_name/0
-        ,to/0, from/0, cc/0, bcc/0, reply_to/0
-        ]).
+-export([
+    id/0,
+    init/0,
+    macros/0, macros/1,
+    subject/0,
+    category/0,
+    friendly_name/0,
+    to/0,
+    from/0,
+    cc/0,
+    bcc/0,
+    reply_to/0
+]).
 -export([handle_req/1]).
 
 -include("teletype.hrl").
-
 
 -spec id() -> kz_term:ne_binary().
 id() -> <<"system_alert">>.
@@ -26,18 +30,57 @@ id() -> <<"system_alert">>.
 -spec macros() -> kz_json:object().
 macros() ->
     kz_json:from_list(
-      [?MACRO_VALUE(<<"message">>, <<"message">>, <<"Message">>, <<"System message">>)
-      ,?MACRO_VALUE(<<"details.key_store">>, <<"details_key_store">>, <<"Details key store">>, <<"Details key store">>)
-      ,?MACRO_VALUE(<<"details.channel_vars">>, <<"details_channel_vars">>, <<"Details channel vars">>, <<"Details channel vars">>)
-      ,?MACRO_VALUE(<<"details.sip_headers">>, <<"details_sip_headers">>, <<"Details SIP headers">>, <<"Details SIP headers">>)
-      ,?MACRO_VALUE(<<"details.callflow">>, <<"details_callflow">>, <<"Details callflow">>, <<"Details callflow">>)
-      ,?MACRO_VALUE(<<"details.error_details">>, <<"details_error_details">>, <<"Details error details">>, <<"Details error details">>)
-      ,?MACRO_VALUE(<<"details.http_headers">>, <<"details_http_headers">>, <<"Details HTTP headers">>, <<"Details HTTP headers">>)
-      ,?MACRO_VALUE(<<"request.msg_id">>, <<"request_msg_id">>, <<"Request message ID">>, <<"Request message ID">>)
-      ,?MACRO_VALUE(<<"request.node">>, <<"request_node">>, <<"Request node">>, <<"Request node">>)
-       | ?USER_MACROS
-       ++ ?COMMON_TEMPLATE_MACROS
-      ]).
+        [
+            ?MACRO_VALUE(<<"message">>, <<"message">>, <<"Message">>, <<"System message">>),
+            ?MACRO_VALUE(
+                <<"details.key_store">>,
+                <<"details_key_store">>,
+                <<"Details key store">>,
+                <<"Details key store">>
+            ),
+            ?MACRO_VALUE(
+                <<"details.channel_vars">>,
+                <<"details_channel_vars">>,
+                <<"Details channel vars">>,
+                <<"Details channel vars">>
+            ),
+            ?MACRO_VALUE(
+                <<"details.sip_headers">>,
+                <<"details_sip_headers">>,
+                <<"Details SIP headers">>,
+                <<"Details SIP headers">>
+            ),
+            ?MACRO_VALUE(
+                <<"details.callflow">>,
+                <<"details_callflow">>,
+                <<"Details callflow">>,
+                <<"Details callflow">>
+            ),
+            ?MACRO_VALUE(
+                <<"details.error_details">>,
+                <<"details_error_details">>,
+                <<"Details error details">>,
+                <<"Details error details">>
+            ),
+            ?MACRO_VALUE(
+                <<"details.http_headers">>,
+                <<"details_http_headers">>,
+                <<"Details HTTP headers">>,
+                <<"Details HTTP headers">>
+            ),
+            ?MACRO_VALUE(
+                <<"request.msg_id">>,
+                <<"request_msg_id">>,
+                <<"Request message ID">>,
+                <<"Request message ID">>
+            ),
+            ?MACRO_VALUE(
+                <<"request.node">>, <<"request_node">>, <<"Request node">>, <<"Request node">>
+            )
+            | ?USER_MACROS ++
+                ?COMMON_TEMPLATE_MACROS
+        ]
+    ).
 
 -spec subject() -> kz_term:ne_binary().
 subject() -> <<"System Alert: '{{request.level}}' from '{{request.node}}'">>.
@@ -81,14 +124,18 @@ handle_req(JObj, 'true') ->
     lager:debug("valid data for ~s, processing...", [id()]),
 
     case kz_json:get_value([<<"Details">>, <<"Format">>], JObj) of
-        'undefined' -> process_req_as_email(JObj, 'true');
+        'undefined' ->
+            process_req_as_email(JObj, 'true');
         _Format ->
             lager:debug("using format string '~s'", [_Format]),
 
-            UseEmail = kz_term:is_true(teletype_util:template_system_value(id(), <<"enable_email_alerts">>, 'true')),
+            UseEmail = kz_term:is_true(
+                teletype_util:template_system_value(id(), <<"enable_email_alerts">>, 'true')
+            ),
             SubscriberUrl = teletype_util:template_system_value(id(), <<"subscriber_url">>),
-            [process_req_as_email(JObj, UseEmail)
-            ,process_req_as_http(JObj, SubscriberUrl)
+            [
+                process_req_as_email(JObj, UseEmail),
+                process_req_as_http(JObj, SubscriberUrl)
             ]
     end.
 
@@ -99,8 +146,10 @@ process_req_as_http(JObj, Url) ->
     Headers = [{"Content-Type", "application/json"}],
     Encoded = kz_json:encode(JObj),
     case kz_http:post(kz_term:to_list(Url), Headers, Encoded) of
-        {'ok', _2xx, _ResponseHeaders, _ResponseBody}
-          when (_2xx - 200) < 100 -> %% ie: match "2"++_
+        {'ok', _2xx, _ResponseHeaders, _ResponseBody} when
+            %% ie: match "2"++_
+            (_2xx - 200) < 100
+        ->
             lager:debug("JSON data successfully POSTed to '~s'", [Url]),
             teletype_util:notification_completed(<<(id())/binary, "_http">>);
         Error ->
@@ -130,18 +179,20 @@ process_req_as_email(DataJObj) ->
     AccountId = kapi_notifications:account_id(DataJObj),
     {'ok', TemplateMetaJObj} = teletype_templates:fetch_notification(id(), AccountId),
     Subject0 = kz_json:get_ne_binary_value(<<"subject">>, TemplateMetaJObj, subject()),
-    Subject = try kz_json:get_ne_binary_value(<<"subject">>, DataJObj) of
-                  'undefined' -> teletype_util:render_subject(Subject0, Macros);
-                  Text -> Text
-              catch
-                  _:_ -> <<"system alert received into ", (kz_term:to_binary(node()))/binary>>
-              end,
+    Subject =
+        try kz_json:get_ne_binary_value(<<"subject">>, DataJObj) of
+            'undefined' -> teletype_util:render_subject(Subject0, Macros);
+            Text -> Text
+        catch
+            _:_ -> <<"system alert received into ", (kz_term:to_binary(node()))/binary>>
+        end,
 
     {'ok', MasterAccountId} = kapps_util:get_master_account_id(),
-    Emails = teletype_util:find_addresses(kz_json:set_value(<<"account_id">>, MasterAccountId, DataJObj)
-                                         ,TemplateMetaJObj
-                                         ,id()
-                                         ),
+    Emails = teletype_util:find_addresses(
+        kz_json:set_value(<<"account_id">>, MasterAccountId, DataJObj),
+        TemplateMetaJObj,
+        id()
+    ),
 
     Attachments = teletype_util:maybe_get_attachments(DataJObj),
 
@@ -153,12 +204,13 @@ process_req_as_email(DataJObj) ->
 
 -spec macros(kz_json:object()) -> kz_term:proplist().
 macros(DataJObj) ->
-    [{<<"system">>, teletype_util:system_params()}
-    ,{<<"account">>, teletype_util:account_params(DataJObj)}
-    ,{<<"user">>, admin_user_data(DataJObj)}
-    ,{<<"request">>, request_macros(DataJObj)}
-    ,{<<"message">>, kz_json:get_value(<<"message">>, DataJObj, <<>>)}
-     | details_macros(DataJObj)
+    [
+        {<<"system">>, teletype_util:system_params()},
+        {<<"account">>, teletype_util:account_params(DataJObj)},
+        {<<"user">>, admin_user_data(DataJObj)},
+        {<<"request">>, request_macros(DataJObj)},
+        {<<"message">>, kz_json:get_value(<<"message">>, DataJObj, <<>>)}
+        | details_macros(DataJObj)
     ].
 
 -spec details_macros(kz_json:object()) -> kz_term:proplist().
@@ -175,9 +227,9 @@ details_groups(Details) ->
     details_groups(Details, {<<"details">>, []}).
 
 -spec details_groups(kz_term:proplist(), {kz_term:ne_binary(), kz_term:proplist()}) ->
-          kz_term:proplist().
-details_groups([], {_, Acc}) -> Acc;
-
+    kz_term:proplist().
+details_groups([], {_, Acc}) ->
+    Acc;
 details_groups([{<<"key_value_store">>, V} | KS], {Group, Acc}) ->
     details_groups(KS, {Group, details_groups(V, {<<"key_store">>, Acc})});
 details_groups([{<<"custom_channel_vars">>, V} | KS], {Group, Acc}) ->
@@ -190,45 +242,47 @@ details_groups([{<<"error_details">>, V} | KS], {Group, Acc}) ->
     details_groups(KS, {Group, details_groups(V, {<<"error_details">>, Acc})});
 details_groups([{<<"reply_headers">>, V} | KS], {Group, Acc}) ->
     details_groups(KS, {Group, details_groups(V, {<<"http_headers">>, Acc})});
-details_groups([{<<"cf_", _/binary>>,_}=KV | KS], {Group, Acc}) ->
+details_groups([{<<"cf_", _/binary>>, _} = KV | KS], {Group, Acc}) ->
     details_groups(KS, {Group, add_to_group(<<"callflow">>, KV, Acc)});
 details_groups([KV | KS], {Group, Acc}) ->
     details_groups(KS, {Group, add_to_group(Group, KV, Acc)}).
 
 -spec add_to_group(kz_term:ne_binary(), {kz_json:path(), kz_json:json_term()}, kz_term:proplist()) ->
-          kz_term:proplist().
+    kz_term:proplist().
 add_to_group(Group, KV, Acc) ->
     case props:get_value(Group, Acc) of
-        'undefined' -> props:set_value(Group,[KV], Acc);
+        'undefined' -> props:set_value(Group, [KV], Acc);
         Props -> props:set_value(Group, props:insert_value(KV, Props), Acc)
     end.
 
 -spec request_macros(kz_json:object()) -> kz_term:proplist().
 request_macros(DataJObj) ->
     kz_json:recursive_to_proplist(
-      kz_json:delete_keys([<<"details">>
-                          ,<<"app_version">>
-                          ,<<"app_name">>
-                          ,<<"event_name">>
-                          ,<<"event_category">>
-                          ,<<"server_id">>
-                          ,<<"message">>
-                          ,<<"subject">>
-                          ,<<"account">>
-                          ,<<"preview">>
-                          ,<<"text">>
-                          ,<<"html">>
-                          ,<<"from">>
-                          ,<<"bcc">>
-                          ,<<"cc">>
-                          ,<<"to">>
-                          ,<<"reply_to">>
-                          ,<<"format">>
-                          ,<<"attachment_url">>
-                          ]
-                         ,DataJObj
-                         )
-     ).
+        kz_json:delete_keys(
+            [
+                <<"details">>,
+                <<"app_version">>,
+                <<"app_name">>,
+                <<"event_name">>,
+                <<"event_category">>,
+                <<"server_id">>,
+                <<"message">>,
+                <<"subject">>,
+                <<"account">>,
+                <<"preview">>,
+                <<"text">>,
+                <<"html">>,
+                <<"from">>,
+                <<"bcc">>,
+                <<"cc">>,
+                <<"to">>,
+                <<"reply_to">>,
+                <<"format">>,
+                <<"attachment_url">>
+            ],
+            DataJObj
+        )
+    ).
 
 -spec admin_user_data(kz_json:object()) -> kz_term:proplist().
 admin_user_data(DataJObj) ->

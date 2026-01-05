@@ -5,9 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(pqc_cb_limits).
 
--export([fetch/2
-        ,update/3
-        ]).
+-export([
+    fetch/2,
+    update/3
+]).
 
 -include("kazoo_proper.hrl").
 
@@ -17,11 +18,12 @@ fetch(API, <<AccountId/binary>>) ->
     RequestHeaders = pqc_cb_api:request_headers(API),
 
     Expectations = [#{'response_codes' => [200]}],
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:get/2
-                           ,URL
-                           ,RequestHeaders
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:get/2,
+        URL,
+        RequestHeaders
+    ).
 
 -spec update(pqc_cb_api:state(), kz_term:ne_binary(), kz_json:object()) -> pqc_cb_api:response().
 update(API, <<AccountId/binary>>, JObj) ->
@@ -30,12 +32,13 @@ update(API, <<AccountId/binary>>, JObj) ->
     RequestEnvelope = pqc_cb_api:create_envelope(JObj),
 
     Expectations = [#{'response_codes' => [200]}],
-    pqc_cb_api:make_request(Expectations
-                           ,fun kz_http:post/3
-                           ,URL
-                           ,RequestHeaders
-                           ,kz_json:encode(RequestEnvelope)
-                           ).
+    pqc_cb_api:make_request(
+        Expectations,
+        fun kz_http:post/3,
+        URL,
+        RequestHeaders,
+        kz_json:encode(RequestEnvelope)
+    ).
 
 limits_url(<<AccountId/binary>>) ->
     string:join([pqc_cb_accounts:account_url(AccountId), "limits"], "/").

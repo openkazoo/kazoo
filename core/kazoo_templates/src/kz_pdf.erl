@@ -8,13 +8,15 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_pdf).
 
--export([find_template/2
-        ,find_template/3
-        ]).
+-export([
+    find_template/2,
+    find_template/3
+]).
 
--export([generate/2
-        ,generate/3
-        ]).
+-export([
+    generate/2,
+    generate/3
+]).
 
 -export([error_empty/0]).
 
@@ -36,20 +38,25 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec find_template(kz_term:ne_binary(), kz_term:proplist() | kz_term:ne_binary()) -> ret().
-find_template(AccountId, DocType) when is_binary(DocType)  ->
+find_template(AccountId, DocType) when is_binary(DocType) ->
     find_template(AccountId, DocType, <<DocType/binary, ".tmpl">>);
 find_template(AccountId, Props) ->
     DocType = props:get_first_defined([<<"type">>, <<"pvt_type">>], Props),
     find_template(AccountId, Props, <<DocType/binary, ".tmpl">>).
 
--spec find_template(kz_term:ne_binary(), kz_term:ne_binary() | kz_term:proplist(), kz_term:ne_binary()) -> ret().
+-spec find_template(
+    kz_term:ne_binary(), kz_term:ne_binary() | kz_term:proplist(), kz_term:ne_binary()
+) -> ret().
 find_template(AccountId, DocType, AttachmentId) when is_binary(DocType) ->
     AccountDb = kz_util:format_account_db(AccountId),
     case kz_datamgr:fetch_attachment(AccountDb, ?TEMPLATE_DOC_ID(DocType), AttachmentId) of
-        {'ok', _}=OK -> OK;
+        {'ok', _} = OK ->
+            OK;
         {'error', _R} ->
-            lager:error("failed to find template ~s/~s in ~s: ~p"
-                       ,[?TEMPLATE_DOC_ID(DocType), AttachmentId, AccountDb, _R]),
+            lager:error(
+                "failed to find template ~s/~s in ~s: ~p",
+                [?TEMPLATE_DOC_ID(DocType), AttachmentId, AccountDb, _R]
+            ),
             default_template(DocType, AttachmentId)
     end;
 find_template(AccountId, Props, AttachmentId) ->
@@ -63,9 +70,8 @@ find_template(AccountId, Props, AttachmentId) ->
 -spec generate(kz_term:ne_binary(), kz_term:proplist()) -> ret().
 generate(AccountId, Props) ->
     case find_template(AccountId, Props) of
-        {'error', _R}=Error -> Error;
-        {'ok', Template} ->
-            generate(AccountId, Props, Template)
+        {'error', _R} = Error -> Error;
+        {'ok', Template} -> generate(AccountId, Props, Template)
     end.
 
 -spec generate(kz_term:ne_binary(), kz_term:proplist(), kz_term:ne_binary()) -> ret().
@@ -89,13 +95,15 @@ generate(Account, Props, Template) ->
     'ok' = file:write_file(HTMLFile, Rendered),
 
     RawCmd = kapps_config:get_ne_binary(?PDF_CONFIG_CAT, <<"html2pdf">>, ?HTML_TO_PDF),
-    Targets = [{<<"\$pdf\$">>, PDFFile}
-              ,{<<"\$html\$">>, HTMLFile}
-              ],
+    Targets = [
+        {<<"\$pdf\$">>, PDFFile},
+        {<<"\$html\$">>, HTMLFile}
+    ],
     Cmd = lists:foldl(fun cmd_fold/2, RawCmd, Targets),
     lager:debug("exec ~s", [Cmd]),
     case os:cmd(kz_term:to_list(Cmd)) of
-        [] -> file:read_file(PDFFile);
+        [] ->
+            file:read_file(PDFFile);
         _R ->
             lager:error("failed to exec ~s: ~s", [Cmd, _R]),
             {'error', _R}
@@ -118,7 +126,8 @@ error_empty() ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec cmd_fold({kz_term:ne_binary(), kz_term:ne_binary()}, kz_term:ne_binary()) -> kz_term:ne_binary().
+-spec cmd_fold({kz_term:ne_binary(), kz_term:ne_binary()}, kz_term:ne_binary()) ->
+    kz_term:ne_binary().
 cmd_fold({Search, Replace}, Subject) ->
     binary:replace(Subject, Search, Replace).
 
@@ -130,11 +139,15 @@ cmd_fold({Search, Replace}, Subject) ->
 default_template(DocType, AttachmentId) ->
     lager:debug("searching for default template ~s", [AttachmentId]),
     case kz_datamgr:fetch_attachment(?KZ_CONFIG_DB, ?TEMPLATE_DOC_ID(DocType), AttachmentId) of
-        {'ok', _}=OK -> OK;
-        {'error', 'not_found'} -> maybe_create_default_template(DocType, AttachmentId);
-        {'error', _R}=Error ->
-            lager:error("failed to find  default template ~s/~s : ~p"
-                       ,[?TEMPLATE_DOC_ID(DocType), AttachmentId, _R]),
+        {'ok', _} = OK ->
+            OK;
+        {'error', 'not_found'} ->
+            maybe_create_default_template(DocType, AttachmentId);
+        {'error', _R} = Error ->
+            lager:error(
+                "failed to find  default template ~s/~s : ~p",
+                [?TEMPLATE_DOC_ID(DocType), AttachmentId, _R]
+            ),
             Error
     end.
 
@@ -144,10 +157,11 @@ maybe_create_default_template(DocType, AttachmentId) ->
     TemplateFile = filename:join([PrivDir, <<"couchdb">>, <<"templates">>, AttachmentId]),
     lager:debug("loading template from ~s", [TemplateFile]),
     case file:read_file(TemplateFile) of
-        {'error', _R}=Error ->
+        {'error', _R} = Error ->
             lager:error("failed to find default template file ~s : ~p", [TemplateFile, _R]),
             Error;
-        {'ok', Template} -> create_default_template(Template, DocType, AttachmentId)
+        {'ok', Template} ->
+            create_default_template(Template, DocType, AttachmentId)
     end.
 
 -spec create_default_template(binary(), kz_term:ne_binary(), kz_term:ne_binary()) -> ret().
@@ -155,20 +169,26 @@ create_default_template(Template, DocType, AttachmentId) ->
     lager:debug("creating default template ~s", [DocType]),
     Default = kz_json:from_list([{<<"template_name">>, DocType}]),
     JObj =
-        kz_doc:update_pvt_parameters(kz_json:from_list(
-                                       [{<<"_id">>, ?TEMPLATE_DOC_ID(DocType)}
-                                       ,{<<"default">>, Default}
-                                       ]
-                                      )
-                                    ,?KZ_CONFIG_DB
-                                    ,[{'type', <<"config">>}]
-                                    ),
+        kz_doc:update_pvt_parameters(
+            kz_json:from_list(
+                [
+                    {<<"_id">>, ?TEMPLATE_DOC_ID(DocType)},
+                    {<<"default">>, Default}
+                ]
+            ),
+            ?KZ_CONFIG_DB,
+            [{'type', <<"config">>}]
+        ),
     case kz_datamgr:save_doc(?KZ_CONFIG_DB, JObj) of
-        {'ok', _} -> save_default_attachment(Template, DocType, AttachmentId);
-        {'error', 'conflict'} -> save_default_attachment(Template, DocType, AttachmentId);
-        {'error', _R}=Error ->
-            lager:error("failed to create default template doc for ~s : ~p"
-                       ,[?TEMPLATE_DOC_ID(DocType), _R]),
+        {'ok', _} ->
+            save_default_attachment(Template, DocType, AttachmentId);
+        {'error', 'conflict'} ->
+            save_default_attachment(Template, DocType, AttachmentId);
+        {'error', _R} = Error ->
+            lager:error(
+                "failed to create default template doc for ~s : ~p",
+                [?TEMPLATE_DOC_ID(DocType), _R]
+            ),
             Error
     end.
 
@@ -176,15 +196,19 @@ create_default_template(Template, DocType, AttachmentId) ->
 save_default_attachment(Template, DocType, AttachmentId) ->
     lager:debug("saving default template ~s attachment", [DocType]),
     case
-        kz_datamgr:put_attachment(?KZ_CONFIG_DB
-                                 ,?TEMPLATE_DOC_ID(DocType)
-                                 ,AttachmentId
-                                 ,Template
-                                 )
+        kz_datamgr:put_attachment(
+            ?KZ_CONFIG_DB,
+            ?TEMPLATE_DOC_ID(DocType),
+            AttachmentId,
+            Template
+        )
     of
-        {'error', _R}=Error ->
-            lager:error("failed to save default template attachment for ~s : ~p"
-                       ,[?TEMPLATE_DOC_ID(DocType), _R]),
+        {'error', _R} = Error ->
+            lager:error(
+                "failed to save default template attachment for ~s : ~p",
+                [?TEMPLATE_DOC_ID(DocType), _R]
+            ),
             Error;
-        {'ok', _} -> {'ok', Template}
+        {'ok', _} ->
+            {'ok', Template}
     end.

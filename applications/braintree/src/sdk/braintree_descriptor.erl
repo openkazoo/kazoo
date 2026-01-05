@@ -19,7 +19,7 @@
 %%------------------------------------------------------------------------------
 
 -spec get_name(bt_descriptor()) -> kz_term:api_ne_binary().
-get_name(#bt_descriptor{name=Name}) ->
+get_name(#bt_descriptor{name = Name}) ->
     Name.
 
 %% @equiv xml_to_record(Xml, "/descriptor")
@@ -36,10 +36,11 @@ xml_to_record(Xml) ->
 
 -spec xml_to_record(bt_xml(), kz_term:deeplist()) -> bt_descriptor().
 xml_to_record(Xml, Base) ->
-    #bt_descriptor{name = kz_xml:get_value([Base, "/name/text()"], Xml)
-                  ,phone = kz_xml:get_value([Base, "/phone/text()"], Xml)
-                  ,url = kz_xml:get_value([Base, "/url/text()"], Xml)
-                  }.
+    #bt_descriptor{
+        name = kz_xml:get_value([Base, "/name/text()"], Xml),
+        phone = kz_xml:get_value([Base, "/phone/text()"], Xml),
+        url = kz_xml:get_value([Base, "/url/text()"], Xml)
+    }.
 
 %% @equiv record_to_xml(Descriptor, 'false')
 
@@ -54,12 +55,14 @@ record_to_xml(Descriptor) ->
 %%------------------------------------------------------------------------------
 
 -spec record_to_xml(bt_descriptor(), boolean()) -> kz_term:proplist() | bt_xml() | 'undefined'.
-record_to_xml('undefined', _ToString) -> 'undefined';
+record_to_xml('undefined', _ToString) ->
+    'undefined';
 record_to_xml(Descriptor, ToString) ->
-    Props = [{'name', Descriptor#bt_descriptor.name}
-            ,{'phone', Descriptor#bt_descriptor.phone}
-            ,{'url', Descriptor#bt_descriptor.url}
-            ],
+    Props = [
+        {'name', Descriptor#bt_descriptor.name},
+        {'phone', Descriptor#bt_descriptor.phone},
+        {'url', Descriptor#bt_descriptor.url}
+    ],
     case ToString of
         'true' -> braintree_util:make_doc_xml(Props, 'descriptor');
         'false' -> Props
@@ -71,11 +74,12 @@ record_to_xml(Descriptor, ToString) ->
 %%------------------------------------------------------------------------------
 
 -spec record_to_json(bt_descriptor()) -> kz_json:object().
-record_to_json(#bt_descriptor{name=Name, phone=Phone, url=Url}) ->
-    kz_json:from_list([{<<"name">>, Name}
-                      ,{<<"phone">>, Phone}
-                      ,{<<"url">>, Url}
-                      ]).
+record_to_json(#bt_descriptor{name = Name, phone = Phone, url = Url}) ->
+    kz_json:from_list([
+        {<<"name">>, Name},
+        {<<"phone">>, Phone},
+        {<<"url">>, Url}
+    ]).
 
 %%------------------------------------------------------------------------------
 %% @doc Convert a given JSON obj into a record.
@@ -83,9 +87,11 @@ record_to_json(#bt_descriptor{name=Name, phone=Phone, url=Url}) ->
 %%------------------------------------------------------------------------------
 
 -spec json_to_record(kz_term:api_object()) -> bt_descriptor() | 'undefined'.
-json_to_record('undefined') -> 'undefined';
+json_to_record('undefined') ->
+    'undefined';
 json_to_record(JObj) ->
-    #bt_descriptor{name = kz_json:get_binary_value(<<"name">>, JObj)
-                  ,phone = kz_json:get_binary_value(<<"phone">>, JObj)
-                  ,url = kz_json:get_value(<<"url">>, JObj)
-                  }.
+    #bt_descriptor{
+        name = kz_json:get_binary_value(<<"name">>, JObj),
+        phone = kz_json:get_binary_value(<<"phone">>, JObj),
+        url = kz_json:get_value(<<"url">>, JObj)
+    }.

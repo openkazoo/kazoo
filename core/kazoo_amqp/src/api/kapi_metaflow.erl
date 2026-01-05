@@ -29,77 +29,89 @@
 %% Metaflow Request - when streaming is needed
 -define(METAFLOW_ACTION_HEADERS, [<<"Action">>, <<"Call-ID">>]).
 -define(OPTIONAL_METAFLOW_ACTION_HEADERS, [<<"Data">>]).
--define(METAFLOW_ACTION_VALUES, [{<<"Event-Category">>, <<"metaflow">>}
-                                ,{<<"Event-Name">>, <<"action">>}
-                                ,{<<"Action">>, [<<"transfer">>
-                                                ,<<"hangup">>
-                                                ,<<"callflow">>
-                                                ,<<"break">>
-                                                ,<<"intercept">>
-                                                ,<<"move">>
-                                                ,<<"park">>
-                                                ,<<"unpark">>
-                                                ,<<"play">>
-                                                ,<<"say">>
-                                                ,<<"audio_level">>
-                                                ,<<"hold">>
-                                                ,<<"record_call">>
-                                                ,<<"resume">>
-                                                ,<<"tts">>
-                                                ]
-                                 }
-                                ]).
+-define(METAFLOW_ACTION_VALUES, [
+    {<<"Event-Category">>, <<"metaflow">>},
+    {<<"Event-Name">>, <<"action">>},
+    {<<"Action">>, [
+        <<"transfer">>,
+        <<"hangup">>,
+        <<"callflow">>,
+        <<"break">>,
+        <<"intercept">>,
+        <<"move">>,
+        <<"park">>,
+        <<"unpark">>,
+        <<"play">>,
+        <<"say">>,
+        <<"audio_level">>,
+        <<"hold">>,
+        <<"record_call">>,
+        <<"resume">>,
+        <<"tts">>
+    ]}
+]).
 -define(METAFLOW_ACTION_TYPES, []).
 
--define(METAFLOW_ACTION_ROUTING_KEY(CallId, Action)
-       ,<<"metaflow.action.", (kz_amqp_util:encode(CallId))/binary, ".", (Action)/binary>>
-       ).
+-define(METAFLOW_ACTION_ROUTING_KEY(CallId, Action),
+    <<"metaflow.action.", (kz_amqp_util:encode(CallId))/binary, ".", (Action)/binary>>
+).
 
 %% Metaflow flow
 -define(METAFLOW_FLOW_HEADERS, [<<"Flow">>, <<"Call-ID">>]).
 -define(OPTIONAL_METAFLOW_FLOW_HEADERS, []).
--define(METAFLOW_FLOW_VALUES, [{<<"Event-Category">>, <<"metaflow">>}
-                              ,{<<"Event-Name">>, <<"flow">>}
-                              ]).
+-define(METAFLOW_FLOW_VALUES, [
+    {<<"Event-Category">>, <<"metaflow">>},
+    {<<"Event-Name">>, <<"flow">>}
+]).
 -define(METAFLOW_FLOW_TYPES, [{<<"Flow">>, fun kz_json:is_json_object/1}]).
 
--define(METAFLOW_FLOW_ROUTING_KEY(CallId)
-       ,<<"metaflow.flow.", (kz_amqp_util:encode(CallId))/binary>>
-       ).
+-define(METAFLOW_FLOW_ROUTING_KEY(CallId),
+    <<"metaflow.flow.", (kz_amqp_util:encode(CallId))/binary>>
+).
 
 %% Metaflow Bind
 -define(METAFLOW_BIND_REQ_HEADERS, [<<"Account-ID">>, <<"Binding-Leg">>]).
--define(OPTIONAL_METAFLOW_BIND_REQ_HEADERS, [<<"Call-ID">>
-                                            ,<<"Authorizing-ID">>
-                                            ,<<"Authorizing-Type">>
-                                            ,<<"Resource-ID">>
-                                            ,<<"CallFlow-ID">>
-                                            ]).
--define(METAFLOW_BIND_REQ_VALUES, [{<<"Event-Category">>, <<"metaflow">>}
-                                  ,{<<"Event-Name">>, <<"bind_req">>}
-                                  ]).
+-define(OPTIONAL_METAFLOW_BIND_REQ_HEADERS, [
+    <<"Call-ID">>,
+    <<"Authorizing-ID">>,
+    <<"Authorizing-Type">>,
+    <<"Resource-ID">>,
+    <<"CallFlow-ID">>
+]).
+-define(METAFLOW_BIND_REQ_VALUES, [
+    {<<"Event-Category">>, <<"metaflow">>},
+    {<<"Event-Name">>, <<"bind_req">>}
+]).
 -define(METAFLOW_BIND_REQ_TYPES, []).
 
--define(METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg)
-       ,<<"metaflow.bind_req.", (Leg)/binary, ".", (kz_amqp_util:encode(AccountId))/binary>>
-       ).
+-define(METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg),
+    <<"metaflow.bind_req.", (Leg)/binary, ".", (kz_amqp_util:encode(AccountId))/binary>>
+).
 
-
--define(METAFLOW_BIND_HEADERS, [ [<<"Call">> , <<"Call-ID">>] ]).
--define(OPTIONAL_METAFLOW_BIND_HEADERS, [<<"Numbers">>, <<"Patterns">>
-                                        ,<<"Binding-Digit">>, <<"Digit-Timeout">>
-                                        ,<<"Endpoint-ID">>, <<"Listen-On">>
-                                        ]).
--define(METAFLOW_BIND_VALUES, [{<<"Event-Category">>, <<"metaflow">>}
-                              ,{<<"Event-Name">>, <<"bind">>}
-                              ,{<<"Binding-Digit">>, ?ANY_DIGIT}
-                              ,{<<"Listen-On">>, [<<"both">>, <<"self">>, <<"peer">>, <<"aleg">>, <<"bleg">>]}
-                              ]).
--define(METAFLOW_BIND_TYPES, [{<<"Numbers">>, fun kz_json:is_json_object/1}
-                             ,{<<"Patterns">>, fun kz_json:is_json_object/1}
-                             ,{<<"Digit-Timeout">>, fun binding_digit_timeout_v/1}
-                             ]).
--define(METAFLOW_BIND_ROUTING_KEY(AccountId, CallId), <<"metaflow.bind.", (kz_amqp_util:encode(AccountId))/binary, ".", (kz_amqp_util:encode(CallId))/binary>>).
+-define(METAFLOW_BIND_HEADERS, [[<<"Call">>, <<"Call-ID">>]]).
+-define(OPTIONAL_METAFLOW_BIND_HEADERS, [
+    <<"Numbers">>,
+    <<"Patterns">>,
+    <<"Binding-Digit">>,
+    <<"Digit-Timeout">>,
+    <<"Endpoint-ID">>,
+    <<"Listen-On">>
+]).
+-define(METAFLOW_BIND_VALUES, [
+    {<<"Event-Category">>, <<"metaflow">>},
+    {<<"Event-Name">>, <<"bind">>},
+    {<<"Binding-Digit">>, ?ANY_DIGIT},
+    {<<"Listen-On">>, [<<"both">>, <<"self">>, <<"peer">>, <<"aleg">>, <<"bleg">>]}
+]).
+-define(METAFLOW_BIND_TYPES, [
+    {<<"Numbers">>, fun kz_json:is_json_object/1},
+    {<<"Patterns">>, fun kz_json:is_json_object/1},
+    {<<"Digit-Timeout">>, fun binding_digit_timeout_v/1}
+]).
+-define(METAFLOW_BIND_ROUTING_KEY(AccountId, CallId),
+    <<"metaflow.bind.", (kz_amqp_util:encode(AccountId))/binary, ".",
+        (kz_amqp_util:encode(CallId))/binary>>
+).
 
 %%------------------------------------------------------------------------------
 %% @doc Request metaflow.
@@ -107,20 +119,25 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec action(kz_json:object() | kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 action(Prop) when is_list(Prop) ->
     case action_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?METAFLOW_ACTION_HEADERS, ?OPTIONAL_METAFLOW_ACTION_HEADERS);
-        'false' -> {'error', "Proplist failed validation for metaflow_action"}
+        'true' ->
+            kz_api:build_message(Prop, ?METAFLOW_ACTION_HEADERS, ?OPTIONAL_METAFLOW_ACTION_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for metaflow_action"}
     end;
-action(JObj) -> action(kz_json:to_proplist(JObj)).
+action(JObj) ->
+    action(kz_json:to_proplist(JObj)).
 
 -spec action_v(kz_json:object() | kz_term:proplist()) -> boolean().
 action_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?METAFLOW_ACTION_HEADERS, ?METAFLOW_ACTION_VALUES, ?METAFLOW_ACTION_TYPES);
-action_v(JObj) -> action_v(kz_json:to_proplist(JObj)).
-
+    kz_api:validate(
+        Prop, ?METAFLOW_ACTION_HEADERS, ?METAFLOW_ACTION_VALUES, ?METAFLOW_ACTION_TYPES
+    );
+action_v(JObj) ->
+    action_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Flow.
@@ -128,19 +145,23 @@ action_v(JObj) -> action_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec flow(kz_json:object() | kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 flow(Prop) when is_list(Prop) ->
     case flow_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?METAFLOW_FLOW_HEADERS, ?OPTIONAL_METAFLOW_FLOW_HEADERS);
-        'false' -> {'error', "Proplist failed validation for metaflow flow"}
+        'true' ->
+            kz_api:build_message(Prop, ?METAFLOW_FLOW_HEADERS, ?OPTIONAL_METAFLOW_FLOW_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for metaflow flow"}
     end;
-flow(JObj) -> flow(kz_json:to_proplist(JObj)).
+flow(JObj) ->
+    flow(kz_json:to_proplist(JObj)).
 
 -spec flow_v(kz_json:object() | kz_term:proplist()) -> boolean().
 flow_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?METAFLOW_FLOW_HEADERS, ?METAFLOW_FLOW_VALUES, ?METAFLOW_FLOW_TYPES);
-flow_v(JObj) -> flow_v(kz_json:to_proplist(JObj)).
+flow_v(JObj) ->
+    flow_v(kz_json:to_proplist(JObj)).
 
 %%------------------------------------------------------------------------------
 %% @doc Bind metaflow.
@@ -148,19 +169,27 @@ flow_v(JObj) -> flow_v(kz_json:to_proplist(JObj)).
 %% @end
 %%------------------------------------------------------------------------------
 -spec bind_req(kz_json:object() | kz_term:proplist()) ->
-          {'ok', iolist()} |
-          {'error', string()}.
+    {'ok', iolist()}
+    | {'error', string()}.
 bind_req(Prop) when is_list(Prop) ->
     case bind_req_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?METAFLOW_BIND_REQ_HEADERS, ?OPTIONAL_METAFLOW_BIND_REQ_HEADERS);
-        'false' -> {'error', "Proplist failed validation for metaflow_bind"}
+        'true' ->
+            kz_api:build_message(
+                Prop, ?METAFLOW_BIND_REQ_HEADERS, ?OPTIONAL_METAFLOW_BIND_REQ_HEADERS
+            );
+        'false' ->
+            {'error', "Proplist failed validation for metaflow_bind"}
     end;
-bind_req(JObj) -> bind_req(kz_json:to_proplist(JObj)).
+bind_req(JObj) ->
+    bind_req(kz_json:to_proplist(JObj)).
 
 -spec bind_req_v(kz_json:object() | kz_term:proplist()) -> boolean().
 bind_req_v(Prop) when is_list(Prop) ->
-    kz_api:validate(Prop, ?METAFLOW_BIND_REQ_HEADERS, ?METAFLOW_BIND_REQ_VALUES, ?METAFLOW_BIND_REQ_TYPES);
-bind_req_v(JObj) -> bind_req_v(kz_json:to_proplist(JObj)).
+    kz_api:validate(
+        Prop, ?METAFLOW_BIND_REQ_HEADERS, ?METAFLOW_BIND_REQ_VALUES, ?METAFLOW_BIND_REQ_TYPES
+    );
+bind_req_v(JObj) ->
+    bind_req_v(kz_json:to_proplist(JObj)).
 
 -spec bind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 bind_q(Queue, Props) ->
@@ -171,12 +200,16 @@ bind_q(Queue, Props) ->
 bind_q(Queue, Props, ['bind_req' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
     Leg = props:get_value('leg', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue, ?METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg), ?METAFLOW_EXCHANGE),
+    kz_amqp_util:bind_q_to_exchange(
+        Queue, ?METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg), ?METAFLOW_EXCHANGE
+    ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, ['action' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Action = props:get_value('action', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue, ?METAFLOW_ACTION_ROUTING_KEY(CallId, Action), ?METAFLOW_EXCHANGE),
+    kz_amqp_util:bind_q_to_exchange(
+        Queue, ?METAFLOW_ACTION_ROUTING_KEY(CallId, Action), ?METAFLOW_EXCHANGE
+    ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, ['flow' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
@@ -185,12 +218,15 @@ bind_q(Queue, Props, ['flow' | T]) ->
 bind_q(Queue, Props, ['bindings' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
     CallId = props:get_value('callid', Props, <<"*">>),
-    kz_amqp_util:bind_q_to_exchange(Queue, ?METAFLOW_BIND_ROUTING_KEY(AccountId, CallId), ?METAFLOW_EXCHANGE),
+    kz_amqp_util:bind_q_to_exchange(
+        Queue, ?METAFLOW_BIND_ROUTING_KEY(AccountId, CallId), ?METAFLOW_EXCHANGE
+    ),
     bind_q(Queue, Props, T);
 bind_q(Queue, Props, [_U | T]) ->
     lager:debug("unknown restriction ~p in metaflow bind", [_U]),
     bind_q(Queue, Props, T);
-bind_q(_, _, []) -> 'ok'.
+bind_q(_, _, []) ->
+    'ok'.
 
 -spec unbind_q(kz_term:ne_binary(), kz_term:proplist()) -> 'ok'.
 unbind_q(Queue, Props) ->
@@ -201,26 +237,35 @@ unbind_q(Queue, Props) ->
 unbind_q(Queue, Props, ['bind_req' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
     Leg = props:get_value('leg', Props, <<"*">>),
-    'ok' = kz_amqp_util:unbind_q_from_exchange(Queue, ?METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg), ?METAFLOW_EXCHANGE),
+    'ok' = kz_amqp_util:unbind_q_from_exchange(
+        Queue, ?METAFLOW_BIND_REQ_ROUTING_KEY(AccountId, Leg), ?METAFLOW_EXCHANGE
+    ),
     unbind_q(Queue, Props, T);
 unbind_q(Queue, Props, ['action' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
     Action = props:get_value('action', Props, <<"*">>),
-    'ok' = kz_amqp_util:unbind_q_from_exchange(Queue, ?METAFLOW_ACTION_ROUTING_KEY(CallId, Action), ?METAFLOW_EXCHANGE),
+    'ok' = kz_amqp_util:unbind_q_from_exchange(
+        Queue, ?METAFLOW_ACTION_ROUTING_KEY(CallId, Action), ?METAFLOW_EXCHANGE
+    ),
     unbind_q(Queue, Props, T);
 unbind_q(Queue, Props, ['flow' | T]) ->
     CallId = props:get_value('callid', Props, <<"*">>),
-    'ok' = kz_amqp_util:unbind_q_from_exchange(Queue, ?METAFLOW_FLOW_ROUTING_KEY(CallId), ?METAFLOW_EXCHANGE),
+    'ok' = kz_amqp_util:unbind_q_from_exchange(
+        Queue, ?METAFLOW_FLOW_ROUTING_KEY(CallId), ?METAFLOW_EXCHANGE
+    ),
     unbind_q(Queue, Props, T);
 unbind_q(Queue, Props, ['bindings' | T]) ->
     AccountId = props:get_value('account_id', Props, <<"*">>),
     CallId = props:get_value('callid', Props, <<"*">>),
-    'ok' = kz_amqp_util:unbind_q_from_exchange(Queue, ?METAFLOW_BIND_ROUTING_KEY(AccountId, CallId), ?METAFLOW_EXCHANGE),
+    'ok' = kz_amqp_util:unbind_q_from_exchange(
+        Queue, ?METAFLOW_BIND_ROUTING_KEY(AccountId, CallId), ?METAFLOW_EXCHANGE
+    ),
     unbind_q(Queue, Props, T);
 unbind_q(Queue, Props, [_U | T]) ->
     lager:debug("unknown restriction ~p in metaflow unbind", [_U]),
     unbind_q(Queue, Props, T);
-unbind_q(_, _, []) -> 'ok'.
+unbind_q(_, _, []) ->
+    'ok'.
 
 %%------------------------------------------------------------------------------
 %% @doc Declare the exchanges used by this API.
@@ -236,12 +281,14 @@ publish_flow(JObj) ->
 
 -spec publish_flow(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
 publish_flow(Req, ContentType) ->
-    {'ok', Payload} = kz_api:prepare_api_payload(Req
-                                                ,?METAFLOW_FLOW_VALUES
-                                                ,[{'formatter', fun flow/1}
-                                                 ,{'remove_recursive', 'false'}
-                                                 ]
-                                                ),
+    {'ok', Payload} = kz_api:prepare_api_payload(
+        Req,
+        ?METAFLOW_FLOW_VALUES,
+        [
+            {'formatter', fun flow/1},
+            {'remove_recursive', 'false'}
+        ]
+    ),
     RK = ?METAFLOW_FLOW_ROUTING_KEY(rk_call_id(Req)),
     kz_amqp_util:basic_publish(?METAFLOW_EXCHANGE, RK, Payload, ContentType).
 
@@ -265,22 +312,22 @@ publish_bind_req(Req, ContentType) ->
     RK = ?METAFLOW_BIND_REQ_ROUTING_KEY(rk_account_id(Req), rk_binding_leg(Req)),
     kz_amqp_util:basic_publish(?METAFLOW_EXCHANGE, RK, Payload, ContentType).
 
-rk_action([_|_]=API) ->
+rk_action([_ | _] = API) ->
     props:get_value(<<"Action">>, API);
 rk_action(JObj) ->
     kz_json:get_value(<<"Action">>, JObj).
 
-rk_call_id([_|_]=API) ->
+rk_call_id([_ | _] = API) ->
     props:get_value(<<"Call-ID">>, API);
 rk_call_id(JObj) ->
     kz_json:get_value(<<"Call-ID">>, JObj).
 
-rk_account_id([_|_]=API) ->
+rk_account_id([_ | _] = API) ->
     props:get_value(<<"Account-ID">>, API);
 rk_account_id(JObj) ->
     kz_json:get_value(<<"Account-ID">>, JObj).
 
-rk_binding_leg([_|_]=API) ->
+rk_binding_leg([_ | _] = API) ->
     props:get_value(<<"Binding-Leg">>, API);
 rk_binding_leg(JObj) ->
     kz_json:get_value(<<"Binding-Leg">>, JObj).
@@ -308,18 +355,22 @@ publish_bind_reply(Q, API, ContentType) ->
     kz_amqp_util:targeted_publish(Q, Payload, ContentType).
 
 -spec callid(kz_term:api_terms()) -> kz_term:api_binary().
-callid([_|_]=Props) ->
+callid([_ | _] = Props) ->
     case props:get_value(<<"Call-ID">>, Props) of
         'undefined' -> callid(props:get_value(<<"Call">>, Props));
         CallId -> CallId
     end;
 callid(JObj) ->
-    kz_json:get_first_defined([<<"Call-ID">>
-                              ,[<<"Call">>, <<"Call-ID">>]
-                              ], JObj).
+    kz_json:get_first_defined(
+        [
+            <<"Call-ID">>,
+            [<<"Call">>, <<"Call-ID">>]
+        ],
+        JObj
+    ).
 
 -spec ensure_callid(kz_term:api_terms()) -> kz_term:api_terms().
-ensure_callid([_|_]=Props) ->
+ensure_callid([_ | _] = Props) ->
     props:insert_value(<<"Call-ID">>, callid(Props), Props);
 ensure_callid(JObj) ->
     kz_json:set_value(<<"Call-ID">>, callid(JObj), JObj).
@@ -332,15 +383,19 @@ ensure_callid(JObj) ->
 -spec binding(kz_term:api_terms()) -> api_formatter_return().
 binding(Prop) when is_list(Prop) ->
     case binding_v(Prop) of
-        'true' -> kz_api:build_message(Prop, ?METAFLOW_BIND_HEADERS, ?OPTIONAL_METAFLOW_BIND_HEADERS);
-        'false' -> {'error', "Proplist failed validation for metaflow binding"}
+        'true' ->
+            kz_api:build_message(Prop, ?METAFLOW_BIND_HEADERS, ?OPTIONAL_METAFLOW_BIND_HEADERS);
+        'false' ->
+            {'error', "Proplist failed validation for metaflow binding"}
     end;
-binding(JObj) -> binding(kz_json:to_proplist(JObj)).
+binding(JObj) ->
+    binding(kz_json:to_proplist(JObj)).
 
 -spec binding_v(kz_term:api_terms()) -> boolean().
 binding_v(Prop) when is_list(Prop) ->
     kz_api:validate(Prop, ?METAFLOW_BIND_HEADERS, ?METAFLOW_BIND_VALUES, ?METAFLOW_BIND_TYPES);
-binding_v(JObj) -> binding_v(kz_json:to_proplist(JObj)).
+binding_v(JObj) ->
+    binding_v(kz_json:to_proplist(JObj)).
 
 -spec binding_digit_timeout_v(any()) -> boolean().
 binding_digit_timeout_v(X) ->

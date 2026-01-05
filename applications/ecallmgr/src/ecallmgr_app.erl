@@ -9,9 +9,10 @@
 
 -include("ecallmgr.hrl").
 
--export([start/2
-        ,request/1
-        ]).
+-export([
+    start/2,
+    request/1
+]).
 -export([stop/1]).
 
 -export([freeswitch_node_modules/0]).
@@ -28,33 +29,33 @@ start(_StartType, _StartArgs) ->
 
 -spec request(kz_nodes:request_acc()) -> kz_nodes:request_acc().
 request(Acc) ->
-    Servers = [{kz_term:to_binary(Server)
-               ,node_info(Server, Started)
-               }
-               || {Server, Started} <- ecallmgr_fs_nodes:connected('true')
-              ],
-    [{'media_servers', props:filter_undefined(Servers)}
-    ,{'channels', ecallmgr_fs_channels:count()}
-    ,{'conferences', ecallmgr_fs_conferences:count()}
-    ,{'registrations', ecallmgr_registrar:count()}
-     | Acc
+    Servers = [
+        {kz_term:to_binary(Server), node_info(Server, Started)}
+     || {Server, Started} <- ecallmgr_fs_nodes:connected('true')
+    ],
+    [
+        {'media_servers', props:filter_undefined(Servers)},
+        {'channels', ecallmgr_fs_channels:count()},
+        {'conferences', ecallmgr_fs_conferences:count()},
+        {'registrations', ecallmgr_registrar:count()}
+        | Acc
     ].
 
 -spec node_info(atom(), kz_time:gregorian_seconds()) -> kz_term:api_object().
 node_info(Server, Started) ->
     try
         kz_json:from_list(
-          [{<<"Startup">>, Started}
-          ,{<<"Instance-UUID">>, ecallmgr_fs_node:instance_uuid(Server)}
-          ,{<<"Interfaces">>, ecallmgr_fs_node:interfaces(Server)}
-          ,{<<"Sessions">>, ecallmgr_fs_node:sessions(Server)}
-          ,{<<"Version">>, ecallmgr_fs_node:version(Server)}
-          ])
+            [
+                {<<"Startup">>, Started},
+                {<<"Instance-UUID">>, ecallmgr_fs_node:instance_uuid(Server)},
+                {<<"Interfaces">>, ecallmgr_fs_node:interfaces(Server)},
+                {<<"Sessions">>, ecallmgr_fs_node:sessions(Server)},
+                {<<"Version">>, ecallmgr_fs_node:version(Server)}
+            ]
+        )
     catch
         _E:_R -> 'undefined'
     end.
-
-
 
 %% @doc Implement the application stop behaviour.
 -spec stop(any()) -> any().

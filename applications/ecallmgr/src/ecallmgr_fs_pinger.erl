@@ -12,22 +12,24 @@
 -behaviour(gen_server).
 
 -export([start_link/2]).
--export([init/1
-        ,handle_call/3
-        ,handle_cast/2
-        ,handle_info/2
-        ,terminate/2
-        ,code_change/3
-        ]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3
+]).
 
 -include("ecallmgr.hrl").
 
 -define(SERVER, ?MODULE).
 
--record(state, {node = 'undefined' :: atom()
-               ,options = [] :: kz_term:proplist()
-               ,timeout = 2 * ?MILLISECONDS_IN_SECOND
-               }).
+-record(state, {
+    node = 'undefined' :: atom(),
+    options = [] :: kz_term:proplist(),
+    timeout = 2 * ?MILLISECONDS_IN_SECOND
+}).
 -type state() :: #state{}.
 
 %%%=============================================================================
@@ -55,7 +57,7 @@ init([Node, Props]) ->
     kz_util:put_callid(Node),
     self() ! 'initialize_pinger',
     lager:info("node ~s not responding, periodically retrying connection", [Node]),
-    {'ok', #state{node=Node, options=Props}}.
+    {'ok', #state{node = Node, options = Props}}.
 
 %%------------------------------------------------------------------------------
 %% @doc Handling call messages.
@@ -63,7 +65,7 @@ init([Node, Props]) ->
 %% #state{nodes=[{FSNode, HandlerPid}]}
 %%------------------------------------------------------------------------------
 -spec handle_call(any(), kz_term:pid_ref(), state()) -> kz_types:handle_call_ret_state(state()).
-handle_call(_Request, _From, #state{timeout=Timeout}=State) ->
+handle_call(_Request, _From, #state{timeout = Timeout} = State) ->
     {'reply', {'error', 'not_implemented'}, State, Timeout}.
 
 %%------------------------------------------------------------------------------
@@ -71,7 +73,7 @@ handle_call(_Request, _From, #state{timeout=Timeout}=State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_cast(any(), state()) -> kz_types:handle_cast_ret_state(state()).
-handle_cast(_Msg, #state{timeout=Timeout}=State) ->
+handle_cast(_Msg, #state{timeout = Timeout} = State) ->
     lager:debug("unhandled cast: ~p", [_Msg]),
     {'noreply', State, Timeout}.
 
@@ -80,15 +82,19 @@ handle_cast(_Msg, #state{timeout=Timeout}=State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info('initialize_pinger', #state{node=Node, options=Props}=State) ->
+handle_info('initialize_pinger', #state{node = Node, options = Props} = State) ->
     kz_notify:system_alert("node ~s disconnected from ~s", [Node, node()]),
-    _ = case props:get_value('cookie', Props) of
-            'undefined' -> 'ok';
+    _ =
+        case props:get_value('cookie', Props) of
+            'undefined' ->
+                'ok';
             Cookie when is_atom(Cookie) ->
                 lager:debug("setting cookie to ~s for ~s", [Cookie, Node]),
                 erlang:set_cookie(Node, Cookie)
         end,
-    GracePeriod = kapps_config:get_integer(?APP_NAME, <<"node_down_grace_period">>, 10 * ?MILLISECONDS_IN_SECOND),
+    GracePeriod = kapps_config:get_integer(
+        ?APP_NAME, <<"node_down_grace_period">>, 10 * ?MILLISECONDS_IN_SECOND
+    ),
     erlang:send_after(GracePeriod, self(), {'flush_channels', Node}),
     erlang:send_after(3 * ?MILLISECONDS_IN_SECOND, self(), 'check_node_status'),
     {'noreply', State};
@@ -97,7 +103,7 @@ handle_info({'flush_channels', Node}, State) ->
     ecallmgr_fs_channels:flush_node(Node),
     ecallmgr_fs_conferences:flush_node(Node),
     {'noreply', State};
-handle_info('check_node_status', #state{node=Node, timeout=Timeout}=State) ->
+handle_info('check_node_status', #state{node = Node, timeout = Timeout} = State) ->
     case net_adm:ping(Node) of
         'pong' ->
             %% give the node a moment to init
@@ -106,7 +112,9 @@ handle_info('check_node_status', #state{node=Node, timeout=Timeout}=State) ->
             'ok' = ecallmgr_fs_nodes:nodeup(Node),
             {'stop', 'normal', State};
         _Else ->
-            lager:debug("node ~s not responding, waiting ~b seconds to ping again", [Node, Timeout div ?MILLISECONDS_IN_SECOND]),
+            lager:debug("node ~s not responding, waiting ~b seconds to ping again", [
+                Node, Timeout div ?MILLISECONDS_IN_SECOND
+            ]),
             erlang:send_after(Timeout, self(), 'check_node_status'),
             {'noreply', State, 'hibernate'}
     end;
@@ -125,7 +133,7 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{node=Node}) ->
+terminate(_Reason, #state{node = Node}) ->
     lager:debug("fs pinger ~p to '~s' termination", [_Reason, Node]).
 
 %%------------------------------------------------------------------------------

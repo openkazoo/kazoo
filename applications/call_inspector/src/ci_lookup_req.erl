@@ -16,13 +16,14 @@ handle_req(JObj, _) ->
     Chunks = props:get_value(chunks, Props, []),
     Analysis = props:get_value(analysis, Props, []),
     Data = kz_json:from_list(
-             [{<<"Chunks">>, chunks_as_json(Chunks)}
-             ,{<<"Dialog-Entities">>, ci_chunk:get_dialog_entities(Chunks)}
-             ,{<<"Analysis">>, analysis_as_json(Analysis)}
-             ,{<<"Msg-ID">>, kz_api:msg_id(JObj)}
-              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
-             ]
-            ),
+        [
+            {<<"Chunks">>, chunks_as_json(Chunks)},
+            {<<"Dialog-Entities">>, ci_chunk:get_dialog_entities(Chunks)},
+            {<<"Analysis">>, analysis_as_json(Analysis)},
+            {<<"Msg-ID">>, kz_api:msg_id(JObj)}
+            | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+        ]
+    ),
     kapi_inspector:publish_lookup_resp(kz_api:server_id(JObj), Data).
 
 chunks_as_json(Chunks) ->

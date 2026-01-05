@@ -39,14 +39,17 @@ maybe_hunt(Data, Call, CaptureGroup) ->
     maybe_hunt(Data, Call, CaptureGroup, is_hunt_allowed(CaptureGroup, HuntDeny, HuntAllow)).
 
 is_hunt_allowed(CaptureGroup, HuntDeny, HuntAllow) ->
-    is_allowed(CaptureGroup, HuntAllow)
-        andalso not is_denied(CaptureGroup, HuntDeny).
+    is_allowed(CaptureGroup, HuntAllow) andalso
+        not is_denied(CaptureGroup, HuntDeny).
 
-is_allowed(_CaptureGroup, 'undefined') -> 'true';
-is_allowed(_CaptureGroup, <<>>) -> 'true';
+is_allowed(_CaptureGroup, 'undefined') ->
+    'true';
+is_allowed(_CaptureGroup, <<>>) ->
+    'true';
 is_allowed(CaptureGroup, Regex) ->
     try re:run(CaptureGroup, Regex) of
-        {'match', _} -> 'true';
+        {'match', _} ->
+            'true';
         'nomatch' ->
             lager:info("capture group ~s does not match allowed regex ~s", [CaptureGroup, Regex]),
             'false'
@@ -56,13 +59,18 @@ is_allowed(CaptureGroup, Regex) ->
             'false'
     end.
 
-is_denied(_CaptureGroup, 'undefined') -> 'false';
-is_denied(_CaptureGroup, <<>>) -> 'false';
+is_denied(_CaptureGroup, 'undefined') ->
+    'false';
+is_denied(_CaptureGroup, <<>>) ->
+    'false';
 is_denied(CaptureGroup, Regex) ->
     try re:run(CaptureGroup, Regex) of
-        'nomatch' -> 'false';
+        'nomatch' ->
+            'false';
         {'match', _} ->
-            lager:info("capture group ~s does matches denied regex ~s, not allowing hunt", [CaptureGroup, Regex]),
+            lager:info("capture group ~s does matches denied regex ~s, not allowing hunt", [
+                CaptureGroup, Regex
+            ]),
             'true'
     catch
         _:_ ->
@@ -76,11 +84,14 @@ maybe_hunt(_Data, Call, CaptureGroup, 'true') ->
 
     AllowNoMatch = cf_route_req:allow_no_match(Call),
     case cf_flow:lookup(CaptureGroup, AccountId) of
-        {'ok', Flow, NoMatch} when (not NoMatch)
-                                   orelse AllowNoMatch ->
-            Props = [{'cf_capture_group', kz_json:get_ne_value(<<"capture_group">>, Flow)}
-                    ,{'cf_capture_groups', kz_json:get_value(<<"capture_groups">>, Flow, kz_json:new())}
-                    ],
+        {'ok', Flow, NoMatch} when
+            (not NoMatch) orelse
+                AllowNoMatch
+        ->
+            Props = [
+                {'cf_capture_group', kz_json:get_ne_value(<<"capture_group">>, Flow)},
+                {'cf_capture_groups', kz_json:get_value(<<"capture_groups">>, Flow, kz_json:new())}
+            ],
             UpdatedCall = kapps_call:kvs_store_proplist(Props, Call),
             cf_exe:set_call(UpdatedCall),
             lager:info("branching to ~s", [kz_doc:id(Flow)]),

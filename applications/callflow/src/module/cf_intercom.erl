@@ -20,8 +20,9 @@
 handle(Data, Call) ->
     Number = cf_util:normalize_capture_group(kapps_call:kvs_fetch('cf_capture_group', Call)),
     AccountId = kapps_call:account_id(Call),
-    case Number =/= 'undefined'
-        andalso cf_flow:lookup(Number, AccountId)
+    case
+        Number =/= 'undefined' andalso
+            cf_flow:lookup(Number, AccountId)
     of
         'false' ->
             lager:debug("capture group is empty and can not be set as destination."),

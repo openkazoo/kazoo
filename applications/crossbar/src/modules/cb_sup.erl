@@ -19,29 +19,31 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_sup).
 
--export([init/0
-        ,authorize/1, authorize/2, authorize/3, authorize/4
-        ,allowed_methods/1, allowed_methods/2, allowed_methods/3
-        ,resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3
-        ,validate/1, validate/2, validate/3, validate/4
+-export([
+    init/0,
+    authorize/1, authorize/2, authorize/3, authorize/4,
+    allowed_methods/1, allowed_methods/2, allowed_methods/3,
+    resource_exists/0, resource_exists/1, resource_exists/2, resource_exists/3,
+    validate/1, validate/2, validate/3, validate/4,
 
-        ,format_path_tokens/1
+    format_path_tokens/1,
 
-         %% IO Server
-        ,start_link/0
-        ,init_io/1
-        ,io_loop/2
-        ,system_continue/3
-        ,system_terminate/4
-        ,system_get_state/1
-        ,system_replace_state/2
-        ]).
+    %% IO Server
+    start_link/0,
+    init_io/1,
+    io_loop/2,
+    system_continue/3,
+    system_terminate/4,
+    system_get_state/1,
+    system_replace_state/2
+]).
 
 -include("crossbar.hrl").
 
 -define(SERVER, ?MODULE).
 
--define(CHILDREN, []). %%FIXME: why is this not a supervisor?
+%%FIXME: why is this not a supervisor?
+-define(CHILDREN, []).
 
 %%%=============================================================================
 %%% API
@@ -86,7 +88,7 @@ handle_io_request(From, ReplyAs, {'put_chars', _Encoding, Characters}) ->
     From ! {'io_result', Characters},
     io_reply(From, ReplyAs, 'ok');
 handle_io_request(From, ReplyAs, {'put_chars', _Encoding, M, F, A}) ->
-    try apply(M,F,A) of
+    try apply(M, F, A) of
         Result ->
             From ! {'io_result', Result},
             io_reply(From, ReplyAs, 'ok')
@@ -116,8 +118,8 @@ system_replace_state(_StateFun, _State) ->
 
 -spec format_path_tokens(list()) -> list().
 format_path_tokens([]) -> [];
-format_path_tokens([_Module]=L) -> L;
-format_path_tokens([_Module, _Function]=L) -> L;
+format_path_tokens([_Module] = L) -> L;
+format_path_tokens([_Module, _Function] = L) -> L;
 format_path_tokens([Module, Function | Args]) -> [Module, Function, Args].
 
 %%------------------------------------------------------------------------------
@@ -200,7 +202,8 @@ resource_exists(ModuleBin, FunctionBin) ->
 resource_exists(ModuleBin, FunctionBin, Args) ->
     does_resource_exist(ModuleBin, FunctionBin, Args).
 
--spec does_resource_exist(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) -> boolean().
+-spec does_resource_exist(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binaries()) ->
+    boolean().
 does_resource_exist(ModuleBin, FunctionBin, Args) ->
     Arity = erlang:length(Args),
     kz_module:is_exported(maintenance_module_name(ModuleBin), FunctionBin, Arity).
@@ -232,7 +235,8 @@ validate(Context, ModuleBin) ->
 validate(Context, ModuleBin, FunctionBin) ->
     validate_sup(Context, maintenance_module_name(ModuleBin), kz_term:to_atom(FunctionBin), []).
 
--spec validate(cb_context:context(), path_token(), path_token(), path_token()) -> cb_context:context().
+-spec validate(cb_context:context(), path_token(), path_token(), path_token()) ->
+    cb_context:context().
 validate(Context, ModuleBin, FunctionBin, Args) ->
     validate_sup(Context, maintenance_module_name(ModuleBin), kz_term:to_atom(FunctionBin), Args).
 
@@ -272,7 +276,7 @@ receive_io_results() ->
 -spec receive_io_results(iolist()) -> binary().
 receive_io_results(Acc) ->
     receive
-        {'io_result', Result} -> receive_io_results([Result|Acc])
+        {'io_result', Result} -> receive_io_results([Result | Acc])
     after 50 -> iolist_to_binary(lists:reverse(Acc))
     end.
 

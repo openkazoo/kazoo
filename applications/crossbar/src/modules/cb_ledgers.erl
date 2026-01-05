@@ -7,13 +7,14 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_ledgers).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,authorize/2
-        ,validate/1, validate/2, validate/3
-        ,put/2
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    authorize/2,
+    validate/1, validate/2, validate/3,
+    put/2
+]).
 
 -include("crossbar.hrl").
 
@@ -99,15 +100,16 @@ resource_exists(_, _) -> 'true'.
 %%------------------------------------------------------------------------------
 -spec authorize(cb_context:context(), path_token()) -> boolean() | {'stop', cb_context:context()}.
 authorize(Context, Path) ->
-    try authorize_request(Context, Path, cb_context:req_verb(Context))
+    try
+        authorize_request(Context, Path, cb_context:req_verb(Context))
     catch
         _E:_R ->
             {'stop', cb_context:add_system_error('forbidden', Context)}
     end.
 
 -spec authorize_request(cb_context:context(), path_token(), http_method()) ->
-          boolean() |
-          {'stop', cb_context:context()}.
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize_request(Context, ?DEBIT, ?HTTP_PUT) ->
     authorize_create(Context);
 authorize_request(Context, ?CREDIT, ?HTTP_PUT) ->
@@ -117,19 +119,21 @@ authorize_request(Context, _, ?HTTP_GET) ->
 authorize_request(Context, _, ?HTTP_PUT) ->
     {'stop', cb_context:add_system_error('forbidden', Context)}.
 
--spec authorize_create(cb_context:context()) -> boolean() |
-          {'stop', cb_context:context()}.
+-spec authorize_create(cb_context:context()) ->
+    boolean()
+    | {'stop', cb_context:context()}.
 authorize_create(Context) ->
     IsAuthenticated = cb_context:is_authenticated(Context),
     IsSuperDuperAdmin = cb_context:is_superduper_admin(Context),
     ResellerId = cb_context:reseller_id(Context),
     AuthAccountId = cb_context:auth_account_id(Context),
-    IsReseller = kz_term:is_not_empty(AuthAccountId)
-        andalso ResellerId =:= AuthAccountId,
-    case IsAuthenticated
-        andalso (IsSuperDuperAdmin
-                 orelse IsReseller
-                )
+    IsReseller =
+        kz_term:is_not_empty(AuthAccountId) andalso
+            ResellerId =:= AuthAccountId,
+    case
+        IsAuthenticated andalso
+            (IsSuperDuperAdmin orelse
+                IsReseller)
     of
         'true' -> 'true';
         'false' -> {'stop', cb_context:add_system_error('forbidden', Context)}
@@ -159,19 +163,20 @@ validate(Context, ?TOTAL) ->
             crossbar_doc:handle_datamgr_errors(Reason, ?TOTAL, Context);
         {'ok', Units} ->
             JObj = kz_json:from_list(
-                     [{<<"amount">>, kz_currency:units_to_dollars(Units)}]
-                    ),
+                [{<<"amount">>, kz_currency:units_to_dollars(Units)}]
+            ),
             crossbar_doc:handle_json_success(JObj, Context)
     end;
 validate(Context, ?AVAILABLE) ->
     Available = kz_ledgers:available_ledgers(cb_context:account_id(Context)),
     crossbar_doc:handle_json_success(Available, Context);
 validate(Context, SourceService) ->
-    ViewOptions = [{'is_chunked', 'true'}
-                  ,{'range_keymap', SourceService}
-                  ,{'mapper', fun normalize_view_results/3}
-                  ,'include_docs'
-                  ],
+    ViewOptions = [
+        {'is_chunked', 'true'},
+        {'range_keymap', SourceService},
+        {'mapper', fun normalize_view_results/3},
+        'include_docs'
+    ],
     crossbar_view:load_modb(Context, ?VIEW_BY_SOURCE, ViewOptions).
 
 -spec validate(cb_context:context(), path_token(), path_token()) -> cb_context:context().
@@ -193,7 +198,7 @@ validate(Context, SourceService, Id) ->
     end.
 
 -spec validate_fetch_ledger(cb_context:context(), kz_term:ne_binary(), kz_ledger:ledger()) ->
-          cb_context:context().
+    cb_context:context().
 validate_fetch_ledger(Context, SourceService, Ledger) ->
     case kz_ledger:source_service(Ledger) =:= SourceService of
         'true' ->
@@ -201,7 +206,7 @@ validate_fetch_ledger(Context, SourceService, Ledger) ->
         'false' ->
             Id = kz_ledger:id(Ledger),
             Error = kz_json:from_list([{<<"cause">>, Id}]),
-            cb_context:add_system_error('bad_identifier', Error,  Context)
+            cb_context:add_system_error('bad_identifier', Error, Context)
     end.
 
 %%------------------------------------------------------------------------------
@@ -219,48 +224,50 @@ put(Context, Action) ->
 
     Setters =
         props:filter_empty(
-          [{fun kz_ledger:set_account/2, AccountId}
-          ,{fun kz_ledger:set_source_service/2
-           ,kz_json:get_ne_binary_value([<<"source">>, <<"service">>], ReqData)
-           }
-          ,{fun kz_ledger:set_source_id/2
-           ,kz_json:get_ne_binary_value([<<"source">>, <<"id">>], ReqData)
-           }
-          ,{fun kz_ledger:set_description/2
-           ,kz_json:get_ne_binary_value(<<"description">>, ReqData)
-           }
-          ,{fun kz_ledger:set_usage_type/2
-           ,kz_json:get_ne_binary_value([<<"usage">>, <<"type">>], ReqData)
-           }
-          ,{fun kz_ledger:set_usage_quantity/2
-           ,kz_json:get_integer_value([<<"usage">>, <<"quantity">>], ReqData)
-           }
-          ,{fun kz_ledger:set_usage_unit/2
-           ,kz_json:get_ne_binary_value([<<"usage">>, <<"unit">>], ReqData)
-           }
-          ,{fun kz_ledger:set_period_start/2
-           ,kz_json:get_integer_value([<<"period">>, <<"start">>], ReqData, kz_time:now_s())
-           }
-          ,{fun kz_ledger:set_period_end/2
-           ,kz_json:get_integer_value([<<"period">>, <<"end">>], ReqData)
-           }
-          ,{fun kz_ledger:set_metadata/2
-           ,kz_json:get_ne_json_value(<<"metadata">>, ReqData, kz_json:new())
-           }
-          ,{fun kz_ledger:set_unit_amount/2
-           ,Units
-           }
-          ,{fun kz_ledger:set_audit/2
-           ,crossbar_services:audit_log(Context)
-           }
-          ,{fun kz_ledger:set_executor_trigger/2
-           ,?APP_NAME
-           }
-          ,{fun kz_ledger:set_executor_module/2
-           ,<<?MODULE_STRING>>
-           }
-          ]
-         ),
+            [
+                {fun kz_ledger:set_account/2, AccountId},
+                {
+                    fun kz_ledger:set_source_service/2,
+                    kz_json:get_ne_binary_value([<<"source">>, <<"service">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_source_id/2,
+                    kz_json:get_ne_binary_value([<<"source">>, <<"id">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_description/2,
+                    kz_json:get_ne_binary_value(<<"description">>, ReqData)
+                },
+                {
+                    fun kz_ledger:set_usage_type/2,
+                    kz_json:get_ne_binary_value([<<"usage">>, <<"type">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_usage_quantity/2,
+                    kz_json:get_integer_value([<<"usage">>, <<"quantity">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_usage_unit/2,
+                    kz_json:get_ne_binary_value([<<"usage">>, <<"unit">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_period_start/2,
+                    kz_json:get_integer_value([<<"period">>, <<"start">>], ReqData, kz_time:now_s())
+                },
+                {
+                    fun kz_ledger:set_period_end/2,
+                    kz_json:get_integer_value([<<"period">>, <<"end">>], ReqData)
+                },
+                {
+                    fun kz_ledger:set_metadata/2,
+                    kz_json:get_ne_json_value(<<"metadata">>, ReqData, kz_json:new())
+                },
+                {fun kz_ledger:set_unit_amount/2, Units},
+                {fun kz_ledger:set_audit/2, crossbar_services:audit_log(Context)},
+                {fun kz_ledger:set_executor_trigger/2, ?APP_NAME},
+                {fun kz_ledger:set_executor_module/2, <<?MODULE_STRING>>}
+            ]
+        ),
     process_action(Context, Action, kz_ledger:setters(Setters)).
 
 %%%=============================================================================
@@ -273,41 +280,45 @@ put(Context, Action) ->
 %%------------------------------------------------------------------------------
 -spec build_summary(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 build_summary(Context, MODB) ->
-    SummaryContext = summary(Context, [{'databases', [MODB]}
-                                      ,{'range_keymap', 'nil'}
-                                      ]
-                            ),
+    SummaryContext = summary(Context, [
+        {'databases', [MODB]},
+        {'range_keymap', 'nil'}
+    ]),
     AccountContext = account_summary(Context, MODB),
     case {cb_context:resp_status(SummaryContext), cb_context:resp_status(AccountContext)} of
         {'success', 'success'} ->
             AccountSummary = cb_context:resp_data(AccountContext),
-            JObj = kz_json:from_list([{<<"summary">>, cb_context:resp_data(SummaryContext)}
-                                     ,{<<"breakdown">>, kz_json:values(AccountSummary)}
-                                     ]
-                                    ),
+            JObj = kz_json:from_list([
+                {<<"summary">>, cb_context:resp_data(SummaryContext)},
+                {<<"breakdown">>, kz_json:values(AccountSummary)}
+            ]),
             cb_context:set_resp_data(AccountContext, JObj);
-        {_, _} -> AccountContext
+        {_, _} ->
+            AccountContext
     end.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_summary(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) -> cb_context:context().
+-spec fetch_summary(cb_context:context(), kz_term:ne_binary(), kz_term:proplist()) ->
+    cb_context:context().
 fetch_summary(Context, View, Options) ->
-    ViewOptions = [{'group', 'true'}
-                  ,{'reduce', 'true'}
-                  ,{'unchunkable', 'true'}
-                  ,{'no_filter', 'true'}
-                  ,{'should_paginate', 'false'}
-                   | Options
-                  ],
+    ViewOptions = [
+        {'group', 'true'},
+        {'reduce', 'true'},
+        {'unchunkable', 'true'},
+        {'no_filter', 'true'},
+        {'should_paginate', 'false'}
+        | Options
+    ],
     Context1 = crossbar_view:load_modb(Context, View, ViewOptions),
     case cb_context:resp_status(Context1) of
         'success' ->
             Summary = kz_json:sum_jobjs(cb_context:doc(Context1)),
             cb_context:set_resp_data(Context1, summary_to_dollars(Summary));
-        _ -> Context1
+        _ ->
+            Context1
     end.
 
 %%------------------------------------------------------------------------------
@@ -320,10 +331,11 @@ summary(Context) ->
 
 -spec summary(cb_context:context(), kz_term:proplist()) -> cb_context:context().
 summary(Context, Options) ->
-    ViewOptions = [{'group_level', 0}
-                  ,{'mapper', crossbar_view:map_value_fun()}
-                   | Options
-                  ],
+    ViewOptions = [
+        {'group_level', 0},
+        {'mapper', crossbar_view:map_value_fun()}
+        | Options
+    ],
 
     fetch_summary(Context, ?VIEW_BY_TIMESTAMP, ViewOptions).
 
@@ -331,13 +343,14 @@ summary(Context, Options) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec account_summary(cb_context:context(), kz_term:ne_binary()) ->cb_context:context().
+-spec account_summary(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
 account_summary(Context, MODB) ->
-    Options = [{'databases', [MODB]}
-              ,{'group_level', 1}
-              ,{'mapper', fun normalize_summary_by_account/2}
-              ,{'range_keymap', 'nil'}
-              ],
+    Options = [
+        {'databases', [MODB]},
+        {'group_level', 1},
+        {'mapper', fun normalize_summary_by_account/2},
+        {'range_keymap', 'nil'}
+    ],
     fetch_summary(Context, ?VIEW_BY_ACCOUNT, Options).
 
 %%------------------------------------------------------------------------------
@@ -346,24 +359,29 @@ account_summary(Context, MODB) ->
 %%------------------------------------------------------------------------------
 -spec summary_to_dollars(kz_json:object()) -> kz_json:object().
 summary_to_dollars(Summary) ->
-    ConvertedUnits = [{Paths, maybe_convert_units(lists:last(Paths), Paths, Value)}
-                      || {Paths, Value} <- kz_json:to_proplist(kz_json:flatten(Summary))
-                     ],
+    ConvertedUnits = [
+        {Paths, maybe_convert_units(lists:last(Paths), Paths, Value)}
+     || {Paths, Value} <- kz_json:to_proplist(kz_json:flatten(Summary))
+    ],
     kz_json:expand(kz_json:from_list(ConvertedUnits)).
 
 -spec maybe_convert_units(kz_term:ne_binary(), kz_json:keys(), kz_currency:units() | T) ->
-          kz_currency:dollars() | T when T::any().
+    kz_currency:dollars() | T
+when
+    T :: any().
 maybe_convert_units(<<"amount">>, _, Units) when is_integer(Units) ->
     kz_currency:units_to_dollars(Units);
 maybe_convert_units(_, [_AccountId, <<"total">>], Units) ->
     kz_currency:units_to_dollars(Units);
-maybe_convert_units(_, _, Value) -> Value.
+maybe_convert_units(_, _, Value) ->
+    Value.
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec process_action(cb_context:context(), kz_term:ne_binary(), kz_ledger:ledger()) -> cb_context:context().
+-spec process_action(cb_context:context(), kz_term:ne_binary(), kz_ledger:ledger()) ->
+    cb_context:context().
 process_action(Context, ?CREDIT, Ledger) ->
     case kz_ledger:credit(Ledger) of
         {'error', Reason} ->
@@ -382,20 +400,20 @@ process_action(Context, ?DEBIT, Ledger) ->
 -spec maybe_impact_reseller(cb_context:context(), kz_ledger:ledger()) -> cb_context:context().
 maybe_impact_reseller(Context, Ledger) ->
     ResellerId = cb_context:reseller_id(Context),
-    ImpactReseller = kz_json:is_true(<<"impact_reseller">>, cb_context:req_json(Context))
-        andalso ResellerId =/= cb_context:account_id(Context),
+    ImpactReseller =
+        kz_json:is_true(<<"impact_reseller">>, cb_context:req_json(Context)) andalso
+            ResellerId =/= cb_context:account_id(Context),
     maybe_impact_reseller(Context, Ledger, ImpactReseller, ResellerId).
 
--spec maybe_impact_reseller(cb_context:context(), kz_ledger:ledger(), boolean(), kz_term:api_binary()) -> cb_context:context().
+-spec maybe_impact_reseller(
+    cb_context:context(), kz_ledger:ledger(), boolean(), kz_term:api_binary()
+) -> cb_context:context().
 maybe_impact_reseller(Context, Ledger, 'false', _ResellerId) ->
     crossbar_doc:handle_json_success(kz_ledger:public_json(Ledger), Context);
 maybe_impact_reseller(Context, Ledger, 'true', 'undefined') ->
     JObj = kz_json:from_list(
-             [{kz_ledger:account_id(Ledger)
-              ,kz_ledger:public_json(Ledger)
-              }
-             ]
-            ),
+        [{kz_ledger:account_id(Ledger), kz_ledger:public_json(Ledger)}]
+    ),
     crossbar_doc:handle_json_success(JObj, Context);
 maybe_impact_reseller(Context, AccountLedger, 'true', ResellerId) ->
     AccountId = kz_ledger:account_id(AccountLedger),
@@ -403,55 +421,69 @@ maybe_impact_reseller(Context, AccountLedger, 'true', ResellerId) ->
     case kz_ledger:save(kz_ledger:reset(AccountLedger), ResellerId) of
         {'ok', ResellerLedger} ->
             ResellerResponse = build_success_response(ResellerId, ResellerLedger),
-            JObj = build_response(AccountId, AccountResponse
-                                 ,ResellerId, ResellerResponse
-                                 ),
+            JObj = build_response(
+                AccountId,
+                AccountResponse,
+                ResellerId,
+                ResellerResponse
+            ),
             crossbar_doc:handle_json_success(JObj, Context);
         {'error', Reason} ->
             ResellerResponse = build_error_response(Context, AccountId, Reason),
-            JObj = build_response(AccountId, AccountResponse
-                                 ,ResellerId, ResellerResponse
-                                 ),
-            cb_context:setters(Context, [{fun cb_context:set_resp_status/2, 'error'}
-                                        ,{fun cb_context:set_resp_data/2, JObj}
-                                        ])
+            JObj = build_response(
+                AccountId,
+                AccountResponse,
+                ResellerId,
+                ResellerResponse
+            ),
+            cb_context:setters(Context, [
+                {fun cb_context:set_resp_status/2, 'error'},
+                {fun cb_context:set_resp_data/2, JObj}
+            ])
     end.
 
--spec build_response(kz_term:ne_binary(), kz_json:object()
-                    ,kz_term:ne_binary(), kz_json:object()) ->
-          kz_json:object().
+-spec build_response(
+    kz_term:ne_binary(),
+    kz_json:object(),
+    kz_term:ne_binary(),
+    kz_json:object()
+) ->
+    kz_json:object().
 build_response(AccountId, AccountResponse, ResellerId, ResellerResponse) ->
     kz_json:from_list(
-      [{AccountId, AccountResponse},
-       {ResellerId, ResellerResponse}
-      ]
-     ).
+        [
+            {AccountId, AccountResponse},
+            {ResellerId, ResellerResponse}
+        ]
+    ).
 
 -spec build_error_response(cb_context:context(), kz_term:ne_binary(), any()) -> kz_json:object().
 build_error_response(Context, AccountId, Reason) ->
     Context1 = crossbar_doc:handle_datamgr_errors(Reason, 'undefined', Context),
     kz_json:from_list(
-      [{<<"error">>, cb_context:resp_data(Context1)}
-      ,{<<"available_dollars">>, kz_currency:available_dollars(AccountId, 0)}
-      ,{<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
-      ]
-     ).
+        [
+            {<<"error">>, cb_context:resp_data(Context1)},
+            {<<"available_dollars">>, kz_currency:available_dollars(AccountId, 0)},
+            {<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
+        ]
+    ).
 
 -spec build_success_response(kz_term:ne_binary(), kz_ledger:ledger()) -> kz_json:object().
 build_success_response(AccountId, Ledger) ->
     kz_json:from_list(
-      [{<<"ledger">>, kz_ledger:public_json(Ledger)}
-      ,{<<"available_dollars">>, kz_currency:available_dollars(AccountId, 0)}
-      ,{<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
-      ]
-     ).
+        [
+            {<<"ledger">>, kz_ledger:public_json(Ledger)},
+            {<<"available_dollars">>, kz_currency:available_dollars(AccountId, 0)},
+            {<<"is_reseller">>, kz_services_reseller:is_reseller(AccountId)}
+        ]
+    ).
 
 %%------------------------------------------------------------------------------
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(cb_context:context(), kzd_ledgers:doc(), kz_json:objects()) ->
-          kz_json:objects().
+    kz_json:objects().
 normalize_view_results(_Context, JObj, Acc) ->
     [normalize_view_result(kz_json:get_value(<<"doc">>, JObj)) | Acc].
 
@@ -465,7 +497,7 @@ normalize_view_result(LedgerJObj) ->
 %%------------------------------------------------------------------------------
 -spec normalize_summary_by_account(kz_json:objects(), kz_json:objects()) -> kz_json:objects().
 normalize_summary_by_account(JObj, Acc) ->
-    [AccountId|_] = kz_json:get_value(<<"key">>, JObj),
+    [AccountId | _] = kz_json:get_value(<<"key">>, JObj),
     Ledger = normalize_ledger_jobj(AccountId, kz_json:get_value(<<"value">>, JObj)),
     [kz_json:sum_jobjs([Ledger | Acc])].
 
@@ -475,17 +507,19 @@ normalize_summary_by_account(JObj, Acc) ->
 %%------------------------------------------------------------------------------
 -spec normalize_ledger_jobj(kazoo_data:range_key(), kz_json:object()) -> kz_json:object().
 normalize_ledger_jobj(AccountId, JObj) ->
-    AccountJObj = kz_json:from_list([{<<"id">>, AccountId}
-                                    ,{<<"name">>, kz_json:get_value(<<"account_name">>, JObj)}
-                                    ]
-                                   ),
+    AccountJObj = kz_json:from_list([
+        {<<"id">>, AccountId},
+        {<<"name">>, kz_json:get_value(<<"account_name">>, JObj)}
+    ]),
     kz_json:from_list(
-      [{AccountId
-       ,kz_json:from_list(
-          [{<<"account">>, AccountJObj}
-          ,{<<"ledgers">>, kz_json:get_value(<<"ledgers">>, JObj)}
-          ,{<<"total">>, kz_json:get_integer_value(<<"total">>, JObj)}
-          ]
-         )
-       }
-      ]).
+        [
+            {AccountId,
+                kz_json:from_list(
+                    [
+                        {<<"account">>, AccountJObj},
+                        {<<"ledgers">>, kz_json:get_value(<<"ledgers">>, JObj)},
+                        {<<"total">>, kz_json:get_integer_value(<<"total">>, JObj)}
+                    ]
+                )}
+        ]
+    ).

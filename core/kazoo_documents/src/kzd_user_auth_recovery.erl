@@ -12,7 +12,6 @@
 -export([ui_url/1, ui_url/2, set_ui_url/2]).
 -export([username/1, username/2, set_username/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

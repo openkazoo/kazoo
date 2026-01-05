@@ -8,13 +8,13 @@
 %%%-----------------------------------------------------------------------------
 -module(fs_xml).
 
--export(['#xml-inheritance#'/0
-        ]).
+-export(['#xml-inheritance#'/0]).
 
--export(['#root#'/4,
-         '#element#'/5,
-         '#text#'/1
-        ]).
+-export([
+    '#root#'/4,
+    '#element#'/5,
+    '#text#'/1
+]).
 
 -include_lib("xmerl/include/xmerl.hrl").
 

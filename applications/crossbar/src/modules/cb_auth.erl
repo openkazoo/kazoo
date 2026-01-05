@@ -6,18 +6,19 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_auth).
 
--export([init/0
-        ,allowed_methods/0, allowed_methods/1, allowed_methods/2
-        ,resource_exists/0, resource_exists/1, resource_exists/2
-        ,content_types_provided/1, content_types_provided/2, content_types_provided/3
-        ,authorize/1, authorize/2, authorize/3
-        ,authenticate/1, authenticate/2
-        ,validate_resource/1, validate_resource/2, validate_resource/3
-        ,validate/1, validate/2, validate/3
-        ,put/1, put/2, put/3
-        ,post/2, post/3
-        ,delete/3
-        ]).
+-export([
+    init/0,
+    allowed_methods/0, allowed_methods/1, allowed_methods/2,
+    resource_exists/0, resource_exists/1, resource_exists/2,
+    content_types_provided/1, content_types_provided/2, content_types_provided/3,
+    authorize/1, authorize/2, authorize/3,
+    authenticate/1, authenticate/2,
+    validate_resource/1, validate_resource/2, validate_resource/3,
+    validate/1, validate/2, validate/3,
+    put/1, put/2, put/3,
+    post/2, post/3,
+    delete/3
+]).
 
 -include("crossbar.hrl").
 
@@ -53,7 +54,9 @@ init() ->
     _ = crossbar_bindings:bind(<<"*.authorize.auth">>, ?MODULE, 'authorize'),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.auth">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.auth">>, ?MODULE, 'resource_exists'),
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.auth">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.auth">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"*.validate_resource.auth">>, ?MODULE, 'validate_resource'),
     _ = crossbar_bindings:bind(<<"*.validate.auth">>, ?MODULE, 'validate'),
     _ = crossbar_bindings:bind(<<"*.execute.put.auth">>, ?MODULE, 'put'),
@@ -81,10 +84,10 @@ allowed_methods(?PROVIDERS_PATH) -> [?HTTP_GET];
 allowed_methods(?TOKENINFO_PATH) -> [?HTTP_GET, ?HTTP_POST].
 
 -spec allowed_methods(path_token(), path_token()) -> http_methods().
-allowed_methods(?APPS_PATH, _AppId) -> [?HTTP_GET , ?HTTP_POST , ?HTTP_DELETE];
+allowed_methods(?APPS_PATH, _AppId) -> [?HTTP_GET, ?HTTP_POST, ?HTTP_DELETE];
 allowed_methods(?KEYS_PATH, _KeyId) -> [?HTTP_GET, ?HTTP_PUT];
-allowed_methods(?LINKS_PATH, _LinkId) -> [?HTTP_GET , ?HTTP_PUT , ?HTTP_DELETE];
-allowed_methods(?PROVIDERS_PATH, _ProviderId) -> [?HTTP_GET , ?HTTP_POST , ?HTTP_DELETE].
+allowed_methods(?LINKS_PATH, _LinkId) -> [?HTTP_GET, ?HTTP_PUT, ?HTTP_DELETE];
+allowed_methods(?PROVIDERS_PATH, _ProviderId) -> [?HTTP_GET, ?HTTP_POST, ?HTTP_DELETE].
 
 %%------------------------------------------------------------------------------
 %% @doc This function determines if the provided list of Nouns are valid.
@@ -119,11 +122,13 @@ content_types_provided(Context) -> Context.
 -spec content_types_provided(cb_context:context(), path_token()) -> cb_context:context().
 content_types_provided(Context, _) -> Context.
 
--spec content_types_provided(cb_context:context(), path_token(), path_token()) -> cb_context:context().
+-spec content_types_provided(cb_context:context(), path_token(), path_token()) ->
+    cb_context:context().
 content_types_provided(Context, ?KEYS_PATH, _KeyId) ->
-    cb_context:set_content_types_provided(Context, [{'to_json', ?JSON_CONTENT_TYPES}
-                                                   ,{'to_binary', ?PUBLIC_KEY_MIME}
-                                                   ]);
+    cb_context:set_content_types_provided(Context, [
+        {'to_json', ?JSON_CONTENT_TYPES},
+        {'to_binary', ?PUBLIC_KEY_MIME}
+    ]);
 content_types_provided(Context, _, _) ->
     Context.
 %%------------------------------------------------------------------------------
@@ -136,50 +141,71 @@ authorize(Context) ->
 
 -spec authorize(cb_context:context(), path_token()) -> boolean() | {'stop', cb_context:context()}.
 authorize(Context, PathToken) ->
-    authorize_nouns(Context, PathToken, cb_context:req_verb(Context), cb_context:req_nouns(Context)).
+    authorize_nouns(
+        Context, PathToken, cb_context:req_verb(Context), cb_context:req_nouns(Context)
+    ).
 
--spec authorize(cb_context:context(), path_token(), path_token()) -> boolean() | {'stop', cb_context:context()}.
+-spec authorize(cb_context:context(), path_token(), path_token()) ->
+    boolean() | {'stop', cb_context:context()}.
 authorize(Context, PathToken, Id) ->
-    authorize_nouns(Context, PathToken, Id, cb_context:req_verb(Context), cb_context:req_nouns(Context)).
+    authorize_nouns(
+        Context, PathToken, Id, cb_context:req_verb(Context), cb_context:req_nouns(Context)
+    ).
 
 %% authorize /auth
 -spec authorize_nouns(cb_context:context(), req_verb(), req_nouns()) -> boolean().
-authorize_nouns(C, ?HTTP_PUT, [{<<"auth">>, _}]) -> authorize_action(C, cb_context:req_value(C, <<"action">>));
-authorize_nouns(C, ?HTTP_PUT, [{<<"auth">>, _}, {<<"accounts">>, _}]) -> cb_context:is_account_admin(C);
-authorize_nouns(C, ?HTTP_PUT, [{<<"auth">>, _}, {<<"users">>, [UserId]}, {<<"accounts">>, [AccountId]}]) ->
-    cb_context:is_account_admin(C)
-    %% Permit a user to reset their own signature secret
-        orelse (cb_context:auth_account_id(C) =:= AccountId
-                andalso cb_context:auth_user_id(C) =:= UserId
-               );
-authorize_nouns(C, _, _) -> {'stop', cb_context:add_system_error('forbidden', C)}.
+authorize_nouns(C, ?HTTP_PUT, [{<<"auth">>, _}]) ->
+    authorize_action(C, cb_context:req_value(C, <<"action">>));
+authorize_nouns(C, ?HTTP_PUT, [{<<"auth">>, _}, {<<"accounts">>, _}]) ->
+    cb_context:is_account_admin(C);
+authorize_nouns(C, ?HTTP_PUT, [
+    {<<"auth">>, _}, {<<"users">>, [UserId]}, {<<"accounts">>, [AccountId]}
+]) ->
+    cb_context:is_account_admin(C) orelse
+        %% Permit a user to reset their own signature secret
+        (cb_context:auth_account_id(C) =:= AccountId andalso
+            cb_context:auth_user_id(C) =:= UserId);
+authorize_nouns(C, _, _) ->
+    {'stop', cb_context:add_system_error('forbidden', C)}.
 
 %% authorize /auth/{nouns}
 -spec authorize_nouns(cb_context:context(), path_token(), req_verb(), req_nouns()) -> boolean().
-authorize_nouns(_, ?APPS_PATH,             ?HTTP_GET,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?AUTHORIZE_PATH,        ?HTTP_PUT,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?CALLBACK_PATH,         ?HTTP_PUT,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(C, ?KEYS_PATH,             ?HTTP_GET,   [{<<"auth">>, _}]) -> cb_context:is_account_admin(C);
-authorize_nouns(_, ?LINKS_PATH,            ?HTTP_GET,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?PROVIDERS_PATH,        ?HTTP_GET,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?TOKENINFO_PATH,        ?HTTP_GET,   [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?TOKENINFO_PATH,        ?HTTP_POST,  [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?APPS_PATH, ?HTTP_GET, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?AUTHORIZE_PATH, ?HTTP_PUT, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?CALLBACK_PATH, ?HTTP_PUT, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(C, ?KEYS_PATH, ?HTTP_GET, [{<<"auth">>, _}]) -> cb_context:is_account_admin(C);
+authorize_nouns(_, ?LINKS_PATH, ?HTTP_GET, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?PROVIDERS_PATH, ?HTTP_GET, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?TOKENINFO_PATH, ?HTTP_GET, [{<<"auth">>, _}]) -> 'true';
+authorize_nouns(_, ?TOKENINFO_PATH, ?HTTP_POST, [{<<"auth">>, _}]) -> 'true';
 authorize_nouns(C, _, _, _) -> {'stop', cb_context:add_system_error('forbidden', C)}.
 
 %% authorize /auth/{nouns}/{id}
--spec authorize_nouns(cb_context:context(), path_token(), path_token(), req_verb(), req_nouns()) -> boolean().
-authorize_nouns(_, ?APPS_PATH,      _Id,           ?HTTP_GET,    [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(C, ?KEYS_PATH,      _Id,           ?HTTP_GET,    [{<<"auth">>, _}]) -> cb_context:is_account_admin(C);
-authorize_nouns(C, ?KEYS_PATH,      _Id,           ?HTTP_PUT,    [{<<"auth">>, _}]) -> cb_context:is_superduper_admin(C);
-authorize_nouns(_, ?LINKS_PATH,     _Id,           ?HTTP_GET,    [{<<"auth">>, _}]) -> 'true';
+-spec authorize_nouns(cb_context:context(), path_token(), path_token(), req_verb(), req_nouns()) ->
+    boolean().
+authorize_nouns(_, ?APPS_PATH, _Id, ?HTTP_GET, [{<<"auth">>, _}]) ->
+    'true';
+authorize_nouns(C, ?KEYS_PATH, _Id, ?HTTP_GET, [{<<"auth">>, _}]) ->
+    cb_context:is_account_admin(C);
+authorize_nouns(C, ?KEYS_PATH, _Id, ?HTTP_PUT, [{<<"auth">>, _}]) ->
+    cb_context:is_superduper_admin(C);
+authorize_nouns(_, ?LINKS_PATH, _Id, ?HTTP_GET, [{<<"auth">>, _}]) ->
+    'true';
 %% monster-ui still uses this (accounts/123/auth/links)
-authorize_nouns(_, ?LINKS_PATH,     _Id,           ?HTTP_GET,    [{<<"auth">>, _}, {<<"accounts">>, _}]) -> 'true';
-authorize_nouns(_, ?LINKS_PATH,     _Id,           ?HTTP_PUT,    [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?LINKS_PATH,     _Id,           ?HTTP_DELETE, [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(_, ?PROVIDERS_PATH, _Id,           ?HTTP_GET,    [{<<"auth">>, _}]) -> 'true';
-authorize_nouns(C, ?PROVIDERS_PATH, _Id,           ?HTTP_POST,   [{<<"auth">>, _}]) -> cb_context:is_superduper_admin(C);
-authorize_nouns(C, ?PROVIDERS_PATH, _Id,           ?HTTP_DELETE, [{<<"auth">>, _}]) -> cb_context:is_superduper_admin(C);
-authorize_nouns(C, _, _, _, _) -> {'stop', cb_context:add_system_error('forbidden', C)}.
+authorize_nouns(_, ?LINKS_PATH, _Id, ?HTTP_GET, [{<<"auth">>, _}, {<<"accounts">>, _}]) ->
+    'true';
+authorize_nouns(_, ?LINKS_PATH, _Id, ?HTTP_PUT, [{<<"auth">>, _}]) ->
+    'true';
+authorize_nouns(_, ?LINKS_PATH, _Id, ?HTTP_DELETE, [{<<"auth">>, _}]) ->
+    'true';
+authorize_nouns(_, ?PROVIDERS_PATH, _Id, ?HTTP_GET, [{<<"auth">>, _}]) ->
+    'true';
+authorize_nouns(C, ?PROVIDERS_PATH, _Id, ?HTTP_POST, [{<<"auth">>, _}]) ->
+    cb_context:is_superduper_admin(C);
+authorize_nouns(C, ?PROVIDERS_PATH, _Id, ?HTTP_DELETE, [{<<"auth">>, _}]) ->
+    cb_context:is_superduper_admin(C);
+authorize_nouns(C, _, _, _, _) ->
+    {'stop', cb_context:add_system_error('forbidden', C)}.
 
 -spec authorize_action(cb_context:context(), kz_json:api_json_term()) -> boolean().
 authorize_action(C, <<"reset_signature_secret">>) -> cb_context:is_superduper_admin(C);
@@ -210,7 +236,8 @@ validate_resource(Context) -> cb_context:set_account_db(Context, ?KZ_AUTH_DB).
 -spec validate_resource(cb_context:context(), path_token()) -> cb_context:context().
 validate_resource(Context, _Path) -> cb_context:set_account_db(Context, ?KZ_AUTH_DB).
 
--spec validate_resource(cb_context:context(), path_token(), kz_term:ne_binary()) -> cb_context:context().
+-spec validate_resource(cb_context:context(), path_token(), kz_term:ne_binary()) ->
+    cb_context:context().
 validate_resource(Context, _Path, _Id) -> cb_context:set_account_db(Context, ?KZ_AUTH_DB).
 
 %%------------------------------------------------------------------------------
@@ -222,7 +249,9 @@ validate_resource(Context, _Path, _Id) -> cb_context:set_account_db(Context, ?KZ
 %%------------------------------------------------------------------------------
 -spec validate(cb_context:context()) -> cb_context:context().
 validate(Context) ->
-    validate_action(Context, cb_context:req_value(Context, <<"action">>), cb_context:req_verb(Context)).
+    validate_action(
+        Context, cb_context:req_value(Context, <<"action">>), cb_context:req_verb(Context)
+    ).
 
 -spec validate(cb_context:context(), path_token()) -> cb_context:context().
 validate(Context, Path) ->
@@ -233,16 +262,18 @@ validate(Context, Path, Id) ->
     validate_path(Context, Path, Id, cb_context:req_verb(Context)).
 
 %% validating /auth
--spec validate_action(cb_context:context(), kz_term:api_binary(), http_method()) -> cb_context:context().
+-spec validate_action(cb_context:context(), kz_term:api_binary(), http_method()) ->
+    cb_context:context().
 validate_action(Context, <<"reset_signature_secret">>, ?HTTP_PUT) ->
     case cb_context:req_nouns(Context) of
         [{<<"auth">>, _}] -> reset_system_identity_secret(Context);
         _ -> reset_identity_secret(Context)
     end;
 validate_action(Context, <<"refresh_token">>, ?HTTP_PUT) ->
-    Doc = kz_json:from_list([{<<"account_id">>, cb_context:auth_account_id(Context)}
-                            ,{<<"owner_id">>, cb_context:auth_user_id(Context)}
-                            ]),
+    Doc = kz_json:from_list([
+        {<<"account_id">>, cb_context:auth_account_id(Context)},
+        {<<"owner_id">>, cb_context:auth_user_id(Context)}
+    ]),
     Context1 = cb_context:set_doc(Context, Doc),
     crossbar_auth:create_auth_token(Context1, ?MODULE);
 validate_action(Context, _Action, _Method) ->
@@ -253,11 +284,9 @@ validate_action(Context, _Action, _Method) ->
 %% validating /auth/authorize
 validate_path(Context, ?AUTHORIZE_PATH, ?HTTP_PUT) ->
     cb_context:validate_request_data(<<"auth.authorize">>, Context, fun maybe_authorize/1);
-
 %% validating /auth/callback
 validate_path(Context, ?CALLBACK_PATH, ?HTTP_PUT) ->
     cb_context:validate_request_data(<<"auth.callback">>, Context, fun maybe_authenticate/1);
-
 %% validating /auth/tokeninfo
 validate_path(Context, ?TOKENINFO_PATH, ?HTTP_GET) ->
     case cb_context:req_param(Context, <<"token">>) of
@@ -267,40 +296,41 @@ validate_path(Context, ?TOKENINFO_PATH, ?HTTP_GET) ->
 validate_path(Context, ?TOKENINFO_PATH, ?HTTP_POST) ->
     case kz_json:get_ne_binary_value(<<"token">>, cb_context:req_data(Context)) of
         'undefined' ->
-            lager:debug("tokeninfo called with no token in the request : ~p", [cb_context:req_data(Context)]),
+            lager:debug("tokeninfo called with no token in the request : ~p", [
+                cb_context:req_data(Context)
+            ]),
             crossbar_util:response('error', <<"missing token in request">>, 404, Context);
         Token ->
             lager:debug("validating posted tokeninfo : ~p", [Token]),
             validate_token_info(Context, Token)
     end;
-
 %% validating /auth/links
 validate_path(Context, ?LINKS_PATH, ?HTTP_GET) ->
-    Options = [{'key', [cb_context:auth_account_id(Context), cb_context:auth_user_id(Context)]}
-              ,'include_docs'
-              ],
+    Options = [
+        {'key', [cb_context:auth_account_id(Context), cb_context:auth_user_id(Context)]},
+        'include_docs'
+    ],
     crossbar_doc:load_view(?LINKS_VIEW, Options, Context, fun normalize_view/2);
-
 %% validating /auth/providers
 validate_path(Context, ?PROVIDERS_PATH, ?HTTP_GET) ->
     crossbar_doc:load_view(?PROVIDERS_VIEW, [], Context, fun normalize_view/2);
 validate_path(Context, ?PROVIDERS_PATH, ?HTTP_PUT) ->
     cb_context:validate_request_data(<<"auth.provider">>, Context, fun add_provider/1);
-
 %% validating /auth/apps
 validate_path(Context, ?APPS_PATH, ?HTTP_GET) ->
-    Options = [{'key', account_id(Context)}
-              ,'include_docs'
-              ],
+    Options = [
+        {'key', account_id(Context)},
+        'include_docs'
+    ],
     crossbar_doc:load_view(?APPS_VIEW, Options, Context, fun normalize_view/2);
 validate_path(Context, ?APPS_PATH, ?HTTP_PUT) ->
     cb_context:validate_request_data(<<"auth.app">>, Context, fun add_app/1);
-
 %% validating /auth/keys
 validate_path(Context, ?KEYS_PATH, ?HTTP_GET) ->
     keys_summary(Context).
 
--spec validate_path(cb_context:context(), path_token(), path_token(), http_method()) -> cb_context:context().
+-spec validate_path(cb_context:context(), path_token(), path_token(), http_method()) ->
+    cb_context:context().
 %% validating /auth/apps/{app_id}
 validate_path(Context, ?APPS_PATH, Id, ?HTTP_GET) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"app">>));
@@ -308,7 +338,6 @@ validate_path(Context, ?APPS_PATH, Id, ?HTTP_POST) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"app">>));
 validate_path(Context, ?APPS_PATH, Id, ?HTTP_DELETE) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"app">>));
-
 %% validating /auth/providers/{provider_id}
 validate_path(Context, ?PROVIDERS_PATH, Id, ?HTTP_GET) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"provider">>));
@@ -317,13 +346,14 @@ validate_path(Context, ?PROVIDERS_PATH, Id, ?HTTP_POST) ->
 validate_path(Context, ?PROVIDERS_PATH, Id, ?HTTP_DELETE) ->
     Options = [{'key', Id}],
     case kz_datamgr:get_result_keys(cb_context:account_db(Context), ?PROVIDERS_APP_VIEW, Options) of
-        {'ok', []} -> Context;
-        {'ok', _} -> cb_context:add_system_error(<<"apps exist for provider">>, Context);
+        {'ok', []} ->
+            Context;
+        {'ok', _} ->
+            cb_context:add_system_error(<<"apps exist for provider">>, Context);
         {'error', _E} ->
             lager:info("failed to get result keys: ~p", [_E]),
             cb_context:add_system_error(<<"datastore error">>, Context)
     end;
-
 %% validating /auth/links/{link_id}
 validate_path(Context, ?LINKS_PATH, Id, ?HTTP_GET) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"user">>));
@@ -331,11 +361,11 @@ validate_path(Context, ?LINKS_PATH, Id, ?HTTP_PUT) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"user">>));
 validate_path(Context, ?LINKS_PATH, Id, ?HTTP_DELETE) ->
     crossbar_doc:load(Id, Context, ?TYPE_CHECK_OPTION(<<"user">>));
-
 %% validating /auth/keys/{key_id}
 validate_path(Context, ?KEYS_PATH, Id, ?HTTP_PUT) ->
     case cb_context:req_value(Context, <<"action">>) of
-        <<"reset_private_key">> -> reset_private_key(Context, Id);
+        <<"reset_private_key">> ->
+            reset_private_key(Context, Id);
         _Action ->
             lager:debug("unknown action: ~s", [_Action]),
             cb_context:add_system_error(<<"action required">>, Context)
@@ -362,13 +392,13 @@ validate_token_info(Context, Token) ->
 send_token_info(Context, Token, Claims) ->
     AccountId = kz_json:get_value(<<"account_id">>, Claims),
     OwnerId = kz_json:get_value(<<"owner_id">>, Claims),
-    Props = [{<<"account_id">>, AccountId}
-            ,{<<"owner_id">>, OwnerId}
-            ],
+    Props = [
+        {<<"account_id">>, AccountId},
+        {<<"owner_id">>, OwnerId}
+    ],
     Resp = crossbar_util:response_auth(kz_json:from_list(Props), AccountId, OwnerId),
     Setters = [{fun cb_context:set_auth_token/2, Token}],
     crossbar_util:response(Resp, cb_context:setters(Context, Setters)).
-
 
 -spec put(cb_context:context()) -> cb_context:context().
 put(Context) -> Context.
@@ -417,7 +447,6 @@ delete(Context, ?KEYS_PATH, _Id) ->
 delete(Context, ?PROVIDERS_PATH, _Id) ->
     crossbar_doc:delete(Context).
 
-
 %%%=============================================================================
 %%% Internal functions
 %%%=============================================================================
@@ -432,12 +461,13 @@ maybe_authenticate(Context) ->
         {'ok', Claims} ->
             lager:debug("verified auth claims: ~p", [Claims]),
             Doc = kz_json:set_value(<<"Claims">>, kz_json:from_list(Claims), kz_json:new()),
-            Setters = [{fun cb_context:set_resp_status/2, 'success'}
-                      ,{fun cb_context:set_doc/2, Doc}
-                      ],
+            Setters = [
+                {fun cb_context:set_resp_status/2, 'success'},
+                {fun cb_context:set_doc/2, Doc}
+            ],
             cb_context:setters(Context, Setters);
         {'error', _R} ->
-            lager:debug("error authenticating user : ~p",[_R]),
+            lager:debug("error authenticating user : ~p", [_R]),
             cb_context:add_system_error('invalid_credentials', Context)
     end.
 
@@ -447,32 +477,41 @@ maybe_authorize(Context) ->
         {'ok', Claims} ->
             lager:debug("verified auth: ~p", [Claims]),
             Doc = kz_json:set_value(<<"Claims">>, Claims, kz_json:new()),
-            Setters = [{fun cb_context:set_resp_status/2, 'success'}
-                      ,{fun cb_context:set_doc/2, Doc}
-                      ],
+            Setters = [
+                {fun cb_context:set_resp_status/2, 'success'},
+                {fun cb_context:set_doc/2, Doc}
+            ],
             cb_context:setters(Context, Setters);
         {'error', _R} ->
-            lager:debug("error authenticating user : ~p",[_R]),
+            lager:debug("error authenticating user : ~p", [_R]),
             cb_context:add_system_error('invalid_credentials', Context)
     end.
 
 -spec normalize_view(kz_json:object(), kz_json:objects()) -> kz_json:objects().
 normalize_view(JObj, Acc) ->
-    [kz_json:get_value(<<"value">>, JObj)|Acc].
+    [kz_json:get_value(<<"value">>, JObj) | Acc].
 
 -spec account_id(cb_contxt:context()) -> kz_term:ne_binary().
 account_id(Context) ->
     {ok, Master} = kapps_util:get_master_account_id(),
-    Source = [cb_context:req_param(Context, <<"account_id">>)
-             ,cb_context:account_id(Context)
-             ,cb_context:auth_account_id(Context)
-             ,Master
-             ],
-    AccountId = hd(lists:filter(fun(undefined) -> false;
-                                   (_Id) -> true
-                                end, Source)),
-    case kz_services_reseller:is_reseller(AccountId)
-        orelse AccountId =:= Master
+    Source = [
+        cb_context:req_param(Context, <<"account_id">>),
+        cb_context:account_id(Context),
+        cb_context:auth_account_id(Context),
+        Master
+    ],
+    AccountId = hd(
+        lists:filter(
+            fun
+                (undefined) -> false;
+                (_Id) -> true
+            end,
+            Source
+        )
+    ),
+    case
+        kz_services_reseller:is_reseller(AccountId) orelse
+            AccountId =:= Master
     of
         'true' -> AccountId;
         'false' -> kz_services_reseller:get_id(AccountId)
@@ -489,7 +528,8 @@ add_provider(Context) ->
 -spec reset_system_identity_secret(cb_context:context()) -> cb_context:context().
 reset_system_identity_secret(Context) ->
     case kz_auth_identity:reset_system_secret() of
-        {'ok', _} -> cb_context:set_resp_status(Context, 'success');
+        {'ok', _} ->
+            cb_context:set_resp_status(Context, 'success');
         {'error', _Reason} ->
             lager:warning("failed to reset system identity secret: ~p", [_Reason]),
             cb_context:add_system_error('datastore_fault', Context)
@@ -498,10 +538,11 @@ reset_system_identity_secret(Context) ->
 -spec reset_identity_secret(cb_context:context()) -> cb_context:context().
 reset_identity_secret(Context) ->
     Claims = props:filter_undefined(
-               [{<<"account_id">>, cb_context:account_id(Context)}
-               ,{<<"owner_id">>, cb_context:user_id(Context)}
-               ]
-              ),
+        [
+            {<<"account_id">>, cb_context:account_id(Context)},
+            {<<"owner_id">>, cb_context:user_id(Context)}
+        ]
+    ),
     case kz_auth_identity:reset_secret(Claims) of
         'ok' -> cb_context:set_resp_status(Context, 'success');
         {'error', _} -> cb_context:add_system_error('datastore_fault', Context)
@@ -510,9 +551,10 @@ reset_identity_secret(Context) ->
 -spec keys_summary(cb_context:context()) -> cb_context:context().
 keys_summary(Context) ->
     #{pvt_server_key := KeyId} = kz_auth_apps:get_auth_app(<<"kazoo">>),
-    Setters = [{fun cb_context:set_resp_status/2, 'success'}
-              ,{fun cb_context:set_resp_data/2, [KeyId]}
-              ],
+    Setters = [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_data/2, [KeyId]}
+    ],
     cb_context:setters(Context, Setters).
 
 -spec reset_private_key(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
@@ -536,7 +578,8 @@ load_public_key(Context, KeyId) ->
     case kz_datamgr:fetch_attachment(?KZ_AUTH_DB, KeyId, <<"private_key.pem">>) of
         {'ok', PemContents} ->
             try get_public_from_private_key(PemContents) of
-                PublicKeyPem -> set_public_key_response(Context, PublicKeyPem, find_accept_type(Context))
+                PublicKeyPem ->
+                    set_public_key_response(Context, PublicKeyPem, find_accept_type(Context))
             catch
                 _T:_E ->
                     lager:debug("failed to get public key ~s: ~p:~p", [KeyId, _T, _E]),
@@ -554,22 +597,24 @@ get_public_from_private_key(PemContents) ->
     PublicKey = kz_auth_keys:get_public_key_from_private_key(PrivateKey),
     kz_auth_keys:to_pem(PublicKey).
 
--spec set_public_key_response(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary()) -> cb_context:context().
+-spec set_public_key_response(cb_context:context(), kz_term:ne_binary(), kz_term:ne_binary()) ->
+    cb_context:context().
 set_public_key_response(Context, PublicKeyPem, <<"application/json">>) ->
     RespDoc = kz_json:from_list([{<<"public_key_pem">>, PublicKeyPem}]),
-    Setters = [{fun cb_context:set_resp_status/2, 'success'}
-              ,{fun cb_context:set_resp_data/2, RespDoc}
-              ],
+    Setters = [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_data/2, RespDoc}
+    ],
     cb_context:setters(Context, Setters);
-set_public_key_response(Context, PublicKeyPem, <<"application/x-pem-file">>=CT) ->
-    Setters = [{fun cb_context:set_resp_status/2, 'success'}
-              ,{fun cb_context:set_resp_data/2, PublicKeyPem}
-              ,{fun cb_context:add_resp_headers/2
-               ,#{<<"content-type">> => CT
-                 ,<<"content-disposition">> => <<"attachment; filename=public_key.pem">>
-                 }
-               }
-              ],
+set_public_key_response(Context, PublicKeyPem, <<"application/x-pem-file">> = CT) ->
+    Setters = [
+        {fun cb_context:set_resp_status/2, 'success'},
+        {fun cb_context:set_resp_data/2, PublicKeyPem},
+        {fun cb_context:add_resp_headers/2, #{
+            <<"content-type">> => CT,
+            <<"content-disposition">> => <<"attachment; filename=public_key.pem">>
+        }}
+    ],
     cb_context:setters(Context, Setters).
 
 %% @doc Find Mime type we should return from Accept header or payload if provided by module
@@ -579,13 +624,13 @@ find_accept_type(Context) ->
     Acceptable = accept_values(Context),
     find_accept_type(Context, Acceptable).
 
-find_accept_type(_Context, [?MEDIA_VALUE(<<"application">>, <<"json">>, _, _, _)|_Acceptable]) ->
+find_accept_type(_Context, [?MEDIA_VALUE(<<"application">>, <<"json">>, _, _, _) | _Acceptable]) ->
     <<"application/json">>;
-find_accept_type(_Context, [?MEDIA_VALUE(<<"application">>, <<"x-json">>, _, _, _)|_Acceptable]) ->
+find_accept_type(_Context, [?MEDIA_VALUE(<<"application">>, <<"x-json">>, _, _, _) | _Acceptable]) ->
     <<"application/json">>;
-find_accept_type(_Context, [?MEDIA_VALUE(<<"*">>, <<"*">>, _, _, _)|_Acceptable]) ->
+find_accept_type(_Context, [?MEDIA_VALUE(<<"*">>, <<"*">>, _, _, _) | _Acceptable]) ->
     <<"application/json">>;
-find_accept_type(_Context, [?MEDIA_VALUE(Type, SubType, _, _, _)|_Acceptable]) ->
+find_accept_type(_Context, [?MEDIA_VALUE(Type, SubType, _, _, _) | _Acceptable]) ->
     case [{Type, SubType}] of
         ?PUBLIC_KEY_MIME -> <<Type/binary, "/", SubType/binary>>;
         _ -> <<"application/json">>
@@ -608,7 +653,8 @@ media_values(AcceptValue, 'undefined') ->
     end;
 media_values(AcceptValue, Tunneled) ->
     case cb_modules_util:parse_media_type(Tunneled) of
-        {'error', 'badarg'} -> media_values(AcceptValue, 'undefined');
+        {'error', 'badarg'} ->
+            media_values(AcceptValue, 'undefined');
         TunneledValues ->
             lager:debug("using tunneled accept value ~s", [Tunneled]),
             lists:reverse(lists:keysort(2, TunneledValues))

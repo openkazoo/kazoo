@@ -25,7 +25,6 @@
 -export([users/1, users/2, set_users/2]).
 -export([version/1, version/2, set_version/2]).
 
-
 -include("kz_documents.hrl").
 
 -type doc() :: kz_json:object().

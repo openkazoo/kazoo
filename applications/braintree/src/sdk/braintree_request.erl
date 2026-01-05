@@ -17,10 +17,18 @@
 
 -type http_verb() :: 'put' | 'post' | 'get' | 'delete'.
 
--define(BT_DEFAULT_ENVIRONMENT, kapps_config:get_string(?CONFIG_CAT, <<"default_environment">>, "")).
--define(BT_DEFAULT_MERCHANT_ID, kapps_config:get_string(?CONFIG_CAT, <<"default_merchant_id">>, "")).
--define(BT_DEFAULT_PUBLIC_KEY, kapps_config:get_binary(?CONFIG_CAT, <<"default_public_key">>, <<>>)).
--define(BT_DEFAULT_PRIVATE_KEY, kapps_config:get_binary(?CONFIG_CAT, <<"default_private_key">>, <<>>)).
+-define(BT_DEFAULT_ENVIRONMENT,
+    kapps_config:get_string(?CONFIG_CAT, <<"default_environment">>, "")
+).
+-define(BT_DEFAULT_MERCHANT_ID,
+    kapps_config:get_string(?CONFIG_CAT, <<"default_merchant_id">>, "")
+).
+-define(BT_DEFAULT_PUBLIC_KEY,
+    kapps_config:get_binary(?CONFIG_CAT, <<"default_public_key">>, <<>>)
+).
+-define(BT_DEFAULT_PRIVATE_KEY,
+    kapps_config:get_binary(?CONFIG_CAT, <<"default_private_key">>, <<>>)
+).
 
 %%------------------------------------------------------------------------------
 %% @doc Preform a get request to Braintree's system.
@@ -68,7 +76,8 @@ do_request(Method, Path, Body) ->
     case braintree_server_url(?BT_DEFAULT_ENVIRONMENT) of
         'undefined' ->
             lager:error("braintree configuration error: default_environment not set"),
-            _WillCrash = build_url(Path);  %% We should not continue anyway
+            %% We should not continue anyway
+            _WillCrash = build_url(Path);
         _Ok ->
             request(Method, Path, Body)
     end.
@@ -87,34 +96,46 @@ request(Method, Path, Body) ->
     case kz_http:req(Method, Url, Headers, Body, HTTPOptions) of
         {'ok', 401, _, _Response} ->
             verbose_debug("Response:~n401~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 401 Unauthenticated", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 401 Unauthenticated", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_authentication();
         {'ok', 403, _, _Response} ->
             verbose_debug("Response:~n403~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 403 Unauthorized", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 403 Unauthorized", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_authorization();
         {'ok', 404, _, _Response} ->
             verbose_debug("Response:~n404~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 404 Not Found", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 404 Not Found", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_not_found(<<>>);
         {'ok', 426, _, _Response} ->
             verbose_debug("Response:~n426~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 426 Upgrade Required", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 426 Upgrade Required", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_upgrade_required();
         {'ok', 500, _, _Response} ->
             verbose_debug("Response:~n500~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 500 Server Error", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 500 Server Error", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_server_error();
         {'ok', 503, _, _Response} ->
             verbose_debug("Response:~n503~n~s~n", [_Response]),
-            lager:debug("braintree error response(~pms): 503 Maintenance", [kz_time:elapsed_ms(StartTime)]),
+            lager:debug("braintree error response(~pms): 503 Maintenance", [
+                kz_time:elapsed_ms(StartTime)
+            ]),
             braintree_util:error_maintenance();
-        {'ok', Code, _, "<?xml"++_=Response} ->
+        {'ok', Code, _, "<?xml" ++ _ = Response} ->
             verbose_debug("Response:~n~p~n~s~n", [Code, Response]),
             {Xml, _} = xmerl_scan:string(Response),
             lager:debug("braintree xml response(~pms)", [kz_time:elapsed_ms(StartTime)]),
             verify_response(Xml);
-        {'ok', Code, _, "<search"++_=Response} ->
+        {'ok', Code, _, "<search" ++ _ = Response} ->
             verbose_debug("Response:~n~p~n~s~n", [Code, Response]),
             {Xml, _} = xmerl_scan:string(Response),
             lager:debug("braintree xml response(~pms)", [kz_time:elapsed_ms(StartTime)]),
@@ -131,18 +152,21 @@ request(Method, Path, Body) ->
 
 -spec build_url(kz_term:text()) -> kz_term:text().
 build_url(Path) ->
-    lists:flatten(["https://"
-                  ,braintree_server_url(?BT_DEFAULT_ENVIRONMENT)
-                  ,"/merchants/", ?BT_DEFAULT_MERCHANT_ID
-                  ,Path
-                  ]).
+    lists:flatten([
+        "https://",
+        braintree_server_url(?BT_DEFAULT_ENVIRONMENT),
+        "/merchants/",
+        ?BT_DEFAULT_MERCHANT_ID,
+        Path
+    ]).
 
 -spec request_headers() -> [{string(), string()}].
 request_headers() ->
-    [{"Accept", "application/xml"}
-    ,{"User-Agent", "Braintree Erlang Library 1"}
-    ,{"X-ApiVersion", kz_term:to_list(?BT_API_VERSION)}
-    ,{"Content-Type", "application/xml"}
+    [
+        {"Accept", "application/xml"},
+        {"User-Agent", "Braintree Erlang Library 1"},
+        {"X-ApiVersion", kz_term:to_list(?BT_API_VERSION)},
+        {"Content-Type", "application/xml"}
     ].
 
 -type ssl_option() :: {'ssl', kz_term:proplist()}.
@@ -150,12 +174,10 @@ request_headers() ->
 
 -spec http_options() -> [ssl_option() | basic_auth_option()].
 http_options() ->
-    [{'ssl',[{'verify', 'verify_none'}]}
-    ,{'basic_auth', {?BT_DEFAULT_PUBLIC_KEY
-                    ,?BT_DEFAULT_PRIVATE_KEY
-                    }
-     }
-    , {'body_format', 'string'}
+    [
+        {'ssl', [{'verify', 'verify_none'}]},
+        {'basic_auth', {?BT_DEFAULT_PUBLIC_KEY, ?BT_DEFAULT_PRIVATE_KEY}},
+        {'body_format', 'string'}
     ].
 
 %%------------------------------------------------------------------------------
@@ -167,8 +189,7 @@ http_options() ->
 verbose_debug(Format, Args) ->
     case ?BT_DEBUG of
         'false' -> 'ok';
-        'true' ->
-            kz_util:write_file("/tmp/braintree.xml", io_lib:format(Format, Args), ['append'])
+        'true' -> kz_util:write_file("/tmp/braintree.xml", io_lib:format(Format, Args), ['append'])
     end.
 
 %%------------------------------------------------------------------------------
@@ -199,32 +220,48 @@ verify_response(Xml) ->
 -spec error_response(bt_xml()) -> no_return().
 error_response(Xml) ->
     lager:debug("braintree api error response"),
-    Errors = [#bt_error{code = kz_xml:get_value("/error/code/text()", Error)
-                       ,message = kz_xml:get_value("/error/message/text()", Error)
-                       ,attribute = kz_xml:get_value("/error/attribute/text()", Error)
-                       }
-              || Error <- xmerl_xpath:string("/api-error-response/errors//errors/error", Xml)
-             ],
-    Verif = #bt_verification{verification_status =
-                                 kz_xml:get_value("/api-error-response/verification/status/text()", Xml)
-                            ,processor_response_code =
-                                 kz_xml:get_value("/api-error-response/verification/processor-response-code/text()", Xml)
-                            ,processor_response_text =
-                                 kz_xml:get_value("/api-error-response/verification/processor-response-text/text()", Xml)
-                            ,cvv_response_code =
-                                 kz_xml:get_value("/api-error-response/verification/cvv-response-code/text()", Xml)
-                            ,avs_response_code =
-                                 kz_xml:get_value("/api-error-response/verification/avs-error-response-code/text()", Xml)
-                            ,postal_response_code =
-                                 kz_xml:get_value("/api-error-response/verification/avs-postal-code-response-code/text()", Xml)
-                            ,street_response_code =
-                                 kz_xml:get_value("/api-error-response/verification/avs-street-address-response-code/text()", Xml)
-                            ,gateway_rejection_reason =
-                                 kz_xml:get_value("/api-error-response/verification/gateway-rejection-reason/text()", Xml)
-                            },
+    Errors = [
+        #bt_error{
+            code = kz_xml:get_value("/error/code/text()", Error),
+            message = kz_xml:get_value("/error/message/text()", Error),
+            attribute = kz_xml:get_value("/error/attribute/text()", Error)
+        }
+     || Error <- xmerl_xpath:string("/api-error-response/errors//errors/error", Xml)
+    ],
+    Verif = #bt_verification{
+        verification_status =
+            kz_xml:get_value("/api-error-response/verification/status/text()", Xml),
+        processor_response_code =
+            kz_xml:get_value(
+                "/api-error-response/verification/processor-response-code/text()", Xml
+            ),
+        processor_response_text =
+            kz_xml:get_value(
+                "/api-error-response/verification/processor-response-text/text()", Xml
+            ),
+        cvv_response_code =
+            kz_xml:get_value("/api-error-response/verification/cvv-response-code/text()", Xml),
+        avs_response_code =
+            kz_xml:get_value(
+                "/api-error-response/verification/avs-error-response-code/text()", Xml
+            ),
+        postal_response_code =
+            kz_xml:get_value(
+                "/api-error-response/verification/avs-postal-code-response-code/text()", Xml
+            ),
+        street_response_code =
+            kz_xml:get_value(
+                "/api-error-response/verification/avs-street-address-response-code/text()", Xml
+            ),
+        gateway_rejection_reason =
+            kz_xml:get_value(
+                "/api-error-response/verification/gateway-rejection-reason/text()", Xml
+            )
+    },
     braintree_util:error_api(
-      #bt_api_error{errors=Errors
-                   ,verification=Verif
-                   ,message=kz_xml:get_value("/api-error-response/message/text()", Xml)
-                   }
-     ).
+        #bt_api_error{
+            errors = Errors,
+            verification = Verif,
+            message = kz_xml:get_value("/api-error-response/message/text()", Xml)
+        }
+    ).

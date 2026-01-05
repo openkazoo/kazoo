@@ -50,19 +50,27 @@ handle_req(JObj, _Props) ->
 
     Props = create_template_props(JObj, Account),
 
-    CustomTxtTemplate = kz_json:get_value([<<"notifications">>, <<"ported">>, <<"email_text_template">>], Account),
+    CustomTxtTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"ported">>, <<"email_text_template">>], Account
+    ),
     {'ok', TxtBody} = notify_util:render_template(CustomTxtTemplate, ?DEFAULT_TEXT_TMPL, Props),
 
-    CustomHtmlTemplate = kz_json:get_value([<<"notifications">>, <<"ported">>, <<"email_html_template">>], Account),
+    CustomHtmlTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"ported">>, <<"email_html_template">>], Account
+    ),
     {'ok', HTMLBody} = notify_util:render_template(CustomHtmlTemplate, ?DEFAULT_HTML_TMPL, Props),
 
-    CustomSubjectTemplate = kz_json:get_value([<<"notifications">>, <<"ported">>, <<"email_subject_template">>], Account),
+    CustomSubjectTemplate = kz_json:get_value(
+        [<<"notifications">>, <<"ported">>, <<"email_subject_template">>], Account
+    ),
     {'ok', Subject} = notify_util:render_template(CustomSubjectTemplate, ?DEFAULT_SUBJ_TMPL, Props),
 
     Result =
         case notify_util:get_rep_email(Account) of
             'undefined' ->
-                SysAdminEmail = kapps_config:get_ne_binary_or_ne_binaries(?MOD_CONFIG_CAT, <<"default_to">>),
+                SysAdminEmail = kapps_config:get_ne_binary_or_ne_binaries(
+                    ?MOD_CONFIG_CAT, <<"default_to">>
+                ),
                 build_and_send_email(TxtBody, HTMLBody, Subject, SysAdminEmail, Props);
             RepEmail ->
                 build_and_send_email(TxtBody, HTMLBody, Subject, RepEmail, Props)
@@ -76,11 +84,12 @@ handle_req(JObj, _Props) ->
 -spec create_template_props(kz_json:object(), kz_json:object()) -> kz_term:proplist().
 create_template_props(Event, Account) ->
     Admin = notify_util:find_admin(kz_json:get_value(<<"Authorized-By">>, Event)),
-    [{<<"request">>, notify_util:json_to_template_props(Event)}
-    ,{<<"account">>, notify_util:json_to_template_props(Account)}
-    ,{<<"admin">>, notify_util:json_to_template_props(Admin)}
-    ,{<<"service">>, notify_util:get_service_props(Account, ?MOD_CONFIG_CAT)}
-    ,{<<"send_from">>, get_send_from(Admin)}
+    [
+        {<<"request">>, notify_util:json_to_template_props(Event)},
+        {<<"account">>, notify_util:json_to_template_props(Account)},
+        {<<"admin">>, notify_util:json_to_template_props(Admin)},
+        {<<"service">>, notify_util:get_service_props(Account, ?MOD_CONFIG_CAT)},
+        {<<"send_from">>, get_send_from(Admin)}
     ].
 
 %%------------------------------------------------------------------------------
@@ -99,23 +108,27 @@ get_send_from(Admin) ->
 %% @doc process the AMQP requests
 %% @end
 %%------------------------------------------------------------------------------
--spec build_and_send_email(iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()) -> send_email_return().
-build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To)->
+-spec build_and_send_email(
+    iolist(), iolist(), iolist(), kz_term:ne_binary() | kz_term:ne_binaries(), kz_term:proplist()
+) -> send_email_return().
+build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) when is_list(To) ->
     [build_and_send_email(TxtBody, HTMLBody, Subject, T, Props) || T <- To];
 build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
     From = props:get_value(<<"send_from">>, Props),
     %% Content Type, Subtype, Headers, Parameters, Body
-    Email = {<<"multipart">>, <<"mixed">>
-            ,[{<<"From">>, From}
-             ,{<<"To">>, To}
-             ,{<<"Subject">>, Subject}
-             ]
-            ,[]
-            ,[{<<"multipart">>, <<"alternative">>, [], []
-              ,[{<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [], iolist_to_binary(TxtBody)}
-               ,{<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [], iolist_to_binary(HTMLBody)}
-               ]
-              }
-             ]
-            },
+    Email =
+        {<<"multipart">>, <<"mixed">>,
+            [
+                {<<"From">>, From},
+                {<<"To">>, To},
+                {<<"Subject">>, Subject}
+            ],
+            [], [
+                {<<"multipart">>, <<"alternative">>, [], [], [
+                    {<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [],
+                        iolist_to_binary(TxtBody)},
+                    {<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [],
+                        iolist_to_binary(HTMLBody)}
+                ]}
+            ]},
     notify_util:send_email(From, To, Email).

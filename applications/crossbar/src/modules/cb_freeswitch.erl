@@ -7,14 +7,15 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_freeswitch).
 
--export([init/0
-        ,allowed_methods/0
-        ,resource_exists/0
-        ,validate_freeswitch/1
-        ,content_types_provided/1
-        ,authenticate/1
-        ,authorize/1
-        ]).
+-export([
+    init/0,
+    allowed_methods/0,
+    resource_exists/0,
+    validate_freeswitch/1,
+    content_types_provided/1,
+    authenticate/1,
+    authorize/1
+]).
 
 -include("crossbar.hrl").
 
@@ -26,11 +27,12 @@
 -define(MIME_TYPE_RAR, {<<"application">>, <<"x-rar-compressed">>}).
 -define(MIME_TYPE_TAR, {<<"application">>, <<"x-tar">>}).
 
--define(MIME_TYPES, [?MIME_TYPE_GZIP
-                    ,?MIME_TYPE_ZIP
-                    ,?MIME_TYPE_RAR
-                    ,?MIME_TYPE_TAR
-                    ]).
+-define(MIME_TYPES, [
+    ?MIME_TYPE_GZIP,
+    ?MIME_TYPE_ZIP,
+    ?MIME_TYPE_RAR,
+    ?MIME_TYPE_TAR
+]).
 
 -define(MOD_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".freeswitch">>).
 
@@ -47,7 +49,9 @@ init() ->
     _ = supervisor:start_child('crossbar_sup', ?WORKER(?FS_OFFLINE_SERVER)),
     _ = crossbar_bindings:bind(<<"*.authenticate">>, ?MODULE, 'authenticate'),
     _ = crossbar_bindings:bind(<<"*.authorize">>, ?MODULE, 'authorize'),
-    _ = crossbar_bindings:bind(<<"*.content_types_provided.freeswitch">>, ?MODULE, 'content_types_provided'),
+    _ = crossbar_bindings:bind(
+        <<"*.content_types_provided.freeswitch">>, ?MODULE, 'content_types_provided'
+    ),
     _ = crossbar_bindings:bind(<<"*.allowed_methods.freeswitch">>, ?MODULE, 'allowed_methods'),
     _ = crossbar_bindings:bind(<<"*.resource_exists.freeswitch">>, ?MODULE, 'resource_exists'),
     _ = crossbar_bindings:bind(<<"*.validate.freeswitch">>, ?MODULE, 'validate_freeswitch'),
@@ -62,21 +66,26 @@ authenticate(Context) ->
     authenticate(cb_context:req_nouns(Context), cb_context:req_verb(Context), Context).
 
 -spec authenticate(req_nouns(), http_method(), cb_context:context()) -> boolean().
-authenticate([{<<"freeswitch">>,[]}], ?HTTP_GET, Context) ->
+authenticate([{<<"freeswitch">>, []}], ?HTTP_GET, Context) ->
     UserKey = kz_json:get_value(<<"key">>, cb_context:query_string(Context)),
-    ServerKey = kapps_config:get_binary(?MOD_CONFIG_CAT
-                                       ,<<"offline_configuration_key">>
-                                       ,kz_binary:rand_hex(32)),
+    ServerKey = kapps_config:get_binary(
+        ?MOD_CONFIG_CAT,
+        <<"offline_configuration_key">>,
+        kz_binary:rand_hex(32)
+    ),
     case UserKey =:= ServerKey of
         'true' ->
             lager:debug("authenticating offline configuration request", []),
             'true';
         'false' ->
-            lager:debug("request for offline configuration with invalid key ~s"
-                       ,[UserKey]),
+            lager:debug(
+                "request for offline configuration with invalid key ~s",
+                [UserKey]
+            ),
             'false'
     end;
-authenticate(_Nouns, _Verb, _Context) -> 'false'.
+authenticate(_Nouns, _Verb, _Context) ->
+    'false'.
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -87,10 +96,11 @@ authorize(Context) ->
     authorize(cb_context:req_nouns(Context), cb_context:req_verb(Context)).
 
 -spec authorize(req_nouns(), http_method()) -> boolean().
-authorize([{<<"freeswitch">>,[]}], ?HTTP_GET) ->
+authorize([{<<"freeswitch">>, []}], ?HTTP_GET) ->
     lager:debug("authorizing offline configuration request", []),
     'true';
-authorize(_Nouns, _Verb) -> 'false'.
+authorize(_Nouns, _Verb) ->
+    'false'.
 
 -spec content_types_provided(cb_context:context()) -> cb_context:context().
 content_types_provided(Context) ->
@@ -142,8 +152,7 @@ validate_freeswitch(Context, ?HTTP_GET) ->
 maybe_load_last_data(Context) ->
     case gen_server:call(crossbar_sup:find_proc(?FS_OFFLINE_SERVER), 'current') of
         {'ok', File} -> load_last_data(Context, File);
-        {'error', Error} ->
-            cb_context:add_system_error(Error, Context)
+        {'error', Error} -> cb_context:add_system_error(Error, Context)
     end.
 
 -spec load_last_data(cb_context:context(), kz_term:ne_binary()) -> cb_context:context().
@@ -151,15 +160,17 @@ load_last_data(Context, File) ->
     {'ok', AttachBin} = file:read_file(File),
     BaseName = kz_term:to_binary(filename:basename(File)),
     ContentType = extension_to_content_type(kz_term:to_lower_binary(filename:extension(BaseName))),
-    cb_context:setters(Context
-                      ,[{fun cb_context:set_resp_status/2, 'success'}
-                       ,{fun cb_context:set_resp_data/2, AttachBin}
-                       ,{fun cb_context:add_resp_headers/2,
-                         #{<<"content-disposition">> => <<"attachment; filename=", BaseName/binary>>
-                          ,<<"content-type">> => ContentType
-                          }
-                        }
-                       ]).
+    cb_context:setters(
+        Context,
+        [
+            {fun cb_context:set_resp_status/2, 'success'},
+            {fun cb_context:set_resp_data/2, AttachBin},
+            {fun cb_context:add_resp_headers/2, #{
+                <<"content-disposition">> => <<"attachment; filename=", BaseName/binary>>,
+                <<"content-type">> => ContentType
+            }}
+        ]
+    ).
 
 -spec extension_to_content_type(kz_term:ne_binary()) -> kz_term:ne_binary().
 extension_to_content_type(<<".gzip">>) -> ?MIME_TYPE_GZIP;

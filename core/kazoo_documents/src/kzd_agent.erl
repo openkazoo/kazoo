@@ -9,9 +9,10 @@
 -include("kz_documents.hrl").
 
 %% API
--export([maybe_add_queue/2, maybe_add_queue/3
-        ,maybe_rm_queue/2, maybe_rm_queue/3
-        ]).
+-export([
+    maybe_add_queue/2, maybe_add_queue/3,
+    maybe_rm_queue/2, maybe_rm_queue/3
+]).
 
 -spec maybe_add_queue(kz_json:object(), kz_term:ne_binary()) -> kz_json:object().
 maybe_add_queue(AgentJObj, QueueId) ->
