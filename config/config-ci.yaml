@@ -1,0 +1,35 @@
+log:
+  syslog: info
+  console: notice
+  file: error
+
+amqp:
+  prefetch: 50
+  pool:
+    size: 150
+    overflow: 100
+    threshold: 5
+    server_confirms: false
+
+data:
+  config: couchdb
+
+couchdb:
+  ip: 127.0.0.1
+  port: 5984
+  username: admin
+  password: password
+
+zones:
+  local:
+    local: true
+    amqp:
+      uri:
+        - amqp://guest:guest@127.0.0.1:5672
+    vms:
+      - kazoo_apps:
+          host: localhost
+          cookie: change_me
+      - ecallmgr:
+          host: localhost
+          cookie: change_me

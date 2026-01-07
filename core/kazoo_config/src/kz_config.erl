@@ -1,308 +1,153 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2013-2022, 2600Hz
-%%% @doc
-%%% @author Peter Defebvre
+%%% @copyright 2026 Dialwave, Inc.
+%%% @author Dialwave, Inc. (Rob Nichols)
+%%% @doc YAML configuration accessors.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kz_config).
 
 -export([
-    get/1, get/2, get/3,
-    get_atom/2, get_atom/3,
-    get_boolean/2, get_boolean/3,
+    all/0,
+    get_section_config/1,
+    get_zones_config/0,
+    get_zone_config/0, get_zone_config/1,
+    zone/0, zone/1,
+    get_local_zone/1,
+    get_amqp_brokers/1,
+    get_zone_amqp_uris/1,
+    get/2, get/3,
     get_integer/2, get_integer/3,
-    get_string/2, get_string/3,
-    get_raw_string/2, get_raw_string/3,
-    get_node_section_name/0,
-    set/3,
-    unset/2,
-    get_section/1,
-    zone/0, zone/1
+    get_boolean/2, get_boolean/3,
+    get_atom/2, get_atom/3,
+    get_binary/2, get_binary/3,
+    lock_system_config/1,
+    resolve_zone/1,
+    get_vm_cookie/2
 ]).
 
 -include("kazoo_config.hrl").
 
 %%------------------------------------------------------------------------------
-%% @doc Return a section of the config file
+%% @doc Return the full config.
 %% @end
 %%------------------------------------------------------------------------------
--spec get(section()) -> kz_term:proplist().
-get(Section) ->
-    find_values(Section, ?DEFAULT_DEFAULTS).
-
--spec get(section(), atom()) -> kz_term:proplist().
-get(Section, Key) ->
-    get(Section, Key, ?DEFAULT_DEFAULTS).
-
--spec get(section(), atom(), Default) -> kz_term:proplist() | Default.
-get(Section, Key, Default) ->
-    case find_values(Section, Key) of
-        [] -> Default;
-        Else -> Else
-    end.
+-spec all() -> kz_term:proplist().
+all() ->
+    load().
 
 %%------------------------------------------------------------------------------
-%% @doc Return values of the config file
+%% @doc Top-level section accessors.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_atom(section(), atom()) -> [atom(), ...] | ?DEFAULT_DEFAULTS.
-get_atom(Section, Key) ->
-    get_atom(Section, Key, ?DEFAULT_DEFAULTS).
+-spec get_section_config(section()) -> kz_term:proplist().
+get_section_config(Section) ->
+    Config = all(),
+    props:get_value(norm_section(Section), Config, []).
 
--spec get_atom(section(), atom(), Default) -> [atom(), ...] | Default.
-get_atom(Section, Key, Default) ->
-    case get(Section, Key, Default) of
-        Default -> Default;
-        [_ | _] = Values -> [kz_term:to_atom(Value, 'true') || Value <- Values];
-        Value -> [kz_term:to_atom(Value, 'true')]
-    end.
+-spec get_zones_config() -> kz_term:proplist().
+get_zones_config() ->
+    Config = all(),
+    props:get_value(<<"zones">>, Config, []).
 
--spec get_boolean(section(), atom()) -> boolean().
-get_boolean(Section, Key) ->
-    get_boolean(Section, Key, 'false').
+-spec get_zone_config() -> kz_term:proplist().
+get_zone_config() ->
+    props:get_value(zone('binary'), get_zones_config(), []).
 
--spec get_boolean(section(), atom(), boolean()) -> boolean().
-get_boolean(Section, Key, Default) ->
-    case get(Section, Key, Default) of
-        Default -> Default;
-        [Value] -> kz_term:is_true(Value)
-    end.
+-spec get_zone_config(section()) -> kz_term:proplist().
+get_zone_config(Zone) ->
+    props:get_value(norm_section(Zone), get_zones_config(), []).
 
 %%------------------------------------------------------------------------------
-%% @doc Return values of the config file
+%% @doc Get a value from the config by path.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_integer(section(), atom()) -> [integer(), ...] | ?DEFAULT_DEFAULTS.
-get_integer(Section, Key) ->
-    get_integer(Section, Key, ?DEFAULT_DEFAULTS).
+-spec get(section(), [any()]) -> any().
+get(Section, Path) ->
+    get(Section, Path, 'undefined').
 
--spec get_integer(section(), atom(), Default) -> [integer(), ...] | Default.
-get_integer(Section, Key, Default) ->
-    case get(Section, Key, Default) of
-        Default -> Default;
-        [_ | _] = Values -> [kz_term:to_integer(Value) || Value <- Values];
-        Value -> [kz_term:to_integer(Value)]
-    end.
+-spec get(section(), [any()], any()) -> any().
+get(Section, Path, Default) ->
+    Props = get_section_config(Section),
+    Keys = norm_path(Path),
+    props:get_value(Keys, Props, Default).
 
 %%------------------------------------------------------------------------------
-%% @doc Return values of the config file
+%% @doc Get an integer from the config.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_string(section(), atom()) -> [string(), ...] | ?DEFAULT_DEFAULTS.
-get_string(Section, Key) ->
-    get_string(Section, Key, ?DEFAULT_DEFAULTS).
+-spec get_integer(section(), [any()]) -> integer().
+get_integer(Section, Path) ->
+    get_integer(Section, Path, 0).
 
--spec get_string(section(), atom(), Default) -> [string(), ...] | Default.
-get_string(Section, Key, Default) ->
-    case get(Section, Key, Default) of
-        Default -> Default;
-        [_ | _] = Values -> [kz_term:to_lower_string(Value) || Value <- Values];
-        Value -> [kz_term:to_lower_string(Value)]
-    end.
-
--spec get_raw_string(section(), atom()) -> [string(), ...] | ?DEFAULT_DEFAULTS.
-get_raw_string(Section, Key) ->
-    get_raw_string(Section, Key, ?DEFAULT_DEFAULTS).
-
--spec get_raw_string(section(), atom(), Default) -> [string(), ...] | Default.
-get_raw_string(Section, Key, Default) ->
-    case get(Section, Key, Default) of
-        Default -> Default;
-        [_ | _] = Values -> Values;
-        Value -> Value
-    end.
+-spec get_integer(section(), [any()], integer()) -> integer().
+get_integer(Section, Path, Default) ->
+    kz_term:to_integer(get(Section, Path, Default)).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Get a boolean from the config.
 %% @end
 %%------------------------------------------------------------------------------
--spec get_node_section_name() -> atom().
-get_node_section_name() ->
-    Node = kz_term:to_binary(node()),
-    case binary:split(Node, <<"@">>) of
-        [Name, _] -> kz_term:to_atom(Name, 'true');
-        _Else -> node()
-    end.
+-spec get_boolean(section(), [any()]) -> boolean().
+get_boolean(Section, Path) ->
+    get_boolean(Section, Path, 'false').
+
+-spec get_boolean(section(), [any()], boolean()) -> boolean().
+get_boolean(Section, Path, Default) ->
+    kz_term:is_true(get(Section, Path, Default)).
 
 %%------------------------------------------------------------------------------
-%% @doc Set or unset environment variables
+%% @doc Get an atom from the config.
 %% @end
 %%------------------------------------------------------------------------------
+-spec get_atom(section(), [any()]) -> atom().
+get_atom(Section, Path) ->
+    get_atom(Section, Path, 'undefined').
 
--spec set(section(), atom(), term()) -> 'ok'.
-set(Section, Key, Value) ->
-    Props = load(),
-    case props:get_value(Section, Props) of
-        'undefined' ->
-            NewSection = {Section, [{Key, Value}]},
-            set(NewSection, Props);
-        PreVal ->
-            NewSection = props:insert_value({Key, Value}, props:delete(Key, PreVal)),
-            set({Section, NewSection}, props:delete(Section, Props))
-    end.
-
--spec set({section(), kz_term:proplist()}, kz_term:proplist()) -> 'ok'.
-set(NewSection, Props) ->
-    NewProps = props:insert_value(NewSection, Props),
-    application:set_env(?APP, ?MODULE, NewProps).
-
--spec unset(section(), atom()) -> 'ok'.
-unset(Section, Key) ->
-    Props = load(),
-    case props:get_value(Section, Props) of
-        'undefined' ->
-            'ok';
-        Val ->
-            NewSection = props:delete(Key, Val),
-            set({Section, NewSection}, props:delete(Section, Props))
-    end.
+-spec get_atom(section(), [any()], atom()) -> atom().
+get_atom(Section, Path, Default) ->
+    Value = get(Section, Path, Default),
+    kz_term:to_atom(Value, 'true').
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Get a binary from the config.
 %% @end
 %%------------------------------------------------------------------------------
--spec find_values(section(), kz_term:proplist()) -> list().
-find_values(Section, ?DEFAULT_DEFAULTS) ->
-    get_sections(Section, load());
-find_values(Section, Keys) when is_list(Keys) ->
-    lists:reverse([find_values(Section, Key) || Key <- Keys]);
-find_values(Section, Key) ->
-    Sections = get_sections(Section, load()),
-    get_values(Key, Sections).
+-spec get_binary(section(), [any()]) -> kz_term:api_binary().
+get_binary(Section, Path) ->
+    get_binary(Section, Path, 'undefined').
+
+-spec get_binary(section(), [any()], kz_term:api_binary()) -> kz_term:api_binary().
+get_binary(Section, Path, Default) ->
+    kz_term:to_api_binary(get(Section, Path, Default)).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Update system config lock in-memory (no persistence).
 %% @end
 %%------------------------------------------------------------------------------
--spec get_sections(section(), kz_term:proplist()) -> kz_term:proplist().
-get_sections('zone' = Section, Prop) ->
-    Sections = props:get_all_values(Section, Prop),
-    format_sections(Sections, 'name', []);
-get_sections(Section, Prop) ->
-    Sections = props:get_all_values(Section, Prop),
-    format_sections(Sections).
-
--spec get_section(section()) -> kz_term:proplist().
-get_section(Section) ->
-    Prop = load(),
-    Sections = props:get_all_values(Section, Prop),
-    format_sections(Sections, '__no_zone_filter', []).
+-spec lock_system_config(atom()) -> 'ok'.
+lock_system_config(State) ->
+    Config = all(),
+    CouchdbConfig = get_section_config(<<"couchdb">>),
+    NewCouchdbConfig =
+        case props:get_value(<<"lock_system_config">>, CouchdbConfig) of
+            'undefined' ->
+                props:insert_value(<<"lock_system_config">>, State, CouchdbConfig);
+            _ ->
+                props:replace_value(<<"lock_system_config">>, State, CouchdbConfig)
+        end,
+    NewConfig = props:replace_value(<<"couchdb">>, NewCouchdbConfig, Config),
+    application:set_env(?APP, ?MODULE, NewConfig).
 
 %%------------------------------------------------------------------------------
-%% @doc
+%% @doc Zone helpers.
+%% Local zone is determined by KAZOO_ZONE env var or zones.*.local: true.
 %% @end
 %%------------------------------------------------------------------------------
--spec format_sections(kz_term:proplist()) -> kz_term:proplist().
-format_sections(Sections) -> format_sections(Sections, 'zone', []).
-
--spec format_sections(kz_term:proplist(), atom(), kz_term:proplist()) -> kz_term:proplist().
-format_sections([], _, Acc) ->
-    local_sections(lists:reverse(Acc));
-format_sections([Section | T], ZoneFilter, Acc) ->
-    case props:get_value('host', Section, 'zone') of
-        'zone' ->
-            format_zone_section(Section, T, ZoneFilter, Acc);
-        Host ->
-            format_sections(T, ZoneFilter, [{kz_term:to_binary(Host), Section} | Acc])
-    end.
-
--spec format_zone_section(kz_term:proplist(), kz_term:proplist(), atom(), kz_term:proplist()) ->
-    kz_term:proplist().
-format_zone_section(Section, Sections, ZoneFilter, Acc) ->
-    case props:get_value(ZoneFilter, Section, 'generic') of
-        'generic' ->
-            format_sections(Sections, ZoneFilter, [{'generic', Section} | Acc]);
-        Zone ->
-            format_sections(Sections, ZoneFilter, [
-                {{'zone', kz_term:to_atom(Zone, 'true')}, Section} | Acc
-            ])
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec local_sections(kz_term:proplist()) -> kz_term:proplist().
-local_sections(Sections) -> local_sections(Sections, []).
-
--spec local_sections(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
-local_sections([], Acc) ->
-    props:get_first_defined(['zones', 'generics'], Acc, []);
-local_sections([Section | T], Acc) ->
-    case is_local_section(Section) of
-        {'true', _} -> [Section];
-        {'false', 'generic'} -> local_sections(T, add_section('generics', Section, Acc));
-        {'false', 'zone'} -> local_sections(T, add_section('zones', Section, Acc));
-        {'false', _} -> local_sections(T, Acc)
-    end.
-
--type section_type() :: {'generic' | kz_term:ne_binary() | {'zone', atom()}, kz_term:proplist()}.
-
--spec add_section('generics' | 'zones', section_type(), kz_term:proplist()) ->
-    kz_term:proplist().
-add_section(Group, Value, Props) ->
-    props:set_value(Group, [Value | props:get_value(Group, Props, [])], Props).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec is_local_section({kz_term:ne_binary() | atom(), any()}) ->
-    {'false', 'generic'}
-    | {'false', 'zone'}
-    | {boolean(), kz_term:ne_binary()}.
-is_local_section({'generic', _}) ->
-    {'false', 'generic'};
-is_local_section({{'zone', Zone}, _}) ->
-    LocalZone = zone(),
-    case Zone =:= LocalZone of
-        'true' -> {'false', 'zone'};
-        'false' -> {'false', Zone}
-    end;
-is_local_section({SectionHost, _}) ->
-    LocalHost = kz_term:to_binary(kz_network_utils:get_hostname()),
-    case SectionHost =:= LocalHost of
-        'true' -> {'true', LocalHost};
-        'false' -> {'false', SectionHost}
-    end.
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec get_values(atom(), kz_term:proplist()) -> list().
-get_values(Key, Sections) -> get_values(Sections, Key, []).
-
-get_values([], _, []) ->
-    [];
-get_values([], _, Acc) ->
-    Acc;
-get_values([{_, Values} | T], Key, Acc) ->
-    V = props:get_all_values(Key, Values),
-    get_values(T, Key, lists:append(V, Acc)).
-
-%%------------------------------------------------------------------------------
-%% @doc
-%% @end
-%%------------------------------------------------------------------------------
--spec load() -> kz_term:proplist().
-load() ->
-    case erlang:get(?SETTINGS_KEY) of
-        'undefined' ->
-            case application:get_env(?APP, ?MODULE) of
-                'undefined' -> ?SECTION_DEFAULTS;
-                {'ok', Settings} -> Settings
-            end;
-        Settings ->
-            erlang:put(?SETTINGS_KEY, 'undefined'),
-            Settings
-    end.
-
 -spec zone() -> atom().
 zone() ->
     case application:get_env(?APP, 'zone') of
         'undefined' ->
-            Zone = maybe_zone_from_env(),
+            Zone = resolve_zone(all()),
             application:set_env(?APP, 'zone', Zone),
             Zone;
         {'ok', Zone} ->
@@ -313,14 +158,149 @@ zone() ->
 zone('binary') -> kz_term:to_binary(zone());
 zone(_) -> zone().
 
--spec maybe_zone_from_env() -> atom().
-maybe_zone_from_env() ->
+-spec resolve_zone(kz_term:proplist()) -> atom().
+resolve_zone(Config) ->
     case os:getenv("KAZOO_ZONE", "noenv") of
-        "noenv" -> zone_from_ini();
-        Zone -> kz_term:to_atom(Zone, 'true')
+        "noenv" ->
+            Zones = kz_config_validate:zones(Config),
+            _ = kz_config_validate:local_zone(Zones),
+            kz_term:to_atom(get_local_zone(Zones), 'true');
+        ZoneStr ->
+            Zones = kz_config_validate:zones(Config),
+            ZoneBin = kz_term:to_binary(ZoneStr),
+            case lists:keymember(ZoneBin, 1, Zones) of
+                'true' ->
+                    kz_term:to_atom(ZoneStr, 'true');
+                'false' ->
+                    lager:critical("KAZOO_ZONE (~s) does not match any configured zone", [
+                        ZoneStr
+                    ]),
+                    erlang:error({'unknown_zone', ZoneStr})
+            end
     end.
 
--spec zone_from_ini() -> atom().
-zone_from_ini() ->
-    [Local] = get(get_node_section_name(), 'zone', ['local']),
-    kz_term:to_atom(Local, 'true').
+-spec get_local_zone(kz_term:proplist()) -> kz_term:api_ne_binary().
+get_local_zone(Zones) ->
+    case [Z || {Z, P} <- Zones, kz_term:is_true(props:get_value(<<"local">>, P, 'false'))] of
+        [ZoneName | _] ->
+            ZoneName;
+        [] ->
+            'undefined'
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc AMQP broker helpers.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_amqp_brokers(kz_term:proplist()) -> kz_term:ne_binaries().
+get_amqp_brokers(Zones) when is_list(Zones) ->
+    lists:usort(lists:flatten([get_zone_amqp_brokers(Zone) || Zone <- Zones]));
+get_amqp_brokers(_Other) ->
+    [].
+
+-spec get_zone_amqp_brokers({kz_term:ne_binary(), kz_term:proplist()} | any()) ->
+    kz_term:ne_binaries().
+get_zone_amqp_brokers({_ZoneName, ZoneConfig}) when is_list(ZoneConfig) ->
+    get_zone_amqp_uris(ZoneConfig);
+get_zone_amqp_brokers(_) ->
+    [].
+
+%% Return AMQP URIs for a single zone config.
+-spec get_zone_amqp_uris(kz_term:proplist() | any()) -> kz_term:ne_binaries().
+get_zone_amqp_uris(ZoneConfig) when is_list(ZoneConfig) ->
+    Amqp = props:get_value(<<"amqp">>, ZoneConfig, []),
+    Raw = props:get_value(<<"uri">>, Amqp, []),
+    normalize_amqp_uris(Raw);
+get_zone_amqp_uris(_) ->
+    [].
+
+-spec normalize_amqp_uris(any()) -> kz_term:ne_binaries().
+normalize_amqp_uris([]) ->
+    [];
+normalize_amqp_uris('undefined') ->
+    [];
+normalize_amqp_uris('null') ->
+    [];
+normalize_amqp_uris(<<"null">>) ->
+    [];
+normalize_amqp_uris(<<>>) ->
+    [];
+normalize_amqp_uris(List) when is_list(List) ->
+    [kz_term:to_binary(B) || B <- List, is_valid_amqp_uri(B)];
+normalize_amqp_uris(One) ->
+    case is_valid_amqp_uri(One) of
+        'true' ->
+            [kz_term:to_binary(One)];
+        'false' ->
+            []
+    end.
+
+-spec is_valid_amqp_uri(any()) -> boolean().
+is_valid_amqp_uri(Broker) ->
+    case catch amqp_uri:parse(kz_term:to_list(Broker)) of
+        {'ok', _Params} ->
+            'true';
+        _ ->
+            'false'
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Get a VM cookie from the local zone config.
+%% @end
+%%------------------------------------------------------------------------------
+-spec get_vm_cookie(atom(), kz_term:proplist()) -> kz_term:api_ne_binary().
+get_vm_cookie(VMName, Config) ->
+    Zones = kz_config_validate:zones(Config),
+    _ = kz_config_validate:local_zone(Zones),
+    ZoneName = get_local_zone(Zones),
+    ZoneConfig = props:get_value(ZoneName, Zones, []),
+    VMs = props:get_value(<<"vms">>, ZoneConfig, []),
+    VMKey = kz_term:to_binary(VMName),
+    case lists:keyfind(VMKey, 1, lists:flatten(VMs)) of
+        {Key, VMProps} when Key =:= VMKey, is_list(VMProps) ->
+            kz_term:to_api_binary(props:get_value(<<"cookie">>, VMProps, 'undefined'));
+        _ ->
+            'undefined'
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Normalization helpers.
+%% @end
+%%------------------------------------------------------------------------------
+-spec norm_section(any()) -> kz_term:ne_binary().
+norm_section(Section) when is_binary(Section) -> Section;
+norm_section(Section) when is_atom(Section) -> atom_to_binary(Section, 'utf8');
+norm_section(Section) when is_list(Section) -> kz_term:to_binary(Section);
+norm_section(Section) -> kz_term:to_binary(Section).
+
+-spec norm_key(any()) -> kz_term:ne_binary().
+norm_key(Key) when is_binary(Key) -> Key;
+norm_key(Key) when is_atom(Key) -> atom_to_binary(Key, 'utf8');
+norm_key(Key) when is_list(Key) -> kz_term:to_binary(Key);
+norm_key(Key) -> kz_term:to_binary(Key).
+
+-spec norm_path([any()] | any()) -> [kz_term:ne_binary()].
+norm_path(Path) when is_list(Path) ->
+    [norm_key(K) || K <- Path];
+norm_path(One) ->
+    [norm_key(One)].
+
+%%------------------------------------------------------------------------------
+%% @doc Load config from app env/process dictionary.
+%% @end
+%%------------------------------------------------------------------------------
+-spec load() -> kz_term:proplist().
+load() ->
+    case erlang:get(?SETTINGS_KEY) of
+        'undefined' ->
+            case application:get_env(?APP, ?MODULE) of
+                'undefined' ->
+                    lager:critical("missing config in env/process dictionary"),
+                    erlang:error('missing_config');
+                {'ok', Settings} ->
+                    Settings
+            end;
+        Settings ->
+            erlang:put(?SETTINGS_KEY, 'undefined'),
+            Settings
+    end.

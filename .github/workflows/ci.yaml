@@ -94,7 +94,7 @@ jobs:
       - name: Prepare Kazoo Config
         run: |
           sudo mkdir -p /etc/kazoo
-          sudo cp ./config/config-ci.ini /etc/kazoo/config.ini
+          sudo cp ./config/config-ci.yaml /etc/kazoo/config.yaml
 
       - name: Make Scripts Executable
         run: chmod +x ./scripts/*

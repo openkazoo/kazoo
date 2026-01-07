@@ -327,8 +327,11 @@ maybe_basic_auth(Headers, Options) ->
         'undefined' ->
             {Headers, Options};
         {Username, Password} ->
+            UsernameBinary = kz_term:to_binary(Username),
+            PasswordBinary = kz_term:to_binary(Password),
             AuthString =
-                "Basic " ++ base64:encode_to_string(<<Username/binary, ":", Password/binary>>),
+                "Basic " ++
+                    base64:encode_to_string(<<UsernameBinary/binary, ":", PasswordBinary/binary>>),
             BasicAuth = {"Authorization", AuthString},
             {[BasicAuth | Headers], props:delete('basic_auth', Options)}
     end.

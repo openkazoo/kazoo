@@ -1,5 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2010-2022, 2600Hz
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @doc
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -26,23 +27,28 @@ is_driver_app(App) ->
 
 -spec connection() -> data_connection().
 connection() ->
-    [Section] = kz_config:get('data', 'config', ['bigcouch']),
-    Props = props:get_value('generic', kz_config:get(Section), []),
+    Section = kz_config:get_binary(<<"data">>, [<<"config">>], <<"couchdb">>),
+    Props = kz_config:get_section_config(Section),
     connection(connection_options(Props)).
 
 -spec connection_options(kz_term:proplist()) -> kz_term:proplist().
 connection_options(Props) ->
-    case props:get_value('connect_options', Props) of
+    case props:get_first_defined([<<"connect_options">>, 'connect_options'], Props) of
         'undefined' ->
             Props;
         Section ->
-            Options = props:get_value('generic', kz_config:get(Section), []),
-            [{'connect_options', Options} | props:delete('connect_options', Props)]
+            Options = kz_config:get_section_config(Section),
+            [
+                {<<"connect_options">>, Options}
+                | props:delete('connect_options', props:delete(<<"connect_options">>, Props))
+            ]
     end.
 
 -spec connection(kz_term:proplist() | map()) -> data_connection().
 connection(List) when is_list(List) ->
-    connection(maps:from_list(List));
+    connection(maps:from_list([{to_atom_key(K), V} || {K, V} <- List]));
+connection(#{tag := Tag} = Map) when not is_atom(Tag) ->
+    connection(Map#{tag => kz_term:to_atom(Tag, 'true')});
 connection(#{driver := App} = Map) when
     not is_atom(App)
 ->
@@ -65,6 +71,10 @@ connection(#{driver := App, tag := Tag} = Map) ->
     #data_connection{props = Map, app = App, tag = Tag};
 connection(#{} = Map) ->
     connection(maps:merge(?MERGE_MAP, Map)).
+
+-spec to_atom_key(any()) -> atom().
+to_atom_key(K) when is_atom(K) -> K;
+to_atom_key(K) -> kz_term:to_atom(K, 'true').
 
 %%==============================================================================
 %% Internal functions

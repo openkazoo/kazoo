@@ -556,7 +556,7 @@ is_queue_full(MaxQueueSize, CurrQueueSize) -> CurrQueueSize >= MaxQueueSize.
 
 -spec current_queue_size(kz_term:ne_binary(), kz_term:ne_binary()) -> integer() | 'undefined'.
 current_queue_size(AccountId, QueueId) ->
-    [MGT] = kz_config:get(<<"amqp">>, <<"mgt_url">>, [?DEFAULT_AMQP_MGT_URL]),
+    MGT = kz_config:get_binary(<<"amqp">>, [<<"management_url">>], ?DEFAULT_AMQP_MGT_URL),
     URL = hackney_url:make_url(
         MGT,
         <<"/api/queues/%2F/acdc.queue.", AccountId/binary, ".", QueueId/binary>>,

@@ -1,5 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2012-2022, 2600Hz
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @doc Karls Hackity Hack....
 %%% We want to block during startup until we have a AMQP connection
 %%% but due to the way `kz_amqp_mgr' is structured we can't block in
@@ -51,7 +52,7 @@ start_link() ->
 -spec init([]) -> {'ok', state(), timeout()}.
 init([]) ->
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
-    add_zones(get_config()),
+    process_config(),
     lager:info("waiting for first amqp connection..."),
     kz_amqp_connections:wait_for_available(),
     timer:sleep(2 * ?MILLISECONDS_IN_SECOND),
@@ -113,76 +114,22 @@ code_change(_OldVsn, State, _Extra) ->
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec add_zones(kz_term:proplist()) -> 'ok'.
-add_zones([]) ->
+process_config() ->
+    Zones = kz_config:get_zones_config(),
+    lists:foreach(fun process_zone/1, Zones).
+
+-spec process_zone({kz_term:ne_binary(), kz_term:proplist()}) -> 'ok'.
+process_zone({ZoneNameBin, ZoneConfig}) when is_list(ZoneConfig) ->
+    IsLocal = kz_term:is_true(props:get_value(<<"local">>, ZoneConfig, 'false')),
+    Brokers = kz_config:get_zone_amqp_uris(ZoneConfig),
+    ZoneIdentifier =
+        case IsLocal of
+            'true' ->
+                'local';
+            'false' ->
+                kz_term:to_atom(ZoneNameBin, 'true')
+        end,
+    lists:foreach(fun(Broker) -> kz_amqp_connections:add(Broker, ZoneIdentifier) end, Brokers),
     'ok';
-add_zones([{ZoneName, Brokers} | Zones]) ->
-    _ = add_brokers(Brokers, ZoneName),
-    add_zones(Zones).
-
--spec add_brokers(kz_term:ne_binaries(), atom()) -> 'ok'.
-add_brokers([], _) ->
-    'ok';
-add_brokers([Broker | Brokers], ZoneName) ->
-    _ = kz_amqp_connections:add(Broker, ZoneName),
-    add_brokers(Brokers, ZoneName).
-
--spec get_config() -> kz_term:proplist().
-get_config() ->
-    get_from_zone(kz_config:zone()).
-%%     case kz_config:get(kz_config:get_node_section_name(), 'zone') of
-%%         [Zone] -> get_from_zone(Zone);
-%%         _Else -> get_from_amqp()
-%%     end.
-%%
-%% -spec get_from_amqp() -> kz_term:proplist().
-%% get_from_amqp() ->
-%%     [{'local', kz_config:get('amqp', 'uri', [?DEFAULT_AMQP_URI])}].
-
--spec get_zones() -> kz_amqp_connections:configured_brokers().
-get_zones() -> kz_amqp_connections:configured_brokers().
-
--spec get_from_zone(atom()) -> kz_term:proplist().
-get_from_zone(ZoneName) ->
-    Zones = get_zones(),
-    Props = dict:to_list(get_from_zone(ZoneName, Zones, dict:new())),
-    case props:get_value('local', Props, []) of
-        [] ->
-            lager:info("no local zone configured, adding default AMQP"),
-            [
-                {'local', kz_config:get('amqp', 'uri', [?DEFAULT_AMQP_URI])}
-                | Props
-            ];
-        _Else ->
-            Props
-    end.
-
--spec get_from_zone(atom(), kz_term:proplist(), dict:dict()) -> dict:dict().
-get_from_zone(_, [], Dict) ->
-    Dict;
-get_from_zone(ZoneName, [{_, Zone} | Zones], Dict) ->
-    case props:get_first_defined(['name', 'zone'], Zone) of
-        'undefined' -> get_from_zone(ZoneName, Zones, Dict);
-        ZoneName -> get_from_zone(ZoneName, Zones, import_zone('local', Zone, Dict));
-        RemoteZoneName -> get_from_zone(ZoneName, Zones, import_zone(RemoteZoneName, Zone, Dict))
-    end.
-
--spec import_zone(atom(), kz_term:proplist(), dict:dict()) -> dict:dict().
-import_zone(_, [], Dict) ->
-    Dict;
-import_zone(ZoneName, [{'amqp_uri', URI} | Props], Dict) ->
-    case dict:find(ZoneName, Dict) of
-        'error' ->
-            import_zone(ZoneName, Props, dict:store(ZoneName, [URI], Dict));
-        _ ->
-            import_zone(ZoneName, Props, dict:append(ZoneName, URI, Dict))
-    end;
-import_zone(ZoneName, [{'uri', URI} | Props], Dict) ->
-    case dict:find(ZoneName, Dict) of
-        'error' ->
-            import_zone(ZoneName, Props, dict:store(ZoneName, [URI], Dict));
-        _ ->
-            import_zone(ZoneName, Props, dict:append(ZoneName, URI, Dict))
-    end;
-import_zone(ZoneName, [_ | Props], Dict) ->
-    import_zone(ZoneName, Props, Dict).
+process_zone(_) ->
+    'ok'.

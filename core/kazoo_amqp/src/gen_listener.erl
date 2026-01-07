@@ -38,6 +38,7 @@
 %%%
 %%% @author James Aimonetti
 %%% @author Karl Anderson
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(gen_listener).
@@ -1353,14 +1354,9 @@ start_amqp(Props, AutoAck) ->
 
 -spec set_qos(binary(), 'undefined' | non_neg_integer()) -> 'ok'.
 set_qos(<<>>, 'undefined') ->
-    case kz_config:get_integer('amqp', 'prefetch') of
-        [N] when is_integer(N) ->
-            lager:debug("random queue getting config.ini QoS settings(~p) applied", [N]),
-            kz_amqp_util:basic_qos(N);
-        _ ->
-            lager:debug("random queue getting default QoS settings(1) applied"),
-            kz_amqp_util:basic_qos(?DEFAULT_PREFETCH)
-    end;
+    N = kz_config:get_integer(<<"amqp">>, [<<"prefetch">>], ?DEFAULT_PREFETCH),
+    lager:debug("random queue getting config QoS settings(~p) applied", [N]),
+    kz_amqp_util:basic_qos(N);
 set_qos(_QueueName, 'undefined') ->
     lager:debug("named queue has no QoS settings");
 set_qos(_QueueName, N) when is_integer(N), N >= 0 ->

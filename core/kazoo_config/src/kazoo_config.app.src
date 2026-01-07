@@ -1,5 +1,5 @@
 {application, kazoo_config, [
-    {applications, [kazoo, kazoo_stdlib, kernel, lager, stdlib, zucchini]},
+    {applications, [kazoo, kazoo_stdlib, kernel, lager, stdlib, yamerl]},
     {description, "Kazoo Configuration Helper"},
     {vsn, git},
     {modules, []},

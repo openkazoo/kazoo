@@ -1,0 +1,33 @@
+log:
+  syslog: none
+  console: none
+  file: none
+
+amqp:
+  prefetch: 50
+  pool:
+    size: 5
+    overflow: 0
+    threshold: 5
+    server_confirms: false
+
+data:
+  config: kazoo_fixturedb
+
+kazoo_fixturedb:
+  driver: kazoo_fixturedb
+  tag: local
+
+zones:
+  local:
+    local: true
+    amqp:
+      uri:
+        - amqp://guest:guest@127.0.0.1:5672
+    vms:
+      - kazoo_apps:
+          host: localhost
+          cookie: change_me
+      - ecallmgr:
+          host: localhost
+          cookie: change_me

@@ -5,6 +5,7 @@
 %%% @author James Aimonetti
 %%% @author Pierre Fenoll
 %%% @author Roman Galeev
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kapps_config).
@@ -786,7 +787,7 @@ maybe_save_category(Category, JObj, Updates, PvtFields, Looped) ->
 maybe_save_category(_Category, JObj, _Updates, _PvtFields, _Looped, 'true') ->
     lager:warning("failed to update category, system config database is locked!"),
     lager:warning(
-        "please update /etc/kazoo/config.ini or use 'sup kapps_config lock_db <boolean>' to enable system config writes."
+        "please update config.yaml or use 'sup kapps_config lock_db <boolean>' to enable system config writes."
     ),
     {'ok', JObj};
 maybe_save_category(Category, JObj, Updates, PvtFields, Looped, _) ->
@@ -845,9 +846,9 @@ lock_db() ->
 
 -spec lock_db(kz_term:text() | boolean()) -> 'ok'.
 lock_db('true') ->
-    kz_config:set('kazoo_apps', 'lock_system_config', 'true');
+    kz_config:lock_system_config('true');
 lock_db('false') ->
-    kz_config:unset('kazoo_apps', 'lock_system_config');
+    kz_config:lock_system_config('false');
 lock_db(Value) when is_binary(Value) ->
     lock_db(kz_term:to_atom(Value));
 lock_db(Value) ->
@@ -859,10 +860,7 @@ lock_db(Value) ->
 %%------------------------------------------------------------------------------
 -spec is_locked() -> boolean().
 is_locked() ->
-    case kz_config:get_atom('kazoo_apps', 'lock_system_config') of
-        [] -> 'false';
-        [Value] -> Value
-    end.
+    kz_config:get_boolean(<<"couchdb">>, [<<"lock_system_config">>], 'false').
 
 %%------------------------------------------------------------------------------
 %% @doc Flush the configuration cache.

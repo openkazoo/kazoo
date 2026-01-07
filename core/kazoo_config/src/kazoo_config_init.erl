@@ -1,5 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2011-2022, 2600Hz
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @doc
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -23,98 +24,95 @@ start_link() ->
     set_env(),
     'ignore'.
 
--spec ini_files() -> list().
-ini_files() ->
+%%------------------------------------------------------------------------------
+%% @doc Resolve config path.
+%% @end
+%%------------------------------------------------------------------------------
+-spec config_path() -> kz_term:api_list().
+config_path() ->
     case os:getenv(?CONFIG_FILE_ENV) of
-        'false' -> [?CONFIG_FILE, ?V4_CONFIG_FILE];
-        File -> [File]
+        'false' ->
+            case readable_file(?CONFIG_FILE_ETC_LOCAL) of
+                'true' ->
+                    ?CONFIG_FILE_ETC_LOCAL;
+                'false' ->
+                    case readable_file(?CONFIG_FILE_ETC) of
+                        'true' -> ?CONFIG_FILE_ETC;
+                        'false' -> 'undefined'
+                    end
+            end;
+        Path when is_list(Path), Path =/= [] ->
+            Path;
+        _ ->
+            'undefined'
     end.
 
--spec load_file() -> kz_term:proplist().
-load_file() ->
-    maybe_load_file(ini_files()).
+%%------------------------------------------------------------------------------
+%% @doc Check if a file is readable.
+%% @end
+%%------------------------------------------------------------------------------
+-spec readable_file(file:name_all()) -> boolean().
+readable_file(Path) ->
+    filelib:is_regular(Path).
 
--spec maybe_load_file(list(file:name())) -> kz_term:proplist().
-maybe_load_file([]) ->
-    lager:warning("out of config files to attempt, loading defaults..."),
-    ?SECTION_DEFAULTS;
-maybe_load_file([File | T]) ->
-    case zucchini:parse_file(File) of
-        {'ok', Props} ->
-            lager:info("loaded configs from file ~s", [File]),
-            cleanup_configs(Props);
-        {'error', 'enoent'} ->
-            lager:warning("file ~s does not exist or is not accessible", [File]),
-            maybe_load_file(T);
-        {'error', _} = Error ->
-            lager:warning("error loading file ~s: ~p", [File, Error]),
-            maybe_load_file(T)
+%%------------------------------------------------------------------------------
+%% @doc Load config from file.
+%% @end
+%%------------------------------------------------------------------------------
+-spec load_config() -> kz_term:proplist().
+load_config() ->
+    case config_path() of
+        'undefined' ->
+            lager:critical("config file not found (set KAZOO_CONFIG or install config.yaml)"),
+            erlang:error('no_config_file');
+        Path ->
+            try
+                _ = application:ensure_all_started('yamerl'),
+                case yamerl_constr:file(Path, [str_node_as_binary]) of
+                    [Doc | _] when is_list(Doc) ->
+                        lager:notice("loaded config (~s): ~p", [Path, Doc]),
+                        kz_config_validate:all(Doc),
+                        Doc;
+                    _ ->
+                        lager:critical("config file has an unexpected structure (~s)", [Path]),
+                        erlang:error('bad_config_structure')
+                end
+            catch
+                Class:Reason ->
+                    lager:critical("failed to parse config (~s): ~p:~p", [Path, Class, Reason]),
+                    erlang:error({'bad_config', Path, Class, Reason})
+            end
     end.
 
+%%------------------------------------------------------------------------------
+%% @doc Set the environment variables.
+%% @end
+%%------------------------------------------------------------------------------
 -spec set_env() -> 'ok'.
 set_env() ->
-    AppEnv = load_file(),
-    lager:notice("loaded settings : ~p", [AppEnv]),
-    set_zone(AppEnv),
-    application:set_env(?APP, 'kz_config', AppEnv).
-
-set_zone(AppEnv) ->
-    erlang:put(?SETTINGS_KEY, AppEnv),
-    Zone = maybe_zone_from_env(),
+    Config = load_config(),
+    application:set_env(?APP, 'kz_config', Config),
+    erlang:put(?SETTINGS_KEY, Config),
+    Zone = kz_config:resolve_zone(Config),
     lager:notice("setting zone to ~p", [Zone]),
     application:set_env(?APP, 'zone', Zone).
 
--spec maybe_zone_from_env() -> atom().
-maybe_zone_from_env() ->
-    case os:getenv("KAZOO_ZONE", "noenv") of
-        "noenv" -> zone_from_ini();
-        Zone -> kz_term:to_atom(Zone, 'true')
-    end.
-
--spec zone_from_ini() -> atom().
-zone_from_ini() ->
-    [Local] = kz_config:get(kz_config:get_node_section_name(), 'zone', ['local']),
-    kz_term:to_atom(Local, 'true').
-
+%%------------------------------------------------------------------------------
+%% @doc Reload the config.
+%% @end
+%%------------------------------------------------------------------------------
 -spec reload() -> 'ok'.
 reload() ->
     set_env().
 
-cleanup_configs(Props) ->
-    [cleanup_config(Prop) || Prop <- Props].
-cleanup_config({'zone', Zone}) ->
-    {'zone', cleanup_zone(Zone)};
-cleanup_config({'bigcouch', _} = Config) ->
-    Config;
-cleanup_config({'log', _} = Config) ->
-    Config;
-cleanup_config({Section, Props}) ->
-    {Section, cleanup_section(Props)}.
-
-cleanup_section(Props) ->
-    [cleanup_section_prop(Prop) || Prop <- Props].
-
-cleanup_section_prop({'zone', Zone} = Prop) when is_atom(Zone) ->
-    Prop;
-cleanup_section_prop({'zone', Zone}) ->
-    {'zone', kz_term:to_atom(Zone, 'true')};
-cleanup_section_prop(Prop) ->
-    Prop.
-
-cleanup_zone(Zone) ->
-    [cleanup_zone_prop(Prop) || Prop <- Zone].
-cleanup_zone_prop({'name', Name} = Prop) when is_atom(Name) -> Prop;
-cleanup_zone_prop({'name', Name}) -> {'name', kz_term:to_atom(Name, 'true')};
-cleanup_zone_prop({'amqp_uri', URI} = Prop) when is_list(URI) -> Prop;
-cleanup_zone_prop({'amqp_uri', URI}) -> {'amqp_uri', kz_term:to_list(URI)};
-cleanup_zone_prop(Prop) -> Prop.
-
 %%------------------------------------------------------------------------------
-%% @doc Reads `config.ini' without starting the `kazoo_config' application.
+%% @doc Reads `config.yaml' without starting the `kazoo_config' application.
 %% @end
 %%------------------------------------------------------------------------------
 -spec read_cookie(atom()) -> [atom()].
-read_cookie(NodeName) ->
-    AppEnv = load_file(),
-    erlang:put(?SETTINGS_KEY, AppEnv),
-    kz_config:get_atom(NodeName, 'cookie', []).
+read_cookie(VMName) ->
+    Config = load_config(),
+    case kz_config:get_vm_cookie(VMName, Config) of
+        'undefined' -> [];
+        CookieBin -> [kz_term:to_atom(CookieBin, 'true')]
+    end.

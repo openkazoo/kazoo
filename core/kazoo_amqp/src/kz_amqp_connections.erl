@@ -1,5 +1,6 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2011-2022, 2600Hz
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @doc
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -566,9 +567,6 @@ is_tag_available(Tag) -> broker_with_tag(Tag) =/= 'undefined'.
 -spec is_hidden_broker(list()) -> boolean().
 is_hidden_broker(Tags) -> lists:member(?AMQP_HIDDEN_TAG, Tags).
 
--spec configured_brokers() -> configured_brokers().
+-spec configured_brokers() -> kz_term:proplist().
 configured_brokers() ->
-    case kz_config:get_section('zone') of
-        [] -> kz_config:get_section('amqp');
-        Zones -> Zones
-    end.
+    kz_config:get_zones_config().

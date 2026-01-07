@@ -2,6 +2,7 @@
 %%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc Init to be done.
 %%% @author James Aimonetti
+%%% @author Dialwave, Inc. (Rob Nichols)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kazoo_apps_init).
@@ -36,33 +37,37 @@ set_cookie() ->
 -spec maybe_cookie_from_env() -> atom().
 maybe_cookie_from_env() ->
     case os:getenv("KAZOO_COOKIE", "noenv") of
-        "noenv" -> cookie_from_ini();
+        "noenv" -> cookie_from_config();
         Cookie -> kz_term:to_atom(Cookie, 'true')
     end.
 
--spec cookie_from_ini() -> atom().
-cookie_from_ini() ->
-    case kz_config:get_atom(?APP, 'cookie') of
-        [] ->
-            [Name, _Host] = binary:split(kz_term:to_binary(node()), <<"@">>),
-            case kz_config:get_atom(kz_term:to_atom(Name, 'true'), 'cookie') of
-                [] ->
-                    lager:warning("failed to get cookie for node ~s, generating one", [node()]),
-                    kz_term:to_atom(kz_binary:rand_hex(16), 'true');
-                [Cookie | _] ->
-                    Cookie
-            end;
-        [Cookie | _] ->
-            Cookie
+-spec cookie_from_config() -> atom().
+cookie_from_config() ->
+    ZoneConfig = kz_config:get_zone_config(),
+    VmsConfig = props:get_value(<<"vms">>, ZoneConfig, []),
+    VmKey = kz_term:to_binary(?APP),
+    CookieBin =
+        case lists:keyfind(VmKey, 1, lists:flatten(VmsConfig)) of
+            {Key, Config} when Key =:= VmKey, is_list(Config) ->
+                props:get_value(<<"cookie">>, Config, 'undefined');
+            _ ->
+                'undefined'
+        end,
+    case CookieBin of
+        'undefined' ->
+            lager:warning("failed to get cookie for node ~s (~p), generating one", [node(), ?APP]),
+            kz_term:to_atom(kz_binary:rand_hex(16), 'true');
+        _ ->
+            kz_term:to_atom(CookieBin, 'true')
     end.
 
 -spec set_loglevel() -> 'ok'.
 set_loglevel() ->
-    [Console | _] = kz_config:get_atom('log', 'console', ['notice']),
+    Console = kz_config:get_atom(<<"log">>, [<<"console">>], 'notice'),
     kz_log:change_console_log_level(Console),
-    [Syslog | _] = kz_config:get_atom('log', 'syslog', ['info']),
+    Syslog = kz_config:get_atom(<<"log">>, [<<"syslog">>], 'info'),
     kz_log:change_syslog_log_level(Syslog),
-    [Error | _] = kz_config:get_atom('log', 'error', ['error']),
+    Error = kz_config:get_atom(<<"log">>, [<<"error">>], 'error'),
     kz_log:change_error_log_level(Error),
     'ok'.
 

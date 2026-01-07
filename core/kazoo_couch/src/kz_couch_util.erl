@@ -146,15 +146,15 @@ connection_parse(
     ],
     Conn#kz_couch_connection{options = Options ++ KVs};
 connection_parse(ip, V, Conn) ->
-    Conn#kz_couch_connection{host = V};
+    Conn#kz_couch_connection{host = kz_term:to_list(V)};
 connection_parse(host, V, Conn) ->
-    Conn#kz_couch_connection{host = V};
+    Conn#kz_couch_connection{host = kz_term:to_list(V)};
 connection_parse(port, V, Conn) ->
-    Conn#kz_couch_connection{port = V};
+    Conn#kz_couch_connection{port = kz_term:to_integer(V)};
 connection_parse(username, V, Conn) ->
-    Conn#kz_couch_connection{username = V};
+    Conn#kz_couch_connection{username = kz_term:to_list(V)};
 connection_parse(password, V, Conn) ->
-    Conn#kz_couch_connection{password = V};
+    Conn#kz_couch_connection{password = kz_term:to_list(V)};
 connection_parse(K, V, #kz_couch_connection{options = Options} = Conn) ->
     Conn#kz_couch_connection{options = [{K, V} | Options]}.
 

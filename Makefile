@@ -90,11 +90,11 @@ test: compile_test
 			basename "$$d"; \
 		fi; \
 	done); \
-	KAZOO_CONFIG=./config/config-test.ini ERL_LIBS=./_build/test/lib/ ./scripts/eunit_run.escript $$APPS
+	KAZOO_CONFIG=./config/config-test.yaml ERL_LIBS=./_build/test/lib/ ./scripts/eunit_run.escript $$APPS
 
 ct:
 	@$(CHECK_TOOLS)
-	KAZOO_CONFIG=./config/config-test.ini $(REBAR) ct
+	KAZOO_CONFIG=./config/config-test.yaml $(REBAR) ct
 
 $(DEPS_PLT):
 	@echo Building local plt at $(DEPS_PLT)

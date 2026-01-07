@@ -29,6 +29,6 @@ export REBAR_GLOBAL_CONFIG_DIR REBAR_CACHE_DIR
 cd "${KAZOO_DIR}"
 
 REBAR_GLOBAL_CONFIG_DIR="${REBAR_GLOBAL_CONFIG_DIR}" REBAR_CACHE_DIR="${REBAR_CACHE_DIR}" rebar3 as test compile
-UPDATE_TELETYPE_RENDERED_TEMPLATES=1 KAZOO_CONFIG=./config/config-test.ini ERL_LIBS=./_build/test/lib/ ./scripts/eunit_run.escript teletype
+UPDATE_TELETYPE_RENDERED_TEMPLATES=1 KAZOO_CONFIG=./config/config-test.yaml ERL_LIBS=./_build/test/lib/ ./scripts/eunit_run.escript teletype
 
 echo "Updated teletype-rendered templates"

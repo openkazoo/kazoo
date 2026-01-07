@@ -10,7 +10,7 @@
         kazoo,
         kazoo_stdlib,
         kazoo_config,
-        zucchini,
+        yamerl,
         lager
     ]},
     {env, []}
