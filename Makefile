@@ -29,8 +29,10 @@ CHECK_RELEASE_TOOLS = \
 	$(CHECK_TOOLS) ; \
 	$(CHECK_GIT_DESCRIBE)
 
-.PHONY: all compile doc clean lint format tree test ct dialyzer typer shell distclean \
-	deps update-deps clean-common-test-data rebuild compile_test build-release build-release-debug build-release-tar escript
+.PHONY: all compile doc clean lint format format-check tree test ct dialyzer \
+	dialyzer typer shell distclean deps update-deps clean-common-test-data \
+	rebuild compile_test build-release build-release-debug build-release-tar \
+	escript
 
 all: build-release
 
@@ -59,6 +61,10 @@ lint:
 format:
 	@$(CHECK_TOOLS)
 	$(REBAR) fmt
+
+format-check:
+	@$(CHECK_TOOLS)
+	$(REBAR) fmt --check
 
 tree:
 	@$(CHECK_TOOLS)

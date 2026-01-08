@@ -69,6 +69,7 @@
     {'ok', kz_term:ne_binary(), knm_number_options:extra_options()}
     | {'error', lookup_error()}.
 
+%% erlfmt:ignore
 -define(KNM_NUMBERS_CLAUSES(Num),
     {'false', #{'ok' := [Number]}} ->
         {'ok', Number};
