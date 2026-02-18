@@ -227,6 +227,10 @@ maybe_authorize(Request, Limits) ->
 maybe_authorize_exception(Request, Limits) ->
     CallDirection = j5_request:call_direction(Request),
     AuthType = kz_json:get_value(<<"Authorizing-Type">>, j5_request:ccvs(Request)),
+    AccountId = j5_limits:account_id(Limits),
+    TollfreeException = kz_term:is_true(
+        kapps_account_config:get_global(AccountId, ?APP_NAME, <<"tollfree_us_exception">>, 'true')
+    ),
     case
         not is_authorizing_mobile(AuthType) andalso
             j5_request:classification(Request)
@@ -237,7 +241,7 @@ maybe_authorize_exception(Request, Limits) ->
         <<"emergency">> ->
             lager:debug("allowing emergency call"),
             j5_request:authorize(<<"limits_disabled">>, Request, Limits);
-        <<"tollfree_us">> when CallDirection =:= <<"outbound">> ->
+        <<"tollfree_us">> when CallDirection =:= <<"outbound">>, TollfreeException =:= 'true' ->
             lager:debug("allowing outbound tollfree call"),
             j5_request:authorize(<<"limits_disabled">>, Request, Limits);
         _Else ->
