@@ -13,6 +13,7 @@ Key | Description | Type | Default | Required | Support Level
 `agent_ring_timeout` | In seconds, how long to ring an agent before progressing to the next agent available | `integer()` | `15` | `false` |  
 `agent_wrapup_time` | Pre-defined wait period applied after an agent handles a customer call | `integer()` | `0` | `false` |  
 `announce` | Media ID (or appropriate media URI) of media to play when caller is about to be connected. | `string()` |   | `false` |  
+`announcements.delay` | Delay in seconds before playing the first position announcement | `integer()` | `0` | `false` |  
 `announcements.interval` | Time between announcements | `integer()` | `30` | `false` |  
 `announcements.media.in_the_queue` | Played after the numeric position | `string()` |   | `true` |  
 `announcements.media.increase_in_call_volume` | Played if the estimated wait time has increased since the previous wait time announcement | `string()` |   | `true` |  

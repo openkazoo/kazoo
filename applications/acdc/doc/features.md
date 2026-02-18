@@ -9,7 +9,8 @@ add this object to the queue document
         "announcements": {
             "wait_time_announcements_enabled": true,
             "position_announcements_enabled": true,
-            "interval": 30
+            "interval": 30,
+            "delay": 0
         },
 ```
 

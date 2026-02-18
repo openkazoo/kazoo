@@ -27831,6 +27831,13 @@
                 "announcements": {
                     "description": "Configuration for periodic announcements to callers waiting in the queue",
                     "properties": {
+                        "delay": {
+                            "default": 0,
+                            "description": "Delay in seconds before playing the first position announcement",
+                            "maximum": 60,
+                            "minimum": 0,
+                            "type": "integer"
+                        },
                         "interval": {
                             "default": 30,
                             "description": "Time between announcements",

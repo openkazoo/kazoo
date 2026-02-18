@@ -68,6 +68,7 @@ get_config(Props) ->
             <<"wait_time_announcements_enabled">>, Props, 'false'
         ),
         announcements_interval => props:get_integer_value(<<"interval">>, Props, 30),
+        announcement_delay => props:get_integer_value(<<"delay">>, Props, 0),
         announcements_media => announcements_media(Props)
     }.
 
@@ -96,7 +97,8 @@ init_state(Manager, Call, Config) ->
         manager => Manager,
         call => Call,
         config => Config,
-        last_average_wait_time => 'undefined'
+        last_average_wait_time => 'undefined',
+        first_position_announcement => 'true'
     }.
 
 %%------------------------------------------------------------------------------
@@ -123,6 +125,7 @@ maybe_announce_position(
         config := Config
     } = State
 ) ->
+    NewState = maybe_wait_for_first_position_announcement(State),
     Language = kapps_call:language(Call),
     Position = gen_listener:call(Manager, {'queue_member_position', kapps_call:call_id(Call)}),
 
@@ -131,7 +134,19 @@ maybe_announce_position(
         {'say', kz_term:to_binary(Position), <<"number">>},
         {'prompt', announcements_media_file(<<"in_the_queue">>, Config), Language, <<"A">>}
     ],
-    maybe_announce_wait_time(Prompts, State).
+    maybe_announce_wait_time(Prompts, NewState).
+
+-spec maybe_wait_for_first_position_announcement(map()) -> map().
+maybe_wait_for_first_position_announcement(
+    #{first_position_announcement := 'false'} = State
+) ->
+    State;
+maybe_wait_for_first_position_announcement(
+    #{first_position_announcement := 'true', config := Config} = State
+) ->
+    DelaySeconds = maps:get(announcement_delay, Config, 0),
+    timer:sleep(DelaySeconds * ?MILLISECONDS_IN_SECOND),
+    State#{first_position_announcement := 'false'}.
 
 %%------------------------------------------------------------------------------
 %% @doc Conditionally add wait time announcements prompts to playlist

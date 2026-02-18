@@ -10,6 +10,7 @@
 -export([agent_wrapup_time/1, agent_wrapup_time/2, set_agent_wrapup_time/2]).
 -export([announce/1, announce/2, set_announce/2]).
 -export([announcements/1, announcements/2, set_announcements/2]).
+-export([announcements_delay/1, announcements_delay/2, set_announcements_delay/2]).
 -export([announcements_interval/1, announcements_interval/2, set_announcements_interval/2]).
 -export([announcements_media/1, announcements_media/2, set_announcements_media/2]).
 -export([
@@ -121,6 +122,18 @@ announcements_interval(Doc, Default) ->
 -spec set_announcements_interval(doc(), integer()) -> doc().
 set_announcements_interval(Doc, AnnouncementsInterval) ->
     kz_json:set_value([<<"announcements">>, <<"interval">>], AnnouncementsInterval, Doc).
+
+-spec announcements_delay(doc()) -> integer().
+announcements_delay(Doc) ->
+    announcements_delay(Doc, 0).
+
+-spec announcements_delay(doc(), Default) -> integer() | Default.
+announcements_delay(Doc, Default) ->
+    kz_json:get_integer_value([<<"announcements">>, <<"delay">>], Doc, Default).
+
+-spec set_announcements_delay(doc(), integer()) -> doc().
+set_announcements_delay(Doc, AnnouncementsDelay) ->
+    kz_json:set_value([<<"announcements">>, <<"delay">>], AnnouncementsDelay, Doc).
 
 -spec announcements_media(doc()) -> kz_term:api_object().
 announcements_media(Doc) ->
