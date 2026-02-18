@@ -818,10 +818,12 @@ connecting(
         listener_proc = ListenerSrv,
         account_id = AccountId,
         queue_id = QueueId,
-        member_call = Call
+        member_call = Call,
+        member_call_winners = Winners
     } = State
 ) ->
     lager:debug("caller hungup while we waited for the agent to connect"),
+    timeout_winners(ListenerSrv, Winners),
     acdc_queue_listener:cancel_member_call(ListenerSrv, CallEvt),
     CallId = kapps_call:call_id(Call),
     _ = acdc_stats:call_abandoned(AccountId, QueueId, CallId, ?ABANDON_HANGUP),
@@ -950,17 +952,8 @@ connecting(
     } = State
 ) ->
     lager:debug("connection timeout occurred, bounce the caller out of the queue"),
-
-    lists:foreach(
-        fun(Winner) ->
-            lager:debug("maybe sending timeout agent  to ~s(~s)", [
-                kz_json:get_value(<<"Agent-ID">>, Winner),
-                kz_json:get_value(<<"Process-ID">>, Winner)
-            ]),
-            maybe_timeout_winner(ListenerSrv, Winner)
-        end,
-        Winners
-    ),
+    timeout_winners(ListenerSrv, Winners),
+    acdc_queue_listener:timeout_member_call(ListenerSrv),
 
     CallId = kapps_call:call_id(Call),
     _ = acdc_stats:call_abandoned(AccountId, QueueId, CallId, ?ABANDON_TIMEOUT),
@@ -1080,11 +1073,22 @@ maybe_stop_timer(ConnRef) ->
     _ = erlang:cancel_timer(ConnRef),
     'ok'.
 
--spec maybe_timeout_winner(pid(), kz_term:api_object()) -> 'ok'.
-maybe_timeout_winner(Srv, 'undefined') ->
-    acdc_queue_listener:timeout_member_call(Srv);
-maybe_timeout_winner(Srv, Winner) ->
-    acdc_queue_listener:timeout_member_call(Srv, Winner).
+-spec timeout_winners(pid(), [kz_term:api_object()] | 'undefined') -> 'ok'.
+timeout_winners(_Srv, 'undefined') ->
+    'ok';
+timeout_winners(_Srv, []) ->
+    'ok';
+timeout_winners(Srv, Winners) when is_list(Winners) ->
+    lists:foreach(
+        fun(Winner) ->
+            lager:debug("sending timeout agent  to ~s(~s)", [
+                kz_json:get_value(<<"Agent-ID">>, Winner),
+                kz_json:get_value(<<"Process-ID">>, Winner)
+            ]),
+            acdc_queue_listener:timeout_agent(Srv, Winner)
+        end,
+        Winners
+    ).
 
 -spec clear_member_call(state()) -> state().
 clear_member_call(
