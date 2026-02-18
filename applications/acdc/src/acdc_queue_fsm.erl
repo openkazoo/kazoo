@@ -260,7 +260,9 @@ init([WorkerSup, MgrPid, AccountId, QueueId]) ->
             kz_json:get_integer_value(<<"agent_ring_timeout">>, QueueJObj)
         ),
         max_queue_size = kz_json:get_integer_value(<<"max_queue_size">>, QueueJObj),
-        ring_simultaneously = kz_json:get_value(<<"ring_simultaneously">>, QueueJObj),
+        ring_simultaneously = ring_simultaneously(
+            kz_json:get_value(<<"ring_simultaneously">>, QueueJObj)
+        ),
         enter_when_empty = kz_json:is_true(<<"enter_when_empty">>, QueueJObj, 'true'),
         agent_wrapup_time = kz_json:get_integer_value(<<"agent_wrapup_time">>, QueueJObj),
         announce = kz_json:get_value(<<"announce">>, QueueJObj),
@@ -1054,6 +1056,19 @@ start_connection_timer(ConnTimeout) ->
 agent_ring_timeout(N) when is_integer(N), N > 0 -> N;
 agent_ring_timeout(_) -> ?AGENT_RING_TIMEOUT.
 
+-spec ring_simultaneously(kz_term:api_integer()) -> pos_integer().
+ring_simultaneously(N) when is_integer(N), N > 0 ->
+    N;
+ring_simultaneously(_) ->
+    1.
+
+-spec limit_picked_winners(kz_json:objects(), pos_integer()) ->
+    {kz_json:objects(), kz_json:objects()}.
+limit_picked_winners(Winners, Limit) when Limit >= length(Winners) ->
+    {Winners, []};
+limit_picked_winners(Winners, Limit) ->
+    lists:split(Limit, Winners).
+
 -spec start_agent_ring_timer(pos_integer()) -> reference().
 start_agent_ring_timer(AgentTimeout) ->
     erlang:start_timer(AgentTimeout * 1600, self(), ?AGENT_RING_TIMEOUT_MESSAGE).
@@ -1103,7 +1118,9 @@ update_properties(QueueJObj, State) ->
             kz_json:get_integer_value(<<"agent_ring_timeout">>, QueueJObj)
         ),
         max_queue_size = kz_json:get_integer_value(<<"max_queue_size">>, QueueJObj),
-        ring_simultaneously = kz_json:get_value(<<"ring_simultaneously">>, QueueJObj),
+        ring_simultaneously = ring_simultaneously(
+            kz_json:get_value(<<"ring_simultaneously">>, QueueJObj)
+        ),
         enter_when_empty = kz_json:is_true(<<"enter_when_empty">>, QueueJObj, 'true'),
         agent_wrapup_time = kz_json:get_integer_value(<<"agent_wrapup_time">>, QueueJObj),
         announce = kz_json:get_value(<<"announce">>, QueueJObj),
@@ -1302,6 +1319,8 @@ maybe_pick_winner(
 ) ->
     case acdc_queue_manager:pick_winner(Mgr, Call, CRs) of
         {Winners, Rest} ->
+            MaxWinners = State#state.ring_simultaneously,
+            {PickedWinners, UnpickedWinners} = limit_picked_winners(Winners, MaxWinners),
             QueueOpts = [
                 {<<"Ring-Timeout">>, RingTimeout},
                 {<<"Wrapup-Timeout">>, AgentWrapup},
@@ -1315,7 +1334,7 @@ maybe_pick_winner(
 
             ConnectWins = lists:foldl(
                 fun(Winner, Wins) ->
-                    NewAgent = update_agent(Winner, Winners),
+                    NewAgent = update_agent(Winner, PickedWinners),
                     lager:info("sending win to ~s(~s)", [
                         kz_json:get_value(<<"Agent-ID">>, Winner),
                         kz_json:get_value(<<"Process-ID">>, Winner)
@@ -1324,15 +1343,15 @@ maybe_pick_winner(
                     [NewAgent | Wins]
                 end,
                 [],
-                Winners
+                PickedWinners
             ),
 
             {'connecting', State#state{
-                connect_resps = Rest,
+                connect_resps = UnpickedWinners ++ Rest,
                 connect_wins = ConnectWins,
                 collect_ref = 'undefined',
                 agent_ring_timer_ref = start_agent_ring_timer(RingTimeout),
-                member_call_winners = Winners
+                member_call_winners = PickedWinners
             }};
         'undefined' ->
             lager:info("no response from the winner"),
