@@ -5,8 +5,9 @@
 
 -include_lib("kazoo_call/src/kapps_conference.hrl").
 
+-define(APP, 'conference').
 -define(APP_NAME, <<"conference">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(CONFIG_CAT, <<"conferences">>).
 

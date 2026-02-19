@@ -3,8 +3,9 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
+-define(APP, 'frontier').
 -define(APP_NAME, <<"frontier">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(MINUTE, <<"per_minute">>).
 -define(SECOND, <<"per_second">>).

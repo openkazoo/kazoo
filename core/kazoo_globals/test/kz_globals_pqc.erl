@@ -295,7 +295,7 @@ remote_register(Remote, Name, Pid) ->
         {<<"Name">>, Name},
         {<<"State">>, 'pending'},
         {<<"Node">>, remote_node_name(Remote)}
-        | kz_api:default_headers(<<"testing">>, <<"4.4.0a1">>)
+        | kz_api:default_headers(<<"testing">>, <<"1.2.3">>)
     ],
     case kz_amqp_worker:call_collect(Payload, fun kapi_globals:publish_register/1) of
         {'error', _E} ->
@@ -321,7 +321,7 @@ remote_register_success(Remote, Name) ->
         {<<"Node">>, remote_node_name(Remote)},
         {<<"Timestamp">>, kz_global:new_timestamp()},
         {<<"Zone">>, Zone}
-        | kz_api:default_headers(<<>>, <<"testing">>, <<"4.4.0a1">>)
+        | kz_api:default_headers(<<>>, <<"testing">>, <<"1.2.3">>)
     ],
     kz_amqp_worker:call_collect(Payload, fun kapi_globals:publish_register/1),
     'yes'.
@@ -334,7 +334,7 @@ remote_unregister(Remote, Name) ->
         {<<"Name">>, Name},
         {<<"Reason">>, kapi_globals:encode('normal')},
         {<<"Node">>, remote_node_name(Remote)}
-        | kz_api:default_headers(<<"testing">>, <<"4.4.0a1">>)
+        | kz_api:default_headers(<<"testing">>, <<"1.2.3">>)
     ],
     kz_amqp_worker:cast(Payload, fun kapi_globals:publish_unregister/1),
     timer:sleep(1000),

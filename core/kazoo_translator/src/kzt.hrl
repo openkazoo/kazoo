@@ -36,8 +36,9 @@
 -define(STATUS_NOANSWER, <<"no-answer">>).
 -define(STATUS_CANCELED, <<"canceled">>).
 
+-define(APP, 'kazoo_translator').
 -define(APP_NAME, <<"translator">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(DEFAULT_TTS_LANG, kazoo_tts:default_language()).
 -define(DEFAULT_TTS_VOICE, kazoo_tts:default_voice()).

@@ -8,9 +8,9 @@
 
 -include("crossbar_types.hrl").
 
--define(APP, crossbar).
--define(APP_NAME, (atom_to_binary(?APP, utf8))).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP, 'crossbar').
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 -define(AUTH_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".auth">>).
 

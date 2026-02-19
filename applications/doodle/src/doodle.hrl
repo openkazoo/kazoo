@@ -7,8 +7,9 @@
 -include_lib("kazoo_im/include/kapps_im_command_types.hrl").
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
 
+-define(APP, 'doodle').
 -define(APP_NAME, <<"doodle">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(CACHE_NAME, 'doodle_cache').
@@ -28,7 +29,6 @@
 -type amqp_listener_connections() :: [amqp_listener_connection(), ...].
 
 -define(ATOM(X), kz_term:to_atom(X, 'true')).
--define(APP, ?ATOM(?APP_NAME)).
 
 -define(RESOURCE_TYPES_HANDLED, [<<"sms">>]).
 

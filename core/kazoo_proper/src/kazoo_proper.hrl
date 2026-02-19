@@ -2,8 +2,9 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
+-define(APP, 'kazoo_proper').
 -define(APP_NAME, <<"kazoo_proper">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(FAILED_RESPONSE, <<"{}">>).
 

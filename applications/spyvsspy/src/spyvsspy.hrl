@@ -5,8 +5,9 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
+-define(APP, 'spyvsspy').
 -define(APP_NAME, <<"spyvsspy">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(SPYVSSPY_HRL, true).
 -endif.

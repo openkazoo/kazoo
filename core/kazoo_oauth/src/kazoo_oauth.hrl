@@ -7,8 +7,9 @@
 
 -define(CONFIG_CAT, <<"oauth">>).
 
+-define(APP, 'kazoo_oauth').
 -define(APP_NAME, <<"oauth">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(OAUTH_GRANT_TYPE, <<"urn:ietf:params:oauth:grant-type:jwt-bearer">>).
 -define(OAUTH_GRANT_TYPE2, <<"http://oauth.net/grant_type/jwt/1.0/bearer">>).

@@ -5,8 +5,8 @@
 -include_lib("kazoo_events/include/kz_hooks.hrl").
 
 -define(APP, 'webhooks').
--define(APP_NAME, (atom_to_binary(?APP, 'utf8'))).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -type http_verb() :: 'get' | 'post'.
 -type hook_retries() :: 1..5.

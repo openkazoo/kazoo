@@ -8,8 +8,9 @@
 
 -define(DEFAULT_TIMEOUT_S, 20).
 
+-define(APP, 'kazoo_call').
 -define(APP_NAME, <<"kapps_call_command">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(KAPPS_CALL_COMMAND_HRL, 'true').
 -endif.

@@ -5,8 +5,9 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 
+-define(APP, 'omnipresence').
 -define(APP_NAME, <<"omnipresence">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(CACHE_NAME, 'omnipresence_cache').

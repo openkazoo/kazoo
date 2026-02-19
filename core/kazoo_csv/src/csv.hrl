@@ -4,7 +4,7 @@
 
 -define(APP, 'kazoo_csv').
 -define(APP_NAME, <<"kazoo_csv">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(KZ_KAZOO_CSV_HRL, 'true').
 -endif.

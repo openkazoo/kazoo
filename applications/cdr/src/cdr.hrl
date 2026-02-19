@@ -4,9 +4,9 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
--define(APP, cdr).
--define(APP_NAME, (atom_to_binary(?APP, utf8))).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP, 'cdr').
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -type account_id() :: kz_term:ne_binary().

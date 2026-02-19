@@ -4,8 +4,8 @@
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(APP, 'kazoo_transactions').
--define(APP_NAME, (atom_to_binary(?APP, utf8))).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(KAZOO_TRANSACTIONS_HRL, 'true').
 -endif.

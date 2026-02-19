@@ -195,7 +195,7 @@
 
 -define(APP, 'ecallmgr').
 -define(APP_NAME, <<"ecallmgr">>).
--define(APP_VERSION, <<"4.4.0a1">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(STARTUP_FILE, [code:priv_dir(?APP), "/startup.config"]).
 -define(SETTINGS_FILE, [code:priv_dir(?APP), "/settings.config"]).
