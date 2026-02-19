@@ -51,6 +51,9 @@
         "HTML": {
             "type": "string"
         },
+        "Owner-ID": {
+            "type": "string"
+        },
         "Preview": {
             "type": "string"
         },

@@ -23,7 +23,7 @@
     is_prior_to_retention/2,
 
     publish_saved_notify/5,
-    publish_voicemail_saved/5,
+    publish_voicemail_saved/6,
     publish_voicemail_deleted/3,
     get_caller_id_name/1,
     get_caller_id_number/1,
@@ -353,6 +353,7 @@ transcribe_default() ->
     kz_amqp_worker:request_return().
 publish_saved_notify(MediaId, BoxId, Call, Length, Props) ->
     MaybeTranscribe = props:get_value(<<"Transcribe-Voicemail">>, Props, 'false'),
+    OwnerId = props:get_value(<<"Owner-Id">>, Props),
     Transcription = maybe_transcribe(Call, MediaId, MaybeTranscribe),
 
     NotifyProp = [
@@ -362,6 +363,7 @@ publish_saved_notify(MediaId, BoxId, Call, Length, Props) ->
         {<<"To-Realm">>, kapps_call:to_realm(Call)},
         {<<"Account-DB">>, kapps_call:account_db(Call)},
         {<<"Account-ID">>, kapps_call:account_id(Call)},
+        {<<"Owner-ID">>, OwnerId},
         {<<"Voicemail-Box">>, BoxId},
         {<<"Voicemail-ID">>, MediaId},
         {<<"Caller-ID-Number">>, get_caller_id_number(Call)},
@@ -385,9 +387,10 @@ publish_saved_notify(MediaId, BoxId, Call, Length, Props) ->
     kz_term:ne_binary(),
     kapps_call:call(),
     kz_term:ne_binary(),
-    kz_time:gregorian_seconds()
+    kz_time:gregorian_seconds(),
+    kz_term:api_binary()
 ) -> 'ok'.
-publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp) ->
+publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp, OwnerId) ->
     Prop = [
         {<<"From-User">>, kapps_call:from_user(Call)},
         {<<"From-Realm">>, kapps_call:from_realm(Call)},
@@ -401,6 +404,7 @@ publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp) ->
         {<<"Caller-ID-Name">>, get_caller_id_name(Call)},
         {<<"Voicemail-Timestamp">>, Timestamp},
         {<<"Voicemail-Length">>, Length},
+        {<<"Owner-ID">>, OwnerId},
         {<<"Call-ID">>, kapps_call:call_id_direct(Call)}
         | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
     ],

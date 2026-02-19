@@ -1052,22 +1052,23 @@ remove_malform_vm(Call, ForwardId) ->
     {'ok', kapps_call:call()}.
 notify_and_update_meta(Call, MediaId, Length, Props) ->
     BoxId = props:get_value(<<"Box-Id">>, Props),
+    OwnerId = props:get_value(<<"Owner-Id">>, Props),
     NotifyAction = props:get_atom_value(<<"After-Notify-Action">>, Props, 'nothing'),
 
     case kvm_util:publish_saved_notify(MediaId, BoxId, Call, Length, Props) of
         {'ok', JObjs} ->
             NewAction = is_notified_successfully(Call, MediaId, JObjs, NotifyAction),
-            maybe_update_meta(Length, NewAction, Call, MediaId, BoxId);
+            maybe_update_meta(Length, NewAction, Call, MediaId, BoxId, OwnerId);
         {'timeout', JObjs} ->
             NewAction = is_notified_successfully(Call, MediaId, JObjs, NotifyAction),
-            maybe_update_meta(Length, NewAction, Call, MediaId, BoxId);
+            maybe_update_meta(Length, NewAction, Call, MediaId, BoxId, OwnerId);
         {'error', _R} ->
             AccountId = kapps_call:account_id(Call),
             lager:debug(
                 "failed to send new voicemail notification for message ~s in account ~s: ~p",
                 [MediaId, AccountId, _R]
             ),
-            maybe_update_meta(Length, 'nothing', Call, MediaId, BoxId)
+            maybe_update_meta(Length, 'nothing', Call, MediaId, BoxId, OwnerId)
     end.
 
 %%------------------------------------------------------------------------------
@@ -1095,9 +1096,14 @@ is_notified_successfully(Call, MediaId, [JObj | JObjs], NotifyAction) ->
     end.
 
 -spec maybe_update_meta(
-    pos_integer(), notify_action(), kapps_call:call(), kz_term:ne_binary(), kz_term:ne_binary()
+    pos_integer(),
+    notify_action(),
+    kapps_call:call(),
+    kz_term:ne_binary(),
+    kz_term:ne_binary(),
+    kz_term:api_binary()
 ) -> {'ok', kapps_call:call()}.
-maybe_update_meta(Length, Action, Call, MediaId, BoxId) ->
+maybe_update_meta(Length, Action, Call, MediaId, BoxId, OwnerId) ->
     case Action of
         'delete' ->
             lager:debug("attachment was sent out via notification, set folder to delete"),
@@ -1118,7 +1124,7 @@ maybe_update_meta(Length, Action, Call, MediaId, BoxId) ->
             update_metadata(Call, BoxId, MediaId, Fun);
         'nothing' ->
             Timestamp = kz_time:now_s(),
-            kvm_util:publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp),
+            kvm_util:publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp, OwnerId),
             {'ok', Call}
     end.
 

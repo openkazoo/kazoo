@@ -1325,6 +1325,7 @@ voicemail_full_definition() ->
     <<"Call-ID">>,
     <<"Caller-ID-Name">>,
     <<"Caller-ID-Number">>,
+    <<"Owner-ID">>,
     <<"Voicemail-Length">>,
     <<"Voicemail-Transcription">>
     | ?DEFAULT_OPTIONAL_HEADERS

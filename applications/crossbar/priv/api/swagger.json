@@ -20326,6 +20326,9 @@
                 "HTML": {
                     "type": "string"
                 },
+                "Owner-ID": {
+                    "type": "string"
+                },
                 "Preview": {
                     "type": "string"
                 },
@@ -20427,6 +20430,9 @@
                     "type": "string"
                 },
                 "HTML": {
+                    "type": "string"
+                },
+                "Owner-ID": {
                     "type": "string"
                 },
                 "Preview": {
