@@ -267,6 +267,8 @@ post(Context, AgentId, ?STATUS_PATH_TOKEN) ->
         <<"logout">> -> publish_update(Context, AgentId, fun kapi_acdc_agent:publish_logout/1);
         <<"pause">> -> publish_update(Context, AgentId, fun kapi_acdc_agent:publish_pause/1);
         <<"resume">> -> publish_update(Context, AgentId, fun kapi_acdc_agent:publish_resume/1);
+        <<"queue_login">> -> publish_queue_update(cb_context:account_id(Context), AgentId, cb_context:req_value(Context, <<"queue_id">>), fun kapi_acdc_agent:publish_login_queue/1);
+        <<"queue_logout">> -> publish_queue_update(cb_context:account_id(Context), AgentId, cb_context:req_value(Context, <<"queue_id">>), fun kapi_acdc_agent:publish_logout_queue/1);
         <<"end_wrapup">> -> publish_update(Context, AgentId, fun kapi_acdc_agent:publish_end_wrapup/1)
     end,
     crossbar_util:response(<<"status update sent">>, Context);
@@ -311,6 +313,16 @@ publish_update(Context, AgentId, PubFun) ->
                ,{<<"Presence-State">>, cb_context:req_value(Context, <<"presence_state">>)}
                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
                ]),
+    kz_amqp_worker:cast(Update, PubFun).
+
+-spec publish_queue_update(kz_term:api_binary(), kz_term:api_binary(), kz_term:api_binary(), function()) -> 'ok'.
+publish_queue_update(AccountId, AgentId, QueueId, PubFun) ->
+    Update = props:filter_undefined(
+             [{<<"Account-ID">>, AccountId}
+              ,{<<"Agent-ID">>, AgentId}
+              ,{<<"Queue-ID">>, QueueId}
+              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+             ]),
     kz_amqp_worker:cast(Update, PubFun).
 
 -spec publish_restart(cb_context:context(), kz_term:ne_binary()) -> 'ok'.
@@ -495,7 +507,7 @@ fetch_ranged_agent_stats(AgentId, Context, StartRange, Summarize) ->
             fetch_ranged_agent_stats(AgentId, Context, F, To, F >= Past, Summarize)
     end.
 
--spec fetch_ranged_agent_stats(kz_term:api_binary(), cb_context:context(), pos_integer(), pos_integer(), boolean(), boolean) ->
+-spec fetch_ranged_agent_stats(kz_term:api_binary(), cb_context:context(), pos_integer(), pos_integer(), boolean(), boolean()) ->
                                       cb_context:context().
 fetch_ranged_agent_stats(AgentId, Context, From, To, 'true', Summarize) ->
     lager:debug("ranged query from ~b to ~b(~b) of current stats (now ~b)", [From, To, To-From, kz_time:current_tstamp()]),
@@ -745,7 +757,7 @@ validate_status_change(Context) ->
             check_for_status_error(Context, cb_context:req_value(Context, <<"status">>))
     end.
 
--define(STATUS_CHANGES, [<<"login">>, <<"logout">>, <<"pause">>, <<"resume">>, <<"end_wrapup">>]).
+-define(STATUS_CHANGES, [<<"login">>, <<"queue_login">>, <<"logout">>, <<"queue_logout">>, <<"pause">>, <<"resume">>, <<"end_wrapup">>]).
 -spec validate_status_change(cb_context:context(), kz_term:api_binary()) ->
                                     cb_context:context().
 validate_status_change(Context, S) ->

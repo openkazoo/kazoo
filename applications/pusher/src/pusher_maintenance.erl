@@ -16,8 +16,10 @@
         ]).
 
 -spec add_firebase_app(binary(), binary()) -> 'ok'.
-add_firebase_app(AppId, Secret) ->
-    _ = kapps_config:set_node(?CONFIG_CAT, [<<"firebase">>, <<"api_key">>], Secret, AppId),
+add_firebase_app(AppId, Filename) ->
+    {'ok', Data} = file:read_file(Filename),
+    JObj = kz_json:decode(Data),
+    _ = kapps_config:set_node(?CONFIG_CAT, [<<"firebase">>, <<"service_account">>], JObj, AppId),
     'ok'.
 
 -spec add_apple_app(binary(), binary()) -> 'ok' | {'error', any()}.

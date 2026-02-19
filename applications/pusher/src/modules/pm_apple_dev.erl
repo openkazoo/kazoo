@@ -47,6 +47,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({'push', JObj}, #state{tab=ETS}=State) ->
     kz_util:put_callid(JObj),
     TokenApp = kz_json:get_value(<<"Token-App">>, JObj),
+    lager:debug("received push request for ~p", [{TokenApp, ETS}]),
     maybe_send_push_notification(get_apns(TokenApp, ETS), JObj),
     {'noreply', State};
 handle_cast('stop', State) ->

@@ -327,7 +327,7 @@ maybe_migrate(AccountId) ->
                                               ,[{'account_id', AccountId}
                                                ,{'type', <<"acdc_activation">>}
                                                ]),
-            kz_datamgr:ensure_saved(?KZ_ACDC_DB, Doc),
+            kz_datamgr:save_doc(?KZ_ACDC_DB, Doc, [{'ensure_saved', 'true'}]),
             io:format("saved account ~s to acdc db~n", [AccountId]);
         {'error', _E} ->
             io:format("failed to query queue listing for account ~s: ~p~n", [AccountId, _E])
@@ -535,11 +535,12 @@ agent_pause(AccountId, AgentId, Timeout) ->
     Update = props:filter_undefined(
                [{<<"Account-ID">>, AccountId}
                ,{<<"Agent-ID">>, AgentId}
-               ,{<<"Time-Limit">>, binary_to_integer(Timeout)}
+               ,{<<"Time-Limit">>, kz_term:to_integer(Timeout)}
                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
                ]),
     kz_amqp_worker:cast(Update, fun kapi_acdc_agent:publish_pause/1),
-    lager:info("published pause for agent").
+    lager:info("published pause for agent"),
+    'ok'.
 
 -spec agent_resume(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
 agent_resume(AccountId, AgentId) ->

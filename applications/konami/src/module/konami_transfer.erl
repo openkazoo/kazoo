@@ -324,7 +324,7 @@ attended_wait('cast', ?EVENT(TargetA, <<"LEG_CREATED">>, Evt)
              ) ->
     TargetB = kz_call_event:other_leg_call_id(Evt),
     lager:debug("target 'b' started: ~s", [TargetB]),
-    konami_event_listener:add_call_binding(TargetB, ?TARGET_CALL_EVENTS),
+    konami_event_listener:add_call_binding(TargetB),
 
     ?WSD_EVT(TargetA, TargetB, <<"target b leg created">>),
 
@@ -996,9 +996,9 @@ terminate(_Reason, _StateName, #state{transferor=Transferor
                                      ,transferee=Transferee
                                      ,target=Target
                                      }) ->
-    konami_event_listener:rm_call_binding(Transferor, ?TRANSFEROR_CALL_EVENTS),
-    konami_event_listener:rm_call_binding(Transferee, ?TRANSFEREE_CALL_EVENTS),
-    konami_event_listener:rm_call_binding(Target, ?TARGET_CALL_EVENTS),
+    konami_event_listener:rm_call_binding(Transferor),
+    konami_event_listener:rm_call_binding(Transferee),
+    konami_event_listener:rm_call_binding(Target),
     ?WSD_NOTE(Transferor, 'right', <<"eot while in ", (kz_term:to_binary(_StateName))/binary>>),
     ?WSD_STOP(),
     lager:info("statem terminating while in ~s: ~p", [_StateName, _Reason]).
@@ -1016,11 +1016,11 @@ callback_mode() ->
 
 -spec add_transferor_bindings(kz_term:ne_binary()) -> 'ok'.
 add_transferor_bindings(CallId) ->
-    konami_event_listener:add_call_binding(CallId, ?TRANSFEROR_CALL_EVENTS).
+    konami_event_listener:add_call_binding(CallId).
 
 -spec add_transferee_bindings(kz_term:ne_binary()) -> 'ok'.
 add_transferee_bindings(CallId) ->
-    konami_event_listener:add_call_binding(CallId, ?TRANSFEREE_CALL_EVENTS).
+    konami_event_listener:add_call_binding(CallId).
 
 -spec originate_to_extension(kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call()) -> kz_term:ne_binary().
 originate_to_extension(Extension, TransferorLeg, Call) ->
@@ -1090,7 +1090,7 @@ create_call_id() ->
 
 -spec bind_target_call_events(kz_term:ne_binary()) -> 'ok'.
 bind_target_call_events(CallId) ->
-    konami_event_listener:add_call_binding(CallId, ?TARGET_CALL_EVENTS).
+    konami_event_listener:add_call_binding(CallId).
 
 -spec caller_id_name(kapps_call:call(), kz_term:ne_binary()) -> kz_term:ne_binary().
 caller_id_name(Call, CallerLeg) ->
@@ -1414,7 +1414,7 @@ handle_real_target(#state{target_a_leg=TargetA
     lager:debug("target 'a' ~s being replaced by ~s", [TargetA, ReplacementId]),
     ?WSD_EVT(TargetA, ReplacementId, <<"replaced target 'a'">>),
 
-    konami_event_listener:add_call_binding(ReplacementId, ?TARGET_CALL_EVENTS),
+    konami_event_listener:add_call_binding(ReplacementId),
 
     State1 = State#state{target_call=kapps_call:set_call_id(ReplacementId, TargetCall)
                         ,target=ReplacementId

@@ -906,7 +906,7 @@ activate_account_for_acdc(Context) ->
                                               ,[{'account_id', cb_context:account_id(Context)}
                                                ,{'type', <<"acdc_activation">>}
                                                ]),
-            {'ok', _} = kz_datamgr:ensure_saved(?KZ_ACDC_DB, Doc),
+            {'ok', _} = kz_datamgr:save_doc(?KZ_ACDC_DB, Doc, [{'ensure_saved', 'true'}]),
             'ok';
         {'error', _E} ->
             lager:debug("failed to check acdc activation doc: ~p", [_E])

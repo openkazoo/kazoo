@@ -309,7 +309,7 @@ should_ignore_member_call(Srv, Call, AccountId, QueueId) ->
 up_next(Srv, CallId) ->
     gen_listener:call(Srv, {'up_next', CallId}).
 
--spec config(pid()) -> {kz_term:ne_binary(), kz_term:ne_binary()}.
+-spec config(pid()) -> {kz_term:ne_binary(), kz_term:ne_binary(), queue_strategy()}.
 config(Srv) -> gen_listener:call(Srv, 'config').
 
 -spec current_agents(kz_term:server_ref()) -> kz_term:ne_binaries().

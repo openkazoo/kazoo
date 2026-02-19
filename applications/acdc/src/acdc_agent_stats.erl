@@ -275,7 +275,7 @@ handle_status_stat(JObj, Props) ->
                  <<"logged_out">> -> kapi_acdc_stats:status_logged_out_v(JObj);
                  <<"pending_logged_out">> -> kapi_acdc_stats:status_pending_logged_out_v(JObj);
                  <<"connecting">> -> kapi_acdc_stats:status_connecting_v(JObj);
-                 <<"ringing">> -> kapi_acdc_stats:status_ringing_v(JObj);
+                 <<"ringing">> -> 'true';
                  <<"connected">> -> kapi_acdc_stats:status_connected_v(JObj);
                  <<"wrapup">> -> kapi_acdc_stats:status_wrapup_v(JObj);
                  <<"paused">> -> kapi_acdc_stats:status_paused_v(JObj);
@@ -461,7 +461,7 @@ is_valid_agent_call_status(S) ->
         'false' -> 'false'
     end.
 
--spec query_agent_calls(ets:match_spec(), pos_integer() | 'no_limit') -> 'ok'.
+-spec query_agent_calls(ets:match_spec(), pos_integer() | 'no_limit') -> kz_term:proplist().
 query_agent_calls(Match, _Limit) ->
     case ets:select(acdc_stats:agent_call_table_id(), Match) of
         [] ->

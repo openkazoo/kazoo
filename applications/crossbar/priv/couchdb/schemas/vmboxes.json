@@ -65,7 +65,7 @@
             "properties": {
                 "unavailable": {
                     "description": "The ID of a media object that should be used as the unavailable greeting",
-                    "maxLength": 32,
+                    "maxLength": 65,
                     "minLength": 32,
                     "support_level": "supported",
                     "type": "string"

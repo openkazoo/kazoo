@@ -113,9 +113,12 @@ dep_proper = git https://github.com/manopapad/proper v1.2
 
 dep_syslog = git https://github.com/2600hz/erlang-syslog bbad537a1cb5e4f37e672d2e2665659e850662d0
 
-dep_fcm = git https://github.com/kageds/fcm-erlang.git cc
+dep_fcm = git https://github.com/2600hz/erlang-fcm 3435b3e228e32c9860191f4ce6ced5943bffedef
 
 dep_gen_smtp = git https://github.com/2600hz/erlang-gen_smtp 3f80bfcd4fd8704739d264eb4d5005d4392f2a35
 ## pinning gen_smtp because upstream made some breaking changes (using maps in some options)
 ## adding check to not convert if the From/To encodings match
 ## latest commit to origin/2600Hz: Fixes for encoding email address in a single comma separated header line
+
+autopatch-apns::
+	(cd $(DEPS_DIR)/apns && git apply _patches/apns.patch)

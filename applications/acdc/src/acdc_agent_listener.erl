@@ -844,6 +844,9 @@ handle_cast({'member_connect_resp', ReqJObj}, #state{agent_id=AgentId
             ,'hibernate'}
     end;
 
+handle_cast({'hangup_call'}, #state{call='undefined'}=State) ->
+    lager:debug("agent FSM requested a hangup of the agent call, but not call in progess, ignore"),
+    {'noreply', State ,'hibernate'};
 handle_cast({'hangup_call'}, #state{my_id=MyId
                                    ,msg_queue_id=Server
                                    ,agent_call_ids=ACallIds
@@ -851,7 +854,7 @@ handle_cast({'hangup_call'}, #state{my_id=MyId
                                    ,agent_id=AgentId
                                    }=State) ->
     %% Hangup this agent's calls
-    lager:debug("agent FSM requested a hangup of the agent call, sending retry"),
+    lager:info("agent FSM requested a hangup of the agent call, sending retry"),
     ACallIds1 = filter_agent_calls(ACallIds, AgentId),
 
     %% Pass the call on to another agent
@@ -1233,6 +1236,7 @@ maybe_connect_to_agent(MyQ, EPs, Call, Timeout, AgentId, _CdrUrl) ->
                                   ,{<<"Retain-CID">>, <<"true">>}
                                   ,{<<"Agent-ID">>, AgentId}
                                   ,{<<"Member-Call-ID">>, MCallId}
+                                  ,{<<?CALL_INTERACTION_ID>>, kapps_call:custom_channel_var(<<?CALL_INTERACTION_ID>>, Call)}
                                   ]),
 
     {ACallIds, Endpoints} = lists:foldl(fun(EP, {Cs, Es}) ->

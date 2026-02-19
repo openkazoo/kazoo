@@ -1,0 +1,140 @@
+diff --git a/rebar.config b/rebar.config
+index 0d4e582..12b55f0 100644
+--- a/rebar.config
++++ b/rebar.config
+@@ -1,6 +1,7 @@
+ %% == Erlang Compiler ==
+ 
+ {erl_opts, [
++  {parse_transform, lager_transform},
+   warn_unused_vars,
+   warn_export_all,
+   warn_shadow_vars,
+diff --git a/src/apns_connection.erl b/src/apns_connection.erl
+index bdf1761..bcd78a7 100644
+--- a/src/apns_connection.erl
++++ b/src/apns_connection.erl
+@@ -207,6 +207,7 @@ callback_mode() -> state_functions.
+      , {next_event, internal, init}
+      }.
+ init({Connection, Client}) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   StateData = #{ connection      => Connection
+                , client          => Client
+                , backoff         => 1
+@@ -217,6 +218,7 @@ init({Connection, Client}) ->
+ 
+ -spec open_connection(_, _, _) -> _.
+ open_connection(internal, _, #{connection := Connection} = StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   NextState = case proxy(Connection) of
+     #{type := connect} -> open_proxy;
+     undefined          -> open_origin
+@@ -226,6 +228,7 @@ open_connection(internal, _, #{connection := Connection} = StateData) ->
+ 
+ -spec open_origin(_, _, _) -> _.
+ open_origin(internal, _, #{connection := Connection} = StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   Host = host(Connection),
+   Port = port(Connection),
+   TransportOpts = transport_opts(Connection),
+@@ -241,6 +244,7 @@ open_origin(internal, _, #{connection := Connection} = StateData) ->
+ 
+ -spec open_proxy(_, _, _) -> _.
+ open_proxy(internal, _, StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   #{connection := Connection} = StateData,
+   #{type := connect, host := ProxyHost, port := ProxyPort} = proxy(Connection),
+   Opts0 = #{ protocols => [http]
+@@ -258,6 +262,7 @@ open_proxy(internal, _, StateData) ->
+ %% I do not think it makes things any easier to read.
+ -spec open_common(_, _, _) -> _.
+ open_common(internal, {Host, Port, Opts}, StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   {ok, GunPid} = gun:open(Host, Port, Opts),
+   GunMon = monitor(process, GunPid),
+   {next_state, await_up,
+@@ -266,6 +271,7 @@ open_common(internal, {Host, Port, Opts}, StateData) ->
+ 
+ -spec await_up(_, _, _) -> _.
+ await_up(info, {gun_up, GunPid, Protocol}, #{gun_pid := GunPid} = StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   #{connection := Connection} = StateData,
+   NextState = case proxy(Connection) of
+     #{type := connect} when Protocol =:= http -> proxy_connect_to_origin;
+@@ -278,6 +284,7 @@ await_up(EventType, EventContent, StateData) ->
+ 
+ -spec proxy_connect_to_origin(_, _, _) -> _.
+ proxy_connect_to_origin(internal, on_connect, StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   #{connection := Connection, gun_pid := GunPid} = StateData,
+   Host = host(Connection),
+   Port = port(Connection),
+@@ -302,6 +309,7 @@ proxy_connect_to_origin(internal, on_connect, StateData) ->
+ await_tunnel_up( info
+                , {gun_response, GunPid, ConnectRef, fin, 200, _}
+                , #{gun_pid := GunPid, gun_connect_ref := ConnectRef} = StateData) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   {next_state, connected, StateData,
+     {next_event, internal, on_connect}};
+ await_tunnel_up(EventType, EventContent, StateData) ->
+@@ -316,7 +324,9 @@ connected( {call, {Client, _} = From}
+          , #{client := Client} = StateData) ->
+   #{connection := Connection, gun_pid := GunPid} = StateData,
+   #{timeout := Timeout} = Connection,
++  lager:debug("sending push to ~s", [DeviceId]),
+   Response = push(GunPid, DeviceId, Headers, Notification, Timeout),
++  lager:debug("response is ~p", [Response]),
+   {keep_state_and_data, {reply, From, Response}};
+ connected( {call, {Client, _} = From}
+          , {push_notification, Token, DeviceId, Notification, Headers0}
+@@ -324,7 +334,9 @@ connected( {call, {Client, _} = From}
+   #{connection := Connection, gun_pid := GunConn} = StateData,
+   #{timeout := Timeout} = Connection,
+   Headers = add_authorization_header(Headers0, Token),
++  lager:debug("sending push to ~s", [DeviceId]),
+   Response = push(GunConn, DeviceId, Headers, Notification, Timeout),
++  lager:debug("response is ~p", [Response]),
+   {keep_state_and_data, {reply, From, Response}};
+ connected({call, From}, Event, _) when element(1, Event) =:= push_notification ->
+   {keep_state_and_data, {reply, From, {error, not_connection_owner}}};
+@@ -344,6 +356,7 @@ down(internal
+        , backoff         := Backoff
+        , backoff_ceiling := Ceiling
+        }) ->
++  lager:debug("running ~p", [?FUNCTION_NAME]),
+   true = demonitor(GunMon, [flush]),
+   gun:close(GunPid),
+   Client ! {reconnecting, self()},
+@@ -359,12 +372,14 @@ down(EventType, EventContent, StateData) ->
+ handle_common({call, From}, gun_pid, _, #{gun_pid := GunPid}, _) ->
+   {keep_state_and_data, {reply, From, GunPid}};
+ handle_common(cast, stop, _, _, _) ->
++  lager:debug("processing 'stop' request"),
+   {stop, normal};
+ handle_common( info
+              , {'DOWN', GunMon, process, GunPid, Reason}
+              , StateName
+              , #{gun_pid := GunPid, gun_monitor := GunMon} = StateData
+              , _) ->
++  lager:debug("connection closed"),
+   {next_state, down, StateData,
+     {next_event, internal, {down, StateName, Reason}}};
+ handle_common( state_timeout
+@@ -372,6 +387,7 @@ handle_common( state_timeout
+              , StateName
+              , #{gun_pid := GunPid} = StateData
+              , _) ->
++  lager:debug("fired state_timeout, closing connection"),
+   gun:close(GunPid),
+   {next_state, down, StateData,
+     {next_event, internal, {state_timeout, StateName, EventContent}}};
+@@ -480,7 +496,7 @@ push(GunConn, DeviceId, HeadersMap, Notification, Timeout) ->
+   Headers = get_headers(HeadersMap),
+   Path = get_device_path(DeviceId),
+   StreamRef = gun:post(GunConn, Path, Headers, Notification),
+-  case gun:await(GunConn, StreamRef, Timeout) of
++  case catch gun:await(GunConn, StreamRef, Timeout) of
+       {response, fin, Status, ResponseHeaders} ->
+         {Status, ResponseHeaders, no_body};
+       {response, nofin, Status, ResponseHeaders} ->

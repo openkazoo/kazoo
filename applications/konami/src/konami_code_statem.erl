@@ -228,16 +228,8 @@ handle_event(?EVENT(_CallId, <<"CHANNEL_ANSWER">>, Evt)
             ,State
             ) ->
     {'next_state', StateName, handle_channel_answer(State, kz_call_event:call_id(Evt), Evt)};
-handle_event(?EVENT(CallId, <<"CHANNEL_BRIDGE">>, Evt)
-            ,StateName
-            ,#state{call_id=CallId}=State
-            ) ->
-    {'next_state', StateName, handle_channel_bridge(State#state{other_leg=kz_call_event:other_leg_call_id(Evt)}, CallId, kz_call_event:other_leg_call_id(Evt))};
-handle_event(?EVENT(OtherLeg, <<"CHANNEL_BRIDGE">>, Evt)
-            ,StateName
-            ,#state{other_leg=OtherLeg}=State
-            ) ->
-    {'next_state', StateName, handle_channel_bridge(State#state{call_id=kz_call_event:other_leg_call_id(Evt)}, kz_call_event:other_leg_call_id(Evt), OtherLeg)};
+handle_event(?EVENT(_, <<"CHANNEL_BRIDGE">>, Evt), StateName, State) ->
+    {'next_state', StateName, handle_channel_bridge(State, Evt)};
 handle_event(?EVENT(CallId, <<"CHANNEL_DESTROY">>, _Evt)
             ,StateName
             ,#state{call_id=CallId}=State
@@ -277,8 +269,6 @@ terminate(_Reason, _StateName, #state{call_id=CallId
                                      }) ->
     konami_event_listener:rm_call_binding(CallId),
     konami_event_listener:rm_call_binding(OtherLeg),
-    konami_event_listener:rm_konami_binding(CallId),
-    konami_event_listener:rm_konami_binding(OtherLeg),
     ?WSD_STOP(),
     lager:debug("statem terminating while in ~s: ~p", [_StateName, _Reason]).
 
@@ -531,14 +521,10 @@ maybe_add_call_event_bindings(Call) -> konami_event_listener:add_call_binding(Ca
 
 -spec maybe_add_call_event_bindings(kapps_call:call(), listen_on()) -> 'ok'.
 maybe_add_call_event_bindings(Call, 'a') ->
-    konami_event_listener:add_konami_binding(kapps_call:call_id(Call)),
     maybe_add_call_event_bindings(Call);
 maybe_add_call_event_bindings(Call, 'b') ->
-    konami_event_listener:add_konami_binding(kapps_call:other_leg_call_id(Call)),
     maybe_add_call_event_bindings(Call);
 maybe_add_call_event_bindings(Call, 'ab') ->
-    konami_event_listener:add_konami_binding(kapps_call:call_id(Call)),
-    konami_event_listener:add_konami_binding(kapps_call:other_leg_call_id(Call)),
     maybe_add_call_event_bindings(Call).
 
 -spec b_endpoint_id(kz_json:object(), listen_on(), kz_term:ne_binary()) -> kz_term:api_binary().
@@ -593,68 +579,56 @@ maybe_other_leg_answered(#state{listen_on='b'
     State#state{other_leg=OtherLeg
                ,call=kapps_call:set_other_leg_call_id(OtherLeg, Call)
                };
-maybe_other_leg_answered(#state{listen_on='ab'
-                               ,call=Call
-                               }=State
-                        ,OtherLeg
-                        ,EndpointId
-                        ) ->
-    lager:debug("yay, our endpoint ~s answered on ~s", [EndpointId, OtherLeg]),
-    maybe_add_call_event_bindings(OtherLeg),
-    State#state{other_leg=OtherLeg
-               ,call=kapps_call:set_other_leg_call_id(OtherLeg, Call)
-               };
 maybe_other_leg_answered(State, _CallId, _EndpointId) ->
     lager:debug("ignoring channel ~s answering for endpoint ~s", [_CallId, _EndpointId]),
     State.
 
--spec handle_channel_bridge(state(), kz_term:ne_binary(), kz_term:ne_binary()) -> state().
-handle_channel_bridge(#state{call_id=CallId
-                            ,listen_on='a'
-                            ,call=Call
-                            }=State, CallId, OtherLeg) ->
-    lager:debug("joy, 'a' is bridged to ~s", [OtherLeg]),
-    State#state{call=kapps_call:set_other_leg_call_id(OtherLeg, Call)
-               ,other_leg=OtherLeg
-               };
-handle_channel_bridge(#state{call_id=CallId
-                            ,listen_on='b'
-                            }=State, CallId, _OtherLeg) ->
-    lager:debug("joy, 'b' is bridged to ~s. Removing binding to a-leg", [CallId]),
-    konami_event_listener:rm_call_binding(CallId),
-    konami_event_listener:rm_konami_binding(CallId),
-    State;
-handle_channel_bridge(#state{call_id=CallId
-                            ,other_leg=OtherLeg
-                            }=State, CallId, OtherLeg) ->
-    lager:debug("joy, 'a' and 'b' legs bridged"),
-    State;
-handle_channel_bridge(#state{other_leg='undefined'}
-                     ,_CallId
-                     ,_OtherLeg
-                     ) ->
-    lager:debug("'a' leg has bridged to other leg ~s...done here", [_OtherLeg]),
-    exit('normal');
-handle_channel_bridge(#state{call_id=_CallId
-                            ,other_leg=OtherLeg
-                            ,listen_on='a'
-                            }
-                     ,UUID
-                     ,OtherLeg
-                     ) ->
-    lager:debug("our 'b' leg ~s bridged to ~s instead of ~s", [OtherLeg, UUID, _CallId]),
-    exit('normal');
-handle_channel_bridge(#state{call_id=_CallId
-                            ,other_leg=OtherLeg
-                            ,call=Call
-                            }=State
-                     ,UUID
-                     ,OtherLeg
-                     ) ->
-    lager:debug("our 'b' leg ~s bridged to ~s instead of ~s", [OtherLeg, UUID, _CallId]),
-    State#state{call_id=UUID
-               ,call=kapps_call:set_call_id(UUID, Call)
-               }.
+-spec handle_channel_bridge(state(), kz_json:object()) -> state().
+handle_channel_bridge(#state{call_id = CallId, other_leg = OtherLeg, listen_on = 'ab'} = State
+                     ,Evt) ->
+    BridgeId = kz_call_event:call_id(Evt),
+    BridgeTo = kz_call_event:other_leg_call_id(Evt),
+    case {CallId, OtherLeg} of
+        {BridgeId, _} ->
+            maybe_add_call_event_bindings(BridgeTo),
+            State#state{other_leg = BridgeTo};
+        {BridgeTo, _} ->
+            maybe_add_call_event_bindings(BridgeId),
+            State#state{other_leg = BridgeId};
+        {_, BridgeId} ->
+            maybe_add_call_event_bindings(BridgeTo),
+            State#state{call_id = BridgeTo};
+        {_, BridgeTo} ->
+            maybe_add_call_event_bindings(BridgeId),
+            State#state{call_id = BridgeId};
+        _ -> State
+    end;
+handle_channel_bridge(#state{call_id = CallId, listen_on = 'a'} = State, Evt) ->
+    BridgeId = kz_call_event:call_id(Evt),
+    BridgeTo = kz_call_event:other_leg_call_id(Evt),
+    case CallId of
+        BridgeId ->
+            maybe_add_call_event_bindings(BridgeTo),
+            State#state{other_leg = BridgeTo};
+        BridgeTo ->
+            maybe_add_call_event_bindings(BridgeId),
+            State#state{other_leg = BridgeId};
+        _ -> State
+    end;
+handle_channel_bridge(#state{other_leg = OtherLeg, listen_on = 'b'} = State, Evt) ->
+    BridgeId = kz_call_event:call_id(Evt),
+    BridgeTo = kz_call_event:other_leg_call_id(Evt),
+    case OtherLeg of
+        BridgeId ->
+            maybe_add_call_event_bindings(BridgeTo),
+            State#state{call_id = BridgeTo};
+        BridgeTo ->
+            maybe_add_call_event_bindings(BridgeId),
+            State#state{call_id = BridgeId};
+        _ -> exit('normal')
+    end;
+handle_channel_bridge(State, _Evt) ->
+    State.
 
 -spec handle_channel_destroy(state(), kz_term:ne_binary()) -> state().
 handle_channel_destroy(#state{call_id=CallId
@@ -687,6 +661,12 @@ handle_channel_destroy(#state{other_leg=OtherLeg
                       ,OtherLeg
                       ) ->
     lager:debug("'b' ~s has ended, so should we", [OtherLeg]),
+    exit('normal');
+handle_channel_destroy(#state{call_id='undefined'
+                             ,other_leg=OtherLeg}
+                      ,OtherLeg
+                      ) ->
+    lager:debug("'b' ~s has ended and we have not 'a' leg"),
     exit('normal');
 handle_channel_destroy(#state{other_leg=OtherLeg
                              ,call=Call

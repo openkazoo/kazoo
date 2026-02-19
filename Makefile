@@ -3,7 +3,7 @@ RELX = $(ROOT)/deps/relx
 ELVIS = $(ROOT)/deps/elvis
 FMT = $(ROOT)/make/erlang-formatter/fmt.sh
 TAGS = $(ROOT)/TAGS
-ERLANG_MK_COMMIT = d30dda39b08e6ed9e12b44533889eaf90aba86de
+ERLANG_MK_COMMIT = 7937ac32096f872fe8680312402773822cbfbf93
 
 BASE_BRANCH := $(shell cat $(ROOT)/.base_branch)
 
