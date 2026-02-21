@@ -95,7 +95,7 @@ scheme([$: | Rest], Acc, Block, Uri) ->
         [] ->
             {error, scheme, ?LINE};
         _ ->
-            Uri1 = Uri#uri{scheme = nklib_parse:scheme(lists:reverse(Acc))},
+            Uri1 = Uri#uri{scheme = kzsip_parse:scheme(lists:reverse(Acc))},
             Rest1 = strip(Rest),
             case user(Rest1, [], Block, Uri1) of
                 {error, _Error, _Line} ->

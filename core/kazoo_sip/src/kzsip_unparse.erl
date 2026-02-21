@@ -209,7 +209,7 @@ gen_opts([{K, V} | Rest], Acc) ->
             $;,
             kz_term:to_binary(K),
             $=,
-            kw_term:to_binary(V)
+            kz_term:to_binary(V)
         ]
         | Acc
     ]);

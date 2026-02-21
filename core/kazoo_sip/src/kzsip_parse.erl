@@ -535,7 +535,11 @@ norm_split([], _Chars, _Skipping, [], Acc2) ->
     lists:reverse(Acc2);
 norm_split([], _Chars, _Skipping, Acc1, Acc2) ->
     Word = list_to_binary(lists:reverse(Acc1)),
-    Acc3 = nklib_util:store_value(Word, Acc2),
+    Acc3 =
+        case lists:member(Word, Acc2) of
+            true -> Acc2;
+            false -> [Word | Acc2]
+        end,
     lists:reverse(Acc3);
 norm_split([Char | Rest], Chars, false, Acc1, Acc2) ->
     case lists:member(Char, Chars) of
@@ -543,7 +547,11 @@ norm_split([Char | Rest], Chars, false, Acc1, Acc2) ->
             norm_split(Rest, Chars, true, [], Acc2);
         true ->
             Word = list_to_binary(lists:reverse(Acc1)),
-            Acc3 = nklib_util:store_value(Word, Acc2),
+            Acc3 =
+                case lists:member(Word, Acc2) of
+                    true -> Acc2;
+                    false -> [Word | Acc2]
+                end,
             norm_split(Rest, Chars, true, [], Acc3);
         false ->
             norm_split(Rest, Chars, false, [Char | Acc1], Acc2)
