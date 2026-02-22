@@ -173,7 +173,7 @@ handle_config_req(Node, FetchId, ConfFile, FSData) ->
         process_config_req(Node, FetchId, ConfFile, FSData)
     catch
         _E:_R:ST ->
-            lager:info("failed to process config request for ~s: ~s: ~p", [ConfFile, _E, _R]),
+            lager:warning("failed to process config request for ~s: ~s: ~p", [ConfFile, _E, _R]),
             kz_util:log_stacktrace(ST),
             config_req_not_handled(Node, FetchId, ConfFile)
     end.
@@ -183,16 +183,29 @@ handle_config_req(Node, FetchId, ConfFile, FSData) ->
 ) -> fs_sendmsg_ret().
 process_config_req(Node, FetchId, <<"acl.conf">>, _Props) ->
     SysconfResp = ecallmgr_fs_acls:get(),
-    ConfigXML = generate_acl_xml(SysconfResp),
-    lager:debug_unsafe("sending acl XML to ~s: ~s", [Node, ConfigXML]),
-    freeswitch:fetch_reply(Node, FetchId, 'configuration', ConfigXML);
+    case kz_json:is_empty(SysconfResp) of
+        'true' ->
+            lager:warning("ignoring acl.conf request (no ACLs configured)"),
+            config_req_not_handled(Node, FetchId, <<"acl.conf">>);
+        'false' ->
+            ConfigXML = generate_acl_xml(SysconfResp),
+            lager:debug_unsafe("sending acl XML to ~s: ~s", [Node, ConfigXML]),
+            freeswitch:fetch_reply(Node, FetchId, 'configuration', ConfigXML)
+    end;
 process_config_req(Node, Id, <<"sofia.conf">>, _Props) ->
-    'true' = kapps_config:is_true(?APP_NAME, <<"sofia_conf">>),
-    Profiles = kapps_config:get_json(?APP_NAME, <<"fs_profiles">>, kz_json:new()),
-    DefaultProfiles = default_sip_profiles(Node),
-    {'ok', ConfigXml} = ecallmgr_fs_xml:sip_profiles_xml(kz_json:merge(DefaultProfiles, Profiles)),
-    lager:debug("sending sofia XML to ~s: ~s", [Node, ConfigXml]),
-    freeswitch:fetch_reply(Node, Id, 'configuration', erlang:iolist_to_binary(ConfigXml));
+    case kapps_config:is_true(?APP_NAME, <<"sofia_conf">>) of
+        'true' ->
+            Profiles = kapps_config:get_json(?APP_NAME, <<"fs_profiles">>, kz_json:new()),
+            DefaultProfiles = default_sip_profiles(Node),
+            {'ok', ConfigXml} = ecallmgr_fs_xml:sip_profiles_xml(
+                kz_json:merge(DefaultProfiles, Profiles)
+            ),
+            lager:debug("sending sofia XML to ~s: ~s", [Node, ConfigXml]),
+            freeswitch:fetch_reply(Node, Id, 'configuration', erlang:iolist_to_binary(ConfigXml));
+        SofiaConf ->
+            lager:warning("ignoring sofia.conf request (ecallmgr.sofia_conf is ~p)", [SofiaConf]),
+            config_req_not_handled(Node, Id, <<"sofia.conf">>)
+    end;
 process_config_req(Node, Id, <<"conference.conf">>, Data) ->
     fetch_conference_config(Node, Id, kzd_freeswitch:event_name(Data), Data);
 process_config_req(Node, Id, <<"kazoo.conf">>, Data) ->
@@ -212,7 +225,6 @@ config_req_not_handled(Node, FetchId, Conf) ->
 
 -spec generate_acl_xml(kz_json:object()) -> kz_term:ne_binary().
 generate_acl_xml(SysconfResp) ->
-    'false' = kz_json:is_empty(SysconfResp),
     {'ok', ConfigXml} = ecallmgr_fs_xml:acl_xml(SysconfResp),
     erlang:iolist_to_binary(ConfigXml).
 
