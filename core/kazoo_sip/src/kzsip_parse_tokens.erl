@@ -29,7 +29,9 @@
 %% ===================================================================
 
 %% @doc Parse a serie of tokens in a string
--spec tokens(nklib:token() | binary() | string()) ->
+-type token() :: {binary(), [binary() | {binary(), binary()}]}.
+
+-spec tokens(token() | binary() | string()) ->
     [Token] | error
 when
     Token :: {binary(), [binary() | {binary(), binary()}]}.

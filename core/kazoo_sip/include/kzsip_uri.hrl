@@ -1,7 +1,7 @@
 -ifndef(KZSIP_URI_HRL).
 
 -record(uri, {
-    scheme :: nklib:scheme(),
+    scheme :: atom() | binary(),
     user = <<>> :: binary(),
     pass = <<>> :: binary(),
     domain = <<"invalid.invalid">> :: binary(),

@@ -33,13 +33,17 @@
 
 -include("kzsip_uri.hrl").
 
+-type user_uri() :: #uri{} | binary() | string().
+-type token() :: {binary(), [binary() | {binary(), binary()}]}.
+-type uri_scheme() :: atom() | binary().
+
 %% ===================================================================
 %% Public
 %% ===================================================================
 
 %% @doc Parses all URIs found in `Term'.
--spec uris(Term :: nklib:user_uri() | [nklib:user_uri()]) ->
-    [nklib:uri()] | error.
+-spec uris(Term :: user_uri() | [user_uri()]) ->
+    [#uri{}] | error.
 
 uris(#uri{} = Uri) -> [Uri];
 uris([#uri{} = Uri]) -> [Uri];
@@ -51,8 +55,8 @@ uris(List) when is_list(List) -> parse_uris(List, []);
 uris(Term) -> uris([Term]).
 
 %% @doc Parses all URIs found in `Term' as Request-URIs
--spec ruris(Term :: nklib:user_uri() | [nklib:user_uri()]) ->
-    [nklib:uri()] | error.
+-spec ruris(Term :: user_uri() | [user_uri()]) ->
+    [#uri{}] | error.
 
 ruris(RUris) ->
     case uris(RUris) of
@@ -62,7 +66,7 @@ ruris(RUris) ->
 
 %% @doc Gets a list of `tokens()' from `Term'
 -spec tokens(Term :: binary() | string() | [binary() | string()]) ->
-    [nklib:token()] | error.
+    [token()] | error.
 
 tokens(<<>>) -> [];
 tokens([<<>>]) -> [];
@@ -91,7 +95,7 @@ dates(Term) -> dates([Term]).
 
 %% @private
 -spec scheme(term()) ->
-    nklib:scheme().
+    uri_scheme().
 
 scheme(Atom) when is_atom(Atom) ->
     Atom;
@@ -246,8 +250,8 @@ parse_ruris(_, _) ->
     error.
 
 %% @private
--spec parse_tokens([binary() | string()], [nklib:token()]) ->
-    [nklib:token()] | error.
+-spec parse_tokens([binary() | string()], [token()]) ->
+    [token()] | error.
 
 parse_tokens([], Acc) ->
     Acc;
