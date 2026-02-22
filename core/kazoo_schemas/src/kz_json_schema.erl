@@ -100,9 +100,19 @@ setup_extra_validator(Options) ->
     | {'error', 'not_found'}
     | kz_datamgr:data_error().
 -ifdef(TEST).
+load(<<"./", Schema/binary>>) ->
+    load(Schema);
+load(<<"file://", Schema/binary>>) ->
+    load(Schema);
+load(Schema) when is_list(Schema) ->
+    load(strip_schema_uri_prefix(kz_term:to_binary(Schema)));
 load(Schema) ->
     ?LOG_DEV("TEST Load: ~s", [Schema]),
     fload(<<"core/kazoo_schemas/test/fixtures/", Schema/binary, ".json">>).
+
+strip_schema_uri_prefix(<<"./", Rest/binary>>) -> strip_schema_uri_prefix(Rest);
+strip_schema_uri_prefix(<<"file://", Rest/binary>>) -> strip_schema_uri_prefix(Rest);
+strip_schema_uri_prefix(Schema) -> Schema.
 -else.
 -spec load(kz_term:ne_binary() | string()) -> load_return().
 load(<<"./", Schema/binary>>) ->
