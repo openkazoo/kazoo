@@ -21,16 +21,13 @@
 
 -define(CACHE_PROPS, [{'origin_bindings', ?ORIGIN_BINDINGS}]).
 
--define(SMTP_ARGS, [
-    'fax_smtp',
-    [
-        [
-            {'port', ?SMTP_PORT}
-            %% in case we want to make the settings constant per execution
-            %%                                  ,{'sessionoptions', [?SMTP_CALLBACK_OPTIONS]}
-        ]
-    ]
+-define(SMTP_OPTIONS, [
+    {'port', ?SMTP_PORT}
+    %% in case we want to make the settings constant per execution
+    %%                                  ,{'sessionoptions', [?SMTP_CALLBACK_OPTIONS]}
 ]).
+
+-define(SMTP_CHILD, gen_smtp_server:child_spec('gen_smtp_server', 'fax_smtp', ?SMTP_OPTIONS)).
 
 -define(CHILDREN, [
     ?WORKER('fax_init'),
@@ -41,7 +38,7 @@
     ?WORKER('fax_global_shared_listener'),
     ?WORKER('fax_shared_listener'),
     ?WORKER('fax_monitor'),
-    ?WORKER_ARGS('gen_smtp_server', ?SMTP_ARGS)
+    ?SMTP_CHILD
 ]).
 
 %%==============================================================================
@@ -71,12 +68,7 @@ listener_proc() ->
 
 -spec smtp_sessions() -> non_neg_integer().
 smtp_sessions() ->
-    [P] = [
-        P
-     || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-        Mod =:= 'gen_smtp_server'
-    ],
-    Sessions = gen_smtp_server:sessions(P),
+    Sessions = gen_smtp_server:sessions('gen_smtp_server'),
     length(Sessions).
 
 %%==============================================================================
