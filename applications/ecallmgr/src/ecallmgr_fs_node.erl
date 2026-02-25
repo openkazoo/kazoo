@@ -738,8 +738,16 @@ version(Srv) ->
 
 -spec status_to_json(fs_node()) -> kz_json:object().
 status_to_json(Node) ->
-    {'ok', RawStatus} = mod_kazoo:api(Node, 'status'),
-    parse_status(RawStatus).
+    case mod_kazoo:api(Node, 'status') of
+        {'ok', RawStatus} when is_binary(RawStatus) ->
+            parse_status(RawStatus);
+        {'ok', Status} ->
+            lager:warning("unexpected status response from ~s: ~p", [Node, Status]),
+            kz_json:from_list([{<<"Runtime-Info">>, kz_json:new()}]);
+        {'error', Reason} ->
+            lager:debug("failed to fetch status from ~s: ~p", [Node, Reason]),
+            kz_json:from_list([{<<"Runtime-Info">>, kz_json:new()}])
+    end.
 
 -spec parse_status(kz_term:binary()) -> kz_json:object().
 parse_status(Status) ->
