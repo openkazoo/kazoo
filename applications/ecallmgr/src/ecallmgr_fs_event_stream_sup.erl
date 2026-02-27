@@ -12,7 +12,7 @@
 -export([start_link/2]).
 -export([init/1]).
 
--define(PACKET_SIZE, kapps_config:get_integer(?APP_NAME, <<"tcp_packet_type">>, 2)).
+-define(PACKET_SIZE, kapps_config:get_integer(?APP_NAME, <<"tcp_packet_type">>, 4)).
 
 -define(FREESWITCH_EVENTS, application:get_env(?APP, 'event_stream', ?FS_EVENTS)).
 -define(CUSTOM_EVENTS, application:get_env(?APP, 'event_stream_custom', ?FS_CUSTOM_EVENTS)).

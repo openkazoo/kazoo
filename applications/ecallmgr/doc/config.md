@@ -66,7 +66,7 @@ Key | Description | Type | Default | Required | Support Level
 `sanitize_fs_value_regex` | ecallmgr sanitize_fs_value_regex | `string()` | `[^0-9\w\s-]` | `false` |
 `should_detect_inband_dtmf` | ecallmgr should detect inband dtmf | `boolean()` | `false` | `false` |
 `sofia_conf` | ecallmgr sofia conf | `boolean()` |   | `false` |
-`tcp_packet_type` | ecallmgr tcp packet type | `integer()` | `2` | `false` |
+`tcp_packet_type` | ecallmgr tcp packet type | `integer()` | `4` | `false` |
 `text_routing_bindings.[]` |   | `string()` |   | `false` |
 `text_routing_bindings` | ecallmgr text routing bindings | `array(string())` | `["context_2"]` | `false` |
 `use_bypass_media_after_bridge` | ecallmgr use bypass media after bridge | `boolean()` | `false` | `false` |
