@@ -1170,10 +1170,12 @@ voicemail_full_definition() ->
 -define(OPTIONAL_VOICEMAIL_NEW_HEADERS, [<<"Call-ID">>
                                         ,<<"Caller-ID-Name">>
                                         ,<<"Caller-ID-Number">>
+                                        ,<<"Voicemail-Folder">>
                                         ,<<"Voicemail-Length">>
                                         ,<<"Voicemail-Transcription">>
                                              | ?DEFAULT_OPTIONAL_HEADERS
                                         ]).
+-define(OPTIONAL_VOICEMAIL_SAVED_HEADERS, [<<"Voicemail-Folder">>]).
 -define(VOICEMAIL_DELETED_HEADERS, [<<"Account-ID">>
                                    ,<<"From-Realm">>
                                    ,<<"From-User">>
@@ -1218,14 +1220,14 @@ voicemail_new_definition() ->
 voicemail_saved_definition() ->
     #kapi_definition{name = <<"voicemail_saved">>
                     ,friendly_name = <<"Voicemail Message Saved">>
-                    ,description = <<"This event is triggered any time a voicemail message is saved in the voicemail box 'new' folder">>
+                    ,description = <<"This event is triggered any time a voicemail message is saved in a voicemail box folder">>
                     ,build_fun = fun voicemail_saved/1
                     ,validate_fun = fun voicemail_saved_v/1
                     ,publish_fun = fun publish_voicemail_saved/1
                     ,binding = ?BINDING_STRING(<<"voicemail">>, <<"saved">>)
                     ,restrict_to = 'voicemail_saved'
                     ,required_headers = ?VOICEMAIL_NEW_HEADERS
-                    ,optional_headers = ?OPTIONAL_VOICEMAIL_NEW_HEADERS
+                    ,optional_headers = ?OPTIONAL_VOICEMAIL_NEW_HEADERS ++ ?OPTIONAL_VOICEMAIL_SAVED_HEADERS
                     ,values = ?NOTIFY_VALUES(<<"voicemail_saved">>)
                     ,types = []
                     }.

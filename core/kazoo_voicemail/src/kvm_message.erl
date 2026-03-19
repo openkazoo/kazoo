@@ -900,10 +900,12 @@ maybe_update_meta(Length, Action, Call, MediaId, BoxId) ->
                            kzd_box_message:apply_folder(?VM_FOLDER_SAVED, JObj)
                    end
                   ],
+            Timestamp = kz_time:now_s(),
+            kvm_util:publish_voicemail_saved(Length, BoxId, ?VM_FOLDER_SAVED, Call, MediaId, Timestamp),
             update_metadata(Call, BoxId, MediaId, Fun);
         'nothing' ->
             Timestamp = kz_time:now_s(),
-            kvm_util:publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp),
+            kvm_util:publish_voicemail_saved(Length, BoxId, ?VM_FOLDER_NEW, Call, MediaId, Timestamp),
             {'ok', Call}
     end.
 

@@ -18,7 +18,7 @@
         ,retention_seconds/0, retention_seconds/1
         ,enforce_retention/1, enforce_retention/2, is_prior_to_retention/2
 
-        ,publish_saved_notify/5, publish_voicemail_saved/5, publish_voicemail_deleted/3
+        ,publish_saved_notify/5, publish_voicemail_saved/6, publish_voicemail_deleted/3
         ,get_caller_id_name/1, get_caller_id_number/1
 
         ,transcribe_default/0
@@ -331,8 +331,8 @@ publish_saved_notify(MediaId, BoxId, Call, Length, Props) ->
 %% @doc Publishes `voicemail_saved' notification.
 %% @end
 %%------------------------------------------------------------------------------
--spec publish_voicemail_saved(pos_integer(), kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary(), kz_time:gregorian_seconds()) -> 'ok'.
-publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp) ->
+-spec publish_voicemail_saved(pos_integer(), kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary(), kz_time:gregorian_seconds()) -> 'ok'.
+publish_voicemail_saved(Length, BoxId, Folder, Call, MediaId, Timestamp) ->
     Prop = [{<<"From-User">>, kapps_call:from_user(Call)}
            ,{<<"From-Realm">>, kapps_call:from_realm(Call)}
            ,{<<"To-User">>, kapps_call:to_user(Call)}
@@ -340,6 +340,7 @@ publish_voicemail_saved(Length, BoxId, Call, MediaId, Timestamp) ->
            ,{<<"Account-DB">>, kapps_call:account_db(Call)}
            ,{<<"Account-ID">>, kapps_call:account_id(Call)}
            ,{<<"Voicemail-Box">>, BoxId}
+           ,{<<"Voicemail-Folder">>, Folder}
            ,{<<"Voicemail-ID">>, MediaId}
            ,{<<"Caller-ID-Number">>, get_caller_id_number(Call)}
            ,{<<"Caller-ID-Name">>, get_caller_id_name(Call)}
