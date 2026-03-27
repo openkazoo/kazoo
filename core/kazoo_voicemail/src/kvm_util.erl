@@ -1,7 +1,8 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc Voice mailbox utility functions.
 %%% @author Hesaam Farhang
+%%% @author Ruel Tmeizeh (for WeUC/Circle.cloud)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kvm_util).
@@ -18,7 +19,8 @@
         ,retention_seconds/0, retention_seconds/1
         ,enforce_retention/1, enforce_retention/2, is_prior_to_retention/2
 
-        ,publish_saved_notify/5, publish_voicemail_saved/6, publish_voicemail_deleted/3
+        ,publish_saved_notify/5, publish_voicemail_deleted/3
+        ,publish_voicemail_saved/1, publish_voicemail_saved/2, publish_voicemail_saved/6
         ,get_caller_id_name/1, get_caller_id_number/1
 
         ,transcribe_default/0
@@ -331,6 +333,30 @@ publish_saved_notify(MediaId, BoxId, Call, Length, Props) ->
 %% @doc Publishes `voicemail_saved' notification.
 %% @end
 %%------------------------------------------------------------------------------
+-spec publish_voicemail_saved(kz_json:object()) -> kz_amqp_worker:request_return().
+publish_voicemail_saved(JObj) ->
+    CallProps = [{<<"From-User">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"from_user">>], JObj)}
+                ,{<<"From-Realm">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"from_realm">>], JObj)}
+                ,{<<"To-User">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"to_user">>], JObj)}
+                ,{<<"To-Realm">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"to_realm">>], JObj)}
+                ,{<<"Account-DB">>, kz_json:get_ne_binary_value(<<"pvt_account_db">>, JObj)}
+                ,{<<"Account-ID">>, kz_json:get_ne_binary_value(<<"pvt_account_id">>, JObj)}
+                ,{<<"Caller-ID-Number">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"caller_id_number">>], JObj)}
+                ,{<<"Caller-ID-Name">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"caller_id_name">>], JObj)}
+                ,{<<"Call-ID">>, kz_json:get_ne_binary_value([<<"metadata">>, <<"call_id">>], JObj)}
+                ],
+    Call = kapps_call:from_json(kz_json:from_list(CallProps)),
+    publish_voicemail_saved(JObj, Call).
+
+-spec publish_voicemail_saved(kz_json:object(), kapps_call:call()) -> kz_amqp_worker:request_return().
+publish_voicemail_saved(JObj, Call) ->
+    Length = kz_json:get_integer_value([<<"metadata">>, <<"length">>], JObj),
+    BoxId = kz_json:get_ne_binary_value(<<"source_id">>, JObj),
+    Folder = kz_json:get_ne_binary_value([<<"metadata">>, <<"folder">>], JObj),
+    MediaId = kz_json:get_ne_binary_value([<<"metadata">>, <<"media_id">>], JObj),
+    Timestamp = kz_time:now_s(),
+    publish_voicemail_saved(Length, BoxId, Folder, Call, MediaId, Timestamp).
+
 -spec publish_voicemail_saved(pos_integer(), kz_term:ne_binary(), kz_term:ne_binary(), kapps_call:call(), kz_term:ne_binary(), kz_time:gregorian_seconds()) -> 'ok'.
 publish_voicemail_saved(Length, BoxId, Folder, Call, MediaId, Timestamp) ->
     Prop = [{<<"From-User">>, kapps_call:from_user(Call)}

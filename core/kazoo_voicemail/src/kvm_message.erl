@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc Provide functions to create and manage a single voicemail message.
 %%% @author Hesaam Farhang
 %%% @end
@@ -277,6 +277,7 @@ change_folder(Folder, Message, AccountId, BoxId, Funs0) ->
            ],
     case update(AccountId, BoxId, Message, Funs) of
         {'ok', JObj} ->
+            kvm_util:publish_voicemail_saved(JObj),
             {'ok', kzd_box_message:metadata(JObj)};
         {'error', _R} = Error ->
             lager:debug("failed to update message ~s folder to ~s: ~p", [Folder, _R]),
