@@ -11,11 +11,7 @@
         ,do_openoffice_to_pdf/2
         ,read_metadata/1
         ,get_tiff_info/1
-        ]).
-
--ifdef(TEST).
--export([run_convert_command/4]).
--endif.
+        ,run_convert_command/4]).
 
 -include("kz_fax_converter.hrl").
 

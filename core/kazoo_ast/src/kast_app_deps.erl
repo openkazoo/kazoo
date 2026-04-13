@@ -149,7 +149,8 @@ write_app_src(App, Config) ->
 
 app_src_filename(App) ->
     AppBin = kz_term:to_binary(App),
-    filename:join([code:lib_dir(App, 'src')
+    filename:join([code:lib_dir(App)
+                  ,"src"
                   ,<<AppBin/binary, ".app.src">>
                   ]).
 

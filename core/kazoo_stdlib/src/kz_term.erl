@@ -464,7 +464,7 @@ is_empty(<<_/binary>>) -> 'false';
 is_empty('null') -> 'true';
 is_empty('undefined') -> 'true';
 
-is_empty(Float) when is_float(Float), Float =:= 0.0 -> 'true';
+is_empty(Float) when is_float(Float), Float =:= +0.0 -> 'true';
 
 is_empty(Map) when is_map(Map), map_size(Map) =:= 0 -> 'true';
 is_empty(Map) when is_map(Map) -> 'false';

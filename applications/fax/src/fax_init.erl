@@ -24,10 +24,11 @@ start_link() ->
     Workers = kapps_config:get_integer(?CONFIG_CAT, <<"workers">>, 50),
     %% Name, NbAcceptors, Transport, TransOpts, Protocol, ProtoOpts
     cowboy:start_clear('fax_file'
-                      ,[{'port', ?PORT}
-                       ,{'num_acceptors', Workers}
-                       ]
-                      ,#{'env' => #{'dispatch' => Dispatch}}
+                      ,#{'socket_opts' => [{'port', ?PORT}
+                                          ]
+                        ,'num_acceptors'=> Workers
+                        }
+                      ,#{'env' => #{dispatch=> Dispatch}}
                       ),
     fax_maintenance:refresh_views(),
     'ignore'.

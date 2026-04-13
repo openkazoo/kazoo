@@ -24,7 +24,8 @@ add_trace(Pid) ->
 add_trace(Pid, CollectFor) ->
     spawn(fun() ->
                   io:format("started trace for ~p in ~p~n", [Pid, self()]),
-                  dbg:stop_clear(),
+                  dbg:stop(),
+                  dbg:ctp('clear'),
                   BinFile = kz_term:to_list(<<"/tmp/eflame.trace">>),
                   eflame2:write_trace('global_calls_plus_new_procs'
                                      ,BinFile

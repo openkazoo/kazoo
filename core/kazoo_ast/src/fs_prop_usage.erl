@@ -90,7 +90,8 @@ usage_keys({'props', 'insert_values', _Keys, _VarName, _Default}, Acc) -> Acc;
 usage_keys({'props', 'set_values', _Values, _VarName, 'undefined'}, Acc) -> Acc.
 
 event_filter_filename() ->
-    filename:join([code:lib_dir('ecallmgr', 'src')
+    filename:join([code:lib_dir('ecallmgr')
+                  ,"src"
                   ,"fs_event_filters.hrl"
                   ]).
 

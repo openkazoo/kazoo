@@ -126,7 +126,7 @@ get_dummy_plan() ->
 set_app_connection(#{options := Options}=Server, AppName) ->
     Path = case maps:get(test_db_subdir, Options, 'undefined') of
                'undefined' -> code:priv_dir(AppName);
-               P -> code:lib_dir(AppName, kz_term:to_atom(P, 'true'))
+               P -> filename:join(code:lib_dir(AppName), kz_term:to_list(P))
            end,
     case Path of
         {'error', 'bad_name'} ->

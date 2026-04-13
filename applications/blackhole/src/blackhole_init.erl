@@ -16,9 +16,8 @@
 -define(SOCKET_PORT, kapps_config:get_integer(?APP_NAME, <<"port">>, 5555)).
 -define(SOCKET_ACCEPTORS, kapps_config:get_integer(?APP_NAME, <<"acceptors">>, 100)).
 
--define(BASE_TRANSPORT_OPTIONS(IP, Workers)
+-define(BASE_TRANSPORT_OPTIONS(IP)
        ,[{'ip', IP}
-        ,{'num_acceptors', Workers}
         ,{'send_timeout', kapps_config:get_integer(?CONFIG_CAT, <<"send_timeout_ms">>, 5 * ?MILLISECONDS_IN_SECOND)}
         ]
        ).
@@ -66,10 +65,11 @@ maybe_start_plaintext(Dispatch, IP) ->
             try
                 lager:info("trying to bind to address ~s port ~b", [inet:ntoa(IP), Port]),
                 cowboy:start_clear('blackhole_socket_handler'
-                                  ,[{'port', Port} | ?BASE_TRANSPORT_OPTIONS(IP, Workers)]
-                                  ,#{'env' => #{'dispatch' => Dispatch
-                                               ,'timeout' => ReqTimeout
-                                               }
+                                  ,#{'socket_opts' => [{'port', Port}] ++ ?BASE_TRANSPORT_OPTIONS(IP)
+                                    ,'num_acceptors' => Workers
+                                    }
+                                  ,#{'env' => #{'dispatch' => Dispatch}
+                                    ,'request_timeout' => ReqTimeout
                                     ,'stream_handlers' => maybe_add_compression_handler()
                                     }
                                   )
@@ -108,10 +108,11 @@ start_ssl(Dispatch, IP) ->
                            ]
                           ),
                 cowboy:start_tls('blackhole_socket_handler_ssl'
-                                ,?BASE_TRANSPORT_OPTIONS(IP, Workers) ++ SSLOpts
-                                ,#{'env' => #{'dispatch' => Dispatch
-                                             ,'timeout' => ReqTimeout
-                                             }
+                                ,#{'socket_opts' => ?BASE_TRANSPORT_OPTIONS(IP) ++ SSLOpts
+                                  ,'num_acceptors' => Workers
+                                  }
+                                ,#{'env' => #{'dispatch' => Dispatch}
+                                  ,'request_timeout' => ReqTimeout
                                   ,'stream_handlers' => maybe_add_compression_handler()
                                   }
                                 )

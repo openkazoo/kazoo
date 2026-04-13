@@ -26,7 +26,7 @@
         ,code_change/4
         ]).
 
--export([format_status/2]).
+-export([format_status/1]).
 
 -include("konami.hrl").
 
@@ -286,11 +286,11 @@ terminate(_Reason, _StateName, #state{call_id=CallId
 code_change(_OldVsn, StateName, State, _Extra) ->
     {'ok', StateName, State}.
 
--spec format_status(any(), any()) -> any().
-format_status(_, [_Dict, #state{call_id=CallId
+-spec format_status(map()) -> map().
+format_status(#{state := #state{call_id=CallId
                                ,other_leg=OtherLeg
-                               }]) ->
-    [{'data', [{"StateData", {CallId, OtherLeg}}]}].
+                               }} = Status) ->
+    Status#{data=> [{"StateData", {CallId, OtherLeg}}]}.
 
 %%%=============================================================================
 %%% Internal functions

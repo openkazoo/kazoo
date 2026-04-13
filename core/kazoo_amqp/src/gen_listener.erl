@@ -70,7 +70,7 @@
         ,handle_info/2
         ,terminate/2
         ,code_change/3
-        ,format_status/2
+        ,format_status/1
         ]).
 
 %% gen_server API
@@ -970,21 +970,20 @@ handle_callback_info(Message
             {'stop', R, State}
     end.
 
--spec format_status('normal' | 'terminate', [kz_term:proplist() | state()]) -> any().
-format_status(_Opt
-             ,[_PDict
-              ,#state{module=Module
-                     ,module_state=ModuleState
-                     }=State
-              ]) ->
-    case erlang:function_exported(Module, 'format_status', 2) of
-        'true' -> Module:format_status(_Opt, [_PDict, ModuleState]);
+-spec format_status(map()) -> map().
+format_status(#{state := #state{module=Module
+                               ,module_state=ModuleState
+                               }=State
+               } = Status
+             ) ->
+    case erlang:function_exported(Module, 'format_status', 1) of
+        'true' -> Module:format_status(Status#{state => ModuleState});
         'false' ->
-            [{'data', [{"Module State", ModuleState}
-                      ,{"Module", Module}
-                      ,{"Listener State", State}
-                      ]
-             }]
+            Status#{data=> [{"Module State", ModuleState}
+                           ,{"Module", Module}
+                           ,{"Listener State", State}
+                           ]
+                   }
     end.
 
 -spec distribute_event(kz_json:object(), deliver(), state()) ->  kz_types:handle_info_ret().
