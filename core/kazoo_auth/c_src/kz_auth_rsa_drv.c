@@ -17,7 +17,6 @@
 // #include <erl_interface.h>
 #include <ei.h>
 #include <string.h>
-#include <openssl/engine.h>
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 
