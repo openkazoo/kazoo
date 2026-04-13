@@ -26,12 +26,23 @@
 
 -include("kzsip_uri.hrl").
 
+-type uri() :: #uri{}.
+-type token() :: {binary(), [binary() | {binary(), binary()}]}.
+-type header_value() ::
+        binary()
+      | string()
+      | integer()
+      | atom()
+      | uri()
+      | token()
+      | [header_value()].
+
 %% ===================================================================
 %% Public
 %% ===================================================================
 
 %% @doc Serializes an `uri()' or list of `uri()' into a `binary()'
--spec uri(nklib:uri() | [nklib:uri()]) ->
+-spec uri(uri() | [uri()]) ->
           binary().
 
 uri(UriList) when is_list(UriList) ->
@@ -41,7 +52,7 @@ uri(#uri{} = Uri) ->
 
 %% @doc Serializes an `uri()' or list of `uri()' into a `binary()', using "//" before
 %% the domain name
--spec uri2(nklib:uri() | [nklib:uri()]) ->
+-spec uri2(uri() | [uri()]) ->
           binary().
 
 uri2(UriList) when is_list(UriList) ->
@@ -49,7 +60,7 @@ uri2(UriList) when is_list(UriList) ->
 uri2(#uri{domain = Domain} = Uri) ->
     list_to_binary(raw_uri(Uri#uri{domain = <<"//", Domain/binary>>})).
 
-%% @private Serializes an `nksip:uri()'  without `<' and `>' as delimiters
+%% @private Serializes an `uri()' without `<' and `>' as delimiters
 %% and no disp, headers or external opts
 uri3(UriList) when is_list(UriList) ->
     kz_util:iolist_join([uri3(Uri) || Uri <- UriList]);
@@ -57,7 +68,7 @@ uri3(#uri{} = Uri) ->
     list_to_binary(raw_uri3(Uri)).
 
 %% @doc Serializes a list of `token()'
--spec token(nklib:token() | [nklib:token()] | undefined) ->
+-spec token(token() | [token()] | undefined) ->
           binary().
 
 token(undefined) ->
@@ -68,7 +79,7 @@ token(Tokens) when is_list(Tokens) ->
     list_to_binary(raw_tokens(Tokens)).
 
 %% @doc
--spec header(nklib:header_value()) ->
+-spec header(header_value()) ->
           binary() | {unknown, term()}.
 
 header(Value) ->
@@ -81,8 +92,8 @@ header(Value) ->
 %% Private
 %% ===================================================================
 
-%% @private Serializes an `nklib:uri()', using `<' and `>' as delimiters
--spec raw_uri(nklib:uri()) ->
+%% @private Serializes an `uri()', using `<' and `>' as delimiters
+-spec raw_uri(uri()) ->
           iolist().
 
 raw_uri(#uri{domain = (<<"*">>)}) ->
@@ -115,9 +126,9 @@ raw_uri(#uri{} = Uri) ->
      gen_headers(Uri#uri.ext_headers)
     ].
 
-%% @private Serializes an `nksip:uri()'  without `<' and `>' as delimiters
+%% @private Serializes an `uri()' without `<' and `>' as delimiters
 %% and no disp, headers or external opts
--spec raw_uri3(nksip:uri()) ->
+-spec raw_uri3(uri()) ->
           iolist().
 
 raw_uri3(#uri{} = Uri) ->
@@ -142,7 +153,7 @@ raw_uri3(#uri{} = Uri) ->
     ].
 
 %% @private Serializes a list of `token()'
--spec raw_tokens(nklib:token() | [nklib:token()]) ->
+-spec raw_tokens(token() | [token()]) ->
           iolist().
 
 raw_tokens([]) ->
@@ -153,7 +164,7 @@ raw_tokens(Tokens) ->
     raw_tokens(Tokens, []).
 
 %% @private
--spec raw_tokens([nklib:token()], iolist()) ->
+-spec raw_tokens([token()], iolist()) ->
           iolist().
 
 raw_tokens([{Head, Opts}, Second | Rest], Acc) ->
@@ -198,7 +209,7 @@ gen_opts([{K, V} | Rest], Acc) ->
                      $;,
                      kz_term:to_binary(K),
                      $=,
-                     kw_term:to_binary(V)
+                     kz_term:to_binary(V)
                     ]
                     | Acc
                    ]);
