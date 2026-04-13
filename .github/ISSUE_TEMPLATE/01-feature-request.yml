@@ -1,0 +1,36 @@
+name: Feature Request
+description: Add or improve functionality without changing core architecture
+title: "component: short feature request summary"
+labels: ["Feature"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the format: component: short feature request summary (e.g., `applications/crossbar: change the default idle timeout`)
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the limitation or pain point in the current behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: What is your proposed solution?
+      description: Describe the desired behavior and include examples or references, if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-components
+    attributes:
+      label: What components are affected?
+      description: List the applications or modules likely to be impacted.
+      placeholder: |
+        applications/crossbar
+        applications/ecallmgr
+        core/kazoo_config

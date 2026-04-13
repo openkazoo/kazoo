@@ -1,0 +1,86 @@
+name: Bug
+description: Crashes, regressions, or other unexpected behavior
+title: "component: short bug summary"
+labels: ["Bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use the format: component: short bug summary (e.g., `applications/crossbar: user email does not update correctly`)
+
+  - type: input
+    id: kazoo-version
+    attributes:
+      label: What Kazoo version are you running?
+      description: Provide the complete version string.
+      placeholder: 4.4.0+build.1234.refX
+    validations:
+      required: true
+
+  - type: input
+    id: otp-version
+    attributes:
+      label: What Erlang/OTP release are you running?
+      description: Provide the complete version string.
+      placeholder: 27.3.4.10
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: What is your environment?
+      description: Provide OS (and version), deployment type (AIO, multi-zone, etc.), and key dependencies.
+      value: |
+        OS/Version: 
+        Deployment Type: 
+        CouchDB: 
+        FreeSWITCH: 
+        RabbitMQ: 
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: What happened?
+      description: Include command output, API responses, stack traces, or other relevant details.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: What did you expect to happen?
+      description: Describe the expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can this be reproduced?
+      description: Provide steps to reproduce or describe what triggered the behavior.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reproducibility
+    attributes:
+      label: How often can this be reproduced?
+      options:
+        - Every time
+        - Sometimes
+        - Rarely
+        - Unknown
+    validations:
+      required: true
+
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Do you have any relevant logs?
+      description: Include only relevant logs. Redact sensitive data.
+      render: shell
