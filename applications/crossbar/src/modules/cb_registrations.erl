@@ -195,7 +195,7 @@ merge_response(JObj, Regs) ->
                         end
                 end, Regs, kz_json:get_value(<<"Fields">>, JObj, [])).
 
--spec maybe_default_port(integer(), nklib:scheme(), kz_term:api_binary()) -> integer().
+-spec maybe_default_port(integer(), atom() | binary(), kz_term:api_binary()) -> integer().
 maybe_default_port(0, 'sips', _) -> 5061;
 maybe_default_port(0, 'sip', <<"TLS">>) -> 5061;
 maybe_default_port(0, 'sip', <<"tls">>) -> 5061;
