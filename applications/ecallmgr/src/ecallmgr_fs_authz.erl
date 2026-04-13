@@ -376,7 +376,7 @@ maybe_update_callee_id(JObj, Acc) ->
             ConvertedRate = kz_term:to_binary(kz_currency:units_to_dollars(kz_term:to_number(Rate))),
             [{<<"ignore_display_updates">>, <<"false">>}
             ,{<<"effective_callee_id_name">>, <<"$", ConvertedRate/binary
-                                                ," per min ${effective_callee_id_name}"
+                                               ," per min ${effective_callee_id_name}"
                                               >>
              }
             ,{<<"Rate">>, Rate}

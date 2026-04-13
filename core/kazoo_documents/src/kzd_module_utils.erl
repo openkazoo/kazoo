@@ -88,10 +88,10 @@ validate_schema(SchemaJObj, {Doc, ValidationErrors}, OnSuccess) ->
             maybe_fix_js_types({Doc, ValidationErrors}, SchemaErrors, SchemaJObj, OnSuccess)
     catch
         ?STACKTRACE('error', 'function_clause', ST)
-        lager:error("function clause failure"),
-        kz_util:log_stacktrace(ST),
-        throw({'system_error', {'function_clause', <<"function clause failure - schema validation failed to run on the server">>}})
-        end.
+            lager:error("function clause failure"),
+            kz_util:log_stacktrace(ST),
+            throw({'system_error', {'function_clause', <<"function clause failure - schema validation failed to run on the server">>}})
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Validate a doc against a defined schema.

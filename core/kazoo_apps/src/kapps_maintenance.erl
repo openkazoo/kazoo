@@ -531,10 +531,10 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
             Unexpected
         catch
             ?STACKTRACE(Error, Reason, StackTrace)
-            [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}",
-                           [Database, Error, Reason, StackTrace])
-             | Unexpected]
-            end,
+                [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}",
+                               [Database, Error, Reason, StackTrace])
+                 | Unexpected]
+        end,
     refresh(Databases, Pause, Total, NewUnexpected).
 
 -spec get_databases() -> kz_term:ne_binaries().
