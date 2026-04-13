@@ -98,8 +98,8 @@ nested_children_failure_test_() ->
 
     {'error', Errors} = kzd_callflow:validate_flow(Doc),
 
-    [?_assertMatch([{'data_invalid', _SchemaJObj, 'wrong_type', 'true', [<<"children">>, <<"_">>, <<"data">>, <<"key2">>]}
-                   ,{'data_invalid', _SchemaJObj, 'wrong_type', 'true', [<<"data">>, <<"key2">>]}
+    [?_assertMatch([{'data_invalid', _SchemaJObj1, 'wrong_type', 'true', [<<"children">>, <<"_">>, <<"data">>, <<"key2">>]}
+                   ,{'data_invalid', _SchemaJObj2, 'wrong_type', 'true', [<<"data">>, <<"key2">>]}
                    ]
                   ,Errors
                   )
@@ -191,12 +191,12 @@ multiple_child_action_failures_test_() ->
     {'error', Errors} = kzd_callflow:validate_flow(Doc),
 
     [?_assertEqual(2, length(Errors))
-    ,?_assertMatch([{'data_invalid', _SchemaJObj
+    ,?_assertMatch([{'data_invalid', _SchemaJObj1
                     ,'missing_required_property'
                     ,<<"module">>
                     ,[<<"children">>, <<"mp1">>]
                     }
-                   ,{'data_invalid', _SchemaJObj
+                   ,{'data_invalid', _SchemaJObj2
                     ,'missing_required_property'
                     ,<<"module">>
                     ,[<<"children">>, <<"mp2">>]
