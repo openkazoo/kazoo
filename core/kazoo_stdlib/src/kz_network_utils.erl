@@ -92,9 +92,15 @@ lookup_timeout() -> ?LOOKUP_TIMEOUT.
 %%------------------------------------------------------------------------------
 -spec get_hostname() -> string().
 get_hostname() ->
-    {'ok', Host} = inet:gethostname(),
-    {'ok', #hostent{h_name=Hostname}} = inet:gethostbyname(Host),
-    Hostname.
+    case net:gethostname() of
+        {'ok', Hostname} ->
+            Hostname;
+        {'error', Reason} ->
+            lager:error("net:gethostname failed (~p)", [Reason]),
+            {'ok', Host} = inet:gethostname(),
+            {'ok', #hostent{h_name=Hostname}} = inet:gethostbyname(Host),
+            Hostname
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc
