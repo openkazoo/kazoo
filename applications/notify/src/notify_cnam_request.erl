@@ -100,10 +100,10 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
              ,{<<"To">>, To}
              ,{<<"Subject">>, Subject}
              ]
-            ,[]
-            ,[{<<"multipart">>, <<"alternative">>, [], []
-              ,[{<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], [], iolist_to_binary(TxtBody)}
-               ,{<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], [], iolist_to_binary(HTMLBody)}
+            ,#{}
+            ,[{<<"multipart">>, <<"alternative">>, [], #{}
+              ,[{<<"text">>, <<"plain">>, [{<<"Content-Type">>, <<"text/plain">>}], #{}, iolist_to_binary(TxtBody)}
+               ,{<<"text">>, <<"html">>, [{<<"Content-Type">>, <<"text/html">>}], #{}, iolist_to_binary(HTMLBody)}
                ]
               }
              ]

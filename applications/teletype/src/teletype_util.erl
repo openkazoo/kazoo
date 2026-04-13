@@ -69,17 +69,17 @@ send_email(Emails0, Subject, RenderedTemplates, Attachments) ->
     From = props:get_value(<<"from">>, Emails),
     Email = {<<"multipart">>
             ,<<"mixed">>
-            ,email_parameters([{<<"To">>, To}
-                              ,{<<"Cc">>, props:get_value(<<"cc">>, Emails)}
-                              ,{<<"Bcc">>, props:get_value(<<"bcc">>, Emails)}
+            ,email_parameters([{<<"To">>, join_addresses(To)}
+                              ,{<<"Cc">>, join_addresses(props:get_value(<<"cc">>, Emails))}
+                              ,{<<"Bcc">>, join_addresses(props:get_value(<<"bcc">>, Emails))}
                               ,{<<"X-Teletype-Log-ID">>, kz_util:get_callid()}
                               ]
-                             ,[{<<"From">>, From}
-                              ,{<<"Reply-To">>, props:get_value(<<"reply_to">>, Emails)}
+                             ,[{<<"From">>, join_addresses(From)}
+                              ,{<<"Reply-To">>, join_addresses(props:get_value(<<"reply_to">>, Emails))}
                               ,{<<"Subject">>, Subject}
                               ]
                              )
-            ,[{<<"content-type-params">>, [{<<"charset">>, <<"utf-8">>}]}]
+            ,#{content_type_params => [{<<"charset">>, <<"utf-8">>}]}
             ,[email_body(RenderedTemplates)
               | add_attachments(Attachments)
              ]
@@ -146,9 +146,16 @@ email_body(RenderedTemplates) ->
     {<<"multipart">>
     ,<<"alternative">>
     ,[] %% Headers
-    ,[] %% ContentTypeParams
+    ,#{} %% ContentTypeParams
     ,add_rendered_templates_to_email(RenderedTemplates)
     }.
+
+-spec join_addresses(kz_term:api_binaries() | kz_term:api_binary()) -> kz_term:api_binary().
+join_addresses('undefined') -> 'undefined';
+join_addresses([]) -> 'undefined';
+join_addresses([Address]) when is_binary(Address) -> Address;
+join_addresses(Addresses) when is_list(Addresses) -> kz_binary:join(Addresses, <<", ">>);
+join_addresses(Address) when is_binary(Address) -> Address.
 
 -spec email_parameters(kz_term:proplist(), kz_term:proplist()) -> kz_term:proplist().
 email_parameters([], Params) ->
@@ -324,7 +331,7 @@ add_attachments([{ContentType, Filename, Content}|As], Acc) ->
                   ,{<<"Content-Type">>, <<ContentType/binary, "; name=\"", Filename/binary, "\"">>}
                   ,{<<"Content-Transfer-Encoding">>, <<"base64">>}
                   ]
-                 ,[]
+                 ,#{}
                  ,Content
                  },
     lager:debug("adding attachment ~s (~s)", [Filename, ContentType]),
@@ -351,7 +358,7 @@ add_rendered_templates_to_email([{ContentType, Content}|Rs], Acc) ->
                   [{<<"Content-Type">>, iolist_to_binary([ContentType, <<";charset=utf-8">>])}
                   ,{<<"Content-Transfer-Encoding">>, CTEncoding}
                   ])
-               ,[]
+               ,#{}
                ,sanitize_content(iolist_to_binary(Content))
                },
     lager:debug("adding template ~s (encoding ~s)", [ContentType, CTEncoding]),

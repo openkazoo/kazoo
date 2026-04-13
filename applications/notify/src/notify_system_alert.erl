@@ -147,13 +147,13 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
              ,{<<"Subject">>, Subject}
              ]
             ,ContentTypeParams
-            ,[{<<"multipart">>, <<"alternative">>, [], []
+            ,[{<<"multipart">>, <<"alternative">>, [], #{}
               ,[{<<"text">>, <<"plain">>
                 ,props:filter_undefined(
                    [{<<"Content-Type">>, iolist_to_binary([<<"text/plain">>, CharsetString])}
                    ,{<<"Content-Transfer-Encoding">>, PlainTransferEncoding}
                    ])
-                ,[]
+                ,#{}
                 ,iolist_to_binary(TxtBody)
                 }
                ,{<<"text">>, <<"html">>
@@ -161,7 +161,7 @@ build_and_send_email(TxtBody, HTMLBody, Subject, To, Props) ->
                    [{<<"Content-Type">>, iolist_to_binary([<<"text/html">>, CharsetString])}
                    ,{<<"Content-Transfer-Encoding">>, HTMLTransferEncoding}
                    ])
-                ,[]
+                ,#{}
                 ,iolist_to_binary(HTMLBody)
                 }
                ]

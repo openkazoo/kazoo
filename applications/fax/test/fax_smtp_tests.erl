@@ -28,7 +28,8 @@ decode_email_test() ->
     ?assertEqual(?DATE, props:get_value(<<"Date">>, Hs)),
     ?assertEqual(?SUBJECT, props:get_value(<<"Subject">>, Hs)),
 
-    ?assertEqual(Boundary, props:get_value([<<"content-type-params">>, <<"boundary">>], Ps)),
+    ContentTypeParams = maps:get(content_type_params, Ps),
+    ?assertEqual(Boundary, props:get_value(<<"boundary">>, ContentTypeParams)),
 
     ?assertEqual(2, length(Body)),
 

@@ -795,7 +795,7 @@ process_parts([{Type, SubType, _Headers, Parameters, BodyPart}
                             ),
     process_parts(Parts, maybe_ignore_no_valid_attachment(NewState)).
 
--spec maybe_process_part(kz_term:ne_binary(), kz_term:proplist(), binary() | mimemail:mimetuple(), state()) ->
+-spec maybe_process_part(kz_term:ne_binary(), map(), binary() | mimemail:mimetuple(), state()) ->
           {'ok', state()}.
 maybe_process_part(<<"multipart/", Multipart/binary>>, _Parameters, Body, #state{errors=Errors}=State) ->
     lager:debug("processing multipart/~s", [Multipart]),
@@ -816,10 +816,10 @@ maybe_process_part(<<"multipart/", Multipart/binary>>, _Parameters, Body, #state
     end;
 maybe_process_part(<<"application/octet-stream">>, Parameters, Body, State) ->
     lager:debug("part is application/octet-stream, try check attachment filename extension"),
-    case props:get_value(<<"disposition">>, Parameters) of
+    case maps:get(disposition, Parameters, undefined) of
         <<"attachment">> ->
-            DispositionParams = props:get_value(<<"disposition-params">>, Parameters, []),
-            ContentTypeParams = props:get_value(<<"content-type-params">>, Parameters, []),
+            DispositionParams = maps:get(disposition_params, Parameters, []),
+            ContentTypeParams = maps:get(content_type_params, Parameters, []),
             Props = DispositionParams ++ ContentTypeParams,
             Filename = kz_term:to_lower_binary(props:get_first_defined([<<"filename">>, <<"name">>], Props, <<>>)),
             case kz_mime:from_filename(Filename) of
