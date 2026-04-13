@@ -55,7 +55,7 @@
  {<<"inet_cidr">>,{pkg,<<"erl_cidr">>,<<"1.2.1">>},0},
  {<<"jesse">>,
   {git,"https://github.com/openkazoo/erlang-jesse",
-       {ref,"aef15e6ba8d43c9cafaa861e71c0dac50fcf43d0"}},
+       {ref,"74a8b1c0730aa1a1eaf77f1e49eea69b6743304e"}},
   0},
  {<<"jiffy">>,{pkg,<<"jiffy">>,<<"1.1.2">>},0},
  {<<"jsx">>,{pkg,<<"jsx">>,<<"2.9.0">>},0},
