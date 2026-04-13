@@ -856,7 +856,8 @@ is_preview(DataJObj) ->
      ).
 
 -spec timestamp_params(kz_time:gregorian_seconds(), kz_term:ne_binary(), string()) -> kz_term:proplist().
-timestamp_params(Timestamp, ?NE_BINARY=Timezone, ClockTimezone) when is_integer(Timestamp) ->
+timestamp_params(Timestamp, ?NE_BINARY=Timezone, ClockTimezone0) when is_integer(Timestamp) ->
+    ClockTimezone = normalize_timezone(ClockTimezone0),
     DateTime = calendar:gregorian_seconds_to_datetime(Timestamp),
     lager:debug("using tz ~s (system ~s) for ~p", [Timezone, ClockTimezone, DateTime]),
 
@@ -866,6 +867,11 @@ timestamp_params(Timestamp, ?NE_BINARY=Timezone, ClockTimezone) when is_integer(
       ,{<<"timestamp">>, Timestamp}
       ,{<<"timezone">>, Timezone}
       ]).
+
+-spec normalize_timezone(kz_term:api_binary() | string()) -> kz_term:api_binary() | string().
+normalize_timezone(<<"UTC">>) -> <<"Etc/UTC">>;
+normalize_timezone("UTC") -> "Etc/UTC";
+normalize_timezone(Timezone) -> Timezone.
 
 %% make timestamp ready to process by "date" filter in ErlyDTL
 %% returns a prop list with local, UTC time and timezone
