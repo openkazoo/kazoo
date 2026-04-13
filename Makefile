@@ -11,6 +11,7 @@ REBAR = REBAR_GLOBAL_CONFIG_DIR=${HOME} REBAR_CACHE_DIR=${HOME}/.cache/rebar3 $(
 CHECK_ERL = command -v $(ERL) >/dev/null 2>&1 || { echo "erlang (erl) is not installed" >&2; exit 1; }
 CHECK_REBAR3 = command -v $(REBAR3) >/dev/null 2>&1 || { echo "rebar3 is not installed" >&2; exit 1; }
 CHECK_PKGCONF = command -v pkg-config >/dev/null 2>&1 || { echo "pkg-config is not installed" >&2; exit 1; }
+CHECK_EMACS = command -v emacs >/dev/null 2>&1 || { echo "emacs is not installed" >&2; exit 1; }
 CHECK_GIT = command -v git >/dev/null 2>&1 || { echo "git is not installed" >&2; exit 1; }
 CHECK_GIT_DESCRIBE = \
 	$(CHECK_GIT) ; \
@@ -25,12 +26,17 @@ CHECK_TOOLS = \
 	$(CHECK_REBAR3) ; \
 	$(CHECK_PKGCONF)
 
+CHECK_FORMAT_TOOLS = \
+	$(CHECK_TOOLS) ; \
+	$(CHECK_EMACS)
+
 CHECK_RELEASE_TOOLS = \
 	$(CHECK_TOOLS) ; \
 	$(CHECK_GIT_DESCRIBE)
 
-.PHONY: all compile doc clean lint format tree test ct dialyzer typer shell distclean \
-	deps update-deps clean-common-test-data rebuild compile_test build-release build-release-debug build-release-tar escript
+.PHONY: all compile doc clean lint format format-check tree test ct dialyzer \
+	typer shell distclean deps update-deps clean-common-test-data rebuild \
+	compile_test build-release build-release-debug build-release-tar escript
 
 all: build-release
 
@@ -57,8 +63,14 @@ lint:
 	$(REBAR) lint
 
 format:
-	@$(CHECK_TOOLS)
+	@$(CHECK_FORMAT_TOOLS)
 	$(REBAR) fmt
+
+format-check:
+	@$(CHECK_FORMAT_TOOLS) ; \
+	$(CHECK_GIT)
+	$(REBAR) fmt
+	git --no-pager diff --exit-code
 
 tree:
 	@$(CHECK_TOOLS)

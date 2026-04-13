@@ -47,6 +47,7 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             netcat-traditional \
             curl \
+            emacs-nox \
             ghostscript \
             libreoffice \
             fonts-dejavu \
@@ -98,6 +99,9 @@ jobs:
 
       - name: Make Scripts Executable
         run: chmod +x ./scripts/*
+
+      - name: Check Code Formatting
+        run: make format-check
 
       - name: Compile Kazoo
         run: make compile
