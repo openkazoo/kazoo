@@ -61,7 +61,7 @@ cache_proc() ->
 -spec listener_proc() -> {'ok', pid()}.
 listener_proc() ->
     [P] = [P || {Mod, P, _, _} <- supervisor:which_children(?SERVER),
-                Mod =:= 'fax_listener'],
+                Mod =:= 'fax_shared_listener'],
     {'ok', P}.
 
 -spec smtp_sessions() -> non_neg_integer().
