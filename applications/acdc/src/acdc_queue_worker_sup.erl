@@ -1,8 +1,12 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2020, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
-%%% @author Sponsored by GTNetwork LLC, Implemented by SIPLABS LLC
+%%% @author KAZOO-3596: Sponsored by GTNetwork LLC, implemented by SIPLABS LLC
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(acdc_queue_worker_sup).
@@ -34,12 +38,12 @@
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc Starts the supervisor.
+%% @doc Starts the supervisor
 %% @end
 %%------------------------------------------------------------------------------
--spec start_link(pid(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:startlink_ret().
-start_link(MgrPid, AcctId, QueueId) ->
-    supervisor:start_link(?SERVER, [MgrPid, AcctId, QueueId]).
+-spec start_link(pid(), kz_term:ne_binary(), kz_term:ne_binary()) -> kz_term:startlink_ret().
+start_link(MgrPid, AccountId, QueueId) ->
+    supervisor:start_link(?SERVER, [MgrPid, AccountId, QueueId]).
 
 -spec stop(pid()) -> 'ok' | {'error', 'not_found'}.
 stop(WorkerSup) -> supervisor:terminate_child('acdc_queues_sup', WorkerSup).
@@ -98,7 +102,8 @@ print_status([{K, V}|T]) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
-%% @doc Whenever a supervisor is started using `supervisor:start_link/[2,3]',
+%% @private
+%% @doc Whenever a supervisor is started using supervisor:start_link/[2,3],
 %% this function is called by the new process to find out about
 %% restart strategy, maximum restart frequency and child
 %% specifications.

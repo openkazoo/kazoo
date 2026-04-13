@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2020, 2600Hz
 %%% @doc CRUD for call queues
 %%% /queues
 %%%   GET: list all known queues
@@ -16,8 +16,8 @@
 %%%
 %%% /queues/QID/stats
 %%%   GET: retrieve stats for this queue
-%%% /queues/QID/stats/realtime
-%%%   GET: retrieve realtime stats for the queues
+%%% /queues/QID/stats_summary
+%%%   GET: retrieve minimal current stats for queues
 %%%
 %%% /queues/QID/roster
 %%%   GET: get list of agent_ids
@@ -46,6 +46,7 @@
         ,delete/2, delete/3
         ,delete_account/2
         ]).
+-export([maybe_add_queue_to_agent/2, maybe_rm_queue_from_agent/2]).
 
 -include_lib("crossbar/src/crossbar.hrl").
 -include("acdc_config.hrl").
@@ -56,6 +57,7 @@
 -define(CB_AGENTS_LIST, <<"queues/agents_listing">>). %{agent_id, queue_id}
 
 -define(STATS_PATH_TOKEN, <<"stats">>).
+-define(STATS_SUMMARY_PATH_TOKEN, <<"stats_summary">>).
 -define(ROSTER_PATH_TOKEN, <<"roster">>).
 -define(EAVESDROP_PATH_TOKEN, <<"eavesdrop">>).
 
@@ -89,6 +91,9 @@
 %%------------------------------------------------------------------------------
 -spec init() -> 'ok'.
 init() ->
+    _ = kz_datamgr:db_create(?KZ_ACDC_DB),
+    _ = kz_datamgr:revise_doc_from_file(?KZ_ACDC_DB, 'crossbar', <<"views/acdc.json">>),
+
     _ = kapi_acdc_agent:declare_exchanges(),
     _ = kapi_acdc_stats:declare_exchanges(),
 
@@ -117,6 +122,8 @@ allowed_methods() ->
 -spec allowed_methods(path_token()) -> http_methods().
 allowed_methods(?STATS_PATH_TOKEN) ->
     [?HTTP_GET];
+allowed_methods(?STATS_SUMMARY_PATH_TOKEN) ->
+    [?HTTP_GET];
 allowed_methods(?EAVESDROP_PATH_TOKEN) ->
     [?HTTP_PUT];
 allowed_methods(_QueueId) ->
@@ -125,20 +132,25 @@ allowed_methods(_QueueId) ->
 -spec allowed_methods(path_token(), path_token()) -> http_methods().
 allowed_methods(_QueueId, ?ROSTER_PATH_TOKEN) ->
     [?HTTP_GET, ?HTTP_POST, ?HTTP_DELETE];
+allowed_methods(_QueueId, ?STATS_PATH_TOKEN) ->
+    [?HTTP_GET];
+allowed_methods(_QueueId, ?STATS_SUMMARY_PATH_TOKEN) ->
+    [?HTTP_GET];
 allowed_methods(_QueueId, ?EAVESDROP_PATH_TOKEN) ->
     [?HTTP_PUT].
 
 %%------------------------------------------------------------------------------
-%% @doc Does the path point to a valid resource.
+%% @doc Does the path point to a valid resource
+%%
 %% For example:
+%%
 %% ```
-%%    /queues => []
+%%    /queues => [].
 %%    /queues/foo => [<<"foo">>]
 %%    /queues/foo/bar => [<<"foo">>, <<"bar">>]
 %% '''
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec resource_exists() -> 'true'.
 resource_exists() -> 'true'.
 
@@ -147,13 +159,16 @@ resource_exists(_) -> 'true'.
 
 -spec resource_exists(path_token(), path_token()) -> 'true'.
 resource_exists(_, ?ROSTER_PATH_TOKEN) -> 'true';
+resource_exists(_, ?STATS_PATH_TOKEN) -> 'true';
+resource_exists(_, ?STATS_SUMMARY_PATH_TOKEN) -> 'true';
 resource_exists(_, ?EAVESDROP_PATH_TOKEN) -> 'true'.
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc Add content types accepted and provided by this module
+%%
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec content_types_provided(cb_context:context()) ->
           cb_context:context().
 content_types_provided(Context) -> Context.
@@ -164,7 +179,10 @@ content_types_provided(Context, ?STATS_PATH_TOKEN) ->
     cb_context:add_content_types_provided(Context
                                          ,[{'to_json', ?JSON_CONTENT_TYPES}
                                           ,{'to_csv', ?CSV_CONTENT_TYPES}
-                                          ]).
+                                          ]);
+content_types_provided(Context, ?STATS_SUMMARY_PATH_TOKEN) -> Context;
+content_types_provided(Context, ?EAVESDROP_PATH_TOKEN) -> Context.
+
 
 %%------------------------------------------------------------------------------
 %% @doc Check the request (request body, query string params, path tokens, etc)
@@ -174,7 +192,6 @@ content_types_provided(Context, ?STATS_PATH_TOKEN) ->
 %% Generally, use crossbar_doc to manipulate the cb_context{} record
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec validate(cb_context:context()) ->
           cb_context:context().
 validate(Context) ->
@@ -189,7 +206,9 @@ validate(Context, PathToken) ->
     validate_queue(Context, PathToken, cb_context:req_verb(Context)).
 
 validate_queue(Context, ?STATS_PATH_TOKEN, ?HTTP_GET) ->
-    fetch_all_queue_stats(Context);
+    fetch_queue_stats(Context, 'all');
+validate_queue(Context, ?STATS_SUMMARY_PATH_TOKEN, ?HTTP_GET) ->
+    fetch_stats_summary(Context, 'all');
 validate_queue(Context, ?EAVESDROP_PATH_TOKEN, ?HTTP_PUT) ->
     validate_eavesdrop_on_call(Context);
 validate_queue(Context, Id, ?HTTP_GET) ->
@@ -208,6 +227,10 @@ validate(Context, Id, Token) ->
 
 validate_queue_operation(Context, Id, ?ROSTER_PATH_TOKEN, ?HTTP_GET) ->
     load_agent_roster(Id, Context);
+validate_queue_operation(Context, Id, ?STATS_PATH_TOKEN, ?HTTP_GET) ->
+    fetch_queue_stats(Context, Id);
+validate_queue_operation(Context, Id, ?STATS_SUMMARY_PATH_TOKEN, ?HTTP_GET) ->
+    fetch_stats_summary(Context, Id);
 validate_queue_operation(Context, Id, ?ROSTER_PATH_TOKEN, ?HTTP_POST) ->
     add_queue_to_agents(Id, Context);
 validate_queue_operation(Context, Id, ?ROSTER_PATH_TOKEN, ?HTTP_DELETE) ->
@@ -368,10 +391,9 @@ is_valid_endpoint_type(Context, CallMeJObj) ->
     end.
 
 %%------------------------------------------------------------------------------
-%% @doc If the HTTP verb is PUT, execute the actual action, usually a db save.
+%% @doc If the HTTP verib is PUT, execute the actual action, usually a db save.
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec put(cb_context:context()) ->
           cb_context:context().
 put(Context) ->
@@ -436,15 +458,14 @@ filter_response_fields(JObj) ->
                      ).
 
 %%------------------------------------------------------------------------------
-%% @doc If the HTTP verb is POST, execute the actual action, usually a db save
+%% @doc If the HTTP verib is POST, execute the actual action, usually a db save
 %% (after a merge perhaps).
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec post(cb_context:context(), path_token()) -> cb_context:context().
-post(Context, _) ->
+post(Context, Id) ->
     activate_account_for_acdc(Context),
-    crossbar_doc:save(Context).
+    read(Id, crossbar_doc:save(unset_agents_key(Context))).
 
 -spec post(cb_context:context(), path_token(), path_token()) -> cb_context:context().
 post(Context, Id, ?ROSTER_PATH_TOKEN) ->
@@ -459,10 +480,9 @@ post(Context, Id, ?ROSTER_PATH_TOKEN) ->
 patch(Context, Id) ->
     post(Context, Id).
 %%------------------------------------------------------------------------------
-%% @doc If the HTTP verb is DELETE, execute the actual action, usually a db delete
+%% @doc If the HTTP verib is DELETE, execute the actual action, usually a db delete
 %% @end
 %%------------------------------------------------------------------------------
-
 -spec delete(cb_context:context(), path_token()) -> cb_context:context().
 delete(Context, _) ->
     activate_account_for_acdc(Context),
@@ -484,6 +504,7 @@ delete_account(Context, AccountId) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc Load an instance from the database
 %% @end
 %%------------------------------------------------------------------------------
@@ -496,6 +517,7 @@ read(Id, Context) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -504,6 +526,7 @@ validate_request(QueueId, Context) ->
     check_queue_schema(QueueId, Context).
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -522,6 +545,7 @@ on_successful_validation(QueueId, Context) ->
     crossbar_doc:load_merge(QueueId, Context, ?TYPE_CHECK_OPTION(<<"queue">>)).
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
@@ -539,11 +563,8 @@ load_queue_agents(Id, Context) ->
     end.
 
 load_agent_roster(Id, Context) ->
-    crossbar_doc:load_view(?CB_AGENTS_LIST
-                          ,[{'startkey', [Id]}
-                           ,{'endkey', [Id, kz_json:new()]}
-                           ,{'reduce', 'false'}
-                           ]
+    crossbar_doc:load_view(?CB_AGENTS_LIST, [{'key', Id}
+                                            ,{'reduce', 'false'}]
                           ,Context
                           ,fun normalize_agents_results/2
                           ).
@@ -639,50 +660,79 @@ maybe_rm_queue_from_agent(Id, A) ->
     kz_json:set_value(<<"queues">>, lists:delete(Id, Qs), A).
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc
 %% @end
 %%------------------------------------------------------------------------------
--spec fetch_all_queue_stats(cb_context:context()) -> cb_context:context().
-fetch_all_queue_stats(Context) ->
+-spec fetch_queue_stats(cb_context:context(), kz_term:ne_binary()|'all') -> cb_context:context().
+fetch_queue_stats(Context, QueueId) ->
     case cb_context:req_value(Context, <<"start_range">>) of
-        'undefined' -> fetch_all_current_queue_stats(Context);
-        StartRange -> fetch_ranged_queue_stats(Context, StartRange)
+        'undefined' -> fetch_current_queue_stats(Context, QueueId);
+        StartRange -> fetch_ranged_queue_stats(Context, StartRange, QueueId)
     end.
 
--spec fetch_all_current_queue_stats(cb_context:context()) -> cb_context:context().
-fetch_all_current_queue_stats(Context) ->
-    lager:debug("querying for all recent stats"),
-    Now = kz_time:now_s(),
-    From = Now - ?ACDC_CLEANUP_WINDOW,
+-spec fetch_stats_summary(cb_context:context(), kz_term:ne_binary()|'all') -> cb_context:context().
+fetch_stats_summary(Context, QueueId) ->
+    case cb_context:req_value(Context, <<"start_range">>) of
+        'undefined' -> fetch_current_stats_summary(Context, QueueId);
+        StartRange -> fetch_ranged_stats_summary(Context, StartRange, QueueId)
+    end.
 
+-spec fetch_current_stats_summary(cb_context:context(), kz_term:ne_binary() | 'all') -> cb_context:context().
+fetch_current_stats_summary(Context, QueueId) ->
     Req = props:filter_undefined(
             [{<<"Account-ID">>, cb_context:account_id(Context)}
             ,{<<"Status">>, cb_context:req_value(Context, <<"status">>)}
-            ,{<<"Agent-ID">>, cb_context:req_value(Context, <<"agent_id">>)}
-            ,{<<"Start-Range">>, From}
-            ,{<<"End-Range">>, Now}
+            ,{<<"Queue-ID">>, case QueueId of
+                                  'all' -> cb_context:req_value(Context, <<"queue_id">>);
+                                  Else -> Else
+                              end}
              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ]),
-    fetch_from_amqp(Context, Req).
+    fetch_call_summary_stats_from_amqp(Context, Req).
 
-format_stats(Context, Resp) ->
-    Stats = kz_json:from_list([{<<"current_timestamp">>, kz_time:now_s()}
-                              ,{<<"stats">>,
-                                kz_doc:public_fields(
-                                  kz_json:get_value(<<"Handled">>, Resp, []) ++
-                                      kz_json:get_value(<<"Abandoned">>, Resp, []) ++
-                                      kz_json:get_value(<<"Waiting">>, Resp, []) ++
-                                      kz_json:get_value(<<"Processed">>, Resp, [])
-                                 )}
-                              ]),
-    cb_context:set_resp_status(cb_context:set_resp_data(Context, Stats)
-                              ,'success'
-                              ).
+fetch_ranged_stats_summary(Context, StartRange, QueueId) ->
+    MaxRange = 2682000 * 12,
 
-fetch_ranged_queue_stats(Context, StartRange) ->
+    Now = kz_time:current_tstamp(),
+    %%    Past = Now - MaxRange,
+
+    To = kz_term:to_integer(cb_context:req_value(Context, <<"end_range">>, Now)),
+
+    case kz_term:to_integer(StartRange) of
+        F when F > To ->
+            %% start_range is larger than end_range
+            Msg = kz_json:from_list([{<<"message">>, <<"value is greater than start_range">>}
+                                    ,{<<"cause">>, StartRange}
+                                    ]),
+            cb_context:add_validation_error(<<"end_range">>, <<"maximum">>, Msg, Context);
+        F when (To - F) >= MaxRange ->
+            %% range is too large
+            Msg = kz_term:to_binary(io_lib:format("end_range ~b is more than ~b seconds from start_range ~b", [To, MaxRange, F])),
+            JObj = kz_json:from_list([{<<"message">>, Msg}, {<<"cause">>, StartRange}]),
+            cb_context:add_validation_error(<<"end_range">>, <<"date_range">>, JObj, Context);
+        F ->
+            fetch_ranged_stats_summary(Context, F, To, QueueId)
+    end.
+
+fetch_ranged_stats_summary(Context, From, To, QueueId) ->
+    Req = props:filter_undefined(
+            [{<<"Account-ID">>, cb_context:account_id(Context)}
+            ,{<<"Status">>, cb_context:req_value(Context, <<"status">>)}
+            ,{<<"Queue-ID">>, case QueueId of
+                                  'all' -> cb_context:req_value(Context, <<"queue_id">>);
+                                  Else -> Else
+                              end}
+            ,{<<"Start-Range">>, From}
+            ,{<<"End-Range">>, To}
+             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ]),
+    fetch_call_summary_stats_from_amqp(Context, Req).
+
+fetch_ranged_queue_stats(Context, StartRange, QueueId) ->
     MaxRange = ?ACDC_CLEANUP_WINDOW,
 
-    Now = kz_time:now_s(),
+    Now = kz_time:current_tstamp(),
     Past = Now - MaxRange,
 
     To = kz_term:to_integer(cb_context:req_value(Context, <<"end_range">>, Now)),
@@ -696,25 +746,63 @@ fetch_ranged_queue_stats(Context, StartRange) ->
             cb_context:add_validation_error(<<"end_range">>, <<"maximum">>, Msg, Context);
         F when F < Past, To > Past ->
             %% range overlaps archived/real data, use real
-            fetch_ranged_queue_stats(Context, Past, To, 'true');
+            fetch_ranged_queue_stats(Context, QueueId, Past, To, 'true');
         F ->
-            fetch_ranged_queue_stats(Context, F, To, F >= Past)
+            fetch_ranged_queue_stats(Context, QueueId, F, To, F >= Past)
     end.
 
-fetch_ranged_queue_stats(Context, From, To, 'true') ->
-    lager:debug("ranged query from ~b to ~b(~b) of current stats (now ~b)", [From, To, To-From, kz_time:now_s()]),
+fetch_ranged_queue_stats(Context, QueueId, From, To, 'true') ->
+    lager:debug("ranged query from ~b to ~b(~b) of current stats (now ~b)", [From, To, To-From, kz_time:current_tstamp()]),
     Req = props:filter_undefined(
             [{<<"Account-ID">>, cb_context:account_id(Context)}
             ,{<<"Status">>, cb_context:req_value(Context, <<"status">>)}
             ,{<<"Agent-ID">>, cb_context:req_value(Context, <<"agent_id">>)}
+            ,{<<"Queue-ID">>, case QueueId of
+                                  'all' -> cb_context:req_value(Context, <<"queue_id">>);
+                                  Else -> Else
+                              end}
             ,{<<"Start-Range">>, From}
             ,{<<"End-Range">>, To}
              | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
             ]),
     fetch_from_amqp(Context, Req);
-fetch_ranged_queue_stats(Context, From, To, 'false') ->
+fetch_ranged_queue_stats(Context, _QueueId, From, To, 'false') ->
     lager:debug("ranged query from ~b to ~b of archived stats", [From, To]),
     Context.
+
+-spec fetch_current_queue_stats(cb_context:context(), kz_term:ne_binary()|'all') -> cb_context:context().
+fetch_current_queue_stats(Context, QueueId) ->
+    lager:debug("querying for all recent stats"),
+    Req = props:filter_undefined(
+            [{<<"Account-ID">>, cb_context:account_id(Context)}
+            ,{<<"Status">>, cb_context:req_value(Context, <<"status">>)}
+            ,{<<"Agent-ID">>, cb_context:req_value(Context, <<"agent_id">>)}
+            ,{<<"Queue-ID">>, case QueueId of
+                                  'all' -> cb_context:req_value(Context, <<"queue_id">>);
+                                  Else -> Else
+                              end}
+             | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+            ]),
+    fetch_from_amqp(Context, Req).
+
+format_stats(Context, Resp) ->
+    HasQs = crossbar_filter:is_defined(Context),
+    Stats = kz_doc:public_fields(kz_json:get_value(<<"Handled">>, Resp, []) ++
+                                     kz_json:get_value(<<"Abandoned">>, Resp, []) ++
+                                     kz_json:get_value(<<"Waiting">>, Resp, []) ++
+                                     kz_json:get_value(<<"Processed">>, Resp, [])
+                                ),
+    Filtered = [JObj || JObj <- Stats,
+                        crossbar_filter:by_doc(JObj, Context, HasQs)
+               ],
+    RespData = kz_json:from_list([{<<"current_timestamp">>, kz_time:current_tstamp()}
+                                 ,{<<"stats">>, Filtered}
+                                 ]),
+    cb_context:set_resp_status(
+      cb_context:set_resp_data(Context, RespData)
+     ,'success'
+     ).
+
 
 -spec fetch_from_amqp(cb_context:context(), kz_term:proplist()) -> cb_context:context().
 fetch_from_amqp(Context, Req) ->
@@ -730,6 +818,7 @@ fetch_from_amqp(Context, Req) ->
     end.
 
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc Attempt to load a summarized listing of all instances of this
 %% resource.
 %% @end
@@ -743,7 +832,8 @@ summary(Context) ->
                           ).
 
 %%------------------------------------------------------------------------------
-%% @doc Normalizes the results of a view
+%% @private
+%% @doc Normalizes the resuts of a view
 %% @end
 %%------------------------------------------------------------------------------
 -spec normalize_view_results(kz_json:object(), kz_json:objects()) -> kz_json:objects().
@@ -753,7 +843,46 @@ normalize_view_results(JObj, Acc) ->
 normalize_agents_results(JObj, Acc) ->
     [kz_doc:id(JObj) | Acc].
 
+-spec fetch_call_summary_stats_from_amqp(cb_context:context(), kz_term:proplist()) -> cb_context:context().
+fetch_call_summary_stats_from_amqp(Context, Req) ->
+    case kz_amqp_worker:call(Req
+                            ,fun kapi_acdc_stats:publish_call_summary_req/1
+                            ,fun kapi_acdc_stats:call_summary_resp_v/1
+                            )
+    of
+        {'error', Resp} -> format_stats_summary_error(Context, Resp);
+        {'ok', Resp} -> format_stats_summary_response(Context, Resp)
+    end.
+
+-spec format_stats_summary_response(cb_context:context(), kz_json:object()) ->
+          cb_context:context().
+format_stats_summary_response(Context, Resp) ->
+    case kz_json:get_value(<<"Event-Name">>, Resp) of
+        <<"call_summary_err">> -> format_stats_summary_error(Context, Resp);
+        <<"call_summary_resp">> -> format_stats_summary_stats(Context, Resp)
+    end.
+
+-spec format_stats_summary_stats(cb_context:context(), kz_json:object()) ->
+          cb_context:context().
+format_stats_summary_stats(Context, Resp) ->
+    RespJObj = kz_json:set_values([{<<"current_timestamp">>, kz_time:current_tstamp()}
+                                  ,{<<"Summarized">>, kz_json:get_value(<<"Data">>, Resp, [])}
+                                  ], kz_json:new()),
+    crossbar_util:response(RespJObj, Context).
+
+-spec format_stats_summary_error(cb_context:context(), kz_json:object()) ->
+          cb_context:context().
+format_stats_summary_error(Context, Resp) ->
+    crossbar_util:response('error', <<"stat request had errors">>, 400
+                          ,kz_json:get_value(<<"Error-Reason">>, Resp)
+                          ,Context
+                          ).
+
+
+
+
 %%------------------------------------------------------------------------------
+%% @private
 %% @doc Creates an entry in the acdc db of the account's participation in acdc
 %% @end
 %%------------------------------------------------------------------------------
@@ -768,7 +897,7 @@ activate_account_for_acdc(Context) ->
                                               ,[{'account_id', cb_context:account_id(Context)}
                                                ,{'type', <<"acdc_activation">>}
                                                ]),
-            {'ok', _} = kz_datamgr:ensure_saved(?KZ_ACDC_DB, Doc),
+            {'ok', _} = kz_datamgr:save_doc(?KZ_ACDC_DB, Doc, [{'ensure_saved', 'true'}]),
             'ok';
         {'error', _E} ->
             lager:debug("failed to check acdc activation doc: ~p", [_E])
@@ -786,3 +915,16 @@ deactivate_account_for_acdc(AccountId) ->
                     lager:debug("failed to remove ~s: ~p", [AccountId, _E])
             end
     end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc Remove deprecated agents key from the queues jobj
+%% @end
+%%------------------------------------------------------------------------------
+-spec unset_agents_key(cb_context:context()) -> cb_context:context().
+unset_agents_key(Context) ->
+    cb_context:update_doc(Context
+                         ,fun(Doc) ->
+                                  kz_json:delete_key(<<"agents">>, Doc)
+                          end
+                         ).

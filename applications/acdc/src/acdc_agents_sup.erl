@@ -1,8 +1,12 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2020, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
 %%% @author Daniel Finke
+%%% This Source Code Form is subject to the terms of the Mozilla Public
+%%% License, v. 2.0. If a copy of the MPL was not distributed with this
+%%% file, You can obtain one at https://mozilla.org/MPL/2.0/.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(acdc_agents_sup).
@@ -49,42 +53,40 @@ start_link() ->
 
 -spec status() -> 'ok'.
 status() ->
-    ?PRINT("ACDc Agents Status"),
-    Ws = workers(),
-    _ = kz_util:spawn(fun() -> lists:foreach(fun acdc_agent_sup:status/1, Ws) end),
+    lists:foreach(fun acdc_agent_sup:status/1, workers()),
     'ok'.
 
 -spec new(kz_json:object()) -> kz_types:sup_startchild_ret().
 new(JObj) ->
-    AcctId = kz_doc:account_id(JObj),
+    AccountId = kz_doc:account_id(JObj),
     AgentId = kz_doc:id(JObj),
-    start_agent(AcctId, AgentId, JObj).
+    start_agent(AccountId, AgentId, JObj).
 
 -spec new(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:sup_startchild_ret().
-new(AcctId, AgentId) ->
-    {'ok', JObj} = kz_datamgr:open_doc(kz_util:format_account_id(AcctId, 'encoded'), AgentId),
-    start_agent(AcctId, AgentId, JObj).
+new(AccountId, AgentId) ->
+    {'ok', JObj} = kz_datamgr:open_doc(kz_util:format_account_id(AccountId, 'encoded'), AgentId),
+    start_agent(AccountId, AgentId, JObj).
 
 -spec new(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), kz_term:ne_binaries()) -> kz_types:sup_startchild_ret().
-new(AcctId, AgentId, AgentJObj, Queues) ->
-    start_agent(AcctId, AgentId, AgentJObj, [Queues]).
+new(AccountId, AgentId, AgentJObj, Queues) ->
+    start_agent(AccountId, AgentId, AgentJObj, [Queues]).
 
 -spec new_thief(kapps_call:call(), kz_term:ne_binary()) -> kz_types:sup_startchild_ret().
 new_thief(Call, QueueId) ->
     AccountId = kapps_call:account_id(Call),
     CallId = kapps_call:call_id(Call),
     Id = ?THIEF_ID(AccountId, QueueId, CallId),
-    supervisor:start_child(?SERVER, ?CHILD(Id, [Call, QueueId])).
+    supervisor:start_child(?MODULE, ?CHILD(Id, [Call, QueueId])).
 
 -spec stop_agent(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:sup_deletechild_ret().
-stop_agent(AcctId, AgentId) ->
-    Id = ?CHILD_ID(AcctId, AgentId),
+stop_agent(AccountId, AgentId) ->
+    Id = ?CHILD_ID(AccountId, AgentId),
     case supervisor:terminate_child(?SERVER, Id) of
         'ok' ->
-            lager:info("stopping agent ~s(~s)", [AgentId, AcctId]),
+            lager:info("stopping agent ~s(~s)", [AgentId, AccountId]),
             supervisor:delete_child(?SERVER, Id);
         E ->
-            lager:info("no supervisor for agent ~s(~s) to stop", [AgentId, AcctId]),
+            lager:info("no supervisor for agent ~s(~s) to stop", [AgentId, AccountId]),
             E
     end.
 
@@ -92,32 +94,32 @@ stop_agent(AcctId, AgentId) ->
 workers() -> [Pid || {_, Pid, 'supervisor', [_]} <- supervisor:which_children(?SERVER)].
 
 -spec restart_acct(kz_term:ne_binary()) -> [kz_types:sup_startchild_ret()].
-restart_acct(AcctId) ->
-    [restart_agent(AcctId, AgentId)
-     || {_, {AcctId1, AgentId, _}} <- agents_running()
-            ,AcctId =:= AcctId1
+restart_acct(AccountId) ->
+    [restart_agent(AccountId, AgentId)
+     || {_, {AccountId1, AgentId, _}} <- agents_running()
+            ,AccountId =:= AccountId1
     ].
 
 -spec restart_agent(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_types:sup_startchild_ret().
-restart_agent(AcctId, AgentId) ->
-    Id = ?CHILD_ID(AcctId, AgentId),
+restart_agent(AccountId, AgentId) ->
+    Id = ?CHILD_ID(AccountId, AgentId),
     case supervisor:terminate_child(?SERVER, Id) of
         'ok' ->
-            lager:info("restarting agent ~s(~s)", [AgentId, AcctId]),
+            lager:info("restarting agent ~s(~s)", [AgentId, AccountId]),
             supervisor:restart_child(?SERVER, Id);
         E ->
-            lager:info("no supervisor for agent ~s(~s) to restart", [AgentId, AcctId]),
+            lager:info("no supervisor for agent ~s(~s) to restart", [AgentId, AccountId]),
             E
     end.
 
 -spec find_acct_supervisors(kz_term:ne_binary()) -> kz_term:pids().
-find_acct_supervisors(AcctId) -> [S || S <- workers(), is_agent_in_acct(S, AcctId)].
+find_acct_supervisors(AccountId) -> [S || S <- workers(), is_agent_in_acct(S, AccountId)].
 
 -spec is_agent_in_acct(pid(), kz_term:ne_binary()) -> boolean().
-is_agent_in_acct(Super, AcctId) ->
+is_agent_in_acct(Super, AccountId) ->
     case catch acdc_agent_listener:config(acdc_agent_sup:listener(Super)) of
         {'EXIT', _} -> 'false';
-        {AcctId, _, _} -> 'true';
+        {AccountId, _, _} -> 'true';
         _ -> 'false'
     end.
 
@@ -126,21 +128,21 @@ agents_running() ->
     [{W, catch acdc_agent_listener:config(acdc_agent_sup:listener(W))} || W <- workers()].
 
 -spec find_agent_supervisor(kz_term:api_binary(), kz_term:api_binary()) -> kz_term:api_pid().
-find_agent_supervisor(AcctId, AgentId) -> find_agent_supervisor(AcctId, AgentId, workers()).
+find_agent_supervisor(AccountId, AgentId) -> find_agent_supervisor(AccountId, AgentId, workers()).
 
 -spec find_agent_supervisor(kz_term:api_binary(), kz_term:api_binary(), kz_term:pids()) -> kz_term:api_pid().
-find_agent_supervisor(AcctId, AgentId, _) when AcctId =:= 'undefined';
-                                               AgentId =:= 'undefined' ->
-    lager:debug("failed to get good data: ~s ~s", [AcctId, AgentId]),
+find_agent_supervisor(AccountId, AgentId, _) when AccountId =:= 'undefined';
+                                                  AgentId =:= 'undefined' ->
+    lager:debug("failed to get good data: ~s ~s", [AccountId, AgentId]),
     'undefined';
-find_agent_supervisor(AcctId, AgentId, []) ->
-    lager:debug("supervisor for agent ~s(~s) not found", [AgentId, AcctId]),
+find_agent_supervisor(AccountId, AgentId, []) ->
+    lager:debug("supervisor for agent ~s(~s) not found", [AgentId, AccountId]),
     'undefined';
-find_agent_supervisor(AcctId, AgentId, [Super|Rest]) ->
+find_agent_supervisor(AccountId, AgentId, [Super|Rest]) ->
     case catch acdc_agent_listener:config(acdc_agent_sup:listener(Super)) of
-        {'EXIT', _E} -> find_agent_supervisor(AcctId, AgentId, Rest);
-        {AcctId, AgentId, _} -> Super;
-        _E -> find_agent_supervisor(AcctId, AgentId, Rest)
+        {'EXIT', _E} -> find_agent_supervisor(AccountId, AgentId, Rest);
+        {AccountId, AgentId, _} -> Super;
+        _E -> find_agent_supervisor(AccountId, AgentId, Rest)
     end.
 
 %%%=============================================================================
@@ -174,18 +176,18 @@ init([]) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> kz_types:sup_startchild_ret().
-start_agent(AcctId, AgentId, AgentJObj) ->
-    start_agent(AcctId, AgentId, AgentJObj, []).
+start_agent(AccountId, AgentId, AgentJObj) ->
+    start_agent(AccountId, AgentId, AgentJObj, []).
 
 -spec start_agent(kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object(), [any()]) -> kz_types:sup_startchild_ret().
-start_agent(AcctId, AgentId, AgentJObj, ExtraArgs) ->
-    Id = ?CHILD_ID(AcctId, AgentId),
-    case supervisor:start_child(?SERVER, ?CHILD(Id, [AcctId, AgentId, AgentJObj] ++ ExtraArgs)) of
+start_agent(AccountId, AgentId, AgentJObj, ExtraArgs) ->
+    Id = ?CHILD_ID(AccountId, AgentId),
+    case supervisor:start_child(?SERVER, ?CHILD(Id, [AccountId, AgentId, AgentJObj] ++ ExtraArgs)) of
         {'error', 'already_present'}=E ->
-            lager:debug("agent ~s(~s) already present", [AgentId, AcctId]),
+            lager:debug("agent ~s(~s) already present", [AgentId, AccountId]),
             E;
         {'error', {'already_started', Pid}}=E ->
-            lager:debug("agent ~s(~s) already started here: ~p", [AgentId, AcctId, Pid]),
+            lager:debug("agent ~s(~s) already started here: ~p", [AgentId, AccountId, Pid]),
             E;
         StartChildRet -> StartChildRet
     end.

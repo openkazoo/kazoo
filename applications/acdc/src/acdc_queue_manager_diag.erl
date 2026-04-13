@@ -145,11 +145,9 @@ handle_info(_Info, State) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec terminate(any(), state()) -> 'ok'.
-terminate(_Reason, #state{manager=Manager}) ->
-    catch acdc_queue_manager:remove_diagnostics_receiver(Manager, self()),
-
-    catch print(io_lib:format("stopping diagnostics: ~p", [_Reason])),
-    lager:debug("terminating: ~p", [_Reason]).
+terminate(_Reason, _State) ->
+    lager:debug("terminating: ~p", [_Reason]),
+    'ok'.
 
 %%------------------------------------------------------------------------------
 %% @doc Convert process state when code is changed.
@@ -214,13 +212,8 @@ monitor_manager(AccountId, QueueId) ->
 %% @end
 %%------------------------------------------------------------------------------
 monitor_manager(Manager) ->
-    try acdc_queue_manager:add_diagnostics_receiver(Manager, self()) of
-        'ok' ->
-            monitor('process', Manager),
-            Manager
-    catch
-        'error':E -> {'error', {E, erlang:get_stacktrace()}}
-    end.
+    monitor('process', Manager),
+    Manager.
 
 %%------------------------------------------------------------------------------
 %% @doc Get the group leader of the process identified by `Observer'.
