@@ -32,6 +32,8 @@
 -include("callflow.hrl").
 
 -ifdef(TEST).
+-spec test() -> 'ok'.
+
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
@@ -98,6 +100,7 @@ truncate_after_terminator(AlreadyCollected, Terminators) ->
     hd(binary:split(AlreadyCollected, Terminators)).
 
 -ifdef(TEST).
+-spec truncate_after_terminator_test_() -> any().
 truncate_after_terminator_test_() ->
     [?_assertEqual(<<"1234">>, truncate_after_terminator(<<"1234#456#789">>, [<<"#">>, <<"*">>]))
     ,?_assertEqual(<<"1234">>, truncate_after_terminator(<<"1234">>, [<<"#">>]))

@@ -383,11 +383,11 @@ pretty_print(#cb_context{pretty_print = PrettyPrint}) -> PrettyPrint.
 
 -spec path_token(binary()) -> binary().
 path_token(Token) ->
-    kz_util:uri_decode(Token).
+    kz_http_util:urldecode(Token).
 
 -spec path_tokens(context()) -> kz_term:ne_binaries().
 path_tokens(#cb_context{raw_path=Path}) ->
-    [path_token(kz_util:uri_decode(Token))
+    [path_token(kz_http_util:urldecode(Token))
      || Token <- binary:split(Path, <<"/">>, ['global', 'trim'])
     ].
 
@@ -897,8 +897,7 @@ validate_request_data(SchemaJObj, Context, OnSuccess, OnFailure, _SchemaRequired
             lager:debug("validation errors but not strictly validating, trying to fix request"),
             maybe_fix_js_types(SchemaJObj, Context, OnSuccess, OnFailure, Errors)
     catch
-        'error':'function_clause' ->
-            ST = erlang:get_stacktrace(),
+        'error':'function_clause':ST ->
             lager:debug("function clause failure"),
             kz_util:log_stacktrace(ST),
             Context#cb_context{resp_status = 'fatal'

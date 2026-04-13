@@ -228,8 +228,9 @@ do_revise_docs_from_folder(DbName, Sleep, [H|T]) ->
             andalso timer:sleep(250),
         do_revise_docs_from_folder(DbName, Sleep, T)
     catch
-        _:_ ->
-            kz_util:log_stacktrace(),
+        _E:R:ST ->
+            io:format("error processing ~s: '~s': ~p~n", [?MODULE, _E, R]),
+            [io:format("~p~n", [S]) || S <- ST],
             do_revise_docs_from_folder(DbName, Sleep, T)
     end.
 
@@ -1844,7 +1845,7 @@ do_refresh_views(DbName) ->
     Updated = case view_definitions(DbName, Classification) of
                   [] -> 'false';
                   Views ->
-                      Database = kz_util:uri_encode(kz_util:uri_decode(DbName)),
+                      Database = kz_http_util:urlencode(kz_http_util:urldecode(DbName)),
                       db_view_update(Database, Views)
               end,
 
@@ -1863,7 +1864,7 @@ do_refresh_views(DbName) ->
 
 -spec view_definitions(kz_term:ne_binary(), atom() | kz_term:ne_binary()) -> views_listing().
 view_definitions(DbName, Classification) ->
-    ViewOptions = [kz_util:uri_decode(DbName), kz_term:to_binary(Classification)],
+    ViewOptions = [kz_http_util:urldecode(DbName), kz_term:to_binary(Classification)],
     case get_result_docs(?KZ_DATA_DB, <<"views/views_by_classification">>, ViewOptions) of
         {'error', _} -> [];
         {'ok', JObjs} ->

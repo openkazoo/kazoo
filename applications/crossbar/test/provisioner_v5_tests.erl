@@ -1,7 +1,9 @@
 -module(provisioner_v5_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec is_device_enabled_test_() -> any().
 is_device_enabled_test_() ->
     AccountDoc = kzd_accounts:new(),
     DisabledAccountDoc = kzd_accounts:disable(AccountDoc),
@@ -26,6 +28,7 @@ is_device_enabled_test_() ->
         {Result, [D, U, A]} <- Tests
     ].
 
+-spec device_display_name_test_() -> any().
 device_display_name_test_() ->
     UserDoc = kzd_users:new(),
     FirstName = <<"User">>,

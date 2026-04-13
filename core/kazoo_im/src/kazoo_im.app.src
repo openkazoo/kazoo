@@ -1,5 +1,5 @@
 {application,kazoo_im,
-             [{applications,[gproc,kazoo,kazoo_amqp,kazoo_apps,
+             [{applications,[kernel,gproc,kazoo,kazoo_amqp,kazoo_apps,
                              kazoo_documents,kazoo_endpoint,kazoo_ledgers,
                              kazoo_number_manager,kazoo_schemas,
                              kazoo_services,kazoo_stdlib,lager,stdlib]},

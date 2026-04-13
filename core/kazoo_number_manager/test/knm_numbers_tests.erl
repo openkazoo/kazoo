@@ -18,8 +18,45 @@ n_x(X, Ret) ->
 pn_x(X, Ret) ->
     knm_number:phone_number(n_x(X, Ret)).
 
+all_test_() ->
+    {'setup'
+    ,fun setup_fixtures/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             [{"Testing get", get_()}
+             ,{"Testing create", create_()}
+             ,{"Testing create new", create_new_()}
+             ,{"Testing move", move_()}
+             ,{"Testing update", update_()}
+             ,{"Testing attempt setting e911 on disaallowed number", attempt_setting_e911_on_disallowed_number()}
+             ,{"Testing delete", delete_()}
+             ,{"Testing reconcile", reconcile_()}
+             ,{"Testing reserve", reserve_()}
+             ,{"Testing assign to app", assign_to_app_()}
+             ,{"Testing release", release_()}
+             ]
+     end
+    }.
 
-get_test_() ->
+setup_fixtures() ->
+    ?LOG_DEBUG(":: Setting up Kazoo Numbers test"),
+
+    Pid = case kz_fixturedb_util:start_me() of
+              {error, {already_started, P}} -> P;
+              P when is_pid(P) -> P
+          end,
+
+    meck:new(kz_datamgr, [unstick, passthrough]),
+
+    meck:new(kz_fixturedb_db, [unstick, passthrough]),
+
+    Pid.
+
+cleanup(Pid) ->
+    kz_fixturedb_util:stop_me(Pid),
+    meck:unload().
+
+get_() ->
     Ret = knm_numbers:get([?TEST_AVAILABLE_NUM]),
     [?_assertEqual(#{}, maps:get(ko, Ret))
     ,?_assertMatch([_], maps:get(ok, Ret))
@@ -61,7 +98,7 @@ create_test_e911() ->
       ,{?E911_ZIP, <<"94123">>}
       ]).
 
-create_test_() ->
+create_() ->
     Num = ?TEST_TELNYX_NUM,
     E911 = create_test_e911(),
     JObj = kz_json:from_list([{?FEATURE_E911, E911}]),
@@ -85,8 +122,7 @@ create_test_() ->
      }
     ].
 
-
-create_new_test_() ->
+create_new_() ->
     Num = ?TEST_TELNYX_NUM,
     Options = [{'auth_by', ?MASTER_ACCOUNT_ID}
               ,{'assign_to', ?RESELLER_ACCOUNT_ID}
@@ -107,8 +143,7 @@ create_new_test_() ->
     ,?_assertEqual(?NUMBER_STATE_IN_SERVICE, knm_phone_number:state(pn_x(2, Ret)))
     ].
 
-
-move_test_() ->
+move_() ->
     Ret = knm_numbers:move([?NOT_NUM, ?TEST_AVAILABLE_NUM], ?CHILD_ACCOUNT_ID),
     [?_assertEqual(#{?NOT_NUM => 'not_reconcilable'}, maps:get(ko, Ret))
     ,?_assertMatch([_], maps:get(ok, Ret))
@@ -122,8 +157,7 @@ move_test_() ->
      }
     ].
 
-
-update_test_() ->
+update_() ->
     NotDefault = true,
     Setters = [{fun knm_phone_number:set_ported_in/2, NotDefault}],
     Ret0 = knm_numbers:update([?NOT_NUM, ?TEST_AVAILABLE_NUM], []),
@@ -140,8 +174,7 @@ update_test_() ->
      }
     ].
 
-
-attempt_setting_e911_on_disallowed_number_test_() ->
+attempt_setting_e911_on_disallowed_number() ->
     JObj = kz_json:from_list(
              [{?FEATURE_E911
               ,kz_json:from_list(
@@ -173,8 +206,7 @@ attempt_setting_e911_on_disallowed_number_test_() ->
      }
     ].
 
-
-delete_test_() ->
+delete_() ->
     Ret = knm_numbers:delete([?NOT_NUM, ?TEST_AVAILABLE_NUM], knm_number_options:default()),
     [?_assertEqual(#{?NOT_NUM => 'not_reconcilable'}, maps:get(ko, Ret))
     ,?_assertMatch([_], maps:get(ok, Ret))
@@ -184,8 +216,7 @@ delete_test_() ->
     ,?_assert(knm_phone_number:is_dirty(pn_x(1, Ret)))
     ].
 
-
-reconcile_test_() ->
+reconcile_() ->
     Ret0 = knm_numbers:reconcile([?NOT_NUM], []),
     Ret1 = knm_numbers:reconcile([?NOT_NUM, ?TEST_AVAILABLE_NUM], knm_number_options:default()),
     Ret2 = knm_numbers:reconcile([?NOT_NUM, ?TEST_AVAILABLE_NUM]
@@ -213,10 +244,10 @@ error_assign_to_undefined() ->
       ,{<<"error">>, <<"assign_failure">>}
       ,{<<"cause">>, <<"field_undefined">>}
       ,{<<"message">>, <<"invalid account to assign to">>}
-      ]).
+      ]
+     ).
 
-
-reserve_test_() ->
+reserve_() ->
     AssignToChild = [{assign_to, ?CHILD_ACCOUNT_ID} | knm_number_options:default()],
     Ret1 = knm_numbers:reserve([?NOT_NUM, ?TEST_AVAILABLE_NUM]
                               ,[{assign_to,?RESELLER_ACCOUNT_ID}, {auth_by,?MASTER_ACCOUNT_ID}]),
@@ -254,8 +285,7 @@ reserve_test_() ->
     ,?_assertEqual([?CHILD_ACCOUNT_ID, ?RESELLER_ACCOUNT_ID], knm_phone_number:reserve_history(pn_x(1, Ret3)))
     ].
 
-
-assign_to_app_test_() ->
+assign_to_app_() ->
     MyApp = <<"my_app">>,
     Ret1 = knm_numbers:get([?NOT_NUM, ?TEST_AVAILABLE_NUM]),
     Ret2 = knm_numbers:assign_to_app([?NOT_NUM, ?TEST_AVAILABLE_NUM], MyApp),
@@ -273,8 +303,7 @@ assign_to_app_test_() ->
      }
     ].
 
-
-release_test_() ->
+release_() ->
     Ret1 = knm_numbers:release([?NOT_NUM, ?TEST_IN_SERVICE_WITH_HISTORY_NUM]),
     Ret2 = knm_numbers:release([?NOT_NUM, ?TEST_IN_SERVICE_MDN], knm_number_options:mdn_options()),
     Ret3 = knm_numbers:release([?NOT_NUM, ?TEST_IN_SERVICE_BAD_CARRIER_NUM]),

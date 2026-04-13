@@ -530,7 +530,7 @@ refresh([Database|Databases], Pause, Total, Unexpected) ->
                 end,
             Unexpected
         catch
-            ?STACKTRACE(Error, Reason, StackTrace)
+            Error:Reason:StackTrace ->
                 [io_lib:format("WARNING: Unable to refresh/migrate db ~s! ~s: {~p, ~p}",
                                [Database, Error, Reason, StackTrace])
                  | Unexpected]
@@ -2182,8 +2182,7 @@ check_release() ->
         'throw':Error ->
             lager:error("check_release/0 failed: ~p", [Error]),
             init:stop(1);
-        _E:_R ->
-            ST = erlang:get_stacktrace(),
+        _E:_R:ST ->
             lager:error("check_release/0 crashed: ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             init:stop(1)

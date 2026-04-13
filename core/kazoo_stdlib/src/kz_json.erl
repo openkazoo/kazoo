@@ -137,7 +137,18 @@ new() -> ?JSON_WRAPPER([]).
 encode(JObj) -> encode(JObj, []).
 
 -spec encode(json_term(), encode_options()) -> kz_term:text().
-encode(JObj, Options) -> jiffy:encode(JObj, Options).
+encode('undefined', _) ->
+    throw({'error', {'invalid_ejson', 'undefined'}});
+encode(JObjs, Options) when is_list(JObjs) ->
+    case lists:all(fun(JObj) -> is_valid_json_object(JObj) end, JObjs) of
+        'true' -> jiffy:encode(JObjs, Options);
+        'false' -> throw({'error', {'invalid_ejson', JObjs}})
+    end;
+encode(JObj, Options) ->
+    case is_valid_json_object(JObj) of
+        'true' -> jiffy:encode(JObj, Options);
+        'false' -> throw({'error', {'invalid_ejson', JObj}})
+    end.
 
 -spec unsafe_decode(iolist() | kz_term:ne_binary()) -> json_term().
 unsafe_decode(Thing) when is_list(Thing);
@@ -223,7 +234,7 @@ is_valid_json_object(?JSON_WRAPPER(_)=JObj) ->
 is_valid_json_object(_) -> 'false'.
 
 -spec is_json_term(json_term()) -> boolean().
-is_json_term('undefined') -> throw({'error', 'no_atom_undefined_in_jobj_please'});
+is_json_term('undefined') -> throw({'error', {'invalid_ejson', 'undefined'}});
 is_json_term(V) when is_atom(V) -> 'true';
 is_json_term(V) when is_binary(V) -> 'true';
 is_json_term(V) when is_bitstring(V) -> 'true';

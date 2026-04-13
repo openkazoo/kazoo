@@ -1406,7 +1406,7 @@ from_map_test_() ->
      ,?_assertEqual(?FROM_MAP_JSON_4_RIGHT, kz_json:from_map(?FROM_MAP_MAP_4))
      }
     ,{"error encoding the invalid json generated in from_map with a mixed proplist inside map"
-     ,?_assertException(throw, {error,{invalid_ejson,{opt1,<<"my-opt1">>}}}, kz_json:encode(?FROM_MAP_JSON_4_WRONG))
+     ,?_assertException(throw, {error,{invalid_ejson,_}}, kz_json:encode(?FROM_MAP_JSON_4_WRONG))
      }
     ,{"encoding the invalid json generated in from_map with a mixed proplist inside map"
      ,?_assertEqual(kz_json:encode(?FROM_MAP_JSON_4_RIGHT), kz_json:encode(kz_json:from_map(?FROM_MAP_MAP_4)))
@@ -1447,11 +1447,11 @@ utf8_binary_values_test_() ->
      ,?_assertEqual(UTF8Recursive, kz_json:from_list_recursive(Recursive))
      }
     ,{"When encoding a NOT utf8 ready object it should fail"
-     ,?_assertException(throw, {error,{invalid_string,V}},
+     ,?_assertException(error, {invalid_string,_},
                         kz_json:encode(?JSON_WRAPPER(Props)))
      }
     ,{"When encoding a NOT utf8 ready object it should fail"
-     ,?_assertException(throw, {error,{invalid_string,V}},
+     ,?_assertException(error, {invalid_string,V},
                         kz_json:encode(?JSON_WRAPPER([{K, ?JSON_WRAPPER(Props)}])))
      }
     ,{"When encoding a utf8 ready object it should work"

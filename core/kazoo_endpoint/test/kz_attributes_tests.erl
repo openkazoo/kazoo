@@ -5,6 +5,8 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_attributes_tests).
 
+-include("kazoo_endpoint.hrl").
+
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_fixturedb/include/kz_fixturedb.hrl").
@@ -25,24 +27,50 @@
 
 -define(DISA_CID_CALL, [fun(C) -> kapps_call:set_account_id(?FIXTURE_PARENT_ACCOUNT_ID, C) end
                        ,fun(C) -> kapps_call:set_caller_id_name(<<"disa">>, C) end
-                       ,fun(C) -> kapps_call:set_caller_id_number(<<"+12225552600">>, C) end
+                       ,fun(C) -> kapps_call:set_caller_id_number(<<"+19995552600">>, C) end
                        ]).
 
-kz_attributes_test_() ->
+all_test_() ->
     {'setup'
-    ,fun kzd_test_fixtures:setup/0
-    ,fun kzd_test_fixtures:cleanup/1
-    ,fun(_ReturnOfSetup) ->
-             [test_get_flags_callflow()
-             ,test_get_flags_trunkstore()
-             ,test_process_dynamic_flags()
-             ,test_account_cid()
+    ,fun setup_fixtures/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             [{"Testing get flags callflow", test_get_flags_callflow()}
+             ,{"Testing get flags trunkstore", test_get_flags_trunkstore()}
+             ,{"Testing process dynamic flags", test_process_dynamic_flags()}
+             ,{"Testing account cid", test_account_cid()}
              ]
      end
     }.
 
+setup_fixtures() ->
+    ?LOG_DEBUG(":: Setting up Kazoo Endpoint test"),
+
+    Pid = case kz_fixturedb_util:start_me() of
+              {error, {already_started, P}} -> P;
+              P when is_pid(P) -> P
+          end,
+
+    meck:new(kz_datamgr, [unstick, passthrough]),
+    meck:expect(kz_datamgr, open_cache_doc, fun(Db, AccountId, _Options) ->
+                                                    kz_datamgr:open_doc(Db, AccountId)
+                                            end),
+    %%    meck:expect(kz_datamgr, open_cache_doc, fun
+    %%           (NumberDb, NormalizedNum) ->
+    %%                ?LOG_DEV("mecking kz_datamgr:open_cache_doc(~p, ~p)", [NumberDb, NormalizedNum]),
+    %%                kz_datamgr:open_doc(NumberDb, NormalizedNum)
+    %%           end),
+
+    meck:new(kz_fixturedb_db, [unstick, passthrough]),
+
+    Pid.
+
+cleanup(Pid) ->
+    kz_fixturedb_util:stop_me(Pid),
+    meck:unload().
+
 test_get_flags_callflow() ->
-    Call = kapps_call_tests:create_callflow_call(),
+    Call = create_callflow_call(),
     ExpectedOld = [<<"user_old_static_flag">>
                   ,<<"device_old_static_flag">>
                   ,<<"account_old_static_flag">>
@@ -72,7 +100,7 @@ test_get_flags_callflow() ->
     ].
 
 test_get_flags_trunkstore() ->
-    Call = kapps_call_tests:create_trunkstore_call(),
+    Call = create_trunkstore_call(),
     ExpectedOld = [<<"account_old_static_flag">>],
     ExpectedNew = [<<"local">>
                   ,<<"account_new_static_flag">>
@@ -86,7 +114,7 @@ test_get_flags_trunkstore() ->
     ].
 
 test_process_dynamic_flags() ->
-    Call = kapps_call_tests:create_callflow_call(),
+    Call = create_callflow_call(),
     [{"verify that dynamic CCVs can be fetched and are converted to binary"
      ,?_assertEqual([<<"device">>], kz_attributes:process_dynamic_flags([<<"custom_channel_vars.authorizing_type">>], Call))
      }
@@ -105,7 +133,7 @@ test_process_dynamic_flags() ->
     ].
 
 test_account_cid() ->
-    Call = kapps_call_tests:create_callflow_call(),
+    Call = create_callflow_call(),
     DISACall = kapps_call:exec(?DISA_CID_CALL, Call),
     {CIDNumber, CIDName} = kz_attributes:get_account_external_cid(DISACall),
 
@@ -116,3 +144,42 @@ test_account_cid() ->
      ,?_assertEqual(<<"account-external-name">>, CIDName)
      }
     ].
+
+create_callflow_call() ->
+    ?LOG_DEV("create_callflow_call"),
+    RouteReq = inbound_onnet_callflow_req(),
+    RouteWin = inbound_onnet_callflow_win(),
+    kapps_call:from_route_win(RouteWin, kapps_call:from_route_req(RouteReq)).
+
+inbound_onnet_callflow_req() ->
+    {ok, RouteReq} = kz_json:fixture(
+                       'kazoo_call', "fixtures/route_req/inbound-onnet-callflow.json"
+                      ),
+    'true' = kapi_route:req_v(RouteReq),
+    RouteReq.
+
+inbound_onnet_callflow_win() ->
+    {ok, RouteWin} = kz_json:fixture(
+                       'kazoo_call', "fixtures/route_win/inbound-onnet-callflow.json"
+                      ),
+    'true' = kapi_route:win_v(RouteWin),
+    RouteWin.
+
+create_trunkstore_call() ->
+    RouteReq = inbound_onnet_trunkstore_req(),
+    RouteWin = inbound_onnet_trunkstore_win(),
+    kapps_call:from_route_win(RouteWin, kapps_call:from_route_req(RouteReq)).
+
+inbound_onnet_trunkstore_req() ->
+    {ok, RouteReq} = kz_json:fixture(
+                       'kazoo_call', "fixtures/route_req/inbound-onnet-trunkstore.json"
+                      ),
+    'true' = kapi_route:req_v(RouteReq),
+    RouteReq.
+
+inbound_onnet_trunkstore_win() ->
+    {ok, RouteWin} = kz_json:fixture(
+                       'kazoo_call', "fixtures/route_win/inbound-onnet-trunkstore.json"
+                      ),
+    'true' = kapi_route:win_v(RouteWin),
+    RouteWin.

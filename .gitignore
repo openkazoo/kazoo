@@ -1,0 +1,16 @@
+.DS_Store
+.eunit
+.erlang.cookie
+.rebar3
+_* 
+*.beam
+*.d
+*.o
+*.plt
+*_plt
+*.so
+*.swp
+*.swo
+ebin
+erl_crash.dump
+log

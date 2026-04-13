@@ -4,6 +4,7 @@
 -ifdef(PROPER).
 -include_lib("proper/include/proper.hrl").
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -include_lib("kazoo_stdlib/include/kazoo_json.hrl").
@@ -23,6 +24,7 @@
 
 -export([find_prefix/2]).
 
+-spec proper_test_() -> any().
 proper_test_() ->
     {"Runs "?MODULE_STRING" PropEr tests"
     ,[{'timeout'

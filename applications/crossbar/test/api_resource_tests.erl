@@ -1,7 +1,9 @@
 -module(api_resource_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec get_range_test_() -> any().
 get_range_test_() ->
     FullBinary = <<"abcdefg">>,
     [?_assertEqual({<<"a">>, 0, 0, 1, 7}, api_resource:get_range(FullBinary, <<"bytes=0-0">>))

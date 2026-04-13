@@ -1,5 +1,6 @@
 -module(cb_alerts_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 %% PORT_SUSPENDED_STATES, PORT_SUSPENDED, PORT_REJECTED
 -include_lib("kazoo_number_manager/include/knm_port_request.hrl").

@@ -189,12 +189,12 @@ validate_assignments({[#kz_amqp_assignment{timestamp={_, _, _}
             'true' -> 'ok'
         end,
     validate_assignments(ets:match_object(Continuation));
-validate_assignments({[#kz_amqp_assignment{}=Assignment], Continuation}) ->
+validate_assignments({Assignment, Continuation}) ->
     log_invalid_assignment(Assignment),
     validate_assignments(ets:match_object(Continuation)).
 
--spec log_invalid_assignment(kz_amqp_assignment()) -> 'ok'.
-log_invalid_assignment(#kz_amqp_assignment{}=Assignment) ->
+-spec log_invalid_assignment([kz_amqp_assignment()]) -> 'ok'.
+log_invalid_assignment([#kz_amqp_assignment{}=Assignment]) ->
     io:format("invalid assignment:~n ~p~n", [lager:pr(Assignment, ?MODULE)]).
 
 %%------------------------------------------------------------------------------

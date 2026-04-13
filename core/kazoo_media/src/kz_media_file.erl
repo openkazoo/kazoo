@@ -95,8 +95,8 @@ proxy_uri(#media_store_path{db = Db
                       'true' -> 'proxy_store';
                       'false' -> 'proxy_playback'
                   end,
-    Path = kz_util:uri_encode(base64:encode(term_to_binary({Db, Id, Attachment, Options}))),
-    File = kz_util:uri_encode(Attachment),
+    Path = kz_http_util:urlencode(base64:encode(term_to_binary({Db, Id, Attachment, Options}))),
+    File = kz_http_util:urlencode(Attachment),
     UrlParts = [kz_media_util:base_url(Host, Port, Permissions)
                ,StreamType
                ,Path

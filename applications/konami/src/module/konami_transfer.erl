@@ -136,8 +136,7 @@ handle(Data, Call) ->
         _ -> 'ok'
     catch
         'exit':'normal' -> 'ok';
-        _E:_R ->
-            ST = erlang:get_stacktrace(),
+        _E:_R:ST ->
             lager:info("statem terminated abnormally: ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST)
     end.
@@ -717,7 +716,7 @@ attended_answer('info', Evt, State) ->
 
 -spec finished(gen_statem:event_type(), any(), state()) -> kz_types:handle_fsm_ret(state()).
 finished('cast', ?EVENT(Transferor, <<"CHANNEL_BRIDGE">>, Evt)
-        ,#state{transferee=_Transferee
+        ,#state{transferee=Transferee
                ,target=Target
                ,transferor=Transferor
                }=State
@@ -727,8 +726,8 @@ finished('cast', ?EVENT(Transferor, <<"CHANNEL_BRIDGE">>, Evt)
             ?WSD_EVT(Target, Transferor, <<"bridged">>),
             lager:debug("transferor and target are bridged"),
             {'stop', 'normal', State};
-        _Transferee ->
-            ?WSD_EVT(Transferor, _Transferee, <<"bridged">>),
+        Transferee ->
+            ?WSD_EVT(Transferor, Transferee, <<"bridged">>),
             lager:debug("transferor and transferee bridged"),
             {'stop', 'normal', State};
         _CallId ->
@@ -739,7 +738,7 @@ finished('cast', ?EVENT(Transferor, <<"CHANNEL_BRIDGE">>, Evt)
 finished('cast', ?EVENT(Transferee, <<"CHANNEL_BRIDGE">>, Evt)
         ,#state{transferee=Transferee
                ,target=Target
-               ,transferor=_Transferor
+               ,transferor=Transferor
                }=State
         ) ->
     case kz_call_event:other_leg_call_id(Evt) of
@@ -747,8 +746,8 @@ finished('cast', ?EVENT(Transferee, <<"CHANNEL_BRIDGE">>, Evt)
             ?WSD_EVT(Target, Transferee, <<"bridged">>),
             lager:debug("transferee and target are bridged"),
             {'stop', 'normal', State};
-        _Transferor ->
-            ?WSD_EVT(_Transferor, Transferee, <<"bridged">>),
+        Transferor ->
+            ?WSD_EVT(Transferor, Transferee, <<"bridged">>),
             lager:debug("transferor and transferee bridged"),
             {'stop', 'normal', State};
         _CallId ->

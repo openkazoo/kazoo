@@ -135,11 +135,6 @@ handle_info({'timeout', Ref, _Msg}, #state{day_ref = Ref}=State) ->
     spawn_jobs(Ref, ?TRIGGER_DAILY),
     {'noreply', State#state{day_ref = day_timer()}};
 
-handle_info({'timeout', Ref, _Msg}, #state{browse_dbs_ref = Ref}=State) ->
-    _ = kz_util:spawn(fun tasks_bindings:map/2, [?TRIGGER_AUTO_COMPACTION, Ref]),
-    lager:info("triggering auto compaction job with ref ~p", [Ref]),
-    {'noreply', State};
-
 handle_info(_Info, State) ->
     lager:debug("unhandled message ~p", [_Info]),
     {'noreply', State}.

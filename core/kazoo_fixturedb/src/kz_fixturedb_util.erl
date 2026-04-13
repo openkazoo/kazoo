@@ -76,7 +76,7 @@ open_view(Db, Design, Options) ->
 -spec doc_path(db_map(), kz_term:ne_binary()) -> file:filename_all().
 doc_path(#{server := #{url := Url}, name := DbName}, DocId) ->
     filename:join(kz_term:to_list(Url) ++ "/" ++ kz_term:to_list(DbName)
-                 ,["docs/", http_uri:encode(kz_term:to_list(DocId)), ".json"]
+                 ,["docs/", kz_term:to_list(DocId), ".json"]
                  ).
 
 -spec att_path(db_map(), kz_term:ne_binary(), kz_term:ne_binary()) -> file:filename_all().

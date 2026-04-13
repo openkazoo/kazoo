@@ -1,5 +1,6 @@
 -module(fax_smtp_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(FROM, <<"kazoo@2600hz.com">>).
@@ -8,6 +9,7 @@
 
 -define(TEXT, <<"Please find the attached PDF">>).
 
+-spec decode_email_test() -> any().
 decode_email_test() ->
     BaseDir = code:lib_dir('fax', 'test'),
     {'ok', PDF} = file:read_file(filename:join([BaseDir, "pdf.pdf"])),

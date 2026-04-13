@@ -740,16 +740,16 @@ clear_call_state(#state{call=Call
 publish(Req, F) ->
     try F(Req)
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("failed to publish message: ~p:~p", [_E, _R]),
-        kz_util:log_stacktrace(ST)
-        end.
+        _E:_R:ST ->
+            lager:debug("failed to publish message: ~p:~p", [_E, _R]),
+            kz_util:log_stacktrace(ST)
+    end.
 
 -spec publish(kz_term:ne_binary(), kz_term:api_terms(), fun((kz_term:ne_binary(), kz_term:api_terms()) -> 'ok')) -> 'ok'.
 publish(Q, Req, F) ->
     try F(Q, Req)
     catch
-        ?STACKTRACE(_E, _R, ST)
-        lager:debug("failed to publish message to ~s: ~p:~p", [Q, _E, _R]),
-        kz_util:log_stacktrace(ST)
-        end.
+        _E:_R:ST ->
+            lager:debug("failed to publish message to ~s: ~p:~p", [Q, _E, _R]),
+            kz_util:log_stacktrace(ST)
+    end.

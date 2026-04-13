@@ -45,7 +45,7 @@ sign(Claims)
          } ->
             HashMethod = kz_term:to_atom(Hash, 'true'),
             CryptoKey = <<IdentitySecret/binary, ServerSecret/binary>>,
-            {'ok', crypto:hmac(HashMethod, CryptoKey, Identity)};
+            {'ok', crypto:mac('hmac', HashMethod, CryptoKey, Identity)};
         #{} ->
             lager:info("unable to sign identity claims without a valid identity secret"),
             {'error', {500, 'invalid_identity_secret'}};
@@ -314,7 +314,7 @@ verify_identity_signature(#{identity_secret := IdentitySecret, auth_id := Identi
     IdentitySignature = kz_base64url:decode(IdentitySig),
     HashMethod = kz_term:to_atom(Hash, 'true'),
     CryptoKey = <<IdentitySecret/binary, Secret/binary>>,
-    ExpectedSignature = crypto:hmac(HashMethod, CryptoKey, Identity),
+    ExpectedSignature = crypto:mac('hmac', HashMethod, CryptoKey, Identity),
     verify_identity_signature(Token, IdentitySignature, ExpectedSignature).
 
 -spec verify_identity_signature(map(), kz_term:ne_binary(), kz_term:ne_binary()) -> map().

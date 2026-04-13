@@ -219,9 +219,8 @@ build_load_params(Context, View, Options) ->
             maybe_set_start_end_keys(Params, StartKey, EndKey);
         Ctx -> Ctx
     catch
-        _E:_T ->
+        _E:_R:ST ->
             lager:debug("exception occurred during building view options for ~s", [View]),
-            ST = erlang:get_stacktrace(),
             kz_util:log_stacktrace(ST),
             cb_context:add_system_error('datastore_fault', Context)
     end.
@@ -263,9 +262,8 @@ build_load_range_params(Context, View, Options) ->
             end;
         Ctx -> Ctx
     catch
-        _E:_T ->
+        _E:_R:ST ->
             lager:debug("exception occurred during building range view options for ~s", [View]),
-            ST = erlang:get_stacktrace(),
             kz_util:log_stacktrace(ST),
             cb_context:add_system_error('datastore_fault', Context)
     end.
@@ -837,9 +835,8 @@ process_query_results(#{databases := [Db|_]=Dbs
     %% so we can handle errors when request is chunked and chunk is already started
     try handle_query_result(LoadMap, Dbs, JObjs, LimitWithLast)
     catch
-        _E:_T ->
-            lager:warning("exception occurred during querying db ~s for view ~s : ~p:~p", [Db, View, _E, _T]),
-            ST = erlang:get_stacktrace(),
+        E:R:ST ->
+            lager:warning("exception occurred during querying db ~s for view ~s : ~p:~p", [Db, View, E, R]),
             kz_util:log_stacktrace(ST),
             LoadMap#{context => cb_context:add_system_error('datastore_fault', Context)}
     end.

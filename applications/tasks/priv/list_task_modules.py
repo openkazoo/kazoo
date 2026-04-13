@@ -1,11 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys, os, glob
 
 header_path = "src/task_modules.hrl"
 task_modules_path = "src/modules/*.erl"
-ignore_files = ['kt_compactor_worker', 'kt_skel']
+ignore_files = ['kt_skel']
 
 def fname(path):
     (name, ext) = (os.path.splitext(os.path.basename(path)))

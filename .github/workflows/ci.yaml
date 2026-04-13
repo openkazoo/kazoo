@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: ["4.4"]
+  pull_request:
+    branches: ["4.4"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      rabbitmq:
+        image: rabbitmq:3.12-management
+        ports:
+          - 5672:5672
+      couchdb:
+        image: couchdb:3
+        ports:
+          - 5984:5984
+        env:
+          COUCHDB_USER: admin
+          COUCHDB_PASSWORD: password
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Erlang/OTP
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "24"
+          rebar3-version: "3.25.0"
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            netcat-traditional \
+            curl \
+            ghostscript \
+            libreoffice \
+            fonts-dejavu \
+            libtiff-tools
+
+      - name: Start CouchDB
+        run: |
+          echo "Waiting for CouchDB..."
+          timeout=120
+          until curl -s -f -o /dev/null -u admin:password http://localhost:5984/_up; do
+            if [ $timeout -eq 0 ]; then
+              echo "CouchDB not responding in time"
+              # Dump logs for debugging
+              docker logs ${{ job.services.couchdb.id }}
+              exit 1
+            fi
+            timeout=$((timeout-1))
+            sleep 1
+          done
+          echo "CouchDB started successfully!"
+
+      - name: Initialize CouchDB
+        run: |
+          echo "Initializing system databases..."
+          for db in _users _replicator _global_changes; do
+            curl -s -u admin:password -X PUT "http://localhost:5984/$db?n=1&q=1"
+          done
+          echo "" # for a clean log
+          echo "CouchDB initialized!"
+
+      - name: Start RabbitMQ
+        run: |
+          echo "Waiting for RabbitMQ..."
+          timeout=60
+          until nc -z localhost 5672; do
+            if [ $timeout -eq 0 ]; then
+              echo "RabbitMQ not responding in time"
+              exit 1
+            fi
+            timeout=$((timeout-1))
+            sleep 1
+          done
+          echo "RabbitMQ started successfully!"
+
+      - name: Prepare Kazoo Config
+        run: |
+          sudo mkdir -p /etc/kazoo
+          sudo cp ./config/config-ci.ini /etc/kazoo/config.ini
+
+      - name: Make Scripts Executable
+        run: chmod +x ./scripts/*
+
+      - name: Compile Kazoo
+        run: make compile
+
+      - name: Run Tests
+        run: make test && make ct
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-logs
+          path: _build/test/logs

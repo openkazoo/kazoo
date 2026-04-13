@@ -7,8 +7,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_ubiquiti_util_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec make_api_token_test() -> any().
 make_api_token_test() ->
     ProviderId = <<"2600hz">>,
     Secret     = <<"f1986434eb540c8c956eb0a21094c38c6f9f12bf">>,
@@ -22,6 +24,7 @@ make_api_token_test() ->
 
     ?assertEqual(ApiToken, Generated).
 
+-spec split_api_token_test_() -> any().
 split_api_token_test_() ->
     ProviderId = <<"2600hz">>,
     Secret     = <<"f1986434eb540c8c956eb0a21094c38c6f9f12bf">>,

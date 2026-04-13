@@ -7,16 +7,19 @@
 %%%-----------------------------------------------------------------------------
 -module(crossbar_util_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(TS_DOC, <<"{\"account\":{\"credits\":{\"prepay\":\"0.00\"},\"trunks\":\"0\",\"inbound_trunks\":\"0\",\"auth_realm\":\"james.thinky64.2600hz.com\"},\"billing_account_id\":\"940755758b1ea64fed0bc9f9abda73ac\",\"DIDs_Unassigned\":{},\"servers\":[{\"DIDs\":{},\"options\":{\"enabled\":true,\"inbound_format\":\"e164\",\"international\":false,\"caller_id\":{},\"e911_info\":{},\"failover\":{},\"media_handling\":\"bypass\",\"ip\":\"5.6.7.8\"},\"permissions\":{\"users\":[]},\"monitor\":{\"monitor_enabled\":false},\"auth\":{\"auth_method\":\"Password\",\"ip\":\"5.6.7.8\",\"auth_user\":\"foobar\",\"auth_password\":\"bar\"},\"server_name\":\"testpbx\",\"server_type\":\"FreeSWITCH\"}],\"ui_metadata\":{\"ui\":\"kazoo-ui\"},\"id\":\"d8364feb61280fe9bd9873a82a284ed3\",\"pvt_request_id\":\"f0a00c9f001dc5db22e669692503e89f\",\"pvt_modified\":63598345727,\"pvt_created\":63598345578,\"pvt_account_db\":\"account%2F94%2F07%2F55758b1ea64fed0bc9f9abda73ac\",\"pvt_account_id\":\"940755758b1ea64fed0bc9f9abda73ac\",\"pvt_vsn\":\"1\",\"pvt_type\":\"sys_info\"}">>).
 
+-spec no_change_in_servers_test() -> any().
 no_change_in_servers_test() ->
     JObj = kz_json:decode(?TS_DOC),
     Servers = kz_json:get_value(<<"servers">>, JObj, []),
 
     ?assertEqual('false', crossbar_util:trunkstore_servers_changed(Servers, Servers)).
 
+-spec change_in_servers_test_() -> any().
 change_in_servers_test_() ->
     JObj = kz_json:decode(?TS_DOC),
     Servers = kz_json:get_value(<<"servers">>, JObj, []),

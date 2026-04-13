@@ -6,69 +6,77 @@
 %%%-----------------------------------------------------------------------------
 -module(kz_convert_tests).
 
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("kazoo_convert/include/kz_convert.hrl").
 
-fax_test_() ->
-    {setup
+all_test_() ->
+    {'setup'
     ,fun setup/0
     ,fun cleanup/1
     ,fun(_) ->
-             [test_tiff_to_pdf_binary()
-             ,test_tiff_to_pdf_tuple()
-             ,test_tiff_to_tiff_binary()
-             ,test_tiff_to_tiff_tuple()
-             ,test_pdf_to_tiff_binary()
-             ,test_pdf_to_tiff_tuple()
-             ,test_openoffice_to_pdf_binary()
-             ,test_openoffice_to_pdf_tuple()
-             ,test_openoffice_to_tiff_binary()
-             ,test_openoffice_to_tiff_tuple()
-             ,test_tiff_to_pdf_binary_output_binary()
-             ,test_tiff_to_pdf_tuple_output_binary()
-             ,test_tiff_to_tiff_binary_output_binary()
-             ,test_tiff_to_tiff_tuple_output_binary()
-             ,test_pdf_to_tiff_binary_output_binary()
-             ,test_pdf_to_tiff_tuple_output_binary()
-             ,test_openoffice_to_pdf_binary_output_binary()
-             ,test_openoffice_to_pdf_tuple_output_binary()
-             ,test_openoffice_to_tiff_binary_output_binary()
-             ,test_openoffice_to_tiff_tuple_output_binary()
-             ,test_tiff_to_pdf_binary_invalid()
-             ,test_tiff_to_pdf_tuple_invalid()
-             ,test_tiff_to_tiff_binary_invalid()
-             ,test_tiff_to_tiff_tuple_invalid()
-             ,test_pdf_to_tiff_binary_invalid()
-             ,test_pdf_to_tiff_tuple_invalid()
-             ,test_tiff_to_pdf_nonexistent_file()
-             ,test_tiff_to_tiff_nonexistent_file()
-             ,test_pdf_to_tiff_nonexistent_file()
-             ,test_invalid_conversion()
-             ,test_empty_content()
-             ,test_empty_filename()
-             ,test_tiff_to_tiff_to_filename()
-             ,test_pdf_to_tiff_to_filename()
-             ,test_openoffice_to_tiff_to_filename()
-             ,test_tiff_to_tiff_read_metadata()
-             ,test_tiff_to_tiff_small_file_read_metadata()
-             ,test_pdf_to_tiff_read_metadata()
-             ,test_openoffice_to_tiff_read_metadata()
-             ,test_read_metadata()
+             [{"Testing tiff to pdf binary", test_tiff_to_pdf_binary()}
+             ,{"Testing tiff to pdf tuple", test_tiff_to_pdf_tuple()}
+             ,{"Testing tiff to tiff binary", test_tiff_to_tiff_binary()}
+             ,{"Testing tiff to tiff tuple", test_tiff_to_tiff_tuple()}
+             ,{"Testing pdf to tiff binary", test_pdf_to_tiff_binary()}
+             ,{"Testing pdf to tiff tuple", test_pdf_to_tiff_tuple()}
+             ,{"Testing openoffice to pdf binary", test_openoffice_to_pdf_binary()}
+             ,{"Testing openoffice to pdf tuple", test_openoffice_to_pdf_tuple()}
+             ,{"Testing openoffice to tiff binary", test_openoffice_to_tiff_binary()}
+             ,{"Tesung openoffice to tiff tuple", test_openoffice_to_tiff_tuple()}
+             ,{"Tesing tiff to pdf binary output binary", test_tiff_to_pdf_binary_output_binary()}
+             ,{"Tesing tiff to pdf tuple output binary", test_tiff_to_pdf_tuple_output_binary()}
+             ,{"Testing tiff to tiff binary output binary", test_tiff_to_tiff_binary_output_binary()}
+             ,{"Testing tiff to tiff tuple output binary", test_tiff_to_tiff_tuple_output_binary()}
+             ,{"Tesung pdf to tiff binary output binary", test_pdf_to_tiff_binary_output_binary()}
+             ,{"Tesing pdf to tiff tuple output binary", test_pdf_to_tiff_tuple_output_binary()}
+             ,{"Tesing openoffice to pdf binary output binary", test_openoffice_to_pdf_binary_output_binary()}
+             ,{"Testing openoffice to pdf tuple output binary", test_openoffice_to_pdf_tuple_output_binary()}
+             ,{"Testing openoffice to tiff binary output binary", test_openoffice_to_tiff_binary_output_binary()}
+             ,{"Testing openoffice to tiff tupple output binary", test_openoffice_to_tiff_tuple_output_binary()}
+             ,{"Testing tiff to pdf binary invalid", test_tiff_to_pdf_binary_invalid()}
+             ,{"Testing tiff to pdf invalid", test_tiff_to_pdf_tuple_invalid()}
+             ,{"Testing tiff to tiff binary invalid", test_tiff_to_tiff_binary_invalid()}
+             ,{"Testing tiff to tiff tuple invalid", test_tiff_to_tiff_tuple_invalid()}
+             ,{"Testing pdf to tiff binary invalid", test_pdf_to_tiff_binary_invalid()}
+             ,{"Testing pdf to tiff tupple invalid", test_pdf_to_tiff_tuple_invalid()}
+             ,{"Testing tiff to pdf nonexistent file", test_tiff_to_pdf_nonexistent_file()}
+             ,{"Testing tiff to tiff nonexistnet file", test_tiff_to_tiff_nonexistent_file()}
+             ,{"Testing pdf to tiff nonexistent file", test_pdf_to_tiff_nonexistent_file()}
+             ,{"Testing invalid conversion", test_invalid_conversion()}
+             ,{"Testing empty content", test_empty_content()}
+             ,{"Testing empty filename", test_empty_filename()}
+             ,{"Testing tiff to tiff to filename", test_tiff_to_tiff_to_filename()}
+             ,{"Testing pdf to tiff to filename", test_pdf_to_tiff_to_filename()}
+             ,{"Tesying openoffice to tiff to filename", test_openoffice_to_tiff_to_filename()}
+             ,{"Testing tiff to tiff read metadata", test_tiff_to_tiff_read_metadata()}
+             ,{"Testing tiff to tiff small file read meatadata", test_tiff_to_tiff_small_file_read_metadata()}
+             ,{"Testing pdf to tiff read metadata", test_pdf_to_tiff_read_metadata()}
+             ,{"Testing openoffice to tiff read metadata", test_openoffice_to_tiff_read_metadata()}
+             ,{"Testing read metadata", test_read_metadata()}
              ]
      end
     }.
 
 setup() ->
-    LinkPid = kzd_test_fixtures:setup(),
-    {'ok', SupPid} = kz_openoffice_server_sup:start_link(),
-    lager:set_loglevel('lager_console_backend', 'none'),
-    lager:set_loglevel('lager_file_backend', 'none'),
-    lager:set_loglevel('lager_syslog_backend', 'none'),
-    {LinkPid, SupPid}.
+    ?LOG_DEBUG(":: Setting up Kazoo Convert test"),
 
-cleanup({LinkPid, SupPid}) ->
-    kzd_test_fixtures:cleanup(LinkPid),
-    _ = erlang:exit(SupPid, 'normal').
+    Pid = case kz_fixturedb_util:start_me() of
+              {error, {already_started, P}} -> P;
+              P when is_pid(P) -> P
+          end,
+
+    _ = kz_openoffice_server:start_link(),
+    meck:new(kz_datamgr, [unstick, passthrough]),
+
+    meck:new(kz_fixturedb_db, [unstick, passthrough]),
+
+    Pid.
+
+cleanup(Pid) ->
+    kz_fixturedb_util:stop_me(Pid),
+    meck:unload().
 
 read_test_file(Filename) ->
     {'ok', Content} = file:read_file(get_path_to_fixture(Filename)),

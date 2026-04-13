@@ -86,9 +86,19 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
+-ifdef(TEST).
+-export([advance_seconds/2
+        ,next_valid_datetime/2
+        ,extract_integers/3
+        ,extract_integers/4
+        ,time_to_wait_millis/2
+        ]).
+-endif.
+
 -export_type([sleeper/0, cron/0, execargs/0, status/0, schedule/0]).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(SERVER, ?MODULE).
 
@@ -325,8 +335,7 @@ apply_task(Exec) ->
                 apply(F, A)
         end
     catch
-        Error:Reason ->
-            Stacktrace = erlang:get_stacktrace(),
+        Error:Reason:Stacktrace ->
             Format = "Task ~p in process ~p with value:~n~p",
             Message = lists:flatten(io_lib:format(
                                       Format,

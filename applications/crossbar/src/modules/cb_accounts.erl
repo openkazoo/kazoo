@@ -327,8 +327,7 @@ put(Context, PathAccountId) ->
                     _ = delete(Context, NewAccountId),
                     cb_context:add_system_error('unspecified_fault', <<"internal error, unable to create the account">>, Context)
             end;
-        _E:_R ->
-            ST = erlang:get_stacktrace(),
+        _E:_R:ST ->
             lager:debug("unexpected failure when creating account: ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             _ = delete(Context, NewAccountId),
@@ -1018,22 +1017,22 @@ create_new_account_db(Context) ->
             C = create_account_definition(prepare_context(AccountDb, Context)),
             lager:debug("created account definition"),
 
-            _ = load_initial_views(C),
+            load_initial_views(C),
             lager:debug("loaded initial views"),
 
-            _ = crossbar_bindings:map(<<"account.created">>, C),
+            crossbar_bindings:map(<<"account.created">>, C),
             lager:debug("alerted listeners of new account"),
 
-            _ = create_account_mod(cb_context:account_id(C)),
+            create_account_mod(cb_context:account_id(C)),
             lager:debug("created this month's MODb for account"),
 
-            _ = crossbar_services:reconcile(AccountDb),
+            crossbar_services:reconcile(AccountDb),
             lager:debug("performed initial services reconcile"),
 
-            _ = create_first_transaction(cb_context:account_id(C)),
+            create_first_transaction(cb_context:account_id(C)),
             lager:debug("created first transaction for account"),
 
-            _ = maybe_set_notification_preference(C),
+            maybe_set_notification_preference(C),
             lager:debug("set notification preference"),
 
             maybe_notify_new_account(Context),

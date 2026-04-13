@@ -32,6 +32,7 @@
                                            ,{<<"_id">>, <<"{RING_GROUP_ID}">>}
                                            ])).
 
+-spec metadata_test_() -> any().
 metadata_test_() ->
     Tests = [{?USER_VM_FLOW_JSON, ?USER_VM_METADATA_JSON}
             ,{?RING_GROUP_TOGGLE_JSON, ?RING_GROUP_METADATA_JSON}
@@ -39,6 +40,7 @@ metadata_test_() ->
             ],
     [metadata_test_gen(FlowJSON, MetadataJSON) || {FlowJSON, MetadataJSON} <- Tests].
 
+-spec metadata_test_gen(any(), any()) -> any().
 metadata_test_gen(FlowJSON, MetadataJSON) ->
     ?_assert(
        kz_json:are_equal(get_metadata(kz_json:decode(FlowJSON), <<"db">>)

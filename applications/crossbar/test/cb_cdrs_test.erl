@@ -5,10 +5,13 @@
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(cb_cdrs_test).
+
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 %% Test handle_utc_time_offset function with different server
 %% time zones and offsets
+-spec handle_utc_time_offset_test_() -> any().
 handle_utc_time_offset_test_() ->
     Timestamp = 63687252084,
     [{"Verify the Atom 'undefined' returns unaltered timestamp"
@@ -22,6 +25,7 @@ handle_utc_time_offset_test_() ->
      }
     ].
 
+-spec handle_utc_time_offset_1_test_() -> any().
 handle_utc_time_offset_1_test_() ->
     %% {CDR Time Stamp, Resulting Timestamp, UTC offset}
     Timestamp = 63687252084,

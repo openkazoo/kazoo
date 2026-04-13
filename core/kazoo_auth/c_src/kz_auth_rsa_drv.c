@@ -14,7 +14,7 @@
    -------------------------------------------------------------------- */
 
 #include <erl_driver.h>
-#include <erl_interface.h>
+// #include <erl_interface.h>
 #include <ei.h>
 #include <string.h>
 #include <openssl/engine.h>

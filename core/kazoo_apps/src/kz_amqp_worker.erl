@@ -45,7 +45,7 @@
         ,handle_call/3
         ,handle_cast/2
         ,handle_info/2
-        ,handle_event/2
+        ,handle_event/3
         ,terminate/2
         ,code_change/3
         ]).
@@ -893,15 +893,20 @@ handle_info(_Info, State) ->
 %% @doc Allows listener to pass options to handlers.
 %% @end
 %%------------------------------------------------------------------------------
--spec handle_event(kz_json:object(), state()) -> gen_listener:handle_event_return().
-handle_event(JObj, #state{client_from='relay'
-                         ,client_pid=Pid
-                         }) ->
+-spec handle_event(kz_json:object(), kz_term:proplist(), state()) -> gen_listener:handle_event_return().
+handle_event(JObj, _Props, #state{client_from='relay'
+                                 ,client_pid=Pid
+                                 }) ->
     relay_event(Pid, JObj),
     lager:debug("relayed event to ~p", [Pid]),
     'ignore';
-handle_event(JObj, State) ->
-    case handle_payload(kz_api:msg_id(JObj), JObj, State) of
+handle_event(JObj, Props, State) ->
+    #'P_basic'{correlation_id = CorrelationId} = props:get_value('basic', Props),
+    MsgId = case kz_api:msg_id(JObj)of
+                'undefined' -> CorrelationId;
+                Else -> Else
+            end,
+    case handle_payload(MsgId, JObj, State) of
         {'noreply', NewState} ->  {'ignore', NewState};
         {'noreply', NewState, 'hibernate'} ->
             gen_listener:cast(self(), 'hibernate'),
@@ -1012,13 +1017,11 @@ publish_api(PublishFun, ReqProps) ->
             lager:error("publisher fun returned ~p instead of 'ok'", [Other]),
             {'error', Other}
     catch
-        'error':'badarg' ->
-            ST = erlang:get_stacktrace(),
+        'error':'badarg':ST ->
             lager:error("badarg error when publishing:"),
             kz_util:log_stacktrace(ST),
             {'error', 'badarg'};
-        'error':'function_clause' ->
-            ST = erlang:get_stacktrace(),
+        'error':'function_clause':ST ->
             lager:error("function clause error when publishing:"),
             kz_util:log_stacktrace(ST),
             lager:error("pub fun: ~p", [PublishFun]),

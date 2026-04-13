@@ -3,6 +3,8 @@
 
 %% ci_chunk_tests: tests for module ci_chunk.
 
+-spec test() -> 'ok'.
+
 -include_lib("eunit/include/eunit.hrl").
 
 -export([chunks_1/1
@@ -16,6 +18,7 @@
 
 %% API tests.
 
+-spec json_test_() -> any().
 json_test_() ->
     lists:flatmap(
       fun (Data1) ->
@@ -42,6 +45,7 @@ json_test_() ->
       ,fun ?MODULE:chunks_7/1
       ]).
 
+-spec reorder_dialog_1_test_() -> any().
 reorder_dialog_1_test_() ->
     Data1 = fun ?MODULE:chunks_1/1,
     Chunks = lists:map(fun ci_chunk:from_json/1, chunks_1()),
@@ -49,12 +53,14 @@ reorder_dialog_1_test_() ->
         ++ reorder_dialog(<<"10.26.0.182:9061">>, Data1, kz_term:shuffle_list(Chunks))
         ++ reorder_dialog(<<"10.26.0.182:9061">>, Data1, kz_term:shuffle_list(Chunks)).
 
+-spec reorder_dialog_2_test_() -> any().
 reorder_dialog_2_test_() ->
     Data1 = fun ?MODULE:chunks_2/1,
     Chunks = lists:map(fun ci_chunk:from_json/1, chunks_2()),
     reorder_dialog(<<"10.26.0.182:9060">>, Data1, Chunks)
         ++ reorder_dialog(<<"10.26.0.182:9060">>, Data1, kz_term:shuffle_list(Chunks)).
 
+-spec reorder_dialog_3_test_() -> any().
 reorder_dialog_3_test_() ->
     Data1 = fun ?MODULE:chunks_3/1,
     Chunks = lists:map(fun ci_chunk:from_json/1, chunks_3()),
@@ -62,23 +68,27 @@ reorder_dialog_3_test_() ->
         ++ reorder_dialog(<<"10.26.0.182:9061">>, Data1, kz_term:shuffle_list(Chunks))
         ++ reorder_dialog(<<"10.26.0.182:9061">>, Data1, kz_term:shuffle_list(Chunks)).
 
+-spec reorder_dialog_4_test_() -> any().
 reorder_dialog_4_test_() ->
     Data1 = fun ?MODULE:chunks_4/1,
     Chunks = lists:map(fun ci_chunk:from_json/1, chunks_4()),
     reorder_dialog(<<"192.168.56.42:9061">>, Data1, Chunks).
 
+-spec reorder_dialog_5_test_() -> any().
 reorder_dialog_5_test_() ->
     Data1 = fun ?MODULE:chunks_5/1,
     [C1, C2] = lists:map(fun ci_chunk:from_json/1, chunks_5()),
     reorder_dialog(<<"104.237.144.93:9061">>, Data1, [C1, C2])
         ++ reorder_dialog(<<"104.237.144.93:9061">>, Data1, [C2, C1]).
 
+-spec reorder_dialog_6_test_() -> any().
 reorder_dialog_6_test_() ->
     Data1 = fun ?MODULE:chunks_6/1,
     [C1, C2] = lists:map(fun ci_chunk:from_json/1, chunks_6()),
     reorder_dialog(<<"104.237.144.93:9061">>, Data1, [C1, C2])
         ++ reorder_dialog(<<"104.237.144.93:9061">>, Data1, [C2, C1]).
 
+-spec reorder_dialog_7_test_() -> any().
 reorder_dialog_7_test_() ->
     Data1 = fun ?MODULE:chunks_7/1,
     Chunks = lists:map(fun ci_chunk:from_json/1, chunks_7()),
@@ -431,7 +441,7 @@ chunks_3() ->
      chunks_3(7),
      chunks_3(8)].
 
-
+-spec chunks_2(atom()) -> any().
 chunks_2() -> [chunks_2(2), chunks_2(1)].
 chunks_2('count') -> 2;
 chunks_2('entities') -> [<<"10.26.0.182:5060">>, <<"10.26.0.182:11000">>];
@@ -1946,6 +1956,7 @@ chunks_4() ->
 
 
 chunks_5() -> [chunks_5(1), chunks_5(2)].
+-spec chunks_5(atom()) -> any().
 chunks_5(count) -> length(chunks_5());
 chunks_5(entities) -> [<<"104.237.144.93:5060">>, <<"104.237.144.93:11000">>];
 chunks_5(1) ->
@@ -1997,6 +2008,7 @@ chunks_5(2) ->
 
 
 chunks_6() -> [chunks_6(1), chunks_6(2)].
+-spec chunks_6(atom()) -> any().
 chunks_6(count) -> length(chunks_6());
 chunks_6(entities) -> [<<"104.237.144.93:7000">>, <<"104.237.144.93:11000">>];
 chunks_6(1) ->
@@ -2051,6 +2063,7 @@ chunks_6(2) ->
 
 
 chunks_7() -> [chunks_7(1), chunks_7(2), chunks_7(3), chunks_7(4)].
+-spec chunks_7(atom()) -> any().
 chunks_7(count) -> length(chunks_7());
 chunks_7(entities) -> [<<"104.237.144.93:5060">>, <<"104.237.144.93:11000">>];
 chunks_7(1) ->

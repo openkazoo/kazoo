@@ -13,6 +13,7 @@
 -include_lib("proper/include/proper.hrl").
 -endif.
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
 -define(SORTED_WDAYS, [<<"monday">>
@@ -54,10 +55,12 @@ proper_test_() ->
     }.
 -endif.
 
+-spec sort_wdays_test_() -> any().
 sort_wdays_test_() ->
     Shuffled = kz_term:shuffle_list(?SORTED_WDAYS),
     ?_assertEqual(?SORTED_WDAYS, cf_temporal_route:sort_wdays(Shuffled)).
 
+-spec daily_recurrence_test_() -> any().
 daily_recurrence_test_() ->
     %% basic increment
     [?_assertEqual({2011,?JAN,2}, cf_temporal_route:next_rule_date(#rule{cycle = <<"daily">>, start_date={2011,?JAN,1}}, {2011,?JAN,1}))
@@ -110,7 +113,7 @@ daily_recurrence_test_() ->
     ,?_assertEqual({2011,?APR,12}, cf_temporal_route:next_rule_date(#rule{cycle = <<"daily">>, interval=4, start_date={1983,?APR,11}}, {2011,?APR,11}))
     ].
 
-
+-spec weekly_recurrence_test_() -> any().
 weekly_recurrence_test_() ->
     %% basic increment
     [?_assertEqual({2011,?JAN,3}, cf_temporal_route:next_rule_date(#rule{cycle = <<"weekly">>, wdays=[<<"monday">>], start_date={2011,?JAN,1}}, {2011,?JAN,2}))
@@ -371,6 +374,7 @@ weekly_recurrence_test_() ->
 
     ].
 
+-spec monthly_every_recurrence_test_() -> [any()].
 monthly_every_recurrence_test_() ->
     %% basic increment (also crosses month boundary)
     [?_assertEqual({2011,?JAN,3}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, ordinal = <<"every">>, wdays=[<<"monday">>], start_date={2011,?JAN,1}}, {2011,?JAN,1}))
@@ -473,6 +477,7 @@ monthly_every_recurrence_test_() ->
     ,?_assertEqual({2011,?MAR,7}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, interval=5, ordinal = <<"every">>, wdays=[<<"monday">>], start_date={1983,?APR,11}}, {2011,?JAN,1}))
     ].
 
+-spec monthly_last_recurrence_test_() -> any().
 monthly_last_recurrence_test_() ->
     %% basic increment
     [?_assertEqual({2011,?JAN,31}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, ordinal = <<"last">>, wdays=[<<"monday">>], start_date={2011,?JAN,1}}, {2011,?JAN,1}))
@@ -572,6 +577,7 @@ monthly_last_recurrence_test_() ->
     ,?_assertEqual({2011,?MAR,27}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, interval=5, ordinal = <<"last">>, wdays=[<<"sunday">>], start_date={1983,?APR,11}}, {2011,?JAN,1}))
     ].
 
+-spec monthly_every_ordinal_recurrence_test_() -> any().
 monthly_every_ordinal_recurrence_test_() ->
     %% basic first
     [?_assertEqual({2011,?JAN,3}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, ordinal = <<"first">>, wdays=[<<"monday">>], start_date={2011,?JAN,1}}, {2011,?JAN,1}))
@@ -765,6 +771,7 @@ monthly_every_ordinal_recurrence_test_() ->
     ,?_assertEqual({2011,?MAR,6}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, interval=5, ordinal = <<"first">>, wdays=[<<"sunday">>], start_date={1983,?APR,11}}, {2011,?JAN,1}))
     ].
 
+-spec monthly_date_recurrence__basic_increment_test_() -> any().
 monthly_date_recurrence__basic_increment_test_() ->
     %% basic increment
     [?_assertEqual({2011,?JAN,D + 1}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, days=[D + 1], start_date={2011,?JAN,1}}, {2011,?JAN,D}))
@@ -774,6 +781,7 @@ monthly_date_recurrence__basic_increment_test_() ->
          || D <- lists:seq(1, 29)
         ].
 
+-spec monthly_date_recurrence_test_() -> any().
 monthly_date_recurrence_test_() ->
     %% same day, before
     [?_assertEqual({2011,?MAR,25}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, days=[25], start_date={2011,?JAN,1}}, {2011,?MAR,24}))
@@ -848,6 +856,7 @@ monthly_date_recurrence_test_() ->
     ,?_assertEqual({2011,?APR,11}, cf_temporal_route:next_rule_date(#rule{cycle = <<"monthly">>, interval=4, days=[11], start_date={1983,?APR,11}}, {2011,?JAN,1}))
     ].
 
+-spec yearly_date_recurrence_test_() -> any().
 yearly_date_recurrence_test_() ->
     %% basic increment
     [?_assertEqual({2011,?APR,11}, cf_temporal_route:next_rule_date(#rule{cycle = <<"yearly">>, month=?APR, days=[11], start_date={2011,?JAN,1}}, {2011,?JAN,1}))
@@ -886,14 +895,16 @@ yearly_date_recurrence_test_() ->
     ,?_assertEqual({2013,?APR,11}, cf_temporal_route:next_rule_date(#rule{cycle = <<"yearly">>, interval=2, month=?APR, days=[11,12,13], start_date={2011,?JAN,1}}, {2011,?APR,13}))
     ].
 
+-spec yearly_every_recurrence_test() -> any().
 yearly_every_recurrence_test() ->
     %% TODO
     'ok'.
 
+-spec yearly_last_recurrence_test() -> any().
 yearly_last_recurrence_test() ->
     %% TODO
     'ok'.
-
+-spec yearly_every_ordinal_recurrence_test_() -> any().
 yearly_every_ordinal_recurrence_test_() ->
     %% basic first
     [?_assertEqual({2011,?APR,4}, cf_temporal_route:next_rule_date(#rule{cycle = <<"yearly">>, ordinal = <<"first">>, wdays=[<<"monday">>], month=?APR, start_date={2011,?JAN,1}}, {2011,?JAN,1}))

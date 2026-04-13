@@ -9,6 +9,37 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("knm.hrl").
 
+all_test_() ->
+    {'setup'
+    ,fun setup_fixtures/0
+    ,fun cleanup/1
+    ,fun(_) ->
+             [{"Testing transistion port from port in", transition_port_from_port_in_()}
+             ,{"Testing transistion from port in with differenet module", transition_port_from_port_in_with_different_module_configured_()}
+             ,{"Testing transistion port from available", transition_port_from_available_()}
+             ,{"Testing transistion port from available not specifying", transition_port_from_available_not_specifying_()}
+             ,{"Testing transistion port from not found", transition_port_from_not_found_()}
+             ]
+     end
+    }.
+
+setup_fixtures() ->
+    ?LOG_DEBUG(":: Setting up Kazoo Port Request test"),
+
+    Pid = case kz_fixturedb_util:start_me() of
+              {error, {already_started, P}} -> P;
+              P when is_pid(P) -> P
+          end,
+
+    meck:new(kz_datamgr, [unstick, passthrough]),
+
+    meck:new(kz_fixturedb_db, [unstick, passthrough]),
+
+    Pid.
+
+cleanup(Pid) ->
+    kz_fixturedb_util:stop_me(Pid),
+    meck:unload().
 
 base() ->
     [{assign_to, ?RESELLER_ACCOUNT_ID}
@@ -18,7 +49,7 @@ base() ->
      }
     ].
 
-transition_port_from_port_in_test_() ->
+transition_port_from_port_in_() ->
     Options = [{auth_by, ?MASTER_ACCOUNT_ID}
               ,{ported_in, true}
                |base()
@@ -49,7 +80,7 @@ transition_port_from_port_in_test_() ->
      }
     ].
 
-transition_port_from_port_in_with_different_module_configured_test_() ->
+transition_port_from_port_in_with_different_module_configured_() ->
     Options = [{auth_by, ?MASTER_ACCOUNT_ID}
               ,{ported_in, true}
                |base()
@@ -80,7 +111,7 @@ transition_port_from_port_in_with_different_module_configured_test_() ->
      }
     ].
 
-transition_port_from_available_test_() ->
+transition_port_from_available_() ->
     Options = [{auth_by, ?MASTER_ACCOUNT_ID}
               ,{ported_in, true}
                |base()
@@ -111,7 +142,7 @@ transition_port_from_available_test_() ->
      }
     ].
 
-transition_port_from_available_not_specifying_test_() ->
+transition_port_from_available_not_specifying_() ->
     Options1 = [{auth_by,?MASTER_ACCOUNT_ID} | base()],
     Options2 = [{auth_by,?KNM_DEFAULT_AUTH_BY} | base()],
     Num = ?TEST_AVAILABLE_NUM,
@@ -131,7 +162,7 @@ transition_port_from_available_not_specifying_test_() ->
      }
     ].
 
-transition_port_from_not_found_test_() ->
+transition_port_from_not_found_() ->
     Options = [{auth_by, ?MASTER_ACCOUNT_ID}
               ,{ported_in, true}
                |base()

@@ -5,8 +5,10 @@
 %%%-----------------------------------------------------------------------------
 -module(cf_nomorobo_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 
+-spec nomorobo_branch_test_() -> any().
 nomorobo_branch_test_() ->
     ScoreBranch = [{  0, <<"0">>}
                   ,{ 1, <<"0">>}

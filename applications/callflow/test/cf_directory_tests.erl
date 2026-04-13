@@ -1,5 +1,6 @@
 -module(cf_directory_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("callflow/src/module/cf_directory.hrl").
 
@@ -30,6 +31,7 @@
                     || {First, Last} <- ?NAMES
                    ]).
 
+-spec sort_order_test_() -> any().
 sort_order_test_() ->
     [#directory_user{first_name=Alpha} | _] = cf_directory:sort_users(?DIR_USERS, 'first'),
     [#directory_user{last_name=Omega} | _] = cf_directory:sort_users(?DIR_USERS, 'last'),
@@ -37,6 +39,7 @@ sort_order_test_() ->
     ,{"Sort by last name", ?_assertEqual(<<"158">>, Omega)}
     ].
 
+-spec filter_users_test_() -> any().
 filter_users_test_() ->
     SortedFirst = cf_directory:sort_users(?DIR_USERS, 'first'),
     SortedLast = cf_directory:sort_users(?DIR_USERS, 'last'),

@@ -185,4 +185,5 @@ folsom_minutes('day') -> 1440.
 folsom_field('one') -> <<"one">>;
 folsom_field('five') -> <<"five">>;
 folsom_field('fifteen') -> <<"fifteen">>;
-folsom_field('day') -> <<"day">>.
+folsom_field('day') -> <<"day">>;
+folsom_field('instant') -> <<"instant">>.

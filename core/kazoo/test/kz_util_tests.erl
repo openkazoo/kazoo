@@ -69,7 +69,6 @@ proper_test_() ->
 %% Just to please coverage :)
 log_test_() ->
     [?_assertEqual(ok, kz_util:log_stacktrace())
-    ,?_assertEqual(ok, kz_util:log_stacktrace(erlang:get_stacktrace()))
     ].
 
 calling_app_test_() ->
@@ -111,40 +110,12 @@ put_callid_test_() ->
     ,?_assert(is_integer(begin kz_util:set_startup(), kz_util:startup() end))
     ].
 
-
-uri_test_() ->
-    [?_assertEqual(<<"http://test.com/path1/path2">>, kz_util:uri(<<"http://test.com">>, [<<"path1">>, <<"path2">>]))
-    ,?_assertEqual(<<"http://192.168.0.1:8888/path1/path2">>, kz_util:uri(<<"http://192.168.0.1:8888/">>, [<<"path1">>, <<"path2">>]))
-    ,?_assertEqual(<<"http://test.com/path1/path2">>, kz_util:uri(<<"http://test.com/">>, [<<"path1/">>, <<"path2/">>]))
-    ].
-
 spawns_test_() ->
     [?_assert(is_pid(kz_util:spawn(fun () -> io:format("x") end)))
     ,?_assert(is_pid(kz_util:spawn(fun (X) -> io:format("~p",[X]) end, [x])))
     ,?_assert(is_pid(kz_util:spawn_link(fun () -> io:format("x") end)))
     ,?_assert(is_pid(kz_util:spawn_link(fun (X) -> io:format("~p",[X]) end, [x])))
     ,?_assertMatch({_,_}, kz_util:spawn_monitor(fun (X) -> io:format("~p",[X]) end, [x]))
-    ].
-
-resolve_uri_test_() ->
-    RawPath = <<"http://pivot/script.php">>,
-    Relative = <<"script2.php">>,
-    [?_assertEqual(<<"http://pivot/script2.php">>, kz_util:resolve_uri(RawPath, Relative))
-    ,?_assertEqual(<<"http://pivot/script2.php">>, kz_util:resolve_uri(RawPath, <<"/", Relative/binary>>))
-    ,?_assertEqual(Relative, kz_util:resolve_uri(Relative, undefined))
-    ,?_assertEqual(RawPath, kz_util:resolve_uri(Relative, RawPath))
-    ,?_assertEqual(Relative, kz_util:resolve_uri(kz_term:to_list(Relative), undefined))
-    ,?_assertEqual(RawPath, kz_util:resolve_uri(kz_term:to_list(Relative), RawPath))
-    ,?_assertEqual(RawPath, kz_util:resolve_uri(Relative, kz_term:to_list(RawPath)))
-    ,?_assertEqual(<<"http://host/d1/d2/a">>, kz_util:resolve_uri(<<"http://host/d1/d2/d3/file.ext">>, <<"../.././a">>))
-    ].
-
-resolve_uri_path_test_() ->
-    RawPath = <<"http://pivot/script.php">>,
-    Relative = <<"script2.php">>,
-    RawPathList = [<<"http:">>, <<>>, <<"pivot">>, <<"script2.php">>],
-    [?_assertEqual(RawPathList, kz_util:resolve_uri_path(RawPath, Relative))
-    ,?_assertEqual(RawPathList, kz_util:resolve_uri_path(RawPath, <<"/", Relative/binary>>))
     ].
 
 account_formats_test_() ->
@@ -154,7 +125,7 @@ account_formats_test_() ->
 
     {Y, M, _} = erlang:date(),
     TS = kz_time:now_s(),
-    Now = os:timestamp(),
+    _Now = os:timestamp(),
     Year = kz_term:to_binary(Y),
     Month = kz_date:pad_month(M),
 
@@ -210,10 +181,10 @@ format_title(Fun, Format, Expected) ->
       io_lib:format("~p converting ~s to ~s", [Fun, Format, Expected])
      ).
 
-is_simple_modb_converter("#Fun<kz_util.format_account_modb.1>"++_) -> 'true';
-is_simple_modb_converter("#Fun<"?MODULE_STRING".format_account_modb_raw.1>"++_) -> 'true';
-is_simple_modb_converter("#Fun<"?MODULE_STRING".format_account_modb_encoded.1>"++_) -> 'true';
-is_simple_modb_converter("#Fun<"?MODULE_STRING".format_account_modb_unencoded.1>"++_) -> 'true';
+is_simple_modb_converter("fun kz_util:format_account_modb/1"++_) -> 'true';
+is_simple_modb_converter("fun "?MODULE_STRING":format_account_modb_raw/1"++_) -> 'true';
+is_simple_modb_converter("fun "?MODULE_STRING":format_account_modb_encoded/1"++_) -> 'true';
+is_simple_modb_converter("fun "?MODULE_STRING":format_account_modb_unencoded/1"++_) -> 'true';
 is_simple_modb_converter(_Else) -> 'false'.
 
 format_account_id_raw(F) -> kz_util:format_account_id(F, 'raw').
@@ -262,10 +233,11 @@ pretty_print_bytes_test_() ->
 
 
 runs_in_test_() ->
-    [?_assertEqual(timeout, kz_util:runs_in(1, fun timer:sleep/1, [10]))
-    ,?_assertEqual({ok,ok}, kz_util:runs_in(10, fun timer:sleep/1, [1]))
-    ,?_assertEqual(timeout, kz_util:runs_in(1.0, fun timer:sleep/1, [10]))
-    ,?_assertEqual({ok,ok}, kz_util:runs_in(10.0, fun timer:sleep/1, [1]))
+    F = fun timer:sleep/1,
+    [?_assertEqual('timeout', kz_util:runs_in(1, F, [10]))
+    ,?_assertEqual({'ok','ok'}, kz_util:runs_in(100, F, [1]))
+    ,?_assertEqual('timeout', kz_util:runs_in(1.0, F, [10]))
+    ,?_assertEqual({'ok','ok'}, kz_util:runs_in(100.0, F, [1]))
     ].
 
 

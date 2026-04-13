@@ -6,12 +6,14 @@
 %%%-----------------------------------------------------------------------------
 -module(cb_token_restrictions_tests).
 
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 -include("cb_token_restrictions_test.hrl").
 
 -define(DENY_REQ, 'true').
 -define(ALLOW_REQ, 'false').
 
+-spec allow_all_rule_test_() -> any().
 allow_all_rule_test_() ->
     Context =
         cb_context:setters(cb_context:new()
@@ -25,6 +27,7 @@ allow_all_rule_test_() ->
 
     build_assertions(Label, Context, [?ALLOW_REQ, ?ALLOW_REQ, ?ALLOW_REQ, ?ALLOW_REQ]).
 
+-spec deny_api_endpoint_test_() -> any().
 deny_api_endpoint_test_() ->
     Context =
         cb_context:setters(cb_context:new()
@@ -38,6 +41,7 @@ deny_api_endpoint_test_() ->
 
     build_assertions(Label, Context, [?DENY_REQ, ?DENY_REQ, ?DENY_REQ, ?DENY_REQ]).
 
+-spec allow_api_endpoint_test_() -> any().
 allow_api_endpoint_test_() ->
     Context =
         cb_context:setters(cb_context:new()
@@ -51,6 +55,7 @@ allow_api_endpoint_test_() ->
 
     build_assertions(Label, Context, [?ALLOW_REQ, ?ALLOW_REQ, ?ALLOW_REQ, ?ALLOW_REQ]).
 
+-spec allow_accounts_test_() -> any().
 allow_accounts_test_() ->
     Accounts = [{?ACCOUNT_AUTH, ?DENY_REQ} %% auth can only change auth
                ,{?ACCOUNT_DESCENDANT, ?ALLOW_REQ} %% auth can change descendant
@@ -75,6 +80,7 @@ allow_accounts_assertions({Account, Expected}) ->
 
     build_assertions(Label, Context, [Expected, Expected, Expected, Expected]).
 
+-spec argument_test_() -> any().
 argument_test_() ->
     ArgPatterns =
         [{?ARGS_EMPTY, [?ALLOW_REQ, ?DENY_REQ, ?DENY_REQ, ?DENY_REQ]}
@@ -102,6 +108,7 @@ argument_assertions({ArgPattern, ExpectedResults}) ->
     Label = "Verify argument pattern matching works",
     build_assertions(Label, Context, ExpectedResults).
 
+-spec http_method_test_() -> any().
 http_method_test_() ->
     Methods = [{?HTTP_ANY, ?ALLOW_REQ}
               ,{?HTTP_GET_ONLY, ?ALLOW_REQ}

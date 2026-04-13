@@ -12,6 +12,7 @@
 -include("callflow.hrl").
 
 -ifdef(TEST).
+-spec test() -> ok.
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
@@ -137,6 +138,7 @@ macro(Args, Type) ->
 
 -ifdef(TEST).
 
+-spec schema_test_() -> any().
 schema_test_() ->
     Data = <<"{\"macros\":[
                {\"macro\":\"play\"
@@ -164,6 +166,7 @@ schema_test_() ->
 
     build_tests(Data).
 
+-spec another_schema_test_() -> any().
 another_schema_test_() ->
     Data = <<"{
         \"macros\": [
@@ -200,6 +203,7 @@ another_schema_test_() ->
     }">>,
     build_tests(Data).
 
+-spec yas_test_() -> any().
 yas_test_() ->
     Data = <<"{
   \"macros\": [

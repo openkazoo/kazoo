@@ -20,6 +20,9 @@
 
 -export([seq/0]).
 
+-include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
+
 -include("kazoo_proper.hrl").
 
 -define(ACCOUNT_NAMES, [<<"account_for_recordings">>]).
@@ -199,8 +202,7 @@ seq() ->
 
         io:format(?MODULE_STRING":seq/0 was successful~n")
     catch
-        _E:_R ->
-            ST = erlang:get_stacktrace(),
+        _E:_R:ST ->
             ?INFO(?MODULE_STRING ":seq/0 failed ~s: ~p", [_E, _R]),
             _ = [?INFO("st: ~p", [S]) || S <- ST],
             io:format(?MODULE_STRING ":seq/0 failed: ~s: ~p", [_E, _R])

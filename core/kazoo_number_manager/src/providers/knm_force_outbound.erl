@@ -11,6 +11,7 @@
 -export([delete/1]).
 
 -include("knm.hrl").
+-include_lib("kazoo_stdlib/include/kz_log.hrl").
 
 -define(KEY, ?FEATURE_FORCE_OUTBOUND).
 
@@ -37,6 +38,7 @@ feature(N) ->
 
 -spec update(knm_number:knm_number()) -> knm_number:knm_number().
 update(N) ->
+    ?LOG_DEBUG("update: ~p", [N]),
     Private = feature(N),
     Public0 = kz_json:get_ne_value(?KEY, knm_phone_number:doc(knm_number:phone_number(N))),
     Public = case kz_term:is_boolean(Public0) of

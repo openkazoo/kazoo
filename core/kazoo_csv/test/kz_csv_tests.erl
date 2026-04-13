@@ -315,7 +315,7 @@ variable_json_test() ->
 comma_list_json_test() ->
     JSONs = [<<"{\"a\":[\"x\",\"y\"]}">>
             ,<<"{\"a\":[],\"b\":[\"x\",\"y\",\"z\"]}">>
-            ,<<"{\"a\":[{\"x\":1},{\"y\":2}]">>
+            ,<<"{\"a\":[{\"x\":1},{\"y\":2}]}">>
             ],
     JObjs = [kz_json:decode(JSON) || JSON <- JSONs],
     {File, CellOrdering} = kz_csv:jobjs_to_file(JObjs),

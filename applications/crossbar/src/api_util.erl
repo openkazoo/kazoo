@@ -233,8 +233,7 @@ get_req_data(Context, Req1, ContentType, QS) ->
 maybe_extract_multipart(Context, Req0, QS) ->
     try extract_multipart(Context, Req0, QS)
     catch
-        _E:_R ->
-            ST = erlang:get_stacktrace(),
+        _E:_R:ST ->
             lager:debug("failed to extract multipart ~s: ~p", [_E, _R]),
             kz_util:log_stacktrace(ST),
             handle_failed_multipart(Context, Req0, QS)
@@ -1452,7 +1451,7 @@ create_json_chunk_response(Req, Context, JObjs, StartedChunk) ->
 
 -spec do_encode_to_json(kz_json:objects()) -> binary().
 do_encode_to_json(JObjs) ->
-    Encoded = kz_json:encode(JObjs),
+    Encoded = kz_term:to_binary(kz_json:encode(JObjs)),
     %% remove first "[" and last "]" from json
     binary:part(Encoded, 1, size(Encoded) - 2).
 

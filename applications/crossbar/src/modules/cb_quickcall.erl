@@ -373,14 +373,14 @@ get_media(Context) ->
 get_cid_name(Context, Default) ->
     case cb_context:req_value(Context, <<"cid-name">>, Default) of
         'undefined' -> 'undefined';
-        CIDName -> kz_util:uri_decode(CIDName)
+        CIDName -> kz_http_util:urldecode(CIDName)
     end.
 
 -spec get_cid_number(cb_context:context(), kz_term:api_binary()) -> kz_term:api_binary().
 get_cid_number(Context, Default) ->
     case cb_context:req_value(Context, <<"cid-number">>, Default) of
         'undefined' -> 'undefined';
-        CIDNumber -> kz_util:uri_decode(CIDNumber)
+        CIDNumber -> kz_http_util:urldecode(CIDNumber)
     end.
 
 -spec maybe_retain_cid(cb_context:context()) -> kz_term:proplist().
