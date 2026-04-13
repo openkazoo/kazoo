@@ -1,7 +1,7 @@
 {application, amqp_leader,
  [
   {description, "a leader for AMQP"},
-  {vsn, "1.0.0"},
+  {vsn,git},
   {modules, []},
   {registered, [amqp_leader_sup]},
   {applications, [ kernel

@@ -76,8 +76,9 @@
 -define(HEARTBEAT, 5 * ?MILLISECONDS_IN_SECOND + rand:uniform(10 * ?MILLISECONDS_IN_SECOND)).
 -define(EXPIRE_PERIOD, 1 * ?MILLISECONDS_IN_SECOND).
 -define(FUDGE_FACTOR, 1.25).
+-define(APP, 'kazoo_globals').
 -define(APP_NAME, <<"kz_nodes">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 %% kz_nodes lives in this app
 -define(APP_NAME_ATOM, 'kazoo_globals').

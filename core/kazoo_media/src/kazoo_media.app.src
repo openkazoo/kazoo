@@ -4,7 +4,7 @@
                              kazoo_services,kazoo_speech,kazoo_stdlib,
                              kazoo_web,kernel,lager,stdlib]},
               {description,"Kazoo Media provides support for generating media URLs as well as proxing media files"},
-              {vsn,"4.0.0"},
+              {vsn,git},
               {modules,[]},
               {registered,[kz_media_map,kz_media_cache_sup,kazoo_media_sup]},
               {mod,{kazoo_media_app,[]}}]}.

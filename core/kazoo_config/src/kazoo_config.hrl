@@ -10,8 +10,8 @@
 -define(V4_CONFIG_FILE, "/etc/kazoo/core/config.ini").
 
 -define(APP, 'kazoo_config').
--define(APP_NAME, (atom_to_binary(?APP, 'utf8'))).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(SETTINGS_KEY, '$_App_Settings').
 

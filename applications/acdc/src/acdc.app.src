@@ -13,4 +13,4 @@
               {registered,[acdc_cache,acdc_sup,acdc_recordings_sup,
                            acdc_agents_sup,acdc_queues_sup,acdc_stats_sup,
                            acdc_agent_manager]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

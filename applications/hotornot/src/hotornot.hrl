@@ -6,8 +6,9 @@
 -include_lib("kazoo_amqp/include/kapi_conf.hrl").
 -include_lib("kazoo_documents/include/kzd_ratedeck.hrl").
 
+-define(APP, 'hotornot').
 -define(APP_NAME, <<"hotornot">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(CACHE_NAME, 'hotornot_cache').
 

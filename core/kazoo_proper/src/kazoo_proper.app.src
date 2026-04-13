@@ -3,6 +3,6 @@
                              kernel,lager,proper,ranch,stdlib
                              ]},
               {description,"Kazoo Proper - Proper Statem and FSM testing"},
-              {vsn,"4.0.0"},
+              {vsn,git},
               {modules,[]},
               {registered,[]}]}.

@@ -3,8 +3,9 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(CHUNKSIZE, 24576).
+-define(APP, 'kazoo_convert').
 -define(APP_NAME, <<"kazoo_convert">>).
--define(APP_VERSION, <<"1.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(TIFF_MIME, <<"image/tiff">>).

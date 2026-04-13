@@ -14,7 +14,7 @@
 
 -define(APP, 'stepswitch').
 -define(APP_NAME, <<"stepswitch">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(SS_CONFIG_CAT, <<"stepswitch">>).
 -define(CNAM_CONFIG_CAT, <<"stepswitch.cnam">>).

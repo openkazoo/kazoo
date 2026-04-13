@@ -7,4 +7,4 @@
               {mod,{conference_app,[]}},
               {modules,[]},
               {registered,[conference_sup,conf_participant_sup]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

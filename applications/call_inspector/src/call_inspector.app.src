@@ -7,4 +7,4 @@
               {modules,[]},
               {registered,[ci_parsers_sup,ci_datastore,ci_analyzers_sup,
                            call_inspector_sup]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

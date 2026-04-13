@@ -18,4 +18,4 @@
               {modules,[]},
               {registered,[crossbar_cache,cb_jobs_listener,crossbar_sup,
                            crossbar_module_sup]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

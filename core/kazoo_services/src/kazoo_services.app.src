@@ -1,7 +1,7 @@
 {application, kazoo_services,
  [
   {description, "Kazoo Services provides billing and service limit support"},
-  {vsn, "4.0.0"},
+  {vsn,git},
   {modules, []},
   {registered, [kazoo_services_cache, kazoo_services_sup]},
   {applications, [ kernel

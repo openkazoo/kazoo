@@ -4,8 +4,9 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
+-define(APP, 'trunkstore').
 -define(APP_NAME, <<"trunkstore">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 %% couch params for the trunk store and its views

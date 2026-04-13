@@ -2,7 +2,7 @@
  [
   {description, "Kazoo Attachments Access abstraction layer"}
  ,{id, "f226e705-6f9a-66e3-c5c8-6834d1f89571"}
- ,{vsn, "4.0.0"}
+ ,{vsn,git}
  ,{modules, []}
  ,{registered, []}
  ,{applications, [ kernel

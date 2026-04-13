@@ -7,9 +7,9 @@
 
 -include("teletype_default_modules.hrl").
 
--define(APP, teletype).
--define(APP_NAME, (atom_to_binary(?APP, utf8))).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP, 'teletype').
+-define(APP_NAME, atom_to_binary(?APP, 'utf8')).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(PVT_TYPE, kz_notification:pvt_type()).
 

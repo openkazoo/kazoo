@@ -1,7 +1,7 @@
 {application, kazoo_schemas
 ,[
   {description, "JSON Schema handling"}
- ,{vsn, "4.0.0"}
+ ,{vsn,git}
  ,{modules, []}
  ,{registered, [ ]}
  ,{applications, [ kernel

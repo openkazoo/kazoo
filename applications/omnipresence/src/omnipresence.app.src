@@ -12,4 +12,4 @@
                            omnip_sup,omnipresence_sup,omnip_dialog_sip,
                            omnip_dialog_amqp,omnip_presence_amqp,
                            omnip_presence_sip]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

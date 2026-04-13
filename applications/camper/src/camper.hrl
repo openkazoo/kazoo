@@ -2,8 +2,9 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
+-define(APP, 'camper').
 -define(APP_NAME, <<"camper">>).
--define(APP_VERSION, <<"4.0.0">> ).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(CAMPER_CONFIG_CAT, <<"camper">>).
 

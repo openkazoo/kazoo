@@ -12,4 +12,4 @@
               {registered,[stepswitch_cache,stepswitch_cnam_pool_sup,
                            stepswitch_listener,stepswitch_request_sup,
                            stepswitch_sup]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

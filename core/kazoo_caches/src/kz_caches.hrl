@@ -4,8 +4,9 @@
 -include_lib("kazoo_stdlib/include/kz_databases.hrl").
 -include_lib("kazoo_caches/include/kazoo_caches.hrl").
 
+-define(APP, 'kazoo_caches').
 -define(APP_NAME, <<"kazoo_caches">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(EXPIRES, ?SECONDS_IN_HOUR).
 -define(EXPIRE_PERIOD_MS, 10 * ?MILLISECONDS_IN_SECOND).

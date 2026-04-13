@@ -6,8 +6,9 @@
 
 -define(VMBOX_CB_LIST, <<"vmboxes/crossbar_listing">>).
 
+-define(APP, 'kazoo_voicemail').
 -define(APP_NAME, <<"callflow">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(VM_CONFIG_CAT, <<"callflow">>).
 -define(KEY_VOICEMAIL, <<"voicemail">>).
 -define(KEY_RETENTION_DURATION, <<"message_retention_duration">>).

@@ -1,7 +1,7 @@
 {application, kazoo_endpoint,
  [
   {description, "Building endpoints and managing attributes of those endpoints"}
- ,{vsn, "4.0.0"}
+ ,{vsn,git}
  ,{modules, []}
  ,{registered, [kazoo_endpoint_cache]}
  ,{applications, [ kernel

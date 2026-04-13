@@ -3,8 +3,9 @@
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 
+-define(APP, 'kazoo_web').
 -define(APP_NAME, <<"kazoo_web">>).
--define(APP_VERSION, <<"4.0.0">> ).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 -define(HTTP_OPTIONS, ['autoredirect'
                       ,'connect_timeout'

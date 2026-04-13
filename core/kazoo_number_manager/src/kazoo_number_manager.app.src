@@ -4,7 +4,7 @@
                              kazoo_stdlib,kazoo_transactions,kazoo_web,
                              kazoo_xml,kernel,lager,plists,stdlib,xmerl]},
               {description,"Kazoo Number Management"},
-              {vsn,"4.0.0"},
+              {vsn,git},
               {modules,[]},
               {registered,[kazoo_number_manager_sup]},
               {mod,{kazoo_number_manager_app,[]}}]}.

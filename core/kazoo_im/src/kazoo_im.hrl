@@ -8,8 +8,9 @@
 -include_lib("kazoo_amqp/include/kz_amqp.hrl").
 -include_lib("kazoo_number_manager/include/knm_phone_number.hrl").
 
+-define(APP, 'kazoo_im').
 -define(APP_NAME, <<"kazoo_im">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
 
 -define(CCV(Key), [<<"Custom-Channel-Vars">>, Key]).
@@ -24,9 +25,6 @@
 
 -type amqp_listener_connection() :: #amqp_listener_connection{}.
 -type amqp_listener_connections() :: [amqp_listener_connection(),...].
-
--define(ATOM(X), kz_term:to_atom(X, 'true')).
--define(APP, ?ATOM(?APP_NAME)).
 
 -define(RESOURCE_TYPES_HANDLED,[<<"sms">>]).
 

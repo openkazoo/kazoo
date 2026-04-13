@@ -2,6 +2,6 @@
              [{applications,[crypto,erlang_localtime,inet_cidr,jiffy,kernel,
                              lager,stdlib]},
               {description,"Erlang Term handlers"},
-              {vsn,"4.0.0"},
+              {vsn,git},
               {modules,[]},
               {registered,[]}]}.

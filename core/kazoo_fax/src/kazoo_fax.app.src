@@ -1,7 +1,7 @@
 {application, kazoo_fax,
  [
   {description, "Kazoo fax provides core helper functions for handling fax attachments"},
-  {vsn,"4.3.1"},
+  {vsn,git},
   {modules, []},
   {registered, []},
   {applications, [ kernel

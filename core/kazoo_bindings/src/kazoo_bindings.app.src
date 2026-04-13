@@ -1,7 +1,7 @@
 {application, kazoo_bindings,
  [
   {description, "Bindings Server - routing things to places"},
-  {vsn, "4.0.0"},
+  {vsn,git},
   {modules, []},
   {registered, [kazoo_bindings, kazoo_bindings_sup]},
   {applications, [ kernel

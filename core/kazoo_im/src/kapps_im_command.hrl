@@ -6,8 +6,9 @@
 
 -define(DEFAULT_TIMEOUT_S, 20).
 
+-define(APP, 'kazoo_im').
 -define(APP_NAME, <<"kapps_im_command">>).
--define(APP_VERSION, <<"4.0.0">>).
+-define(APP_VERSION, kz_util:application_version(?APP)).
 
 
 -define(KAPPS_IM_COMMAND_HRL, 'true').

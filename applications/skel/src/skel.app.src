@@ -6,4 +6,4 @@
               {mod,{skel_app,[]}},
               {modules,[]},
               {registered,[skel_cache,skel_sup]},
-              {vsn,"4.0.0"}]}.
+              {vsn,git}]}.

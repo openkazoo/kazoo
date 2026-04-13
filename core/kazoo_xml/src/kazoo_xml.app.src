@@ -1,7 +1,7 @@
 {application, kazoo_xml,
  [
   {description, "Helpers for manipulating XML records"},
-  {vsn, "4.0.0"},
+  {vsn,git},
   {modules, []},
   {registered, [ ]},
   {applications, [ kernel
