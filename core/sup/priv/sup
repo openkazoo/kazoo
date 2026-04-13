@@ -1,17 +1,17 @@
 #!/bin/sh
 
-# look for kazoo release root directory
-DEFAULT_ROOT=${KAZOO_ROOT:-_rel/kazoo}
-if [ -d "$DEFAULT_ROOT/_rel/kazoo" ]; then
-    DEFAULT_ROOT="$DEFAULT_ROOT/_rel/kazoo"
+# Find the Kazoo release root directory
+DEFAULT_ROOT=${KAZOO_ROOT:-prod/rel/kazoo}
+if [ -d "$DEFAULT_ROOT/prod/rel/kazoo" ]; then
+    DEFAULT_ROOT="$DEFAULT_ROOT/prod/rel/kazoo"
 elif [ -d "$DEFAULT_ROOT/bin" ]; then
     DEFAULT_ROOT="$DEFAULT_ROOT"
-elif [ -d /opt/kazoo/_rel/kazoo ]; then
-    DEFAULT_ROOT="/opt/kazoo/_rel/kazoo"
+elif [ -d /usr/local/kazoo/bin ]; then
+    DEFAULT_ROOT="/usr/local/kazoo"
 elif [ -d /opt/kazoo/bin ]; then
     DEFAULT_ROOT="/opt/kazoo"
 else
-    echo "Can't find Kazoo release root directory, is the release built?"
+    echo "Can't find the Kazoo release root directory, is the release built?"
     exit -1
 fi
 
@@ -29,8 +29,29 @@ done
 
 shift $(($OPTIND - 1))
 
+# Find kazoo_apps.vm.args
+if [ -n "${VMARGS_PATH}" ] && [ -f "${VMARGS_PATH}" ]; then
+    : # Use the provided VMARGS_PATH
+elif [ -f "/usr/local/etc/kazoo/kazoo_apps.vm.args" ]; then
+    VMARGS_PATH="/usr/local/etc/kazoo/kazoo_apps.vm.args"
+elif [ -f "/etc/kazoo/kazoo_apps.vm.args" ]; then
+    VMARGS_PATH="/etc/kazoo/kazoo_apps.vm.args"
+else
+    echo "Can't find kazoo_apps.vm.args, are the Kazoo configs installed?"
+    exit -1
+fi
+export VMARGS_PATH
+
 KAZOO_NODE=${SUP_NODE_ARG:-${KAZOO_NODE:-kazoo_apps}}
 KAZOO_COOKIE=${SUP_COOKIE_ARG:-${KAZOO_COOKIE:-change_me}}
 
-${DEFAULT_ROOT}/bin/kazoo escript lib/sup-*/priv/sup.escript -n ${KAZOO_NODE} -c ${KAZOO_COOKIE} "$@"
+# Find sup.escript
+SUP_ESCRIPT="$(ls -t "${DEFAULT_ROOT}"/lib/sup-*/priv/sup.escript 2>/dev/null | head -n 1)"
+if [ -z "${SUP_ESCRIPT}" ] || [ ! -f "${SUP_ESCRIPT}" ]; then
+    echo "Can't find sup.escript under ${DEFAULT_ROOT}/lib/sup-*/priv/, is sup installed in this release?"
+    exit -1
+fi
+
+VMARGS_PATH="${VMARGS_PATH}" exec "${DEFAULT_ROOT}/bin/kazoo" escript "${SUP_ESCRIPT#${DEFAULT_ROOT}/}" -n "${KAZOO_NODE}" -c "${KAZOO_COOKIE}" "$@"
+
 exit $?
