@@ -107,7 +107,8 @@ maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
         lager:debug_unsafe("apple_dev result for ~s : ~p", [Topic, Result]),
         {Code, _, Info} = Result,
         Resp = kz_json:from_list([{<<"code">>, Code},{<<"Info">>, Info}]),
-        kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), <<"e90db4c158732b6a2bdb673e95fa4246">>)
+        AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj),
+        kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), AccountId)
     catch
         ?CATCH(Ex, Msg, _ST) ->
             lager:error_unsafe("PUBLISH ERROR => ~p / ~p", [Ex, Msg]),
