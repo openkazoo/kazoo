@@ -108,6 +108,7 @@ maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
         {Code, _, Info} = Result,
         Resp = kz_json:from_list([{<<"code">>, Code},{<<"Info">>, Info}]),
         AccountId = kz_json:get_ne_binary_value(<<"Account-ID">>, JObj),
+        %% send event with confirmation of push (can be received over blackhole)
         kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), AccountId)
     catch
         ?CATCH(Ex, Msg, _ST) ->
