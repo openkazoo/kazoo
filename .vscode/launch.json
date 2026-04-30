@@ -1,0 +1,18 @@
+{
+  "configurations": [
+    {
+      "name": "Start Kazoo",
+      "type": "erlang",
+      "request": "launch",
+      "cwd": "${workspaceRoot}",
+      "runinterminal": [
+        "/bin/sh",
+        "-c",
+        "KAZOO_CONFIG=${workspaceFolder}/config/config-dev.yaml VMARGS_PATH=${workspaceFolder}/config/vm.args.dev RELX_CONFIG_PATH=${workspaceFolder}/config/sys.dev ${workspaceFolder}/_build/dev/rel/kazoo/bin/kazoo console"
+      ],
+      "projectnode": "kazoo_apps",
+      "cookie": "change_me",
+      "preLaunchTask": "Build Dev"
+    }
+  ]
+}
