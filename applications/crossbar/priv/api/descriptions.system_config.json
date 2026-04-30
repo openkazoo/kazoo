@@ -740,6 +740,7 @@
     "trunkstore.default_hunt_non_reconcilable": "trunkstore default hunt non reconcilable",
     "trunkstore.ensure_valid_caller_id": "trunkstore ensure valid caller id",
     "trunkstore.honor_diversions_by_cid_validation": "trunkstore honor diversions by cid validation",
+    "trunkstore.number_attributes_header": "header name to use for number attributes information (usually Call-Info)",
     "trunkstore.ring_ready_offnet": "trunkstore ring ready offnet",
     "webhooks.attempt_failure_count": "webhooks attempt failure count",
     "webhooks.attempt_failure_expiry_ms": "webhooks attempt failure expiry in milliseconds",
