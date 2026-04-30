@@ -1243,16 +1243,7 @@ maybe_get_t38(Endpoint, Call) ->
 dest_has_t38(Endpoint, Call) ->
     DestNumber = knm_converters:normalize(kapps_call:callee_id_number(Call), kapps_call:account_id(Call)),
     FaxOption = kz_json:is_true([<<"media">>, <<"fax_option">>], Endpoint),
-    T38DestNumber = case ?CONFIG_ATTRIBUTES_LOOKUP of
-                        'true' -> knm_phone_number:is_fax_number(DestNumber);
-                        'false' -> 'false'
-                    end,
-    case {FaxOption, T38DestNumber} of
-        {'true', _} -> 'true';
-        {_, 'true'} -> 'true';
-        {'undefined', _} -> 'undefined';
-        {_, _} -> 'false'
-    end.
+    has_t38(FaxOption, DestNumber).
 
 -spec source_has_t38(kapps_call:call()) -> kz_term:api_boolean().
 source_has_t38(Call) ->
@@ -1262,11 +1253,15 @@ source_has_t38(Call) ->
                     {'ok', JObj} -> kz_json:is_true([<<"media">>, <<"fax_option">>], JObj);
                     {'error', _} -> 'false'
                 end,
-    T38SourceNumber = case ?CONFIG_ATTRIBUTES_LOOKUP of
-                          'true' -> knm_phone_number:is_fax_number(CLINumber);
-                          'false' -> 'false'
-                      end,
-    case {FaxOption, T38SourceNumber} of
+    has_t38(FaxOption, CLINumber).
+
+-spec has_t38(atom(), kz_term:ne_binary()) -> kz_term:api_boolean().
+has_t38(FaxOption, Number) ->
+    T38Number = case ?CONFIG_ATTRIBUTES_LOOKUP of
+                    'true' -> knm_phone_number:is_fax_number(Number);
+                    'false' -> 'false'
+                end,
+    case {FaxOption, T38Number} of
         {'true', _} -> 'true';
         {_, 'true'} -> 'true';
         {'undefined', _} -> 'undefined';
