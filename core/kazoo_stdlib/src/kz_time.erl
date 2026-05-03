@@ -198,7 +198,7 @@ tz_offset(Datetime, <<FromTz/binary>>) ->
 -spec rfc3339_local_tz_offset(calendar:datetime(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
 rfc3339_local_tz_offset(Datetime, ToTz) ->
     case localtime:tz_shift(Datetime, "UTC", kz_term:to_list(ToTz)) of %% offset of the Timezone relative to UTC
-        0 -> <<"+0000">>;
+        0 -> <<"+00:00">>;
         {'error', 'unknown_tz'} -> <<"Z">>;
         {Sign, H, M} ->
             list_to_binary([kz_term:to_binary(Sign)
