@@ -12,6 +12,7 @@
         ,pretty_print_datetime/1, pretty_print_datetime/2
         ,rfc1036/1, rfc1036/2
         ,rfc2822/1, rfc2822/2
+        ,rfc3339_local/2
         ,iso8601/1, iso8601/2
         ,iso8601_time/1
         ,from_iso8601/1
@@ -45,6 +46,7 @@
 -compile({'no_auto_import', [now/0]}).
 
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
+-include_lib("kazoo_stdlib/include/kazoo_json.hrl").
 
 -type now() :: erlang:timestamp().
 %% {MegaSecs :: integer() >= 0, Secs :: integer() >= 0, MicroSecs :: integer() >= 0}
@@ -189,8 +191,55 @@ tz_offset(Datetime, <<FromTz/binary>>) ->
             list_to_binary([kz_term:to_binary(Sign)
                            ,kz_binary:pad_left(kz_term:to_binary(H), 2, <<"0">>)
                            ,kz_binary:pad_left(kz_term:to_binary(M), 2, <<"0">>)
-                           ])
+                           ]);
+        _Else -> <<"+0000">>
     end.
+
+-spec rfc3339_local_tz_offset(calendar:datetime(), kz_term:api_ne_binary()) -> kz_term:ne_binary().
+rfc3339_local_tz_offset(Datetime, ToTz) ->
+    case localtime:tz_shift(Datetime, "UTC", kz_term:to_list(ToTz)) of %% offset of the Timezone relative to UTC
+        0 -> <<"+0000">>;
+        {'error', 'unknown_tz'} -> <<"Z">>;
+        {Sign, H, M} ->
+            list_to_binary([kz_term:to_binary(Sign)
+                           ,kz_binary:pad_left(kz_term:to_binary(H), 2, <<"0">>)
+                           ,":"
+                           ,kz_binary:pad_left(kz_term:to_binary(M), 2, <<"0">>)
+                           ]);
+        _Else -> <<"Z">>
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Format UTC datetime or Gregorian timestamp as an RFC3339 timestamp with
+%% local time offset from a timezone. Input is assumed to be in UTC. Timezone
+%% can be directly specified as a binary or derived from the Account ID, or
+%% from an Account, User, or Device JSON object.
+%% NOTE that when inputting a user or device object, inheritance will not be
+%% taken into account, and only the explicit timezone value (if any) will be
+%% used.
+%% @end
+%%------------------------------------------------------------------------------
+-spec rfc3339_local(calendar:datetime() | gregorian_seconds(), kz_term:api_ne_binary() | kz_json:object()) -> kz_term:ne_binary().
+rfc3339_local(Timestamp, ?JSON_WRAPPER(_)=JObj) -> %% JObj could be an account, user, or device
+    Timezone = kz_json:get_binary_value([<<"timezone">>], JObj),
+    rfc3339_local(Timestamp, Timezone);
+rfc3339_local(Timestamp, <<AccountId:32/binary>>) ->
+    Timezone = kzd_accounts:timezone(AccountId),
+    rfc3339_local(Timestamp, Timezone);
+rfc3339_local(Timestamp, Timezone) when is_integer(Timestamp) ->
+    rfc3339_local(calendar:gregorian_seconds_to_datetime(Timestamp), Timezone);
+rfc3339_local(UTCDateTime={{_,_,_},{_,_,_}}, Timezone) ->
+    LocalDateTime = localtime:utc_to_local(UTCDateTime, kz_term:to_list(Timezone)), %% {{2025,11,2},{1,17,34}}
+    {{Y, M, D}, {H, Min, S}} = LocalDateTime,
+    YYYY = kz_term:to_binary(Y),
+    MM = kz_binary:pad_left(kz_term:to_binary(M), 2, <<"0">>),
+    DD = kz_binary:pad_left(kz_term:to_binary(D), 2, <<"0">>),
+    HH = kz_binary:pad_left(kz_term:to_binary(H), 2, <<"0">>),
+    MMin = kz_binary:pad_left(kz_term:to_binary(Min), 2, <<"0">>),
+    SS = kz_binary:pad_left(kz_term:to_binary(S), 2, <<"0">>),
+    Offset = rfc3339_local_tz_offset(UTCDateTime, Timezone), %% -0400
+    %% 2025-11-02T01:41:17-04:00
+    <<YYYY/binary, "-", MM/binary, "-", DD/binary, "T", HH/binary, ":", MMin/binary, ":", SS/binary, Offset/binary>>.
 
 %%------------------------------------------------------------------------------
 %% @doc Format time part of ISO 8601.
