@@ -22,10 +22,6 @@
             "description": "trunkstore honor diversions by cid validation",
             "type": "boolean"
         },
-        "number_attributes_header": {
-            "description": "header name to use for number attributes information (usually Call-Info)",
-            "type": "string"
-        },
         "ring_ready_offnet": {
             "default": true,
             "description": "trunkstore ring ready offnet",

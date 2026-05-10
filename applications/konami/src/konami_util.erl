@@ -1,8 +1,8 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2025, 2600Hz
+%%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc
 %%% @author James Aimonetti
-%%% @author Ruel Tmeizeh
+%%% @author Ruel Tmeizeh (www.ruhnet.co)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(konami_util).
@@ -51,20 +51,24 @@ moh(MOH, Call) ->
     %% correct selection of MoH:
     AccountID = kapps_call:account_id(Call),
 
-    {'ok', AccountDoc} = kzd_accounts:fetch(AccountID),
-    AccountMOH = kzd_accounts:music_on_hold_media_id(AccountDoc),
+    AccountMOH =
+        case kzd_accounts:fetch(AccountID) of
+            {'ok', AccountDoc} -> kzd_accounts:music_on_hold_media_id(AccountDoc);
+            _ -> 'undefined'
+        end,
 
     AccountOrUserMOH =
         case kzd_users:fetch(AccountID, kapps_call:owner_id(Call)) of
             {'ok', UserDoc} -> kzd_users:music_on_hold_media_id(UserDoc, AccountMOH);
-            _ -> AccountMOH
+            _ -> 'undefined'
         end,
 
     DefaultMOH = case AccountOrUserMOH of
-                     'undefined' -> ?SILENCE;
+                     'undefined' -> <<"local_stream://default">>; % this should be system-wide MoH
                      <<"silen",_/binary>> -> ?SILENCE;
                      MediaId -> kz_media_util:media_path(MediaId, AccountID)
                  end,
+
     case MOH of
         'undefined' -> DefaultMOH;
         <<"silen", _/binary>> -> ?SILENCE; % matches silence/silent as well as silence_stream://x

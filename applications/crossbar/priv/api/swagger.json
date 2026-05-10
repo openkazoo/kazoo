@@ -2654,25 +2654,6 @@
             },
             "type": "object"
         },
-        "callflows.inter_account": {
-            "description": "Validator for the inter_account callflow data object",
-            "properties": {
-                "caller_id_prefix": {
-                    "description": "prefix to prepend to the caller id",
-                    "type": "string"
-                },
-                "office_id": {
-                    "default": {},
-                    "description": "lookup digit to account map",
-                    "type": "object"
-                },
-                "skip_module": {
-                    "description": "When set to true this callflow action is skipped, advancing to the wildcard branch (if any)",
-                    "type": "boolean"
-                }
-            },
-            "type": "object"
-        },
         "callflows.intercept": {
             "description": "Validator for the intercept callflow data object",
             "properties": {
@@ -36134,10 +36115,6 @@
                     "default": false,
                     "description": "trunkstore honor diversions by cid validation",
                     "type": "boolean"
-                },
-                "number_attributes_header": {
-                    "description": "header name to use for number attributes information (usually Call-Info)",
-                    "type": "string"
                 },
                 "ring_ready_offnet": {
                     "default": true,
