@@ -88,7 +88,6 @@
         ,{<<"media_server">>, fun col_media_server/3}
         ,{<<"call_priority">>, fun col_call_priority/3}
         ,{<<"interaction_id">>, fun col_interaction_id/3}
-        %% New Circle Cloud Fields
         ,{<<"custom_leg_vars">>,fun col_custom_leg_vars/3}
         ]).
 
@@ -521,10 +520,7 @@ col_hangup_cause(JObj, _Timestamp, _Context) -> kzd_cdrs:hangup_cause(JObj, <<>>
 col_disposition(JObj, _Timestamp, _Context) -> kzd_cdrs:disposition(JObj, <<>>).
 col_other_leg_call_id(JObj, _Timestamp, _Context) -> kzd_cdrs:other_leg_call_id(JObj, <<>>).
 col_owner_id(JObj, _Timestamp, _Context) -> kz_json:get_value([?KEY_CCV, <<"owner_id">>], JObj, <<>>).
-col_custom_leg_vars(JObj, _Timestamp, _Context) ->
-    Result = custom_leg_vars(JObj),
-    lager:debug("custom_leg_vars Result: ~p", [Result]),
-    Result.
+col_custom_leg_vars(JObj, _Timestamp, _Context) -> custom_leg_vars(JObj).
 col_to(JObj, _Timestamp, _Context) -> kzd_cdrs:to(JObj, <<>>).
 col_from(JObj, _Timestamp, _Context) -> kzd_cdrs:from(JObj, <<>>).
 col_call_direction(JObj, _Timestamp, _Context) -> kzd_cdrs:call_direction(JObj, <<>>).
@@ -691,6 +687,7 @@ load_legs(Id, Context) ->
 normalize_leg_view_results(JObj, Acc) ->
     Acc ++ [kz_json:get_json_value(<<"doc">>, JObj)].
 
+-spec custom_leg_vars(kz_json:object()) -> kz_json:object().
 custom_leg_vars(JObj)->
     Default = kz_json:new(),
     case kz_json:get_value([?KEY_CCV, <<"account_id">>], JObj, Default) of

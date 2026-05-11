@@ -117,8 +117,8 @@ data(Action, TimeLimit, Format, URL) ->
                       ]).
 
 -spec save_record_param(kz_term:ne_binary() | kz_json:object(), kapps_call:call()) ->
-    {'ok', kz_json:object() | kz_json:objects()} |
-    kz_datamgr:data_error().
+          {'ok', kz_json:object() | kz_json:objects()} |
+          kz_datamgr:data_error().
 save_record_param(Data,Call) ->
     CallId = case source_leg_of_dtmf(Data, Call) of
                  'a' ->
