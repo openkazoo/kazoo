@@ -60,7 +60,7 @@ moh(MOH, Call) ->
     AccountOrUserMOH =
         case kzd_users:fetch(AccountID, kapps_call:owner_id(Call)) of
             {'ok', UserDoc} -> kzd_users:music_on_hold_media_id(UserDoc, AccountMOH);
-            _ -> 'undefined'
+            _ -> AccountMOH
         end,
 
     DefaultMOH = case AccountOrUserMOH of
