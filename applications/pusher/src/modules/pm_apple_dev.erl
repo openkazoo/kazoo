@@ -1,9 +1,11 @@
 %%%-----------------------------------------------------------------------------
 %%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc
+%%% @author 2600Hz
+%%% @author Circle Cloud
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(pm_apple).
+-module(pm_apple_dev).
 -behaviour(gen_server).
 
 -include("pusher.hrl").
@@ -18,13 +20,6 @@
         ,handle_info/2
         ,terminate/2
         ,code_change/3
-        ]).
-
--export([apns_topic/1
-        ,build_payload/2
-        ,join_headers/1
-        ,maybe_utc_expiration_header/1
-        ,maybe_priority_to_binary/1
         ]).
 
 -record(state, {tab :: ets:tid()}).
@@ -54,6 +49,7 @@ handle_call(_Request, _From, State) ->
 handle_cast({'push', JObj}, #state{tab=ETS}=State) ->
     kz_util:put_callid(JObj),
     TokenApp = kz_json:get_value(<<"Token-App">>, JObj),
+    lager:debug("received push request for ~p", [{TokenApp, ETS}]),
     maybe_send_push_notification(get_apns(TokenApp, ETS), JObj),
     {'noreply', State};
 handle_cast('stop', State) ->
@@ -91,30 +87,24 @@ terminate(_Reason, #state{tab=ETS}) ->
 code_change(_OldVsn, State, _Extra) ->
     {'ok', State}.
 
--spec join_headers(map()) -> binary().
-join_headers(Headers) ->
-    kz_binary:join([list_to_binary([kz_term:to_binary(K), "=", kz_term:to_binary(V)])
-                    || {K, V} <- maps:to_list(Headers)
-                   ]
-                  ,<<",">>
-                  ).
-
 -spec maybe_send_push_notification(push_app(), kz_json:object()) -> 'ok'.
 maybe_send_push_notification('undefined', _) -> 'ok';
 maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
     TokenID = kz_json:get_value(<<"Token-ID">>, JObj),
-    Topic = apns_topic(JObj),
+    Topic = pm_apple:apns_topic(JObj),
+    lager:debug("apns_dev JObj ~p",[JObj]),
+    lager:debug("apns_dev ExtraHeaders ~p",[ExtraHeaders]),
     Headers = kz_maps:merge(#{'apns_topic' => Topic}, ExtraHeaders),
-    Msg = build_payload(JObj, ExtraHeaders),
-    lager:debug_unsafe("pushing ~s for token-id ~s : ~s"
-                      ,[join_headers(Headers)
+    Msg = pm_apple:build_payload(JObj, ExtraHeaders),
+    lager:debug_unsafe("pushing apple_dev ~s for token-id ~s : ~s"
+                      ,[pm_apple:join_headers(Headers)
                        ,TokenID
                        ,kz_json:encode(kz_json:from_map(Msg), ['pretty'])
                        ]
                       ),
     try
         Result = apns:push_notification(Pid, TokenID, Msg, Headers),
-        lager:debug_unsafe("apns result for ~s : ~p", [Topic, Result]),
+        lager:debug_unsafe("apple_dev result for ~s : ~p", [Topic, Result]),
         {Code, _, Info} = Result,
         Resp = kz_json:from_list([{<<"code">>, Code},{<<"Info">>, Info}]),
         kz_edr:event(?APP_NAME, ?APP_VERSION, 'ok', 'info', kz_json:set_value(<<"apn_response">>, Resp, kz_json:from_map(Msg)), <<"e90db4c158732b6a2bdb673e95fa4246">>)
@@ -122,22 +112,6 @@ maybe_send_push_notification({Pid, ExtraHeaders}, JObj) ->
         ?CATCH(Ex, Msg, _ST) ->
             lager:error_unsafe("PUBLISH ERROR => ~p / ~p", [Ex, Msg]),
             ?LOGSTACK(_ST)
-    end.
-
--spec build_payload(kz_json:object(), map()) -> map().
-build_payload(JObj, ExtraHeaders) ->
-    M = kz_json:to_map(kz_json:foldl(fun map_key/3, kz_json:new(), JObj)),
-    case kz_maps:get('apns_push_type', ExtraHeaders) of
-        <<"background">> -> M#{<<"aps">> => #{<<"content-available">> => 1}};
-        _ -> M
-    end.
-
--spec map_key(term(), term(), kz_json:object()) -> kz_json:object().
-map_key(K, V, JObj) ->
-    case lists:keyfind(K, 1, ?APNS_MAP) of
-        'false' -> JObj;
-        {_, Fun} when is_function(Fun, 2) -> Fun(V, JObj);
-        {_, K1} -> kz_json:set_value(K1, V, JObj)
     end.
 
 -spec reload_apns(kz_term:api_binary(), ets:tid()) -> 'ok' | reference().
@@ -157,11 +131,11 @@ get_apns(App, ETS) ->
 
 -spec maybe_load_apns(kz_term:api_binary(), ets:tid()) -> push_app().
 maybe_load_apns(App, ETS) ->
-    CertBin = kapps_config:get_ne_binary(?CONFIG_CAT, [?APPLE, <<"certificate">>], 'undefined', App),
-    Host = kapps_config:get_ne_binary(?CONFIG_CAT, [?APPLE, <<"host">>], ?DEFAULT_APNS_HOST, App),
-    ExtraHeaders = kapps_config:get_json(?CONFIG_CAT, [?APPLE, <<"headers">>], kz_json:new(), App),
-    Routines = [fun(JObj) -> maybe_utc_expiration_header(JObj) end
-               ,fun(JObj) -> maybe_priority_to_binary(JObj) end
+    CertBin = kapps_config:get_ne_binary(?CONFIG_CAT, [?APPLE_DEV, <<"certificate">>], 'undefined', App),
+    Host = kapps_config:get_ne_binary(?CONFIG_CAT, [?APPLE_DEV, <<"host">>], ?DEFAULT_APNS_HOST, App),
+    ExtraHeaders = kapps_config:get_json(?CONFIG_CAT, [?APPLE_DEV, <<"headers">>], kz_json:new(), App),
+    Routines = [fun(JObj) -> pm_apple:maybe_utc_expiration_header(JObj) end
+               ,fun(JObj) -> pm_apple:maybe_priority_to_binary(JObj) end
                ],
     ExtraHeaders2 = kz_json:exec(Routines, ExtraHeaders),
     Headers = kz_maps:keys_to_atoms(kz_json:to_map(ExtraHeaders2)),
@@ -174,11 +148,11 @@ maybe_load_apns(App, ETS) ->
                      ,map()
                      ) -> push_app().
 maybe_load_apns(App, _, 'undefined', _, _) ->
-    lager:debug("apple pusher certificate for app ~s not found", [App]),
+    lager:debug("apple_dev pusher certificate for app ~s not found", [App]),
     'undefined';
 maybe_load_apns(App, ETS, CertBin, Host, Headers) ->
     {Key, Cert} = pusher_util:binary_to_keycert(CertBin),
-    lager:debug("starting apple push connection for ~s : ~s", [App, Host]),
+    lager:debug("starting apple_dev push connection for ~s : ~s", [App, Host]),
     Connection = #{name => kz_term:to_atom(<<"apns_", App/binary>>, 'true')
                   ,apple_host => kz_term:to_list(Host)
                   ,apple_port => 443
@@ -205,57 +179,18 @@ maybe_load_apns(App, ETS, CertBin, Host, Headers) ->
             'undefined'
     catch
         ?CATCH(_Er, _Ex,_ST) ->
-            lager:error("error loading apns ~p / ~p", [_Er, _Ex]),
+            lager:error("error loading apple_dev apns ~p / ~p", [_Er, _Ex]),
             ?LOGSTACK(_ST),
             application:start(apns),
             case catch apns:connect(Connection) of
                 {'ok', Pid} ->
-                    lager:debug("starting again apns apple push connection for ~p: ", [Connection]),
+                    lager:debug("starting again apns apple_dev push connection for ~p: ", [Connection]),
                     ets:insert(ETS, {App, {Pid, Headers}}),
                     Ref = erlang:monitor('process', Pid),
                     ets:insert(ETS, {Ref, App}),
                     {Pid, Headers};
                 {'error', Reason} ->
-                    lager:error("error re-loading apns ~p", [Reason]),
+                    lager:error("error re-loading apns_dev ~p", [Reason]),
                     'undefined'
             end
-    end.
-
--spec apns_topic(kz_json:object()) -> binary().
-apns_topic(JObj) ->
-    TokenApp = kz_json:get_ne_binary_value(<<"Token-App">>, JObj),
-    TokenType = kz_json:get_ne_binary_value(<<"Token-Type">>, JObj),
-    case kapps_config:get_ne_binary(<<"pusher">>
-                                   ,[TokenType, <<"apns_topic">>]
-                                   ,'undefined'
-                                   ,TokenApp
-                                   )
-    of
-        'undefined' -> default_apns_topic(TokenApp);
-        APNsTopic -> APNsTopic
-    end.
-
-%% Retains the old behaviour
--spec default_apns_topic(kz_term:ne_binary()) -> kz_term:ne_binary().
-default_apns_topic(TokenApp) ->
-    re:replace(TokenApp, <<"\\.(?:dev|prod)$">>, <<>>, [{'return', 'binary'}]).
-
-%%% @doc According to Apple docs at
-%%% https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns
-%%% apns_expiration should be a UNIX epoch expressed in seconds (UTC).
-%%% @end
--spec maybe_utc_expiration_header(kz_json:object()) -> kz_json:object().
-maybe_utc_expiration_header(JObj) ->
-    case kz_json:get_value(<<"apns_expiration">>, JObj) of
-        undefined -> JObj;
-        Expiration ->
-            kz_json:set_value(<<"apns_expiration">>, kz_term:to_binary(kz_time:current_unix_tstamp() + Expiration), JObj)
-    end.
-
--spec maybe_priority_to_binary(kz_json:object()) -> kz_json:object().
-maybe_priority_to_binary(JObj) ->
-    case kz_json:get_value(<<"apns_priority">>, JObj) of
-        undefined -> JObj;
-        Priority ->
-            kz_json:set_value(<<"apns_priority">>, kz_term:to_binary(Priority), JObj)
     end.

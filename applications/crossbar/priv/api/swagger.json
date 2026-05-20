@@ -34780,9 +34780,9 @@
                     "default": {},
                     "description": "pusher firebase",
                     "properties": {
-                        "api_key": {
-                            "description": "API Key for firebase",
-                            "type": "string"
+                        "service_account": {
+                            "description": "Google Service Account JSON",
+                            "type": "object"
                         },
                         "extra_headers": {
                             "default": {},
