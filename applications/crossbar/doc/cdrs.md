@@ -110,6 +110,15 @@ curl -v -X GET \
     http://{SERVER}:8000/v2/accounts/{ACCOUNT_ID}/cdrs?created_from={FROM_TIMESTAMP}&created_to={TO_TIMESTAMP}&utc_offset={SECONDS_OFFSET}
 ```
 
+Get CDRs in simplified format, with timestamp in local time (for the account) in RFC3339 format:
+
+```shell
+curl -v -X GET \
+    -H "X-Auth-Token: {AUTH_TOKEN}" \
+    http://{SERVER}:8000/v2/accounts/{ACCOUNT_ID}/cdrs?created_from={FROM_TIMESTAMP}&created_to={TO_TIMESTAMP}&simple=true
+```
+
+
 Get CDRs as CSV:
 
 ```shell
