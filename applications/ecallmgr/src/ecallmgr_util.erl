@@ -1263,7 +1263,7 @@ maybe_set_interface(<<"sofia/", _/binary>>=Contact, _) -> Contact;
 maybe_set_interface(<<"loopback/", _/binary>>=Contact, _) -> Contact;
 maybe_set_interface(Contact, #bridge_endpoint{sip_interface='undefined'}=Endpoint) ->
     Options = ['ungreedy', {'capture', 'all_but_first', 'binary'}],
-    case re:run(Contact, <<";fs_path=sip:(.*):\\d*;">>, Options) of
+    case re:run(Contact, <<";fs_path=sip:(.*):\\d*;?">>, Options) of
         {'match', FsPath} ->
             SIPInterface = kz_term:to_binary(get_sip_interface_from_db(FsPath)),
             maybe_set_interface(Contact, Endpoint#bridge_endpoint{sip_interface=SIPInterface});
