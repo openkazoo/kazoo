@@ -70,9 +70,8 @@ maybe_decode(MaybeEncoded) ->
         Decoded ->
             binary_to_term(Decoded)
     catch
-        'error':'function_clause' -> MaybeEncoded;
-        'error':{'badmatch','false'} -> MaybeEncoded;
-        'error':{'badarg', _} -> MaybeEncoded
+        _E:_R:_ST -> lager:debug("binary is not base64"),
+                     MaybeEncoded
     end.
 
 -spec encode_req(kz_json:object() | kz_term:proplist()) -> any().
