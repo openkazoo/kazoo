@@ -756,7 +756,6 @@ maybe_missing_resource_type(_Endpoint, _Properties, Call) ->
           {'error', 'no_resource_type'}.
 maybe_missing_resource_type('undefined') ->
     lager:error("kapps_call resource type is undefined"),
-    kz_util:log_stacktrace(),
     {'error', 'no_resource_type'};
 maybe_missing_resource_type(_) -> 'ok'.
 
