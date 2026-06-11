@@ -47,7 +47,7 @@ Key | Description | Type | Default | Required | Support Level
 `max_channel_uptime_s` | ecallmgr maximum channel uptime in seconds | `integer()` | `0` | `false` |
 `max_timeout_for_node_restart` | ecallmgr maximum timeout for node restart | `integer()` | `10000` | `false` |
 `multivar_separator` | ecallmgr multivar_separator | `string()` | `~` | `false` |
-`network_map` | ecallmgr network map | `object()` | `{}` | `false` |
+`network_map` | allows specification of custom SIP profiles to use for specific destination network ranges | `object()` | `{}` | `false` |
 `node_commands` |   |   |   | `false` |
 `node_down_grace_period` | ecallmgr node down grace period | `integer()` | `10000` | `false` |
 `process_gateways` | ecallmgr process gateways | `boolean()` | `false` | `false` |
@@ -95,3 +95,14 @@ This means that if any SIP device from the resulting endpoint list has an active
 ### "Normal" call forwarded endpoints
 
 If a user or ring group has "normal" call-forwarded endpoints included, since these endpoints don't maintain a registration (since they typically are forwarded to another DID), then they aren't ever "offline" from KAZOO's perspective. Bear this in mind when failover endpoints aren't ringing when SIP endpoints are unregistered.
+
+### `network_map` usage
+
+The `network_map` object can contain one or more objects specifying a custom SIP profile for Freeswitch to use when `fs_path` is found on the contact header. Example:
+``` json
+"network_map": {
+  "172.16.75.0/24": {
+    "custom_sip_interface": "my_custom_sip_profile"
+  }
+}
+```
