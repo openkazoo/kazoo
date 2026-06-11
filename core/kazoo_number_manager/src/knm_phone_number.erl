@@ -886,8 +886,8 @@ setters_pn(PN, Routines) ->
             ?LOG_ERROR("~s failed, argument: ~p", [FName, Arg]),
             kz_util:log_stacktrace(ST),
             {'error', FName};
-        'error':Reason ->
-            kz_util:log_stacktrace(),
+        'error':Reason:ST ->
+            kz_util:log_stacktrace(ST),
             {'error', Reason}
     end.
 

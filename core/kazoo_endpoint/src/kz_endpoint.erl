@@ -759,7 +759,6 @@ maybe_missing_resource_type(_Endpoint, _Properties, Call) ->
           {'error', 'no_resource_type'}.
 maybe_missing_resource_type('undefined') ->
     lager:error("kapps_call resource type is undefined"),
-    kz_util:log_stacktrace(),
     {'error', 'no_resource_type'};
 maybe_missing_resource_type(_) -> 'ok'.
 
@@ -954,9 +953,9 @@ try_create_endpoint(Routine, Endpoints, Endpoint, Properties, Call) when is_func
             lager:debug("created endpoint ~s", [kz_doc:id(JObj)]),
             [JObj|Endpoints]
     catch
-        _E:_R ->
+        _E:_R:ST ->
             lager:warning("unable to build endpoint(~s): ~p", [_E, _R]),
-            kz_util:log_stacktrace(),
+            kz_util:log_stacktrace(ST),
             Endpoints
     end.
 
