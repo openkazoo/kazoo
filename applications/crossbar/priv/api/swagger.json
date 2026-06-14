@@ -665,12 +665,7 @@
                 "voicemail": {
                     "properties": {
                         "notify": {
-                            "properties": {
-                                "callback": {
-                                    "$ref": "#/definitions/notify.callback"
-                                }
-                            },
-                            "type": "object"
+                            "$ref": "#/definitions/voicemail.notify"
                         }
                     },
                     "type": "object"
@@ -9820,6 +9815,35 @@
             "required": [
                 "Call-ID",
                 "Status"
+            ],
+            "type": "object"
+        },
+        "kapi.call.channel_update_req": {
+            "description": "AMQP API for call.channel_update_req",
+            "properties": {
+                "Call-ID": {
+                    "type": "string"
+                },
+                "Event-Category": {
+                    "enum": [
+                        "call_event"
+                    ],
+                    "type": "string"
+                },
+                "Event-Name": {
+                    "enum": [
+                        "channel_update_req"
+                    ],
+                    "type": "string"
+                },
+                "Updates": {
+                    "description": "object containing channel property values to update",
+                    "type": "object"
+                }
+            },
+            "required": [
+                "Call-ID",
+                "Updates"
             ],
             "type": "object"
         },
@@ -22099,6 +22123,9 @@
                 "Fields": {
                     "type": "string"
                 },
+                "Owner": {
+                    "type": "string"
+                },
                 "Realm": {
                     "type": "string"
                 },
@@ -26101,17 +26128,27 @@
             "description": "Put the leg on hold",
             "properties": {
                 "moh_aleg": {
-                    "description": "MOH ID for the a-leg",
+                    "description": "indicator selection for the a-leg: silence, pulse, beep, beep{frequency}, tone_stream://{tones pattern}",
                     "type": "string"
                 },
                 "moh_bleg": {
-                    "description": "MOH ID for the b-leg",
+                    "description": "MOH media ID for the b-leg, or indicator selection: silence, pulse, beep, beep{frequency}, tone_stream://{tones pattern}, shout://{mp3 stream}, local_stream://{local stream}",
                     "type": "string"
+                },
+                "unhold": {
+                    "default": false,
+                    "description": "if true, an unhold action is performed (using the FS 'break' command), rather than hold",
+                    "type": "boolean"
                 },
                 "unhold_key": {
                     "default": "1",
-                    "description": "DTMF to press to unhold the call",
+                    "description": "DTMF key[s] that when pressed will unhold the call (Note: if unhold_key is used, no unhold event will be generated)",
                     "type": "string"
+                },
+                "update_channel": {
+                    "default": false,
+                    "description": "update the channel property 'is_onhold'",
+                    "type": "boolean"
                 }
             },
             "type": "object"
@@ -26502,8 +26539,8 @@
                     "description": "Capture groups?",
                     "type": "array"
                 },
-                "leg": {
-                    "description": "Which leg to be the transfer leg",
+                "moh": {
+                    "description": "MOH media ID for the b-leg, or indicator selection: silence, pulse, beep, beep{frequency}, tone_stream://{tones pattern}, shout://{mp3 stream}, local_stream://{local stream}",
                     "type": "string"
                 },
                 "target": {
@@ -26743,7 +26780,7 @@
             "description": "Schema for a callback options",
             "properties": {
                 "attempts": {
-                    "description": "How many attempts without answer will system do",
+                    "description": "How many times the system will attempt without answer",
                     "type": "integer"
                 },
                 "disabled": {
@@ -26751,7 +26788,7 @@
                     "type": "boolean"
                 },
                 "interval_s": {
-                    "description": "How long will system wait between call back notification attempts",
+                    "description": "How long to wait between call back notification attempts",
                     "type": "integer"
                 },
                 "number": {
@@ -29508,6 +29545,11 @@
                     "description": "acdc maximum result set",
                     "type": "integer"
                 },
+                "no_endpoints_pause_time": {
+                    "default": 15,
+                    "description": "acdc no_endpoints_pause_time",
+                    "type": "integer"
+                },
                 "queue_collect_resp_timeout": {
                     "default": 2000,
                     "description": "acdc queue collect resp timeout",
@@ -29540,6 +29582,11 @@
         "system_config.ananke": {
             "description": "Schema for ananke system_config",
             "properties": {
+                "press_any_key_prompt": {
+                    "default": "agent-logged_out",
+                    "description": "ananke press_any_key_prompt",
+                    "type": "string"
+                },
                 "schedules": {
                     "default": [],
                     "description": "ananke schedules",
@@ -31720,6 +31767,14 @@
                     "description": "ecallmgr freeswitch context",
                     "type": "string"
                 },
+                "fs_additional_events": {
+                    "default": [],
+                    "description": "a list of additional freeswitch events to bind/listen to (in addition to the defaults)",
+                    "items": {
+                        "type": "string"
+                    },
+                    "type": "array"
+                },
                 "fs_cmds": {
                     "default": [
                         {
@@ -31739,6 +31794,11 @@
                     "default": 5000,
                     "description": "ecallmgr fs cmds wait in milliseconds",
                     "type": "integer"
+                },
+                "fs_debug_events": {
+                    "default": false,
+                    "description": "log all events received from Freeswitch (warning: this will produce lots of log data)",
+                    "type": "boolean"
                 },
                 "fs_node_uptime_s": {
                     "default": 600,
@@ -36962,12 +37022,7 @@
                 "voicemail": {
                     "properties": {
                         "notify": {
-                            "properties": {
-                                "callback": {
-                                    "$ref": "#/definitions/notify.callback"
-                                }
-                            },
-                            "type": "object"
+                            "$ref": "#/definitions/voicemail.notify"
                         }
                     },
                     "type": "object"
@@ -37109,12 +37164,7 @@
                     "type": "boolean"
                 },
                 "notify": {
-                    "properties": {
-                        "callback": {
-                            "$ref": "#/definitions/notify.callback"
-                        }
-                    },
-                    "type": "object"
+                    "$ref": "#/definitions/voicemail.notify"
                 },
                 "notify_email_addresses": {
                     "default": [],
@@ -37151,6 +37201,10 @@
                     "default": false,
                     "description": "Move the voicemail to save folder after the notification has been sent (This setting will override delete_after_notify)",
                     "type": "boolean"
+                },
+                "schedule": {
+                    "description": "ananke schedule",
+                    "type": "object"
                 },
                 "seek_duration_ms": {
                     "default": 10000,
@@ -37189,6 +37243,20 @@
                 "mailbox",
                 "name"
             ],
+            "type": "object"
+        },
+        "voicemail.notify": {
+            "description": "Schema for voicemail notify callback options",
+            "properties": {
+                "callback": {
+                    "default": [],
+                    "description": "Ordered list of callback objects",
+                    "items": {
+                        "$ref": "#/definitions/notify.callback"
+                    },
+                    "type": "array"
+                }
+            },
             "type": "object"
         },
         "voicemail_keys": {
