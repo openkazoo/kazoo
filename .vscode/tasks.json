@@ -1,0 +1,77 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Compile",
+      "type": "shell",
+      "command": "make",
+      "args": ["compile"],
+      "group": "build",
+      "problemMatcher": "$erlang"
+    },
+    {
+      "label": "Build Release",
+      "type": "shell",
+      "command": "make",
+      "args": ["build-release"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$erlang"
+    },
+    {
+      "label": "Build Dev",
+      "type": "shell",
+      "command": "make",
+      "args": ["build-dev"],
+      "group": "build",
+      "problemMatcher": "$erlang",
+      "dependsOn": "Start Dependencies"
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "make",
+      "args": ["clean"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "command": "make",
+      "args": ["test"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": "$erlang"
+    },
+    {
+      "label": "Start Dependencies",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", "docker-compose.dev.yml", "up", "-d"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Dependencies",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", "docker-compose.dev.yml", "down"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean Docker",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", "docker-compose.dev.yml", "down", "--rmi", "all"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean All",
+      "dependsOn": ["Clean", "Clean Docker"],
+      "problemMatcher": []
+    }
+  ]
+}
