@@ -1,7 +1,8 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2026, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
+%%% @author Ruel Tmeizeh for Umojo, Inc.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kapps_conference_command).
@@ -17,6 +18,7 @@
 -export([prompt/2, prompt/3]).
 -export([play_command/1, play_command/2]).
 -export([play/2, play/3]).
+-export([dtmf/2, dtmf/3]).
 -export([record/1, recordstop/1]).
 -export([relate_participants/3, relate_participants/4]).
 -export([stop_play/1, stop_play/2, stop_play/3]).
@@ -129,7 +131,6 @@ get_media_prompt(Media, Conference) ->
     Call = kapps_conference:call(Conference),
     kapps_call:get_prompt(Call, Media).
 
-
 -spec play_command(kz_term:ne_binary()) -> kz_term:proplist().
 play_command(Media) ->
     play_command(Media, 'undefined').
@@ -141,7 +142,6 @@ play_command(Media, ParticipantId) ->
     ,{<<"Participant-ID">>, ParticipantId}
     ].
 
-
 -spec play(kz_term:ne_binary(), kapps_conference:conference()) -> 'ok'.
 play(Media, Conference) ->
     play(Media, 'undefined', Conference).
@@ -149,6 +149,22 @@ play(Media, Conference) ->
 -spec play(kz_term:ne_binary(), non_neg_integer() | 'undefined', kapps_conference:conference()) -> 'ok'.
 play(Media, ParticipantId, Conference) ->
     Command = play_command(Media, ParticipantId),
+    send_command(Command, Conference).
+
+-spec dtmf_command(kz_term:ne_binary(), non_neg_integer() | 'undefined') -> kz_term:proplist().
+dtmf_command(Digits, ParticipantId) ->
+    [{<<"Application-Name">>, <<"dtmf">>}
+    ,{<<"Digits">>, Digits}
+    ,{<<"Participant-ID">>, ParticipantId}
+    ].
+
+-spec dtmf(kz_term:ne_binary(), kapps_conference:conference()) -> 'ok'.
+dtmf(Digits, Conference) ->
+    dtmf(Digits, 'undefined', Conference).
+
+-spec dtmf(kz_term:ne_binary(), non_neg_integer() | 'undefined', kapps_conference:conference()) -> 'ok'.
+dtmf(Digits, ParticipantId, Conference) ->
+    Command = dtmf_command(Digits, ParticipantId),
     send_command(Command, Conference).
 
 -spec record(kapps_conference:conference()) -> 'ok'.

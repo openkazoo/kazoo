@@ -349,6 +349,18 @@ Playing a media file to everyone in a conference:
 
 `{MEDIA_ID}` can be a pre-uploaded media ID or a URL to fetch media from.
 
+### Sending DTMF to a conference
+
+Sending DTMF tones to everyone in a conference:
+
+```json
+{"data":{
+    "action":"dtmf",
+    "data":{"digits":"{DTMF DIGITS [0-9,A-D,*,#]}"}
+ }
+}
+```
+
 ## Perform an action on participants
 
 > PUT /v2/accounts/{ACCOUNT_ID}/conferences/{CONFERENCE_ID}/participants
@@ -440,6 +452,7 @@ curl -v -X PUT \
  `undeaf` | Start sending conference audio to the participant
  `kick` | Kick the participant from the conference
  `play` | Play media to a single participant
+ `dtmf` | Send DTMF tones to a single participant
 
 ### Playing media to a conference
 
@@ -454,6 +467,18 @@ Playing a media file to everyone in a conference:
 ```
 
 `{MEDIA_ID}` can be a pare-uploaded media ID or a URL to fetch media from.
+
+### Sending DTMF tones to a conference participant
+
+Sending DTMF to a participant in a conference:
+
+```json
+{"data":{
+    "action":"dtmf",
+    "data":{"digits":"{DTMF DIGITS [0-9,A-D,*,#]}"}
+ }
+}
+```
 
 ### List of conferences example
 
