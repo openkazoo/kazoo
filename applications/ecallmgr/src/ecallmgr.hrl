@@ -35,6 +35,8 @@
 -define(DEFAULT_SAMPLE_RATE, kapps_config:get_integer(?APP_NAME, <<"record_sample_rate">>, 8000)).
 -define(DEFAULT_STEREO_SAMPLE_RATE, kapps_config:get_integer(?APP_NAME, <<"record_stereo_sample_rate">>, 16000)).
 
+-define(ALEG_CALLID_HEADER, kapps_config:get_ne_binary(?APP_NAME, <<"aleg_callid_header">>)).
+
 -type fs_app() :: {kz_term:ne_binary(), binary() | 'noop'} |
                   {kz_term:ne_binary(), kz_term:ne_binary(), atom()}.
 -type fs_apps() :: [fs_app()].

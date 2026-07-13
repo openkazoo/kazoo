@@ -137,6 +137,14 @@ aws_default_bucket_access(Map) ->
 aws_bucket_access(Map) ->
     kz_term:to_atom(maps:get('bucket_access_method', Map, aws_default_bucket_access(Map)), 'true').
 
+-spec aws_proxy(map()) -> {kz_term:list(), kz_term:list()} | 'undefined'.
+aws_proxy(Map) ->
+    Proxy = maps:get('proxy', Map, 'undefined'),
+    case Proxy of
+        'undefined' -> 'undefined';
+        P -> binary_to_list(P)
+    end.
+
 -spec aws_config(gen_attachment:settings()) -> aws_config().
 aws_config(#{'key' := Key
             ,'secret' := Secret
@@ -152,6 +160,7 @@ aws_config(#{'key' := Key
     Scheme = fix_scheme(maps:get('scheme', Map,  <<"https://">>)),
     DefaultPort = aws_default_port(Scheme),
     Port = kz_term:to_integer(maps:get('port', Map,  DefaultPort)),
+    Proxy = aws_proxy(Map),
     #aws_config{access_key_id=kz_term:to_list(Key)
                ,secret_access_key=kz_term:to_list(Secret)
                ,s3_scheme=kz_term:to_list(Scheme)
@@ -164,6 +173,7 @@ aws_config(#{'key' := Key
                ,timeout=Timeout
                ,http_client=HttpClient
                ,aws_region=Region
+               ,http_proxy=Proxy
                }.
 
 -spec aws_default_fields() -> url_fields().
