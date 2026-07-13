@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2010-2022, 2600Hz
+%%% @copyright (C) 2010-2026, 2600Hz
 %%% @doc General operation on a list of voicemail messages.
 %%% @author Hesaam Farhang
 %%% @end
@@ -358,7 +358,9 @@ change_folder(Folder, Msgs, AccountId, BoxId) ->
                                 Functions :: update_funs().
 change_folder(Folder, Msgs, AccountId, BoxId, Funs) ->
     Fun = [fun(JObj) ->
-                   kzd_box_message:apply_folder(Folder, JObj)
+                   VMDoc = kzd_box_message:apply_folder(Folder, JObj),
+                   kvm_util:publish_voicemail_saved(VMDoc),
+                   VMDoc
            end
            | Funs
           ],
