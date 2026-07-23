@@ -496,4 +496,7 @@ maybe_probe(_, {<<"dialog">>, <<"*", _/binary>> = Username, Realm, _}) ->
             end;
         _ -> 'ok'
     end;
+
+maybe_probe(_, {<<"dialog">>, Username, Realm, _}) ->
+    omnip_util:request_probe(<<"dialog">>, Username, Realm);
 maybe_probe(_, _) -> 'ok'.

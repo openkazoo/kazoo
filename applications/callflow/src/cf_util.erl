@@ -116,6 +116,7 @@ presence_probe(JObj, _Props) ->
     'true' = kapi_presence:probe_v(JObj),
     Username = kz_json:get_value(<<"Username">>, JObj),
     Realm = kz_json:get_value(<<"Realm">>, JObj),
+    _ = maybe_reconstruct_dialog_state(Username, Realm),
     ProbeRepliers = [fun manual_presence/2
                     ,fun presence_parking_slot/2
                     ],
@@ -197,6 +198,105 @@ manual_presence_resp(Username, Realm, JObj) ->
         'undefined' -> 'not_found';
         State -> kapps_call_command:presence(State, PresenceId)
     end.
+
+-define(RECONSTRUCT_DIALOG_ON_PROBE
+       ,kapps_config:get_is_true(?CF_CONFIG_CAT, <<"reconstruct_dialog_on_probe">>, 'true')
+       ).
+
+-spec maybe_reconstruct_dialog_state(kz_term:api_binary(), kz_term:api_binary()) -> 'ok'.
+maybe_reconstruct_dialog_state(Username, Realm)
+  when is_binary(Username), is_binary(Realm) ->
+    case ?RECONSTRUCT_DIALOG_ON_PROBE of
+        'false' -> 'ok';
+        'true' ->
+            _ = kz_util:spawn(fun reconstruct_dialog_state/2, [Username, Realm]),
+            'ok'
+    end;
+maybe_reconstruct_dialog_state(_Username, _Realm) -> 'ok'.
+
+-spec reconstruct_dialog_state(kz_term:ne_binary(), kz_term:ne_binary()) -> 'ok'.
+reconstruct_dialog_state(Username, Realm) ->
+    case active_user_channels(Username, Realm) of
+        [] ->
+            lager:debug("no active channels for ~s@~s, nothing to reconstruct", [Username, Realm]);
+        Channels ->
+            PresenceId = <<Username/binary, "@", Realm/binary>>,
+            lager:debug("reconstructing dialog state for ~s from ~b active channel(s)"
+                       ,[PresenceId, length(Channels)]
+                       ),
+            lists:foreach(fun(Channel) -> publish_reconstructed_dialog(PresenceId, Username, Realm, Channel) end
+                         ,Channels
+                         )
+    end.
+
+-spec active_user_channels(kz_term:ne_binary(), kz_term:ne_binary()) -> kz_json:objects().
+active_user_channels(Username, Realm) ->
+    Req = [{<<"Realm">>, Realm}
+          ,{<<"Usernames">>, [Username]}
+          ,{<<"Active-Only">>, 'false'}
+           | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+          ],
+    case kz_amqp_worker:call_collect(Req
+                                    ,fun kapi_call:publish_query_user_channels_req/1
+                                    ,{'ecallmgr', 'true'}
+                                    )
+    of
+        {'ok', Resps} -> channels_from_responses(Resps);
+        {'timeout', Resps} -> channels_from_responses(Resps);
+        {'error', _E} ->
+            lager:debug("failed to query channels for ~s@~s: ~p", [Username, Realm, _E]),
+            []
+    end.
+
+-spec channels_from_responses(kz_json:objects()) -> kz_json:objects().
+channels_from_responses(Resps) ->
+    lists:flatten([kz_json:get_value(<<"Channels">>, Resp, []) || Resp <- Resps]).
+
+-spec publish_reconstructed_dialog(kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_json:object()) -> 'ok'.
+publish_reconstructed_dialog(PresenceId, Username, Realm, Channel) ->
+    State = case kz_json:is_true(<<"answered">>, Channel) of
+                'true' -> <<"confirmed">>;
+                'false' -> <<"early">>
+            end,
+    PresenceURI = <<"sip:", PresenceId/binary>>,
+    ToUser = kz_json:get_first_defined([<<"callee_id_number">>
+                                       ,<<"destination">>
+                                       ,<<"caller_id_number">>
+                                       ]
+                                      ,Channel
+                                      ,<<"unknown">>
+                                      ),
+    Payload = props:filter_undefined(
+                [{<<"Presence-ID">>, PresenceId}
+                ,{<<"Call-ID">>, kz_json:get_ne_binary_value(<<"uuid">>, Channel)}
+
+                ,{<<"From">>, PresenceURI}
+                ,{<<"From-User">>, Username}
+                ,{<<"From-Realm">>, Realm}
+                ,{<<"From-Tag">>, kz_json:get_ne_binary_value(<<"from_tag">>, Channel)}
+
+                ,{<<"To">>, <<"sip:", ToUser/binary, "@", Realm/binary>>}
+                ,{<<"To-User">>, ToUser}
+                ,{<<"To-Realm">>, Realm}
+                ,{<<"To-Tag">>, kz_json:get_ne_binary_value(<<"to_tag">>, Channel)}
+                ,{<<"To-URI">>, PresenceURI}
+
+                ,{<<"Direction">>, dialog_direction(kz_json:get_ne_binary_value(<<"direction">>, Channel))}
+                ,{<<"State">>, State}
+                ,{<<"Event-Package">>, <<"dialog">>}
+                ,{<<"Switch-URI">>, kz_json:get_ne_binary_value(<<"switch_url">>, Channel)}
+                ,{<<"Expires">>, 0}
+                 | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+                ]),
+    lager:debug("publishing reconstructed dialog '~s' for ~s (call ~s)"
+               ,[State, PresenceId, kz_json:get_ne_binary_value(<<"uuid">>, Channel)]
+               ),
+    kz_amqp_worker:cast(Payload, fun kapi_presence:publish_dialog/1).
+
+-spec dialog_direction(kz_term:api_ne_binary()) -> kz_term:ne_binary().
+dialog_direction(<<"inbound">>) -> <<"initiator">>;
+dialog_direction(<<"outbound">>) -> <<"recipient">>;
+dialog_direction(_) -> <<"initiator">>.
 
 %%------------------------------------------------------------------------------
 %% @doc
