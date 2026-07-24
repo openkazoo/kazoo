@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc Conferences module
 %%% Handle client requests for conference documents
 %%%
@@ -9,10 +9,10 @@
 %%% /v2/accounts/{AccountId}/conferences/{ConferenceID}/participants
 %%% /v2/accounts/{AccountId}/conferences/{ConferenceID}/participants/{ParticipantId}
 %%%
-%%%
 %%% @author Karl Anderson
 %%% @author James Aimonetti
 %%% @author Roman Galeev
+%%% @author Ruel Tmeizeh for Umojo, Inc.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(cb_conferences).
@@ -46,6 +46,7 @@
 -define(KICK, <<"kick">>).
 -define(RELATE, <<"relate">>).
 -define(PLAY, <<"play">>).
+-define(DTMF, <<"dtmf">>).
 
 -define(PUT_ACTION, <<"action">>).
 
@@ -222,6 +223,9 @@ put(Context, ConferenceId, ?PARTICIPANTS, ParticipantId) ->
 participant_action(Context, ConferenceId, ParticipantId, ?PLAY) ->
     play(Context, ConferenceId, ParticipantId, cb_context:req_value(Context, <<"data">>));
 
+participant_action(Context, ConferenceId, ParticipantId, ?DTMF) ->
+    dtmf(Context, ConferenceId, ParticipantId, cb_context:req_value(Context, <<"data">>));
+
 participant_action(Context, ConferenceId, ParticipantId, Action) ->
     perform_participant_action(conference(ConferenceId), Action, kz_term:to_integer(ParticipantId)),
     crossbar_util:response_202(<<"ok">>, Context).
@@ -374,6 +378,8 @@ handle_conference_action(Context, ConferenceId, <<"unlock">>) ->
     crossbar_util:response_202(<<"ok">>, Context);
 handle_conference_action(Context, ConferenceId, ?PLAY) ->
     play(Context, ConferenceId, cb_context:req_value(Context, <<"data">>));
+handle_conference_action(Context, ConferenceId, ?DTMF) ->
+    dtmf(Context, ConferenceId, cb_context:req_value(Context, <<"data">>));
 handle_conference_action(Context, ConferenceId, <<"dial">>) ->
     dial(Context, ConferenceId, cb_context:req_value(Context, <<"data">>));
 handle_conference_action(Context, ConferenceId, Action) ->
@@ -439,6 +445,43 @@ media_id_required(Context) ->
     cb_context:add_validation_error([<<"data">>, <<"media_id">>]
                                    ,<<"required">>
                                    ,kz_json:from_list([{<<"message">>, <<"action 'play' requires a media ID or URL">>}])
+                                   ,Context
+                                   ).
+
+%% send DTMF to all participants in conference (ParticipantId undefined)
+-spec dtmf(cb_context:context(), path_token(), kz_term:api_object()) -> cb_context:context().
+dtmf(Context, _ConferenceId, 'undefined') ->
+    data_required(Context, <<"dtmf">>);
+dtmf(Context, ConferenceId, Data) ->
+    dtmf(Context, ConferenceId, 'undefined', Data).
+
+-spec dtmf(cb_context:context(), path_token(), pos_integer(), kz_term:api_object()) -> cb_context:context().
+dtmf(Context, _ConferenceId, _ParticipantId, 'undefined') ->
+    data_required(Context, <<"dtmf">>);
+dtmf(Context, ConferenceId, ParticipantId, Data) ->
+    ParticipantMsg =
+        case kz_term:to_api_binary(ParticipantId) of
+            'undefined' -> <<>>;
+            Participant -> <<" participant ", Participant/binary>>
+        end,
+    case dtmf_digits(kz_json:get_value(<<"digits">>, Data)) of
+        <<>> -> digits_required(Context);
+        DTMF ->
+            lager:info("sending DTMF ~s to conference ~s~s", [DTMF, ConferenceId, ParticipantMsg]),
+            kapps_conference_command:dtmf(DTMF, ParticipantId, conference(ConferenceId)),
+            crossbar_util:response_202(<<"ok">>, Context)
+    end.
+
+-spec dtmf_digits(any()) -> binary().
+dtmf_digits('undefined') -> <<>>;
+dtmf_digits(<<>>) -> <<>>;
+dtmf_digits(Digits) -> re:replace(kz_term:to_binary(Digits), "[^a-dA-D0-9*#]", "", [global, {return, binary}]).
+
+-spec digits_required(cb_context:context()) -> cb_context:context().
+digits_required(Context) ->
+    cb_context:add_validation_error([<<"data">>, <<"digits">>]
+                                   ,<<"required">>
+                                   ,kz_json:from_list([{<<"message">>, <<"action 'dtmf' requires digits [0123456789*#ABCD] to be specified">>}])
                                    ,Context
                                    ).
 
@@ -778,6 +821,8 @@ handle_participants_action(Context, ConferenceId, Action=?UNDEAF) ->
 handle_participants_action(Context, ConferenceId, Action=?KICK) ->
     handle_participants_action(Context, ConferenceId, Action, fun kz_term:always_true/1);
 handle_participants_action(Context, ConferenceId, Action=?PLAY) ->
+    handle_conference_action(Context, ConferenceId, Action);
+handle_participants_action(Context, ConferenceId, Action=?DTMF) ->
     handle_conference_action(Context, ConferenceId, Action);
 handle_participants_action(Context, ConferenceId, ?RELATE) ->
     OnSuccess = fun(C) -> handle_participants_relate(C, ConferenceId) end,
