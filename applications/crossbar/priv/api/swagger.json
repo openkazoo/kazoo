@@ -17376,6 +17376,115 @@
             ],
             "type": "object"
         },
+        "kapi.notifications.attachment_saved": {
+            "description": "AMQP API for notifications.attachment_saved",
+            "properties": {
+                "Account-DB": {
+                    "type": "string"
+                },
+                "Account-ID": {
+                    "type": "string"
+                },
+                "Attachment-URL": {
+                    "type": "string"
+                },
+                "Bcc": {
+                    "type": "string"
+                },
+                "CDR-ID": {
+                    "type": "string"
+                },
+                "Call-ID": {
+                    "type": "string"
+                },
+                "Caller-ID-Name": {
+                    "type": "string"
+                },
+                "Caller-ID-Number": {
+                    "type": "string"
+                },
+                "Cc": {
+                    "type": "string"
+                },
+                "Doc": {
+                    "type": "object"
+                },
+                "Duration": {
+                    "type": "integer"
+                },
+                "Event-Category": {
+                    "enum": [
+                        "notification"
+                    ],
+                    "type": "string"
+                },
+                "Event-Name": {
+                    "enum": [
+                        "attachment_saved"
+                    ],
+                    "type": "string"
+                },
+                "From": {
+                    "type": "string"
+                },
+                "From-Realm": {
+                    "type": "string"
+                },
+                "From-User": {
+                    "type": "string"
+                },
+                "HTML": {
+                    "type": "string"
+                },
+                "ID": {
+                    "type": "string"
+                },
+                "Name": {
+                    "type": "string"
+                },
+                "Owner-ID": {
+                    "type": "string"
+                },
+                "Preview": {
+                    "type": "string"
+                },
+                "Reply-To": {
+                    "type": "string"
+                },
+                "Storage-Type": {
+                    "type": "string"
+                },
+                "Subject": {
+                    "type": "string"
+                },
+                "Text": {
+                    "type": "string"
+                },
+                "Timestamp": {
+                    "type": "integer"
+                },
+                "To": {
+                    "type": "string"
+                },
+                "To-Realm": {
+                    "type": "string"
+                },
+                "To-User": {
+                    "type": "string"
+                },
+                "Type": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "Account-DB",
+                "Account-ID",
+                "Doc",
+                "ID",
+                "Type"
+            ],
+            "type": "object"
+        },
         "kapi.notifications.bill_reminder": {
             "description": "AMQP API for notifications.bill_reminder",
             "properties": {

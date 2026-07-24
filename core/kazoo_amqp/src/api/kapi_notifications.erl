@@ -4,6 +4,7 @@
 %%% @author James Aimonetti
 %%% @author Karl Anderson
 %%% @author Hesaam Farhang
+%%% @author Ruel Tmeizeh
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kapi_notifications).
@@ -66,6 +67,9 @@
         ,voicemail_new/1, voicemail_new_v/1
         ,voicemail_saved/1, voicemail_saved_v/1
         ,voicemail_deleted/1, voicemail_deleted_v/1
+
+         %% Attachment notifications
+        ,attachment_saved/1, attachment_saved_v/1
 
          %% Webhook notifications
         ,webhook/1, webhook_v/1
@@ -131,6 +135,9 @@
         ,publish_voicemail_new/1, publish_voicemail_new/2
         ,publish_voicemail_saved/1, publish_voicemail_saved/2
         ,publish_voicemail_deleted/1, publish_voicemail_deleted/2
+
+         %% Attachment notifications
+        ,publish_attachment_saved/1
 
          %% Webhook notifications
         ,publish_webhook/1, publish_webhook/2
@@ -1249,6 +1256,46 @@ voicemail_deleted_definition() ->
                     ,required_headers = ?VOICEMAIL_DELETED_HEADERS
                     ,optional_headers = ?OPTIONAL_VOICEMAIL_DELETED_HEADERS
                     ,values = ?NOTIFY_VALUES(<<"voicemail_deleted">>)
+                    ,types = []
+                    }.
+
+%%%=============================================================================
+%%% Attachment Notifications Definitions
+%%%=============================================================================
+-define(ATTACHMENT_HEADERS, [<<"Account-DB">>
+                            ,<<"Account-ID">>
+                            ,<<"Doc">>
+                            ,<<"ID">>
+                            ,<<"Type">>
+                            ]).
+-define(OPTIONAL_ATTACHMENT_HEADERS, [<<"Call-ID">>
+                                     ,<<"Caller-ID-Name">>
+                                     ,<<"Caller-ID-Number">>
+                                     ,<<"CDR-ID">>
+                                     ,<<"Duration">>
+                                     ,<<"Name">>
+                                     ,<<"Owner-ID">>
+                                     ,<<"Storage-Type">>
+                                     ,<<"Timestamp">>
+                                          | ?DEFAULT_OPTIONAL_HEADERS
+                                     ]).
+%%------------------------------------------------------------------------------
+%% @doc Get Attachment Saved Notification API definition.
+%% @end
+%%------------------------------------------------------------------------------
+-spec attachment_saved_definition() -> kapi_definition:api().
+attachment_saved_definition() ->
+    #kapi_definition{name = <<"attachment_saved">>
+                    ,friendly_name = <<"Attachment Saved">>
+                    ,description = <<"This event is triggered any time an attachment is saved">>
+                    ,build_fun = fun attachment_saved/1
+                    ,validate_fun = fun attachment_saved_v/1
+                    ,publish_fun = fun publish_attachment_saved/1
+                    ,binding = ?BINDING_STRING(<<"attachment">>, <<"saved">>)
+                    ,restrict_to = 'attachment_saved'
+                    ,required_headers = ?ATTACHMENT_HEADERS
+                    ,optional_headers = ?OPTIONAL_ATTACHMENT_HEADERS
+                    ,values = ?NOTIFY_VALUES(<<"attachment_saved">>)
                     ,types = []
                     }.
 
@@ -2622,6 +2669,34 @@ publish_voicemail_deleted(API, ContentType) ->
                     ,values = Values
                     } = voicemail_deleted_definition(),
     {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun voicemail_deleted/1),
+    kz_amqp_util:notifications_publish(Binding, Payload, ContentType).
+
+%%%=============================================================================
+%%% Attachment Notifications Functions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc Takes prop-list, creates JSON string and publish it on AMQP.
+%% @end
+%%------------------------------------------------------------------------------
+-spec attachment_saved(kz_term:api_terms()) -> api_formatter_return().
+attachment_saved(Prop) ->
+    build_message(Prop, attachment_saved_definition()).
+
+-spec attachment_saved_v(kz_term:api_terms()) -> boolean().
+attachment_saved_v(Prop) ->
+    validate(Prop, attachment_saved_definition()).
+
+-spec publish_attachment_saved(kz_term:api_terms()) -> 'ok'.
+publish_attachment_saved(JObj) ->
+    publish_attachment_saved(JObj, ?DEFAULT_CONTENT_TYPE).
+
+-spec publish_attachment_saved(kz_term:api_terms(), kz_term:ne_binary()) -> 'ok'.
+publish_attachment_saved(API, ContentType) ->
+    #kapi_definition{binding = Binding
+                    ,values = Values
+                    } = attachment_saved_definition(),
+    {'ok', Payload} = kz_api:prepare_api_payload(API, Values, fun attachment_saved/1),
     kz_amqp_util:notifications_publish(Binding, Payload, ContentType).
 
 %%%=============================================================================
