@@ -1115,8 +1115,12 @@ set_authorization(AuthorizingType, AuthorizingId, #kapps_call{}=Call)
 set_owner_id(OwnerId, #kapps_call{}=Call) when is_binary(OwnerId) ->
     set_custom_channel_var(<<"Owner-ID">>, OwnerId, Call#kapps_call{owner_id=OwnerId}).
 
--spec owner_id(call()) -> kz_term:api_binary().
-owner_id(#kapps_call{owner_id=OwnerId}) -> OwnerId.
+-spec owner_id(call()) -> kz_term:api_ne_binary().
+owner_id(#kapps_call{owner_id=OwnerId}) ->
+    case OwnerId of
+        <<>> -> 'undefined';
+        _ -> OwnerId
+    end.
 
 -spec set_fetch_id(kz_term:ne_binary(), call()) -> call().
 set_fetch_id(FetchId, #kapps_call{}=Call) when is_binary(FetchId) ->
