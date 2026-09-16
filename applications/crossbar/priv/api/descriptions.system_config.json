@@ -282,7 +282,7 @@
     "ecallmgr.max_channel_uptime_s": "ecallmgr maximum channel uptime in seconds",
     "ecallmgr.max_timeout_for_node_restart": "ecallmgr maximum timeout for node restart",
     "ecallmgr.modules": "ecallmgr modules",
-    "ecallmgr.network_map": "ecallmgr network map",
+    "ecallmgr.network_map": "allows specification of custom SIP profiles to use for specific destination network ranges",
     "ecallmgr.node_down_grace_period": "ecallmgr node down grace period",
     "ecallmgr.process_gateways": "ecallmgr process gateways",
     "ecallmgr.publish_channel_reconnect": "ecallmgr publish channel reconnect",
