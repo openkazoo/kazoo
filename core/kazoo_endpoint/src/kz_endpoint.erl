@@ -1,9 +1,10 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2025, 2600Hz
 %%% @doc
 %%% @author Karl Anderson
 %%% @author James Aimonetti
 %%% @author Luis Azedo
+%%% @author Ruel Tmeizeh (www.ruhnet.co)
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kz_endpoint).
@@ -83,6 +84,8 @@
                         ]).
 
 -define(RECORDING_ARGS(Call, Data), [kapps_call:clear_helpers(Call), Data]).
+
+-define(CONFIG_ATTRIBUTES_LOOKUP, kapps_config:get_is_true(<<"callflow">>, <<"number_attributes_lookup">>, 'false')).
 
 -type sms_route() :: {binary(), kz_term:proplist()}.
 -type sms_routes() :: [sms_route(), ...].
@@ -1217,20 +1220,51 @@ create_sip_endpoint(Endpoint, Properties, #clid{}=Clid, Call) ->
                       ])),
     maybe_format_endpoint(SIPEndpoint, kz_json:get_json_value(<<"formatters">>, Endpoint)).
 
+
+%%------------------------------------------------------------------------------
+%% @doc Select T.38 variables to set on the B-Leg of a call to a device.
+%% We need to know the T.38 capability of the SOURCE (whether it's an
+%% onnet device or offnet resource) and the DESTINATION endpoint.
+%%
+%% If the device has T.38 (media.fax_option) enabled, OR if the destination
+%% number is set as dedicated fax number (and system_config.kazoo_endpoint
+%% allows checking that), then we treat the endpoint as a T.38 fax, and fetch
+%% channel variables using kapps_call_command:get_inbound_t38_settings/2.
+%% @end
+%%------------------------------------------------------------------------------
 -spec maybe_get_t38(kz_json:object(), kapps_call:call()) -> kz_term:proplist().
 maybe_get_t38(Endpoint, Call) ->
-    Opt =
-        case ?MODULE:get(Call) of
-            {'ok', JObj} -> kz_json:is_true([<<"media">>, <<"fax_option">>], JObj);
-            {'error', _} -> 'undefined'
-        end,
-    DeviceType = kz_json:get_value(<<"device_type">>, Endpoint),
-    case DeviceType =:= <<"fax">> of
-        'false' -> [];
-        'true' ->
-            kapps_call_command:get_inbound_t38_settings(Opt
-                                                       ,kz_json:is_true([<<"media">>, <<"fax_option">>], Endpoint)
-                                                       )
+    T38Source = source_has_t38(Call),
+    T38Endpoint = dest_has_t38(Endpoint, Call),
+    kapps_call_command:get_inbound_t38_settings(T38Source, T38Endpoint).
+
+-spec dest_has_t38(kz_json:object(), kapps_call:call()) -> kz_term:api_boolean().
+dest_has_t38(Endpoint, Call) ->
+    DestNumber = knm_converters:normalize(kapps_call:callee_id_number(Call), kapps_call:account_id(Call)),
+    FaxOption = kz_json:is_true([<<"media">>, <<"fax_option">>], Endpoint),
+    has_t38(FaxOption, DestNumber).
+
+-spec source_has_t38(kapps_call:call()) -> kz_term:api_boolean().
+source_has_t38(Call) ->
+    CLINumber = knm_converters:normalize(kapps_call:caller_id_number(Call), kapps_call:account_id(Call)),
+    %% ?MODULE:get/1 below gets the authorizing entity, whether it is an offnet resource (inbound) or another Kazoo device
+    FaxOption = case ?MODULE:get(Call) of
+                    {'ok', JObj} -> kz_json:is_true([<<"media">>, <<"fax_option">>], JObj);
+                    {'error', _} -> 'false'
+                end,
+    has_t38(FaxOption, CLINumber).
+
+-spec has_t38(atom(), kz_term:ne_binary()) -> kz_term:api_boolean().
+has_t38(FaxOption, Number) ->
+    T38Number = case ?CONFIG_ATTRIBUTES_LOOKUP of
+                    'true' -> knm_phone_number:is_fax_number(Number);
+                    'false' -> 'false'
+                end,
+    case {FaxOption, T38Number} of
+        {'true', _} -> 'true';
+        {_, 'true'} -> 'true';
+        {'undefined', _} -> 'undefined';
+        {_, _} -> 'false'
     end.
 
 -spec maybe_build_failover(kz_json:object(), kapps_call:call()) -> kz_term:api_object().
