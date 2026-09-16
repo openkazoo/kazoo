@@ -1,0 +1,94 @@
+# Local development infrastructure for OpenKazoo.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Brings up the two services a dev node needs: CouchDB (kazoo_data) and
+# RabbitMQ (AMQP). Credentials and ports match config/config-dev.ini.
+#
+# Image tags are pinned so a clean machine gets the same infra every time.
+# rabbitmq matches the tag CI uses (.github/workflows/ci.yaml).
+#
+# To block until the infra is ready (for a script or a VSCode task), gate on
+# the long-lived services only:
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml up -d --wait couchdb rabbitmq
+#
+# A bare `up -d --wait` exits 1 even on success: --wait treats the
+# couchdb-init one-shot's clean exit as a stopped container.
+#
+# Not in scope here: FreeSWITCH / Kamailio, and Kazoo's own database
+# bootstrap (SUP `kapps_maintenance refresh`, master account) — that runs
+# against a booted node via scripts/dev-init.sh.
+
+name: openkazoo-dev
+
+services:
+  couchdb:
+    image: couchdb:3.5.2
+    container_name: kazoo-couchdb
+    ports:
+      - "5984:5984"
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: admin
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+    healthcheck:
+      # /_up is CouchDB's readiness endpoint; / answers before the node is ready.
+      test: ["CMD", "curl", "-fsS", "-u", "admin:admin", "http://127.0.0.1:5984/_up"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # One-shot: a fresh CouchDB 3 has no system databases and stays in
+  # "cluster setup not finished" until they exist. Single-node, so n=1 q=1.
+  # Re-runnable — 412 (already exists) is a success.
+  couchdb-init:
+    image: couchdb:3.5.2
+    container_name: kazoo-couchdb-init
+    depends_on:
+      couchdb:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    # List form on purpose: a string `command` gets word-split by compose,
+    # which would hand `sh -c` only the first word as its script.
+    command:
+      - |
+        set -e
+        for db in _users _replicator _global_changes; do
+          code=$$(curl -s -o /dev/null -w '%{http_code}' -u admin:admin \
+            -X PUT "http://couchdb:5984/$$db?n=1&q=1")
+          case "$$code" in
+            201|202) echo "created $$db" ;;
+            412)     echo "$$db already exists" ;;
+            *)       echo "failed to create $$db (HTTP $$code)" >&2; exit 1 ;;
+          esac
+        done
+
+  rabbitmq:
+    image: rabbitmq:3.13.7-management
+    container_name: kazoo-rabbitmq
+    # RabbitMQ derives its node name from the hostname and stores Mnesia
+    # under it — pin it, or the volume is orphaned on every recreate.
+    hostname: kazoo-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  couchdb_data:
+  rabbitmq_data:
