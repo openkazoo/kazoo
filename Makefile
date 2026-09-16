@@ -36,7 +36,7 @@ CHECK_RELEASE_TOOLS = \
 
 .PHONY: all compile doc clean lint format format-check tree test ct dialyzer \
 	typer shell distclean deps update-deps clean-common-test-data rebuild \
-	compile_test build-release build-release-debug build-release-tar escript
+	compile_test build-dev build-release build-release-debug build-release-tar escript
 
 all: build-release
 
@@ -79,6 +79,10 @@ tree:
 build-release:
 	@$(CHECK_RELEASE_TOOLS)
 	$(REBAR) as prod release
+
+build-dev:
+	@$(CHECK_RELEASE_TOOLS)
+	$(REBAR) as dev release
 
 build-release-debug:
 	@$(CHECK_RELEASE_TOOLS)
