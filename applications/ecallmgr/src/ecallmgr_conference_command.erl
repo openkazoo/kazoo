@@ -1,6 +1,9 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc Execute conference commands
+%%%
+%%% @author 2600Hz
+%%% @author Ruel Tmeizeh for Umojo, Inc.
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(ecallmgr_conference_command).
@@ -138,6 +141,22 @@ get_conf_command(<<"stop_play">>, _Focus, _ConferenceId, JObj) ->
                        Participant -> list_to_binary([Affects, " ", Participant])
                    end,
             {<<"stop">>, Args}
+    end;
+
+get_conf_command(<<"dtmf">>, _Focus, _ConferenceId, JObj) ->
+    case kapi_conference:dtmf_v(JObj) of
+        'false' ->
+            {'error', <<"conference dtmf failed to execute as JObj did not validate.">>};
+        'true' ->
+            DigitsRaw = kz_term:to_binary(kz_json:get_value(<<"Digits">>, JObj)),
+            Digits = re:replace(DigitsRaw, "[^a-dA-D0-9*#]", "", [global, {return, binary}]),
+            Participant =
+                case kz_json:get_ne_binary_value(<<"Participant-ID">>, JObj) of
+                    'undefined' -> <<"all">>;
+                    P -> P
+                end,
+            Args = list_to_binary([Participant, " ", Digits]),
+            {<<"dtmf">>, Args}
     end;
 
 get_conf_command(Say, _Focus, _ConferenceId, JObj)
