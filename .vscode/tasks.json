@@ -1,0 +1,29 @@
+{
+  // Dev-environment tasks for the local dev node.
+  //
+  // Only the database bootstrap lives here so far. The rest of the flow --
+  // "Start Infra", "Build Dev", "Start Kazoo" -- arrives with the erlang-ls
+  // wiring, which owns .vscode/ as a whole (see issue #34).
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Initialize Database",
+      "detail": "Register views, refresh every database, create the master account. Needs a booted dev node; safe to re-run.",
+      "type": "shell",
+      // The script finds the repo root from its own path and reads the node
+      // name and cookie out of config/vm.args.dev, so unlike booting the node
+      // this task needs none of the KAZOO_CONFIG / VMARGS_PATH /
+      // RELX_CONFIG_PATH triple.
+      "command": "${workspaceFolder}/scripts/dev-init.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    }
+  ]
+}
