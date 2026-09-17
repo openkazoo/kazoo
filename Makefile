@@ -36,7 +36,8 @@ CHECK_RELEASE_TOOLS = \
 
 .PHONY: all compile doc clean lint format format-check tree test ct dialyzer \
 	typer shell distclean deps update-deps clean-common-test-data rebuild \
-	compile_test build-dev build-release build-release-debug build-release-tar escript
+	compile_test dev-toolchain build-dev build-release build-release-debug \
+	build-release-tar escript
 
 all: build-release
 
@@ -80,7 +81,12 @@ build-release:
 	@$(CHECK_RELEASE_TOOLS)
 	$(REBAR) as prod release
 
-build-dev:
+# CHECK_TOOLS only asks whether the tools exist. The dev environment is pinned
+# to particular versions of them, so it checks for itself -- see the script.
+dev-toolchain:
+	@./scripts/dev-toolchain.sh
+
+build-dev: dev-toolchain
 	@$(CHECK_RELEASE_TOOLS)
 	$(REBAR) as dev release
 

@@ -47,10 +47,24 @@ is the primary supported development and deployment environment at this time.
 
 ### Requirements
 
+The toolchain is pinned to **Erlang/OTP 27** and **rebar3 3.27.0** — the same
+versions CI builds with. Run `make dev-toolchain` to check what you have; it
+reports a mismatch and what is required, and never installs anything.
+`make build-dev` runs the same check before it builds.
+
+OTP 27 is a hard requirement rather than a floor, even though `minimum_otp_vsn`
+is 26: the dev release is built with `include_erts = false`, so it runs on
+whichever OTP is on `PATH`, and the prebuilt Erlang Language Server is built for
+OTP 27. A debug session needs the language server and the node on one runtime.
+
+rebar3 is not vendored — there is no bootstrap escript in the tree — so `make`
+cannot run at all until it is installed.
+
 #### Linux
 You will need the following installed:
 
 -   **Erlang/OTP 27**
+-   **rebar3 3.27.0**
 -   **A Text Editor**
 
 #### MacOS
@@ -58,10 +72,34 @@ You will need the following installed:
 
 -   **Erlang/OTP 27**, installed via **Homebrew**
     -   Homebrew is required specifically because of WX dependencies
+    -   Install the **versioned** formula: `brew install erlang@27`. Plain
+        `brew install erlang` currently gives OTP 28.
+    -   `erlang@27` is keg-only, so Homebrew does not symlink it onto `PATH`.
+        Put its `bin` directory ahead of `/opt/homebrew/bin`:
+        `export PATH="/opt/homebrew/opt/erlang@27/bin:$PATH"` in your shell
+        profile. Without this you get no `erl` at all, or the wrong one.
+-   **rebar3 3.27.0**, `brew install rebar3`
+    -   Homebrew's `rebar3` has no runtime dependencies, so installing it will
+        not pull in an unversioned `erlang` (OTP 28) alongside `erlang@27`; it
+        runs on whichever `erl` is on `PATH`.
+    -   The formula tracks latest, so it currently happens to match CI's pin.
+        Check rather than assume: once it moves on, `make dev-toolchain` will
+        fail on the version and you will need to install 3.27.0 another way.
 -   **Xcode Command Line Tools**
 -   **Visual Studio Code**
 -   **Erlang Language Server** (VS Code extension)
 -   **Docker Desktop**
+
+Verify before going further:
+
+```sh
+make dev-toolchain      # dev-toolchain: OTP 27, rebar3 3.27.0
+```
+
+Note that the dev release symlinks the OTP installation it was built against by
+its exact patch version (`/opt/homebrew/Cellar/erlang@27/<version>/…`), so
+upgrading `erlang@27` leaves those symlinks dangling. Re-run `make build-dev`
+after any `brew upgrade` that touches it.
 
 ------------------------------------------------------------------------
 
