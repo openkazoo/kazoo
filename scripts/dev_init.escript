@@ -16,11 +16,13 @@
 %%%
 %%% == Why not core/sup/priv/sup ==
 %%%
-%%% `sup' builds its target as `Node ++ "@" ++ net_adm:localhost()', so it always
-%%% aims at whatever hostname the machine advertises. It cannot address the dev
-%%% node, which is named on a literal IP -- `kazoo_apps@127.0.0.1', see
-%%% config/vm.args.dev for why. It also picks longnames/shortnames off that same
-%%% hostname. This script takes the host from the node name it was given instead.
+%%% `sup' can now address the dev node -- that is what issue #43 fixed, by naming
+%%% the node after `net_adm:localhost()' instead of a literal IP. It is still not
+%%% the right tool here: `sup' reports a maintenance function's *return value*,
+%%% while `kapps_maintenance:refresh/0' reports its progress by printing, and
+%%% that output only reaches a caller that carries its own group leader across
+%%% (see below). So this script stays, on its own merits rather than for want of
+%%% a reachable node.
 %%%
 %%% == Why not bin/kazoo eval ==
 %%%
@@ -41,19 +43,24 @@
 -define(REFRESH_TIMEOUT, 900 * 1000).
 -define(STEP_TIMEOUT, 120 * 1000).
 
--define(DEFAULTS, #{node => "kazoo_apps@127.0.0.1"
-                   ,cookie => "kazoo_dev_cookie"
-                   ,account_name => "master"
-                   ,realm => "master.dev.local"
-                   ,username => "admin"
-                   ,password => "admin"
-                   }).
+%% The node name has to be computed rather than written down: the dev node is
+%% named after the host this machine advertises, so that `sup' and els_dap can
+%% reach it (see below, and scripts/dev-hostname.sh). `net_adm:localhost()' is
+%% the same call both of them make, and it needs no distribution to answer.
+defaults() ->
+    #{node => "kazoo_apps@" ++ net_adm:localhost()
+     ,cookie => "kazoo_dev_cookie"
+     ,account_name => "master"
+     ,realm => "master.dev.local"
+     ,username => "admin"
+     ,password => "admin"
+     }.
 
 %%% API
 
 main(Args) ->
     _ = io:setopts('user', [{'encoding', 'unicode'}]),
-    Opts = parse_args(Args, ?DEFAULTS),
+    Opts = parse_args(Args, defaults()),
     'ok' = connect(Opts),
     'ok' = check_datastore(Opts),
     'ok' = register_views(Opts),
