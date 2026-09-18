@@ -4,9 +4,9 @@
 # to name the node or talk to it.
 #
 #   . scripts/dev-hostname.sh
-#   dev_host          # -> N70H4HP3HN.local   (or whatever this host advertises)
+#   dev_host          # -> mac-studio.local   (or whatever this host advertises)
 #   dev_name_type     # -> -name | -sname
-#   dev_node_name     # -> kazoo_apps@N70H4HP3HN.local
+#   dev_node_name     # -> kazoo_apps@mac-studio.local
 #
 # WHY THE NODE IS NOT NAMED ON A LITERAL IP
 #
