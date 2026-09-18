@@ -122,4 +122,31 @@ export KAZOO_CONFIG="${KAZOO_CONFIG:-${ROOT}/config/config-dev.ini}"
 export VMARGS_PATH="${VMARGS_PATH:-$(generate_vm_args)}"
 export RELX_CONFIG_PATH="${RELX_CONFIG_PATH:-${ROOT}/config/sys-dev.config}"
 
+# Which whapps the node starts. A booted release lists every whapp as
+# `{App, none}' -- on the code path but not started -- and leaves it to
+# kapps_controller to start them at runtime. Its highest-priority selector is
+# the KAZOO_APPS env var (over system_config/kapps_controller in the DB and the
+# node name), so setting it here is deterministic on the very first boot, before
+# any database bootstrap has run.
+#
+# This dev node runs ALL whapps on one node -- including `ecallmgr', which the
+# production default set (?DEFAULT_KAPPS) omits because upstream runs it on its
+# own node, and which is the reason a bare boot did not satisfy the destination.
+# "Every whapp" is not a hand-kept list that would drift as apps come and go: a
+# whapp is exactly an application whose .app.src marks {is_kazoo_app, true} --
+# the same predicate kapps_controller:is_kapp/1 uses at runtime -- so derive it
+# from the tree. `ecallmgr' boots idle when it finds no FreeSWITCH (out of scope
+# for this dev env); it does not require a switch to start.
+if [ -z "${KAZOO_APPS:-}" ]; then
+    KAZOO_APPS="$(
+        for app_src in "${ROOT}"/applications/*/src/*.app.src; do
+            grep -qE '\{is_kazoo_app, *true\}' "${app_src}" || continue
+            sed -nE 's/^[[:space:]]*\{application, *([a-z_0-9]+),.*/\1/p' "${app_src}" | head -1
+        done | sort -u | paste -sd ' ' -
+    )"
+    [ -n "${KAZOO_APPS}" ] || die "found no whapps (is_kazoo_app) under ${ROOT}/applications --
+  the tree looks wrong; a dev node with no whapps is not the destination."
+fi
+export KAZOO_APPS
+
 exec "${RELEASE}" "${@:-foreground}"
