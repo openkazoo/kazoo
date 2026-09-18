@@ -54,11 +54,20 @@ reports a mismatch and what is required, and never installs anything.
 
 OTP 27 is a hard requirement rather than a floor, even though `minimum_otp_vsn`
 is 26: the dev release is built with `include_erts = false`, so it runs on
-whichever OTP is on `PATH`, and the prebuilt Erlang Language Server is built for
-OTP 27. A debug session needs the language server and the node on one runtime.
+whichever OTP is on `PATH`, and the bundled **erlang-ls** language server (and
+its `els_dap` step-debug backend) is built for OTP 27. A debug session needs the
+language server and the node on one runtime.
 
 rebar3 is not vendored — there is no bootstrap escript in the tree — so `make`
 cannot run at all until it is installed.
+
+`make build-dev` also needs **pkg-config** (with OpenSSL discoverable — see the
+macOS note below) for `core/kazoo_auth`'s RSA driver, and a **Go** toolchain for
+the `martini` (STIR/SHAKEN) dependency. `make dev-toolchain` checks both up front.
+
+The full developer workflow — the clone → open an Erlang file → F5 → Initialize
+Database → breakpoint flow, the scripts behind it, and the caveats — lives in
+[docs/dev-environment.md](./docs/dev-environment.md).
 
 #### Linux
 You will need the following installed:
@@ -85,9 +94,18 @@ You will need the following installed:
     -   The formula tracks latest, so it currently happens to match CI's pin.
         Check rather than assume: once it moves on, `make dev-toolchain` will
         fail on the version and you will need to install 3.27.0 another way.
+-   **pkg-config** and **OpenSSL**, `brew install pkg-config openssl@3`
+    -   OpenSSL is keg-only, so `pkg-config` cannot find it by default. Put its
+        `openssl.pc` on `PKG_CONFIG_PATH`:
+        `export PKG_CONFIG_PATH="/opt/homebrew/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH"`
+-   **Go**, `brew install go`
 -   **Xcode Command Line Tools**
 -   **Visual Studio Code**
--   **Erlang Language Server** (VS Code extension)
+-   **erlang-ls** (VS Code extension, id `erlang-ls.erlang-ls`)
+    -   This is the whole install: the extension bundles its own `erlang_ls` /
+        `els_dap` escripts and runs them off `PATH`, so they inherit this tree's
+        OTP 27 and nothing extra is downloaded or built. VS Code offers it on
+        open (it is the sole recommended extension).
 -   **Docker Desktop**
 
 Verify before going further:
@@ -107,20 +125,30 @@ after any `brew upgrade` that touches it.
 
 1.  Clone this repository.
 
-2.  Open the project in **VS Code**.
+2.  Open the project in **VS Code** and install the recommended **erlang-ls**
+    extension when prompted.
 
-3.  Select the launch configuration: "Start Kazoo"
+3.  **Open any `.erl` file** (for example `core/kazoo_stdlib/src/kz_term.erl`).
+    The erlang-ls extension only activates once an Erlang file is open — until
+    then **F5 does nothing and reports no error**. This is the single most common
+    first-run stumble.
 
-4.  Run the configuration.
+4.  Press **F5** and pick the **"Start Kazoo (debug)"** launch configuration.
 
-This launch configuration will:
+5.  Once the node is up, run the **Initialize Database** task (Command Palette →
+    *Tasks: Run Task*) to register views and create the master account.
 
--   Start required Docker components
--   Build the project inside the development environment
--   Attach the debugger automatically
+The launch configuration will:
 
-Once attached, you should have a fully functional development
-environment suitable for stepping through code and active development.
+-   Start required Docker components (CouchDB + RabbitMQ)
+-   Build the debug dev release
+-   Boot a single node running every whapp (including `ecallmgr`)
+-   Attach the `els_dap` debugger automatically
+
+Once attached, set a breakpoint in any `core/*` or `applications/*` module and it
+is hit with inspectable locals. See **[docs/dev-environment.md](./docs/dev-environment.md)**
+for the full runbook, the scripts behind each step, `sup` / `remote_console` /
+`observer` inspection, and known caveats.
 
 ------------------------------------------------------------------------
 
