@@ -233,6 +233,38 @@ The debug launch is deliberately machine-neutral: `.vscode/launch.json` says onl
 > inspection without the debugger, boot with `scripts/dev-node.sh foreground` and
 > attach as below.
 
+### Where **not** to set a breakpoint on a live node
+
+A breakpoint interprets the whole module (`int:i/1`), and interpreted code is
+**one to two orders of magnitude slower** — every call to that module, from every
+process, routes through a single meta-interpreter. Measured on the dev node (all
+whapps up, ~2200 processes; re-measure with `scripts/int-bench.escript`, OTP 27 / ARM):
+
+| Module (what it is)              | per-call | 8-way concurrent |
+|----------------------------------|:--------:|:----------------:|
+| `kz_mochinum` (leaf formatter)   |  ~100×   |      ~140×       |
+| `kz_json` (hot data module)      |   ~22×   |       ~66×       |
+
+The concurrency column is the point: the penalty is **worse under load**, because
+`int` serializes interpreted calls. So the multiplier depends less on the module's
+size than on **how many processes call it at once** — and interpreting a module on
+the node's hot path turns it into a global bottleneck.
+
+- **Safe:** the module you're actually debugging — a specific callflow handler, a
+  `cb_*` crossbar endpoint, a leaf util — where you set the breakpoint, trigger the
+  **one** interaction you care about, inspect, and move on. Setting the breakpoint
+  itself is cheap: `int:i/1` takes **4–16 ms** even for a 1600-line module, so it
+  never noticeably pauses the node.
+- **Avoid on a running/busy node:** the stdlib data core (`kz_json`, `kz_term`,
+  `kz_binary`, `kz_time`) and the message-dispatch path (`gen_listener`,
+  `kz_amqp_worker`, `kz_amqp_channel`, `kazoo_bindings`, `kapps_controller`). These
+  are touched by nearly every process; interpreting one can stall the node,
+  back up message queues, and trip supervisor/heartbeat timeouts. To inspect logic
+  here, log or copy it into a leaf you *can* interpret rather than breakpointing it
+  in place.
+
+Un-interpret with `int:n(Module)` (or `int:n()` / end the debug session) when done.
+
 ---
 
 ## 6. Inspecting a running node
