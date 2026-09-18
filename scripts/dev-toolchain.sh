@@ -8,16 +8,22 @@
 # Runs ahead of `make build-dev'. This is the zeroth of the things a clean
 # machine needs -- before the infra, the build, or the node:
 #
-#   0. this check                                       (OTP 27 + rebar3)
+#   0. this check                                       (OTP 27 + rebar3 + pkg-config + go)
 #   1. docker compose -f docker-compose.dev.yml up -d   (CouchDB + RabbitMQ)
 #   2. make build-dev, then scripts/dev-node.sh         (boot the node)
 #   3. scripts/dev-init.sh                              (databases, master account)
 #
-# The Makefile's own CHECK_TOOLS only asks whether `erl' and `rebar3' exist.
-# That is not enough here: a newer OTP on PATH passes it, builds a dev release
-# that symlinks *that* runtime (include_erts=false), and then fails much later
-# and much less legibly -- the prebuilt erlang-ls is built for OTP 27, and a
-# debug session needs the language server and the node on one runtime.
+# The Makefile's own CHECK_TOOLS only asks *whether* a tool exists, never which
+# version -- and it checks neither that pkg-config can resolve openssl nor that
+# `go' is present at all. That is not enough here, and each gap fails much later
+# and much less legibly than it does below:
+#
+#   * a newer OTP on PATH passes CHECK_TOOLS, builds a dev release that symlinks
+#     *that* runtime (include_erts=false), then breaks a debug session because the
+#     prebuilt erlang-ls is built for OTP 27 and the language server and the node
+#     must share one runtime;
+#   * a missing `go' passes CHECK_TOOLS and then dies deep in the dependency
+#     build, after minutes of fetching, on `go: command not found' (see below).
 #
 # Nothing here is specific to a machine or a platform, and nothing is
 # installed -- a mismatch is reported with the requirement, and provisioning
@@ -88,6 +94,45 @@ if [ "${found_rebar3}" != "${REBAR3_VERSION}" ]; then
   KAZOO_REBAR3_VERSION=${found_rebar3}."
 fi
 
+# --- pkg-config (OpenSSL discovery) -----------------------------------------
+#
+# Presence, not a version -- any pkg-config will do. It is a *build* dependency,
+# not a runtime one: core/kazoo_auth ships a linked-in driver
+# (c_src/kz_auth_rsa_drv.c) that generates RSA keys against OpenSSL, and its
+# rebar.config resolves the compiler and linker flags with
+# `pkg-config --cflags/--libs openssl'.
+#
+# The check that matters is that pkg-config can actually *find* openssl, not
+# merely that the binary exists: on some platforms OpenSSL is kept off the
+# default search path (it is keg-only on Homebrew), and a pkg-config that cannot
+# see it fails the native build just the same.
+
+command -v pkg-config >/dev/null 2>&1 || die "pkg-config not on PATH.
+  core/kazoo_auth's native RSA driver (kz_auth_rsa_drv) is compiled with flags
+  from \`pkg-config --cflags/--libs openssl', so the build needs it. Install it
+  however your platform does and re-run."
+
+pkg-config --exists openssl 2>/dev/null || die "pkg-config is installed but cannot find openssl.
+  core/kazoo_auth's RSA driver links against OpenSSL, located via
+  \`pkg-config --libs openssl'. Some platforms keep OpenSSL off the default search
+  path (it is keg-only on Homebrew), so its openssl.pc must be on PKG_CONFIG_PATH.
+  See the README, then re-run."
+
+# --- Go (libsecsipid for the martini STIR/SHAKEN dependency) ----------------
+#
+# Presence, not a version. The `martini' dependency (STIR/SHAKEN) has a compile
+# pre-hook that runs `make -C c_src', which does `go build -buildmode=c-archive'
+# to produce libsecsipid.a before its NIF links. martini is in the release list,
+# so `make build-dev' cannot finish without a Go toolchain -- and the failure
+# lands late, after every dependency has been fetched, as a bare
+# `go: command not found' deep in a hook. Catch it here instead.
+
+command -v go >/dev/null 2>&1 || die "go not on PATH.
+  The \`martini' dependency (STIR/SHAKEN) builds its libsecsipid C archive with
+  \`go build', so \`make build-dev' needs a Go toolchain. Without it the build dies
+  deep in martini's compile hook after fetching every dependency. Install it
+  however your platform does and re-run."
+
 # --- CI parity --------------------------------------------------------------
 #
 # The pins above are ours; ci.yaml's are CI's. They are meant to agree, and
@@ -116,4 +161,7 @@ if [ -r "${CI_WORKFLOW}" ]; then
     fi
 fi
 
-printf 'dev-toolchain: OTP %s, rebar3 %s\n' "${found_otp}" "${found_rebar3}"
+found_openssl="$(pkg-config --modversion openssl 2>/dev/null || echo '?')"
+found_go="$(go version 2>/dev/null | awk '{print $3}' || echo '?')"
+printf 'dev-toolchain: OTP %s, rebar3 %s, openssl %s (pkg-config), %s\n' \
+    "${found_otp}" "${found_rebar3}" "${found_openssl}" "${found_go}"
