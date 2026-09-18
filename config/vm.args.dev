@@ -1,10 +1,16 @@
 ## Emulator args for the local ARM-Mac dev node.
 ##
-## Selected with VMARGS_PATH at launch -- the extended start script reads that
-## override before falling back to releases/<vsn>/vm.args, which the dev
-## release does not ship ({vm_args, false} in rebar.config's base relx block):
+## This file is a TEMPLATE: scripts/dev-node.sh rewrites its -name line (see
+## below) into _build/dev/vm.args and boots from that. Use the script --
 ##
-##   VMARGS_PATH=$PWD/config/vm.args.dev \
+##   scripts/dev-node.sh
+##
+## -- rather than the raw invocation. Selected with VMARGS_PATH at launch, the
+## extended start script reads that override before falling back to
+## releases/<vsn>/vm.args, which the dev release does not ship ({vm_args, false}
+## in rebar.config's base relx block):
+##
+##   VMARGS_PATH=$PWD/_build/dev/vm.args \
 ##   RELX_CONFIG_PATH=$PWD/config/sys-dev.config \
 ##   KAZOO_CONFIG=$PWD/config/config-dev.ini \
 ##     _build/dev/rel/kazoo/bin/kazoo foreground
@@ -19,9 +25,21 @@
 ## one -- but the script then cd's to the release root before exec'ing erlexec,
 ## and the -args_file it hands the emulator resolves from there instead.
 
-## A longname on a literal IP: deterministic, and no dependency on whatever
-## .local hostname the Mac happens to advertise. The debugger attach in
-## els_dap's launch.json must name this node exactly.
+## NOT the name the node actually boots under. scripts/dev-node.sh rewrites this
+## one line into _build/dev/vm.args, naming the node after the host this machine
+## advertises -- kazoo_apps@<net_adm:localhost()> -- and points VMARGS_PATH
+## there.
+##
+## It has to. Both tools this dev environment exists for compose their target as
+## Node ++ "@" ++ net_adm:localhost() with no way to override the host half:
+## `sup' (every <module>_maintenance command in Kazoo's docs) and els_dap (every
+## breakpoint). Against a node named on a literal IP, `sup' answers "Connection
+## to service failed!" and F5 hangs silently in setBreakpoints. See
+## scripts/dev-hostname.sh and issue #43.
+##
+## The literal below is a working fallback, not the normal path: boot this file
+## directly and you get a node that runs fine but that neither `sup' nor the
+## debugger can reach.
 -name kazoo_apps@127.0.0.1
 
 ## MUST match [kazoo_apps] cookie in config/config-dev.ini.

@@ -18,9 +18,10 @@
 # our business -- the couchdb-init one-shot in docker-compose.dev.yml creates
 # them, because CouchDB never finishes cluster setup without them.
 #
-# Node name and cookie are read from config/vm.args.dev so there is one source
-# of truth; override with KAZOO_NODE / KAZOO_COOKIE. The master account details
-# are overridable too -- see the defaults below.
+# The node's name comes from scripts/dev-hostname.sh and its cookie from
+# config/vm.args.dev, so each has one source of truth; override with KAZOO_NODE /
+# KAZOO_COOKIE. The master account details are overridable too -- see the
+# defaults below.
 
 set -euo pipefail
 
@@ -48,12 +49,22 @@ fi
 
 [ -f "${VM_ARGS}" ] || die "no vm.args at ${VM_ARGS} (set VMARGS_PATH to point elsewhere)"
 
-# Only the real directives match -- the surrounding prose in vm.args.dev
-# mentions both flags, but never in first position.
-NODE="${KAZOO_NODE:-$(awk '$1 == "-name" || $1 == "-sname" { print $2; exit }' "${VM_ARGS}")}"
+# The node's NAME is computed, not read: config/vm.args.dev holds only a fallback
+# literal, because the real name has to follow the host this machine advertises
+# for `sup' and els_dap to reach it (scripts/dev-hostname.sh, issue #43). Asking
+# the helper is what keeps one definition of it instead of two that drift.
+#
+# The COOKIE is still read from the file -- it is a genuine constant, and the one
+# thing in vm.args that has to agree with config/config-dev.ini. Only the real
+# directive matches; the surrounding prose mentions the flag, but never in first
+# position.
+# shellcheck source=scripts/dev-hostname.sh
+. "${ROOT}/scripts/dev-hostname.sh"
+
+NODE="${KAZOO_NODE:-$(dev_node_name)}"
 COOKIE="${KAZOO_COOKIE:-$(awk '$1 == "-setcookie" { print $2; exit }' "${VM_ARGS}")}"
 
-[ -n "${NODE}" ] || die "no -name/-sname in ${VM_ARGS} (set KAZOO_NODE to override)"
+[ -n "${NODE}" ] || die "could not determine the dev node's name (set KAZOO_NODE to override)"
 [ -n "${COOKIE}" ] || die "no -setcookie in ${VM_ARGS} (set KAZOO_COOKIE to override)"
 
 # Reachability, CouchDB and every step's outcome are the escript's business --
