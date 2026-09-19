@@ -1,0 +1,51 @@
+{
+  // Step-debugging the dev node with erlang-ls's els_dap backend on OTP 27.
+  //
+  // Pressing F5 runs the "Prepare Dev Node" task (infra up + dev release built),
+  // then boots the node in an integrated terminal via scripts/dev-node.sh and
+  // attaches els_dap to it. Set a breakpoint in any core/* or applications/*
+  // module and it is hit with inspectable locals. Proven end-to-end in
+  // kz_mochinum:digits/1 (issue #34).
+  //
+  // ACTIVATION CAVEAT: the erlang-ls extension only comes alive once an Erlang
+  // file is open in the window. On a fresh window F5 is inert -- setBreakpoints
+  // never fires and nothing errors. Open any .erl first. (See .vscode/settings.json
+  // and issue #36.)
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start Kazoo (debug)",
+      "type": "erlang",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+
+      // The ENTIRE launch environment (KAZOO_CONFIG / VMARGS_PATH /
+      // RELX_CONFIG_PATH, the debugger code path, CODE_LOADING_MODE=interactive,
+      // and the generated per-machine vm.args) lives in scripts/dev-node.sh, so
+      // nothing machine-specific is restated here. `foreground' keeps the node
+      // in this terminal; Ctrl-C stops it.
+      "runinterminal": [
+        "${workspaceFolder}/scripts/dev-node.sh",
+        "foreground"
+      ],
+
+      // A BARE projectnode (no `@'): under longnames els_dap composes
+      // kazoo_apps@<inet:gethostname()>.<domain>, which is byte-identical to the
+      // net_adm:localhost() that scripts/dev-node.sh names the node after -- so
+      // this stays machine-neutral and els_dap still hits the node. See issue #43.
+      "projectnode": "kazoo_apps",
+
+      // TRUE on any host whose name is dotted (a macOS *.local, an FQDN). On a
+      // dotless host (a plain Linux short hostname) the node boots under -sname
+      // and this must be FALSE. A one-line toggle; the residue documented on #36.
+      "use_long_names": true,
+
+      // Must match [kazoo_apps] cookie in config/config-dev.ini -- that is the
+      // node's LIVE cookie once kazoo_apps_init:set_cookie/0 runs at boot, which
+      // is what els_dap authenticates against.
+      "cookie": "kazoo_dev_cookie",
+
+      "preLaunchTask": "Prepare Dev Node"
+    }
+  ]
+}

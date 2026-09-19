@@ -1,0 +1,10 @@
+{
+  // erlang-ls is both the language server (navigation, diagnostics) and the
+  // step-debug backend (els_dap, the F5 launch below). See the decision on
+  // issue #37. The extension bundles its own erlang_ls / els_dap escripts and
+  // runs them off PATH, so it inherits this tree's OTP 27 and needs nothing
+  // else installed.
+  "recommendations": [
+    "erlang-ls.erlang-ls"
+  ]
+}

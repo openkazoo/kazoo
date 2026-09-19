@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+#
+# `sup' against the local dev node.
+#
+#   scripts/sup kazoo_apps_maintenance ready
+#   scripts/sup -v crossbar_maintenance find_account_by_realm master.dev.local
+#
+# Same surface as core/sup/priv/sup -- module, function, arguments, and sup's own
+# flags (-v, -n, -c, ...) -- and the same exit codes, because it runs the very
+# same sup:main/1. What it adds is the environment that code needs, which the
+# release cannot currently supply for itself.
+#
+# WHY core/sup/priv/sup DOES NOT WORK HERE
+#
+# Two independent reasons, neither of them the node's name (that one is fixed --
+# see scripts/dev-hostname.sh and issue #43):
+#
+#   1. NO CODE PATH. core/sup/priv/sup runs sup.escript through `bin/kazoo
+#      escript', and the start script's relx_escript() execs a bare escript with
+#      nothing but RELEASE_ROOT_DIR exported -- no -pa, no ERL_LIBS into the
+#      release's own lib/. So `sup:main/1' is undefined before it ever tries to
+#      connect, and the failure is an escript stack trace rather than anything
+#      about SUP. This is upstream relx/Kazoo behaviour and hits prod identically.
+#
+#   2. NO CONFIG, SO THE WRONG COOKIE. sup resolves its cookie through
+#      kazoo_config_init:read_cookie/1, and get_cookie/2 lets that value *beat* an
+#      explicit `-c'. With no KAZOO_CONFIG it reads the packaged default and tries
+#      `change_me', so even `sup -c kazoo_dev_cookie' fails authentication --
+#      which reads exactly like a cookie mismatch you cannot fix.
+#
+# Deliberately NOT patching core/sup: it is a core module and this is a dev-env
+# concern. The real defects above are upstream-shaped and belong upstream.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RELEASE_LIB="${ROOT}/_build/dev/rel/kazoo/lib"
+
+die() {
+    printf 'sup: %s\n' "$1" >&2
+    exit 1
+}
+
+if ! command -v erl >/dev/null 2>&1; then
+    die "erl not on PATH -- no Erlang/OTP runtime found.
+  This tree targets OTP 27. Install it however your platform does and re-run."
+fi
+
+[ -d "${RELEASE_LIB}" ] || die "no dev release at ${ROOT}/_build/dev/rel/kazoo
+  Run \`make build-dev' first."
+
+# sup needs no help finding the node: it composes Node ++ "@" ++
+# net_adm:localhost(), and the dev node is named on exactly that host. Passing -n
+# would only supply the name half anyway.
+#
+# VMARGS_PATH is still wanted so `-n'/`-c' overrides and error messages agree with
+# the file the node actually booted from; prefer the generated one, since that is
+# the one carrying the computed -name.
+if [ -z "${VMARGS_PATH:-}" ]; then
+    if [ -f "${ROOT}/_build/dev/vm.args" ]; then
+        VMARGS_PATH="${ROOT}/_build/dev/vm.args"
+    else
+        VMARGS_PATH="${ROOT}/config/vm.args.dev"
+    fi
+fi
+export VMARGS_PATH
+
+export KAZOO_CONFIG="${KAZOO_CONFIG:-${ROOT}/config/config-dev.ini}"
+
+# Reason 1's fix. Repeated builds leave several versioned dirs per app under
+# lib/ (dev_mode symlinks, one set per build vsn); ERL_LIBS is version-aware and
+# takes the highest of each, which is the current build.
+export ERL_LIBS="${RELEASE_LIB}${ERL_LIBS:+:${ERL_LIBS}}"
+
+# -extra keeps the arguments the user typed intact -- quoting, spaces and all --
+# instead of interpolating them into an -eval string.
+exec erl -noshell -eval 'sup:main(init:get_plain_arguments()), halt(0).' -extra "$@"
