@@ -8,7 +8,7 @@
 # Runs ahead of `make build-dev'. This is the zeroth of the things a clean
 # machine needs -- before the infra, the build, or the node:
 #
-#   0. this check                                       (OTP 27 + rebar3 + pkg-config + go)
+#   0. this check                                       (OTP 26/27 + rebar3 + pkg-config + go)
 #   1. docker compose -f docker-compose.dev.yml up -d   (CouchDB + RabbitMQ)
 #   2. make build-dev, then scripts/dev-node.sh         (boot the node)
 #   3. scripts/dev-init.sh                              (databases, master account)
@@ -38,14 +38,19 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CI_WORKFLOW="${ROOT}/.github/workflows/ci.yaml"
 
-# The dev pin. Deliberately *not* read from ci.yaml: the reason this tree wants
-# OTP 27 is a dev-tooling one that CI knows nothing about (erlang-ls 1.1.0 ships
-# a prebuilt for 27 and its els_dap is what puts breakpoints on the node), so a
-# CI bump must not silently drag the dev environment along. They are checked
-# against each other below instead.
+# The dev pin. Deliberately *not* read from ci.yaml: the reason this tree pins
+# OTP is a dev-tooling one that CI knows nothing about (erlang-ls 1.1.0 bundles
+# portable escripts and ships macOS prebuilts for 24-27, and its els_dap is what
+# puts breakpoints on the node), so a CI bump must not silently drag the dev
+# environment along. They are checked against each other below instead.
+#
+# Accepted OTP majors -- the dev tooling works on either 26 or 27 (build+boot and
+# F5/els_dap proven on both; issues #57, #58, #59). Override with a single value
+# to force a different one on purpose, e.g. KAZOO_OTP_VERSION=28.
 #
 # rebar3 3.27.0 is CI's pin, matched here for build parity.
-OTP_VERSION="${KAZOO_OTP_VERSION:-27}"
+OTP_VERSIONS="${KAZOO_OTP_VERSION:-26 27}"
+OTP_VERSIONS_MSG="${OTP_VERSIONS// / or }"
 REBAR3_VERSION="${KAZOO_REBAR3_VERSION:-3.27.0}"
 
 die() {
@@ -60,22 +65,23 @@ warn() {
 # --- Erlang/OTP -------------------------------------------------------------
 
 command -v erl >/dev/null 2>&1 || die "erl not on PATH -- no Erlang/OTP runtime found.
-  This tree targets OTP ${OTP_VERSION}. Install it however your platform does and re-run."
+  This tree targets OTP ${OTP_VERSIONS_MSG}. Install it however your platform does and re-run."
 
 # otp_release is the major ("27"); any patch release of it is fine.
 found_otp="$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().')"
 
-if [ "${found_otp}" != "${OTP_VERSION}" ]; then
-    die "OTP ${found_otp} is on PATH; this tree targets OTP ${OTP_VERSION}.
+case " ${OTP_VERSIONS} " in
+    *" ${found_otp} "*) : ;;
+    *) die "OTP ${found_otp} is on PATH; this tree targets OTP ${OTP_VERSIONS_MSG}.
   \`$(command -v erl)'
   Two things break on the wrong major: the dev release is built with
   include_erts=false, so it symlinks whichever runtime is on PATH, and the
-  prebuilt erlang-ls this tree uses is built for the pinned major -- a debug
+  prebuilt erlang-ls this tree uses is built for a matching major -- a debug
   session needs the language server and the node on one runtime.
   If your platform installs versioned runtimes side by side, this usually means
   the wrong one is first on PATH. To build against ${found_otp} anyway, set
-  KAZOO_OTP_VERSION=${found_otp}."
-fi
+  KAZOO_OTP_VERSION=${found_otp}." ;;
+esac
 
 # --- rebar3 -----------------------------------------------------------------
 
@@ -83,8 +89,11 @@ command -v rebar3 >/dev/null 2>&1 || die "rebar3 not on PATH.
   This tree targets rebar3 ${REBAR3_VERSION} and carries no bootstrap escript, so
   \`make' cannot run without it. Install it however your platform does and re-run."
 
-# `rebar 3.27.0 on Erlang/OTP 27 Erts 15.2.7.10' -> `3.27.0'
-found_rebar3="$(rebar3 --version | awk 'NR == 1 { print $2 }')"
+# `rebar 3.27.0 on Erlang/OTP 27 Erts 15.2.7.10' -> `3.27.0'. Pull the version
+# out of the `rebar <vsn>' phrase wherever it lands rather than keying on line 1:
+# on OTP 26 a failed rebar3_lint plugin-load (it needs OTP 27+) prints its own
+# colour-escaped `===>' lines to stdout ahead of it, which line 1 read as `OTP'.
+found_rebar3="$(rebar3 --version | grep -oE -m1 'rebar [0-9]+\.[0-9]+\.[0-9]+' | awk '{print $2}')" || true
 
 if [ "${found_rebar3}" != "${REBAR3_VERSION}" ]; then
     die "rebar3 ${found_rebar3} is on PATH; this tree targets ${REBAR3_VERSION}.
@@ -150,9 +159,12 @@ if [ -r "${CI_WORKFLOW}" ]; then
     ci_otp="$(ci_field otp-version)"
     ci_rebar3="$(ci_field rebar3-version)"
 
-    if [ -n "${ci_otp}" ] && [ "${ci_otp}" != "${OTP_VERSION}" ]; then
-        warn "warning: CI pins OTP ${ci_otp}, this script pins ${OTP_VERSION}.
-  One of the two has moved (${CI_WORKFLOW#"${ROOT}"/}). Reconcile them."
+    if [ -n "${ci_otp}" ]; then
+        case " ${OTP_VERSIONS} " in
+            *" ${ci_otp} "*) : ;;
+            *) warn "warning: CI pins OTP ${ci_otp}, this script accepts ${OTP_VERSIONS_MSG}.
+  One of the two has moved (${CI_WORKFLOW#"${ROOT}"/}). Reconcile them." ;;
+        esac
     fi
 
     if [ -n "${ci_rebar3}" ] && [ "${ci_rebar3}" != "${REBAR3_VERSION}" ]; then

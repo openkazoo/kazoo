@@ -3,7 +3,7 @@
 This is the runbook for a local OpenKazoo development node: clone → open in
 VSCode → press **F5** → a single Erlang node running every whapp (including
 `ecallmgr`), with **erlang-ls** for navigation and diagnostics and
-**step-through breakpoints** via `els_dap` on **OTP 27**.
+**step-through breakpoints** via `els_dap` on **OTP 26 or 27**.
 
 The scripts and VSCode config here are **platform-neutral and never install
 anything** — a missing toolchain is reported with the requirement, and
@@ -28,7 +28,7 @@ runs automatically before every `make build-dev`.
 
 | Tool | Version | Why |
 | --- | --- | --- |
-| **Erlang/OTP** | **27** (exact major) | The dev release runs on whatever `erl` is on `PATH` (`include_erts=false`), and the bundled erlang-ls / `els_dap` are built for OTP 27. A debug session needs the node and the language server on **one** runtime. |
+| **Erlang/OTP** | **26 or 27** | The dev release runs on whatever `erl` is on `PATH` (`include_erts=false`); the bundled erlang-ls / `els_dap` are portable escripts that load on both. Build, boot, and F5 are proven on each. Pick one major and stay on it — switching majors needs a full `rm -rf _build` rebuild (see the caveat below). |
 | **rebar3** | **3.27.0** | CI's pin; not vendored (no bootstrap escript), so `make` cannot run at all without it. |
 | **pkg-config** (+ OpenSSL on `PKG_CONFIG_PATH`) | any | `core/kazoo_auth`'s linked-in RSA driver links OpenSSL via `pkg-config --libs openssl`. On Homebrew OpenSSL is keg-only, so its `openssl.pc` must be on `PKG_CONFIG_PATH`. |
 | **Go** | any | The `martini` (STIR/SHAKEN) dependency's compile pre-hook runs `go build -buildmode=c-archive`. Without it the build dies deep, after minutes of dependency fetching. |
@@ -37,24 +37,25 @@ runs automatically before every `make build-dev`.
 
 The pins are **declared locally** in `scripts/dev-toolchain.sh` and cross-checked
 against `.github/workflows/ci.yaml` with a warning — deliberately **not** read
-from it. OTP 27 is required here for a dev-tooling reason (the bundled erlang-ls)
-that CI knows nothing about, so a CI bump must not silently drag the dev
-environment off it. Override a pin with `KAZOO_OTP_VERSION` / `KAZOO_REBAR3_VERSION`.
+from it. The OTP pin is a dev-tooling matter (the bundled erlang-ls) that CI
+knows nothing about, so a CI bump must not silently drag the dev environment off
+it; 26 and 27 are both accepted. Override the accepted set with a single
+`KAZOO_OTP_VERSION` (or `KAZOO_REBAR3_VERSION`) to force a different one.
 
 ### Installing on an ARM Mac (Homebrew)
 
 ```sh
-brew install erlang@27       # NOT `erlang' — that is OTP 28
+brew install erlang@27       # or erlang@26; NOT `erlang' — that is OTP 28
 brew install rebar3          # no runtime deps, so it won't pull unversioned erlang
 brew install pkg-config go
 ```
 
-`erlang@27` is **keg-only** — Homebrew does not put it on `PATH`. Add it ahead of
-`/opt/homebrew/bin` in your shell profile, and point `pkg-config` at Homebrew's
-keg-only OpenSSL:
+The versioned Erlang formula is **keg-only** — Homebrew does not put it on
+`PATH`. Add it ahead of `/opt/homebrew/bin` in your shell profile (only one OTP
+major at a time), and point `pkg-config` at Homebrew's keg-only OpenSSL:
 
 ```sh
-export PATH="/opt/homebrew/opt/erlang@27/bin:$PATH"
+export PATH="/opt/homebrew/opt/erlang@27/bin:$PATH"   # or erlang@26
 export PKG_CONFIG_PATH="/opt/homebrew/opt/openssl@3/lib/pkgconfig:$PKG_CONFIG_PATH"
 ```
 
@@ -68,11 +69,18 @@ make dev-toolchain
 > **ARM-Mac caveat — the dev release is not relocatable.** `make build-dev`
 > builds with `include_erts=false` and `dev_mode`, which symlink the dev release
 > to the **exact patch version** of the OTP it was built against
-> (`/opt/homebrew/Cellar/erlang@27/<version>/…`). A `brew upgrade` that bumps
-> `erlang@27` leaves those `lib/` symlinks **dangling** and the node will not
-> boot. Re-run `make build-dev` after any upgrade that touches it. (The upside is
-> deliberate: the node and erlang-ls/`els_dap` share one runtime, so a debug
-> session never hits an OTP mismatch.)
+> (e.g. `/opt/homebrew/Cellar/erlang@27/<version>/…`). A `brew upgrade` that bumps
+> that formula leaves those `lib/` symlinks **dangling** and the node will not
+> boot; re-run `make build-dev`. (The upside is deliberate: the node and
+> erlang-ls/`els_dap` share one runtime, so a debug session never hits an OTP
+> mismatch.)
+>
+> **Switching OTP _major_ (26 ⇄ 27) needs more than a rebuild — `rm -rf _build`
+> first.** A `_build/dev`-only clean isn't enough: rebar3 keeps the *other*
+> major's compiled dependencies in `_build/default/lib`, and running those beams
+> on the new VM **aborts the emulator** with `size_object: matchstate term not
+> allowed` (it surfaces as CouchDB connections failing `badarg`/`checkout_timeout`
+> and the node stalling mid-boot). Wipe all of `_build`, then `make build-dev`.
 
 ---
 
@@ -83,15 +91,16 @@ Install the **`erlang-ls.erlang-ls`** VSCode extension (it is the sole entry in
 install:
 
 - The extension **bundles its own escripts** — `erlang_ls` **1.1.0** and
-  `els_dap` **0.1.3** — and runs them via `escript` off `PATH`, so they inherit
-  this tree's OTP 27 automatically. **Nothing else needs downloading or building.**
-- You do **not** need the standalone `erlang_ls-macos-27.tar.gz` release or a
+  `els_dap` **0.1.3** — and runs them via `escript` off `PATH`. They are portable
+  precompiled beams (built with OTP 24) that load on both OTP 26 and 27, so they
+  inherit whichever this tree uses automatically. **Nothing else needs
+  downloading or building.**
+- You do **not** need a standalone `erlang_ls-macos-*.tar.gz` release or a
   from-source build; those exist as a fallback if you ever run the server outside
-  VSCode.
-- Upstream erlang-ls is **archived** (frozen), but frozen **at** our pinned
-  OTP 27 — release 1.1.0 (Oct 2024) is the newest OTP it targets, and it is the
-  one we build against. A future move off erlang-ls is gated on an OTP 28/29
-  upgrade and is out of scope here.
+  VSCode (release 1.1.0 ships macOS builds for OTP 24–27).
+- Upstream erlang-ls is **archived** (frozen), but release 1.1.0 (Oct 2024)
+  covers both majors we accept, so the freeze is not a constraint here. A future
+  move off erlang-ls is gated on an OTP 28/29 upgrade and is out of scope.
 
 Project config lives in the root **`erlang_ls.config`** (parsed as **YAML**). It
 points `apps_dirs` at **source** (`core/*`, `applications/*`), so navigation and
