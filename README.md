@@ -37,7 +37,7 @@ people who have kept the project alive in various forms.
 
 The current primary development target environment is:
 
--   **Erlang/OTP 27**
+-   **Erlang/OTP 26 or 27**
 -   **Rocky Linux 9**
 
 Development is certainly possible on various other platforms, but Rocky Linux 9
@@ -47,16 +47,17 @@ is the primary supported development and deployment environment at this time.
 
 ### Requirements
 
-The toolchain is pinned to **Erlang/OTP 27** and **rebar3 3.27.0** — the same
-versions CI builds with. Run `make dev-toolchain` to check what you have; it
-reports a mismatch and what is required, and never installs anything.
-`make build-dev` runs the same check before it builds.
+The toolchain is pinned to **Erlang/OTP 26 or 27** and **rebar3 3.27.0** — 27 is
+what CI builds with. Run `make dev-toolchain` to check what you have; it reports
+a mismatch and what is required, and never installs anything. `make build-dev`
+runs the same check before it builds.
 
-OTP 27 is a hard requirement rather than a floor, even though `minimum_otp_vsn`
-is 26: the dev release is built with `include_erts = false`, so it runs on
-whichever OTP is on `PATH`, and the bundled **erlang-ls** language server (and
-its `els_dap` step-debug backend) is built for OTP 27. A debug session needs the
-language server and the node on one runtime.
+Either OTP major works end to end — build, boot, and step-debugging are proven on
+both 26 and 27. The dev release is built with `include_erts = false`, so it runs
+on whichever OTP is on `PATH`, and the bundled **erlang-ls** language server (and
+its `els_dap` step-debug backend) is a set of portable escripts that load on
+both — so the node and the language server share one runtime either way. Pick one
+major and stay on it: switching majors means a full rebuild (see the note below).
 
 rebar3 is not vendored — there is no bootstrap escript in the tree — so `make`
 cannot run at all until it is installed.
@@ -72,21 +73,23 @@ Database → breakpoint flow, the scripts behind it, and the caveats — lives i
 #### Linux
 You will need the following installed:
 
--   **Erlang/OTP 27**
+-   **Erlang/OTP 26 or 27**
 -   **rebar3 3.27.0**
 -   **A Text Editor**
 
 #### MacOS
 You will need the following installed:
 
--   **Erlang/OTP 27**, installed via **Homebrew**
+-   **Erlang/OTP 26 or 27**, installed via **Homebrew**
     -   Homebrew is required specifically because of WX dependencies
-    -   Install the **versioned** formula: `brew install erlang@27`. Plain
-        `brew install erlang` currently gives OTP 28.
-    -   `erlang@27` is keg-only, so Homebrew does not symlink it onto `PATH`.
-        Put its `bin` directory ahead of `/opt/homebrew/bin`:
-        `export PATH="/opt/homebrew/opt/erlang@27/bin:$PATH"` in your shell
-        profile. Without this you get no `erl` at all, or the wrong one.
+    -   Install a **versioned** formula: `brew install erlang@27` (or
+        `brew install erlang@26`). Plain `brew install erlang` currently gives
+        OTP 28.
+    -   The versioned formula is keg-only, so Homebrew does not symlink it onto
+        `PATH`. Put its `bin` directory ahead of `/opt/homebrew/bin`:
+        `export PATH="/opt/homebrew/opt/erlang@27/bin:$PATH"` (or `erlang@26`) in
+        your shell profile. Without this you get no `erl` at all, or the wrong
+        one. Only one OTP major should be first on `PATH` at a time.
 -   **rebar3 3.27.0**, `brew install rebar3`
     -   Homebrew's `rebar3` has no runtime dependencies, so installing it will
         not pull in an unversioned `erlang` (OTP 28) alongside `erlang@27`; it
@@ -103,21 +106,24 @@ You will need the following installed:
 -   **Visual Studio Code**
 -   **erlang-ls** (VS Code extension, id `erlang-ls.erlang-ls`)
     -   This is the whole install: the extension bundles its own `erlang_ls` /
-        `els_dap` escripts and runs them off `PATH`, so they inherit this tree's
-        OTP 27 and nothing extra is downloaded or built. VS Code offers it on
-        open (it is the sole recommended extension).
+        `els_dap` escripts and runs them off `PATH`. They are portable and load
+        on whichever OTP (26 or 27) is on `PATH`, so nothing extra is downloaded
+        or built. VS Code offers it on open (it is the sole recommended extension).
 -   **Docker Desktop**
 
 Verify before going further:
 
 ```sh
-make dev-toolchain      # dev-toolchain: OTP 27, rebar3 3.27.0
+make dev-toolchain      # dev-toolchain: OTP 27, rebar3 3.27.0   (OTP 26 is equally accepted)
 ```
 
 Note that the dev release symlinks the OTP installation it was built against by
-its exact patch version (`/opt/homebrew/Cellar/erlang@27/<version>/…`), so
-upgrading `erlang@27` leaves those symlinks dangling. Re-run `make build-dev`
-after any `brew upgrade` that touches it.
+its exact patch version (e.g. `/opt/homebrew/Cellar/erlang@27/<version>/…`), so a
+`brew upgrade` that bumps it leaves those symlinks dangling — re-run
+`make build-dev`. **Switching OTP _major_ (26 ⇄ 27) goes further: run
+`rm -rf _build` before rebuilding**, or stale dependencies compiled under the
+other major will crash the VM at boot with `size_object: matchstate term not
+allowed`.
 
 ------------------------------------------------------------------------
 
@@ -169,7 +175,7 @@ Collaboration will initially be limited to contributors who:
 
 -   Can independently set up the development environment
 -   Can build and run the system without assistance
--   Are comfortable working directly with Erlang/OTP 27 and Docker
+-   Are comfortable working directly with Erlang/OTP 26 or 27 and Docker
 
 In other words, contributors must be fully self-sufficient.
 
