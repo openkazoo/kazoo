@@ -96,8 +96,18 @@ install:
 Project config lives in the root **`erlang_ls.config`** (parsed as **YAML**). It
 points `apps_dirs` at **source** (`core/*`, `applications/*`), so navigation and
 diagnostics work the moment the tree is open — before `make build-dev` has
-produced `_build/dev`. Third-party deps come from `_build/dev/lib`, which only
-exists after a dev build; erlang-ls degrades gracefully until then.
+produced `_build/dev`. Third-party deps come from `_build/default/lib`, which
+holds only the ~52 external deps (project apps never build into `default`) and
+exists after any build; erlang-ls degrades gracefully until then.
+
+> **`include_dirs` carries app *parents* and `src` roots, not just `*/include`.**
+> erlang-ls lints with a plain `compile:file/2` (no `code:lib_dir`), so
+> `include_lib("app/include/x.hrl")` resolves only when an `{i,Dir}` is the
+> **parent** of the apps (`core`, `applications`, `_build/default/lib`). Leaf-only
+> include dirs leave every cross-app `include_lib` unresolved, orphaning every
+> record/macro/type its header defines (measured: 4/140 modules clean). With the
+> parents + `src` roots added it is 138/140. See
+> [issue #49](https://github.com/openkazoo/kazoo/issues/49).
 
 > `els_dap` reads that same `erlang_ls.config` with `file:consult/1` (expecting
 > Erlang terms, not YAML), so its `runtime` section is unreachable in practice —
@@ -317,6 +327,15 @@ across the network (name + cookie as above). `recon` is available directly in
   through `eval`. `scripts/dev-init.sh` uses `rpc:call/5` from a plain
   `erl -noshell` node, which carries the caller's group leader across — reach for
   that when a maintenance command must show its output.
+- **A handful of erlang-ls diagnostics are irreducible.** Once the tree is
+  indexed and built, a typical module is clean, but ~1 in 15 shows a few
+  `undefined function` / `spec for undefined function` / `undefined macro`
+  problems. These come from parse_transforms erlang-ls does **not** apply
+  (`lager_transform`, `kazoo_ast`): the functions/specs those transforms generate
+  are invisible to the linter. They are false positives — do not chase them, and
+  do not add `macros:`/`diagnostics:` knobs to hide them (they would mask real
+  problems too). `lager:*` **calls** lint clean (remote calls are never checked),
+  so lager itself is not a noise source.
 
 ---
 
