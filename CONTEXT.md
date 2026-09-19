@@ -50,11 +50,23 @@ A phone-number resource, managed by KNM (Kazoo Number Manager).
 _Avoid_: DID
 
 **Carrier**:
-An upstream provider Kazoo buys numbers from and routes calls to.
-_Avoid_: provider
+An upstream company Kazoo buys numbers from, via KNM. Distinct from a resource
+and a provider — one company can be all three independently (e.g. Bandwidth.com
+can supply numbers, terminate calls, and provide e911).
+_Avoid_: resource, provider
+
+**Resource**:
+An offnet destination stepswitch routes leaving-the-platform calls out to, and
+accepts inbound calls from. Independent of who supplies the numbers.
+_Avoid_: carrier, gateway, trunk
+
+**Provider**:
+An upstream supplier of number-adjacent services such as CNAM or e911. Not the
+company that supplies the numbers (carrier) or terminates calls (resource).
+_Avoid_: carrier
 
 **Stepswitch**:
-The whapp that routes offnet (leaving-the-platform) calls out to carriers.
+The whapp that routes offnet (leaving-the-platform) calls out to resources.
 _Avoid_: gateway
 
 ### Platform architecture
@@ -64,7 +76,8 @@ A Kazoo OTP application under `applications/`; the runtime prefix is `kapps_`.
 _Avoid_: service, microservice, plugin
 
 **Crossbar**:
-The REST API layer — every route lives under `/v2/accounts/{ID}/…`.
+The REST API layer. Account-scoped routes live under `/v2/accounts/{ID}/…`;
+system-wide routes live directly under `/v2/…`.
 _Avoid_: API gateway
 
 **ecallmgr**:
