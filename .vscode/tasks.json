@@ -1,0 +1,90 @@
+{
+  // Dev-environment task graph for the local Kazoo node.
+  //
+  // The clean-machine flow is three ordered steps, then boot:
+  //
+  //   1. Start Infra          docker: CouchDB + RabbitMQ
+  //   2. Build Dev            make build-dev -> _build/dev/rel/kazoo
+  //   3. Start Kazoo          boot the node (or press F5 to boot under els_dap)
+  //   4. Initialize Database  register views + master account, once the node is up
+  //
+  // Steps 1-2 are bundled as "Prepare Dev Node", which is also the preLaunchTask
+  // behind F5 (.vscode/launch.json). Initialize Database needs a RUNNING node, so
+  // it is run after boot rather than chained ahead of it. Full runbook: issue #36.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Infra",
+      "detail": "Bring up CouchDB + RabbitMQ and block until both are healthy.",
+      "type": "shell",
+      // Two calls on purpose. A bare `up -d --wait' exits 1 on a healthy stack,
+      // because --wait reads the couchdb-init one-shot's clean exit as a stopped
+      // container -- a failed task that blocks anything with dependsOn. Plain
+      // `up -d' starts everything and returns 0; the second call blocks on only
+      // the long-lived services. Verified rc=0 from a clean slate (issues #30, #34).
+      "command": "docker compose -f docker-compose.dev.yml up -d && docker compose -f docker-compose.dev.yml up -d --wait couchdb rabbitmq",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Stop Infra",
+      "detail": "Stop CouchDB + RabbitMQ (volumes are kept).",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Build Dev",
+      "detail": "Build the debug dev release (keeps debug_info; step-debugging needs it).",
+      "type": "shell",
+      // make build-dev depends on `dev-toolchain' in the Makefile, which fails
+      // loudly on the wrong OTP/rebar3 (issue #35) -- so this task also enforces
+      // the toolchain pin. No dependsOn: building does not need the infra.
+      "command": "make",
+      "args": ["build-dev"],
+      "group": "build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": "$erlang",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+    {
+      "label": "Prepare Dev Node",
+      "detail": "Infra up, then dev release built -- everything the node needs before boot.",
+      // Sequence, not parallel: the node boot that follows wants both done.
+      "dependsOrder": "sequence",
+      "dependsOn": ["Start Infra", "Build Dev"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Kazoo",
+      "detail": "Boot the dev node in the foreground (Ctrl-C to stop). Press F5 instead to boot under the debugger.",
+      "type": "shell",
+      // The whole launch environment lives in scripts/dev-node.sh -- generated
+      // per-machine vm.args, the config triple, the debugger code path. Nothing
+      // machine-specific is restated here. This holds the terminal while the node
+      // runs; run "Initialize Database" from another terminal once it is up.
+      "command": "${workspaceFolder}/scripts/dev-node.sh",
+      "args": ["foreground"],
+      "dependsOn": ["Prepare Dev Node"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "Initialize Database",
+      "detail": "Register views, refresh every database, create the master account. Needs a booted dev node; safe to re-run.",
+      "type": "shell",
+      // The script finds the repo root from its own path and reads the node
+      // name and cookie out of config/vm.args.dev, so unlike booting the node
+      // this task needs none of the KAZOO_CONFIG / VMARGS_PATH /
+      // RELX_CONFIG_PATH triple.
+      "command": "${workspaceFolder}/scripts/dev-init.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ]
+}
