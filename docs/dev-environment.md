@@ -256,8 +256,7 @@ The debug launch is deliberately machine-neutral: `.vscode/launch.json` says onl
 
 A breakpoint interprets the whole module (`int:i/1`), and interpreted code is
 **one to two orders of magnitude slower** — every call to that module, from every
-process, routes through a single meta-interpreter. Measured on the dev node (all
-whapps up, ~2200 processes; re-measure with `scripts/int-bench.escript`, OTP 27 / ARM):
+process, routes through a single meta-interpreter:
 
 | Module (what it is)              | per-call | 8-way concurrent |
 |----------------------------------|:--------:|:----------------:|
