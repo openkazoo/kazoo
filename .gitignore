@@ -11,6 +11,13 @@ _*
 *.so
 *.swp
 *.swo
+*.pid
+*~
 ebin
 erl_crash.dump
 log
+.tool-versions
+deps
+make
+/TAGS
+.deps.mk
