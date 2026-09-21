@@ -1,6 +1,8 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2011-2022, 2600Hz
+%%% @copyright (C) 2011-2026, 2600Hz
 %%% @doc data adapter behaviour
+%%% @author 2600Hz
+%%% @author Ruel Tmeizeh
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(kzs_attachments).
@@ -178,7 +180,7 @@ attachment_handler_jobj(Handler, Props) ->
     kz_json:set_value(kz_term:to_binary(Handler), JObj, kz_json:new()).
 
 -spec handle_put_attachment(att_map(), kz_json:object(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary(), kz_term:ne_binary()
-                           , kz_term:proplist(), kz_term:proplist()) ->
+                           ,kz_term:proplist(), kz_term:proplist()) ->
           {'ok', kz_json:object()} |
           {'ok', kz_json:object(), kz_term:proplist()} |
           data_error().
@@ -187,7 +189,12 @@ handle_put_attachment(#{att_post_handler := 'stub'
                        ,server := {App, Conn}
                        }, _Att, DbName, DocId, AName, Contents, Options, _Props) ->
     kzs_cache:flush_cache_doc(DbName, DocId),
-    App:put_attachment(Conn, DbName, DocId, AName, Contents, Options);
+    case App:put_attachment(Conn, DbName, DocId, AName, Contents, Options) of
+        {'ok', Doc} ->
+            _ = publish_attachment_saved(Doc),
+            {'ok', Doc};
+        Error -> Error
+    end;
 
 handle_put_attachment(#{att_post_handler := 'external'}=Map, Att, DbName, DocId, _AName, _Contents, _Options, Props) ->
     case kzs_doc:open_doc(Map, DbName, DocId, []) of
@@ -201,7 +208,9 @@ handle_put_attachment(#{att_post_handler := 'external'}=Map, Att, DbName, DocId,
 external_attachment(Map, DbName, JObj, Att, Props) ->
     Atts = kz_json:merge_jobjs(Att, kz_json:get_value(?KEY_STUB_ATTACHMENTS, JObj, kz_json:new())),
     case kzs_doc:save_doc(Map, DbName, kz_json:set_values([{?KEY_STUB_ATTACHMENTS, Atts}], JObj), []) of
-        {'ok', Doc} -> {'ok', Doc, Props};
+        {'ok', Doc} ->
+            _ = publish_attachment_saved(Doc),
+            {'ok', Doc, Props};
         Error -> Error
     end.
 
@@ -263,4 +272,54 @@ handle_attachment_handler_error({'error', Reason, ExtendedError}, Options) ->
             {'error', Reason};
         'verbose' ->
             {'error', Reason, ExtendedError}
+    end.
+
+%%------------------------------------------------------------------------------
+%% @doc Publishes `attachment_saved' notification.
+%% @end
+%%------------------------------------------------------------------------------
+-spec publish_attachment_saved(kz_json:object()) -> kz_amqp_worker:request_return().
+publish_attachment_saved(JObj) ->
+    AccountDb = kz_json:get_ne_binary_value(<<"pvt_account_db">>, JObj),
+    ID = kz_json:get_ne_binary_value(<<"_id">>, JObj),
+    Attachments = kz_json:get_ne_json_value(<<"pvt_attachments">>, JObj, kz_json:new()),
+    FileName =
+        case kz_json:get_ne_binary_value(<<"name">>, JObj) of
+            'undefined' -> case kz_json:get_keys(Attachments) of %% sometimes 'name' isn't present
+                               [A1|_] -> A1;
+                               _ ->
+                                   lager:notice("could not determine attachment filename"),
+                                   <<"">>
+                           end;
+            Name -> Name
+        end,
+    Handler = kz_json:get_ne_json_value([<<"pvt_attachments">>, FileName, <<"handler">>], JObj, kz_json:new()),
+    StorageType =
+        case kz_json:get_keys(Handler) of
+            [H|_] -> H;
+            _ -> <<"native">>
+        end,
+
+    Props =
+        props:filter_undefined([{<<"Account-DB">>, AccountDb}
+                               ,{<<"Account-ID">>, kz_json:get_ne_binary_value(<<"pvt_account_id">>, JObj)}
+                               ,{<<"Call-ID">>, kz_json:get_ne_binary_value(<<"call_id">>, JObj)}
+                               ,{<<"Caller-ID-Name">>, kz_json:get_ne_binary_value(<<"caller_id_name">>, JObj)}
+                               ,{<<"Caller-ID-Number">>, kz_json:get_ne_binary_value(<<"caller_id_number">>, JObj)}
+                               ,{<<"CDR-ID">>, kz_json:get_ne_binary_value(<<"cdr_id">>, JObj)}
+                               ,{<<"Doc">>, JObj}
+                               ,{<<"Duration">>, kz_json:get_ne_integer_value(<<"duration">>, JObj)}
+                               ,{<<"ID">>, ID}
+                               ,{<<"Name">>, FileName}
+                               ,{<<"Owner-ID">>, kz_json:get_ne_binary_value([<<"custom_channel_vars">>, <<"Owner-ID">>], JObj)}
+                               ,{<<"Storage-Type">>, StorageType}
+                               ,{<<"Timestamp">>, kz_json:get_integer_value(<<"pvt_created">>, JObj)}
+                               ,{<<"Type">>, kz_json:get_ne_binary_value(<<"pvt_type">>, JObj)}
+                                | kz_api:default_headers(?APP_NAME, ?APP_VERSION)
+                               ]
+                              ),
+
+    case kz_amqp_worker:cast(Props, fun kapi_notifications:publish_attachment_saved/1) of
+        'ok' -> lager:debug("published attachment_saved for ~s/~s/~s", [AccountDb, ID, FileName]);
+        _Err -> lager:notice("error publishing attachment_saved for ~s/~s/~s ~p", [AccountDb, ID, FileName, _Err])
     end.
