@@ -80,6 +80,18 @@ The REST API layer. Account-scoped routes live under `/v2/accounts/{ID}/…`;
 system-wide routes live directly under `/v2/…`.
 _Avoid_: API gateway
 
+**Blackhole**:
+The whapp serving real-time websocket event streams to clients; its subscription
+and command modules use the `bh_` prefix.
+_Avoid_: websockets, socket.io
+
+**Application integration**:
+The pattern by which a whapp registers its own Crossbar and Blackhole modules at
+startup — calling `kz_module:application_integrations/1` from its `app` module —
+rather than those modules being hardcoded into Crossbar's or Blackhole's default
+module lists. The whapp that ships the module owns registering it.
+_Avoid_: plugin, autoload
+
 **ecallmgr**:
 The whapp that bridges Kazoo to FreeSWITCH media servers.
 _Avoid_: media server
@@ -133,4 +145,6 @@ where they live in code:
 - `kzd_` — document accessors / schemas (one per document type)
 - `kapi_` — typed AMQP message contracts
 - `cf_` — callflow action modules
+- `cb_` — Crossbar REST endpoint modules
+- `bh_` — Blackhole websocket subscription/command modules
 - `knm_` — Kazoo Number Manager
