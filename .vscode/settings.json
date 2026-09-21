@@ -1,0 +1,23 @@
+{
+  // Teach VSCode Kazoo's file types so opening any of them activates erlang-ls.
+  //
+  // ACTIVATION CAVEAT: the erlang-ls extension only starts once an Erlang file
+  // is open in the window -- until then both the language server and els_dap are
+  // dormant, and F5 silently does nothing. These associations widen what counts
+  // as "an Erlang file" (a .config or an rebar.config is enough), but VSCode has
+  // no setting that force-opens a file, so the reliable habit is still: open any
+  // .erl before the first F5. Documented for the runbook on issue #36.
+  "files.associations": {
+    "*.erl": "erlang",
+    "*.hrl": "erlang",
+    "*.escript": "erlang",
+    "*.config": "erlang",
+    // erlang_ls.config is the one .config that is NOT Erlang terms -- erlang-ls
+    // parses it as YAML. Name-specific associations win over the glob above.
+    "erlang_ls.config": "yaml",
+    "*.args": "plaintext"
+  },
+  // The Makefile extension, if installed, otherwise prompts to "configure" the
+  // tree on every open; Kazoo's build is driven by the tasks below, not by it.
+  "makefile.configureOnOpen": false
+}

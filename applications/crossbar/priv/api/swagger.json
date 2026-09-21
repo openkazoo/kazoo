@@ -2226,6 +2226,20 @@
             },
             "type": "object"
         },
+        "callflows.destination_listmatch": {
+            "description": "Validator for the destination_listmatch callflow data object",
+            "properties": {
+                "id": {
+                    "description": "Destination List ID",
+                    "type": "string"
+                },
+                "skip_module": {
+                    "description": "When set to true this callflow action is skipped, advancing to the wildcard branch (if any)",
+                    "type": "boolean"
+                }
+            },
+            "type": "object"
+        },
         "callflows.device": {
             "properties": {
                 "can_call_self": {
@@ -26808,6 +26822,28 @@
         "phone_numbers": {
             "description": "Schema for a number",
             "properties": {
+                "attributes": {
+                    "description": "Number feature that allows some attributes/options/labels to be specified on a number.",
+                    "properties": {
+                        "class": {
+                            "description": "An arbitrary class label for the phone number, e.g. 'clean', 'sanitization_period', 'premium', etc.",
+                            "type": "string"
+                        },
+                        "enabled": {
+                            "description": "Enables/disables the attributes number feature",
+                            "type": "boolean"
+                        },
+                        "group": {
+                            "description": "An arbitrary group name for the phone number",
+                            "type": "string"
+                        },
+                        "traffic": {
+                            "description": "The traffic type that this number carries, e.g. 'fax', 'short_calls', 'conference', etc.",
+                            "type": "string"
+                        }
+                    },
+                    "type": "object"
+                },
                 "carrier_name": {
                     "maxLength": 30,
                     "minLength": 1,
@@ -29970,6 +30006,11 @@
                     "description": "callflow mwi send unsolicited updates",
                     "type": "boolean"
                 },
+                "number_attributes_lookup": {
+                    "default": false,
+                    "description": "use phone number attributes in call processing",
+                    "type": "boolean"
+                },
                 "operator_key": {
                     "default": "0",
                     "description": "callflow operator key",
@@ -31849,7 +31890,19 @@
                 },
                 "network_map": {
                     "default": {},
-                    "description": "ecallmgr network map",
+                    "description": "allows specification of custom SIP profiles to use for specific destination network ranges",
+                    "patternProperties": {
+                        "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(3[0-2]|[1-2]?[0-9]))$": {
+                            "description": "a CIDR IP network, e.g. '172.16.4.0/24'",
+                            "properties": {
+                                "custom_sip_interface": {
+                                    "description": "the freeswitch sip profile to use for this network",
+                                    "type": "string"
+                                }
+                            },
+                            "type": "object"
+                        }
+                    },
                     "type": "object"
                 },
                 "node_commands": {
@@ -32338,6 +32391,31 @@
                     "description": "fax port",
                     "type": "integer"
                 },
+                "postfix_lookup_domain_port": {
+                    "default": 19024,
+                    "description": "port used for postfix_lookup_domain service",
+                    "type": "integer"
+                },
+                "postfix_lookup_enabled": {
+                    "default": false,
+                    "description": "enable the postfix_lookup service which listens for Postfix tcp_table requests to authorize and route email domains",
+                    "type": "boolean"
+                },
+                "postfix_lookup_kazoo_transport": {
+                    "default": "smtp:[127.0.0.1]:19025",
+                    "description": "default transport pointing to Kazoo. Adjust as needed to point to Kazoo fax SMTP host/port, or HAProxy that load balances to it.",
+                    "type": "string"
+                },
+                "postfix_lookup_transport_port": {
+                    "default": 19023,
+                    "description": "port used for postfix_lookup_transport service. Used to determine if mail for a particular domain should be sent [inbound] to Kazoo or [outbound] to the internet.",
+                    "type": "integer"
+                },
+                "postfix_lookup_workers": {
+                    "default": 4,
+                    "description": "how many postfix_lookup server workers to run (for each lookup type)",
+                    "type": "integer"
+                },
                 "report_anonymous_system_errors": {
                     "default": false,
                     "description": "fax report anonymous system errors",
@@ -32361,6 +32439,11 @@
                 "serialize_outbound_numbers": {
                     "default": true,
                     "description": "Serialize fax transmissions by outbound number globally",
+                    "type": "boolean"
+                },
+                "shortdial_correction": {
+                    "default": false,
+                    "description": "Perform shortdial correction on destination numbers",
                     "type": "boolean"
                 },
                 "smtp_max_msg_size": {
@@ -33654,6 +33737,10 @@
                     "description": "notify should_persist_for_retry",
                     "type": "boolean"
                 },
+                "system_default_from_email": {
+                    "description": "notify system_default_from_email",
+                    "type": "string"
+                },
                 "use_federated_listener": {
                     "default": false,
                     "description": "notify use federated listener",
@@ -34837,9 +34924,9 @@
                     "default": {},
                     "description": "pusher firebase",
                     "properties": {
-                        "api_key": {
-                            "description": "API Key for firebase",
-                            "type": "string"
+                        "service_account": {
+                            "description": "Google Service Account JSON",
+                            "type": "object"
                         },
                         "extra_headers": {
                             "default": {},
@@ -36112,6 +36199,10 @@
                     "default": false,
                     "description": "trunkstore honor diversions by cid validation",
                     "type": "boolean"
+                },
+                "number_attributes_header": {
+                    "description": "header name to use for number attributes information (usually Call-Info)",
+                    "type": "string"
                 },
                 "ring_ready_offnet": {
                     "default": true,

@@ -104,8 +104,8 @@ check_numbers(Module, Nums) ->
         {'ok', JObj} -> {kz_json:to_map(JObj), #{}};
         {error, _} -> {#{}, maps:from_list([{Num,<<"error">>} || Num <- Nums])}
     catch
-        _:_ ->
-            kz_util:log_stacktrace(),
+        _:_:ST ->
+            kz_util:log_stacktrace(ST),
             {#{}, maps:from_list([{Num,<<"error">>} || Num <- Nums])}
     end.
 
@@ -204,8 +204,8 @@ info_fold(Module, Info=#{?CARRIER_INFO_MAX_PREFIX := MaxPrefix}) ->
             Info#{?CARRIER_INFO_MAX_PREFIX => Lower};
         _ -> Info
     catch
-        _E:_R ->
-            kz_util:log_stacktrace(),
+        _E:_R:ST ->
+            kz_util:log_stacktrace(ST),
             Info
     end.
 
@@ -352,8 +352,8 @@ is_number_billable(PhoneNumber) ->
 is_local(Carrier) ->
     try apply(Carrier, 'is_local', [])
     catch
-        _E:_R ->
-            kz_util:log_stacktrace(),
+        _E:_R:ST ->
+            kz_util:log_stacktrace(ST),
             'true'
     end.
 

@@ -1,5 +1,5 @@
 %%%-----------------------------------------------------------------------------
-%%% @copyright (C) 2012-2022, 2600Hz
+%%% @copyright (C) 2012-2025, 2600Hz
 %%% @doc
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -36,6 +36,7 @@
                   ,?SUPER('fax_requests_sup')
                   ,?SUPER('fax_jobs_sup')
                   ,?SUPER('fax_worker_sup')
+                  ,?SUPER('postfix_lookup_sup')
                   ,?WORKER('fax_global_shared_listener')
                   ,?WORKER('fax_shared_listener')
                   ,?WORKER('fax_monitor')
@@ -82,7 +83,7 @@ smtp_sessions() ->
 %%------------------------------------------------------------------------------
 -spec init(any()) -> kz_types:sup_init_ret().
 init([]) ->
-    kz_util:set_startup(),
+    _ = kz_util:set_startup(),
     RestartStrategy = 'one_for_one',
     MaxRestarts = 5,
     MaxSecondsBetweenRestarts = 25,

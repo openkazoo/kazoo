@@ -9,6 +9,9 @@
 -define(APP_NAME, <<"pusher">>).
 -define(APP_VERSION, kz_util:application_version(?APP)).
 -define(CONFIG_CAT, ?APP_NAME).
+-define(APPLE, <<"apple">>).
+-define(APPLE_DEV, <<"apple_dev">>).
+-define(FIREBASE, <<"firebase">>).
 
 -define(CACHE_NAME, 'pusher_cache').
 
@@ -16,7 +19,7 @@
 -define(TOKEN_KEY, <<"Token-ID">>).
 -define(TOKEN_PROXY_KEY, <<"Proxy-Path">>).
 
--define(MODULES, ['pm_apple', 'pm_firebase']).
+-define(MODULES, ['pm_apple', 'pm_firebase', 'pm_apple_dev']).
 
 -type push_app() :: {kz_term:api_pid(), map()} | 'undefined'.
 
