@@ -92,6 +92,7 @@
                          ,'cb_ips'
                          ,'cb_ledgers'
                          ,'cb_limits'
+                         ,'cb_lists'
                          ,'cb_media'
                          ,'cb_menus'
                          ,'cb_metaflows'

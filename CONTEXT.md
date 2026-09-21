@@ -69,6 +69,14 @@ _Avoid_: carrier
 The whapp that routes offnet (leaving-the-platform) calls out to resources.
 _Avoid_: gateway
 
+**Match list**:
+An account-scoped, named set of caller-ID match entries, consumed by the
+`cf_dynamic_cid` and `cf_lookupcidname` callflow modules to rewrite or resolve
+caller ID. Managed via the `lists` Crossbar endpoint (`cb_lists`). Distinct from
+a **contact list** (`cb_contact_list`, the account address book) and a
+**blacklist** (`cb_blacklists`, numbers to reject).
+_Avoid_: list, contact list, blacklist
+
 ### Platform architecture
 
 **Whapp**:
