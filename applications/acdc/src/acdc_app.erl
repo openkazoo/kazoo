@@ -23,9 +23,9 @@
        ,[{'cb_agents', 'crossbar_maintenance', 'start_module'}
         ,{'cb_queues', 'crossbar_maintenance', 'start_module'}
         ,{'cb_acdc_call_stats', 'crossbar_maintenance', 'start_module'}
-        ,{'bh_acdc_agent', 'blackhole_maintenance', 'start_module'}
-        ,{'bh_acdc_member', 'blackhole_maintenance', 'start_module'}
-        ,{'bh_acdc_queue', 'blackhole_maintenance', 'start_module'}
+        ,{<<"bh_acdc_agent">>, 'blackhole_maintenance', 'start_module'}
+        ,{<<"bh_acdc_member">>, 'blackhole_maintenance', 'start_module'}
+        ,{<<"bh_acdc_queue">>, 'blackhole_maintenance', 'start_module'}
         ]).
 
 %%==============================================================================
