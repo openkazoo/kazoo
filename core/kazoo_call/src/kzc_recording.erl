@@ -170,8 +170,13 @@ init([Call, Data]) ->
 
 -spec init(kapps_call:call(), kz_json:object()) -> {'ok', state()}.
 init(Call, Data) ->
-    kapps_call:put_callid(Call),
-    lager:info("starting event listener for record_call"),
+    CallId = kapps_call:call_id(Call),
+    case CallId of
+        'undefined' -> throw('callid_undefined');
+        _ ->
+            kapps_call:put_callid(Call)
+    end,
+    lager:info("starting event listener for record_call ~p", [CallId]),
 
     gen_listener:cast(self(), {'initialize', Call, Data}),
 
