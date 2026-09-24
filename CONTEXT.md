@@ -93,12 +93,21 @@ The whapp serving real-time websocket event streams to clients; its subscription
 and command modules use the `bh_` prefix.
 _Avoid_: websockets, socket.io
 
+**Autoload module set**:
+The Crossbar or Blackhole modules a node loads at boot. Seeded from the
+platform's compiled-in defaults the first time a cluster reads it, then
+persisted per-cluster — so an operator's additions and removals stick, and a
+later change to the defaults does not reach an existing cluster until it is
+reconciled. Answers "what does a bare node expose"; **application integration**
+answers "who owns this module".
+_Avoid_: enabled modules, module whitelist
+
 **Application integration**:
 The pattern by which a whapp registers its own Crossbar and Blackhole modules at
 startup — calling `kz_module:application_integrations/1` from its `app` module —
 rather than those modules being hardcoded into Crossbar's or Blackhole's default
 module lists. The whapp that ships the module owns registering it.
-_Avoid_: plugin, autoload
+_Avoid_: plugin
 
 **ecallmgr**:
 The whapp that bridges Kazoo to FreeSWITCH media servers.
