@@ -4,22 +4,29 @@
 
 The Call Inspector Crossbar resource allows the client to query and inspect data related to the Call Inspector application.
 
-[More info on Call Inspector](https://github.com/2600hz/kazoo/blob/master/applications/call_inspector/doc/README.md).
+[More info on Call Inspector](../../call_inspector/doc/README.md).
 
+#### Enabling the endpoint
 
-The Call Inspector endpoint is not loaded on start in a default Kazoo installation.
+The endpoint is registered by the `call_inspector` application itself, so it is
+loaded whenever that application is running. There is nothing to enable
+separately.
 
-* To enable at runtime:
-    * `sup crossbar_maintenance start_module cb_call_inspector`
-* To autostart on Crossbar boot:
-    * Navigate to `http://localhost:15984/_utils/document.html?system_config/crossbar`
-    * Edit the `autoload_modules` list to include 'cb_call_inspector'
-    * Click the green check box to the right of the input box
-    * Click 'Save Document' in top left of the screen
+The endpoint queries the `call_inspector` application over AMQP, so it only
+returns data while that application is running. A deployment that never starts
+`call_inspector` never loads the endpoint.
 
-Note: adding cb_call_inspector to the crossbar system_config doc will not start the endpoint;
-only on restarting Crossbar will cb_call_inspector be loaded.
-Use the *sup* command above to start the endpoint at runtime.
+Registration also adds `cb_call_inspector` to `autoload_modules` in the
+`system_config/crossbar` document, so once the application has started on a
+cluster the endpoint stays loaded on later Crossbar boots even if the
+application is stopped. Remove it with
+`sup crossbar_maintenance stop_module cb_call_inspector`.
+
+To start the endpoint on a running node without restarting the application:
+
+```
+sup crossbar_maintenance start_module cb_call_inspector
+```
 
 
 #### Schema

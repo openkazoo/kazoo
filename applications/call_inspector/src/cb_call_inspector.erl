@@ -13,7 +13,7 @@
         ,validate/1, validate/2
         ]).
 
--include("crossbar.hrl").
+-include_lib("crossbar/src/crossbar.hrl").
 
 -define(MOD_CONFIG_CAT, <<(?CONFIG_CAT)/binary, ".call_inspector">>).
 -define(MAX_BULK, kapps_config:get_pos_integer(?MOD_CONFIG_CAT, <<"maximum_bulk">>, 50)).

@@ -542,7 +542,7 @@ path_name(Module) ->
 -type callback() :: module().
 -spec get() -> callback_configs().
 get() ->
-    Apps = ['crossbar', 'acdc', 'frontier', 'cccp'],
+    Apps = ['crossbar', 'acdc', 'call_inspector', 'frontier', 'cccp'],
     lists:foldl(fun get_app/2, [], Apps).
 
 -spec get_app(module(), callback_configs()) -> callback_configs().
