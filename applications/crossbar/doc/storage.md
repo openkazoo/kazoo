@@ -32,7 +32,17 @@ Within the `database` classification, you can define things like the connection 
 
 ### Enabling the storage endpoint
 
-Crossbar must have the storage endpoint enabled first:
+The storage endpoint is loaded automatically in a default Kazoo installation.
+
+On a cluster that was installed before `cb_storage` became a default module, the
+autoloaded module list is already persisted in the `system_config/crossbar`
+document and will not pick up the new default on its own. Reconcile it once:
+
+```
+sup crossbar_maintenance migrate
+```
+
+To start the endpoint on a running node without a restart:
 
 ```
 sup crossbar_maintenance start_module cb_storage
