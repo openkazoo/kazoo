@@ -112,6 +112,27 @@ _Avoid_: switch, PBX
 The RabbitMQ message bus every whapp communicates over.
 _Avoid_: queue, broker
 
+**Node**:
+One Erlang VM running Kazoo, named `<whapp>@<host>`. A node and a cluster
+member are the same thing; a FreeSWITCH box is a media server, never a node.
+_Avoid_: server, instance, box
+
+**Node registry**:
+Every node's view of cluster membership, built from heartbeats over the AMQP
+bus and pruned by an expiry sweep. Membership *is* liveness: a node is up
+exactly while it holds a row, and nothing checks recency separately.
+_Avoid_: node list, cluster state, membership table
+
+**Leader**:
+The single node elected to act for a named leader group, chosen over the AMQP
+bus. Groups elect independently, so one node may lead some groups and not others.
+_Avoid_: master, primary, coordinator
+
+**Cluster cron**:
+Scheduled work owned by exactly one node per cluster — its group's leader —
+rather than run on every node.
+_Avoid_: scheduler, job runner, crontab
+
 **kapi**:
 The typed contract modules that define AMQP messages. Prefix `kapi_`.
 _Avoid_: event schema
