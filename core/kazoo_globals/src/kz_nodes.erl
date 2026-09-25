@@ -125,16 +125,21 @@ start_link() ->
                            ,[]
                            ).
 
+%% @doc Is `Node' a member of the node registry?
+%%
+%% Membership, not heartbeat recency: a node stays "up" until the `expire_nodes'
+%% sweep removes its row, which is the registry's single source of truth for
+%% liveness. This deliberately does not re-check `expires'.
+%%
+%% Answers `false' rather than crashing when the registry itself is not running
+%% yet. Callers poll this during startup (see `amqp_leader_listener'), and a node
+%% whose registry has not started is not up in any sense they can use.
 -spec is_up(node()) -> boolean().
 is_up(Node) ->
-    case ets:match(?MODULE, #kz_node{node = Node
-                                    ,expires = '$2'
-                                    ,_ = '_'
-                                    })
-    of
-        [] -> 'false';
-        [_] -> 'true'
-    end.
+    'undefined' =/= ets:whereis(?MODULE)
+        andalso [] =/= ets:match(?MODULE, #kz_node{node = Node
+                                                  ,_ = '_'
+                                                  }).
 
 -spec node_to_json(kz_term:text() | kz_types:kz_node()) -> kz_json:object().
 node_to_json(NodeName) when is_atom(NodeName) ->
