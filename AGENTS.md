@@ -6,7 +6,7 @@ Issues and specs are tracked in GitHub Issues (`openkazoo/kazoo`) via the `gh` C
 
 ### Triage labels
 
-The five canonical triage roles map 1:1 to their default label strings. See `docs/agents/triage-labels.md`.
+Only `wontfix` maps to a real label (`Won't Fix`); the other four canonical triage roles have no label in this repo. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
