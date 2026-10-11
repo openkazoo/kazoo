@@ -8,6 +8,9 @@
                  , stdlib
 
                  , kazoo_amqp
+                 %% amqp_leader_listener gates readiness on kz_nodes:is_up/1,
+                 %% so the node registry must be started before this app.
+                 , kazoo_globals
 
                  , lager
                  ]},

@@ -51,7 +51,7 @@
 -export([init/1,
          handle_cast/3,
          handle_call/4,
-         handle_info/2,
+         handle_info/3,
          handle_leader_call/4,
          handle_leader_cast/3,
          handle_DOWN/3,
@@ -301,8 +301,8 @@ handle_call(_Request, _From, State, _Election) ->
 handle_cast(_Msg, State, _Election) ->
     {'noreply', State}.
 
--spec handle_info(any(), state()) -> kz_types:handle_info_ret_state(state()).
-handle_info(_Info, State) ->
+-spec handle_info(any(), state(), any()) -> kz_types:handle_info_ret_state(state()).
+handle_info(_Info, State, _Election) ->
     {'noreply', State}.
 
 -spec terminate(any(), state()) -> 'ok'.
