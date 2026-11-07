@@ -38,7 +38,7 @@ _Avoid_: extension
 ### Call routing & telephony
 
 **Callflow**:
-An account's call-routing tree, and the whapp that executes it.
+An account's call-routing tree, and the kapp that executes it.
 _Avoid_: dialplan, IVR
 
 **Callflow module**:
@@ -66,7 +66,7 @@ company that supplies the numbers (carrier) or terminates calls (resource).
 _Avoid_: carrier
 
 **Stepswitch**:
-The whapp that routes offnet (leaving-the-platform) calls out to resources.
+The kapp that routes offnet (leaving-the-platform) calls out to resources.
 _Avoid_: gateway
 
 **Match list**:
@@ -79,9 +79,9 @@ _Avoid_: list, contact list, blacklist
 
 ### Platform architecture
 
-**Whapp**:
+**Kapp**:
 A Kazoo OTP application under `applications/`; the runtime prefix is `kapps_`.
-_Avoid_: service, microservice, plugin
+_Avoid_: service, microservice, plugin, whapp (legacy name)
 
 **Crossbar**:
 The REST API layer. Account-scoped routes live under `/v2/accounts/{ID}/…`;
@@ -89,7 +89,7 @@ system-wide routes live directly under `/v2/…`.
 _Avoid_: API gateway
 
 **Blackhole**:
-The whapp serving real-time websocket event streams to clients; its subscription
+The kapp serving real-time websocket event streams to clients; its subscription
 and command modules use the `bh_` prefix.
 _Avoid_: websockets, socket.io
 
@@ -103,14 +103,14 @@ answers "who owns this module".
 _Avoid_: enabled modules, module whitelist
 
 **Application integration**:
-The pattern by which a whapp registers its own Crossbar and Blackhole modules at
+The pattern by which a kapp registers its own Crossbar and Blackhole modules at
 startup — calling `kz_module:application_integrations/1` from its `app` module —
 rather than those modules being hardcoded into Crossbar's or Blackhole's default
-module lists. The whapp that ships the module owns registering it.
+module lists. The kapp that ships the module owns registering it.
 _Avoid_: plugin
 
 **ecallmgr**:
-The whapp that bridges Kazoo to FreeSWITCH media servers.
+The kapp that bridges Kazoo to FreeSWITCH media servers.
 _Avoid_: media server
 
 **FreeSWITCH**:
@@ -118,11 +118,11 @@ The external softswitch Kazoo commands; not part of this repository.
 _Avoid_: switch, PBX
 
 **AMQP bus**:
-The RabbitMQ message bus every whapp communicates over.
+The RabbitMQ message bus every kapp communicates over.
 _Avoid_: queue, broker
 
 **Node**:
-One Erlang VM running Kazoo, named `<whapp>@<host>`. A node and a cluster
+One Erlang VM running Kazoo, named `<kapp>@<host>`. A node and a cluster
 member are the same thing; a FreeSWITCH box is a media server, never a node.
 _Avoid_: server, instance, box
 
@@ -178,7 +178,7 @@ _Avoid_: call log
 Navigation aid, not domain vocabulary. Module prefixes anchor concepts above to
 where they live in code:
 
-- `kapps_` — whapp runtime (application controllers, config, call handling)
+- `kapps_` — kapp runtime (application controllers, config, call handling)
 - `kz_` — core Kazoo library modules
 - `kzd_` — document accessors / schemas (one per document type)
 - `kapi_` — typed AMQP message contracts

@@ -148,7 +148,7 @@ The launch configuration will:
 
 -   Start required Docker components (CouchDB + RabbitMQ)
 -   Build the debug dev release
--   Boot a single node running every whapp (including `ecallmgr`)
+-   Boot a single node running every kapp (including `ecallmgr`)
 -   Attach the `els_dap` debugger automatically
 
 Once attached, set a breakpoint in any `core/*` or `applications/*` module and it

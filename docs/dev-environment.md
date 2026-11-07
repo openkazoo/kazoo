@@ -1,7 +1,7 @@
 # Developer environment
 
 This is the runbook for a local OpenKazoo development node: clone → open in
-VSCode → press **F5** → a single Erlang node running every whapp (including
+VSCode → press **F5** → a single Erlang node running every kapp (including
 `ecallmgr`), with **erlang-ls** for navigation and diagnostics and
 **step-through breakpoints** via `els_dap` on **OTP 26 or 27**.
 
@@ -190,12 +190,12 @@ source of truth** so no VSCode task, launch config, or shell has to restate it:
   ebin>` **plus** `CODE_LOADING_MODE=interactive` — `-pa` alone is not enough,
   because the release defaults to `embedded` mode where `code:ensure_loaded(int)`
   answers `{error,embedded}` and `els_dap` dies with a bare `undef`.
-- **`KAZOO_APPS`** — the whapps to start. A bare boot lists every whapp as
+- **`KAZOO_APPS`** — the kapps to start. A bare boot lists every kapp as
   `{App, none}` (on the code path, not started) and the production default set
   omits `ecallmgr`. Setting `KAZOO_APPS` is `kapps_controller`'s highest-priority
   selector, so it is deterministic on the very first boot before any DB
   bootstrap. The list is **derived from the tree** — every app whose `.app.src`
-  marks `{is_kazoo_app, true}` — so it is all whapps and self-maintaining.
+  marks `{is_kazoo_app, true}` — so it is all kapps and self-maintaining.
 
 ### Node identity — why the node is named after the host
 
@@ -318,7 +318,7 @@ across the network (name + cookie as above). `recon` is available directly in
 
 ## 7. Known gaps & benign noise
 
-- **`call_inspector` does not start.** 35 of 36 whapps boot; `call_inspector`
+- **`call_inspector` does not start.** 35 of 36 kapps boot; `call_inspector`
   hardcodes `?CI_DIR = "/var/log/kazoo/call_inspector"` and crashes on the
   missing root-owned parent (`{case_clause,{error,enoent}}`). It is being made
   dev-overridable — tracked on [issue #52](https://github.com/openkazoo/kazoo/issues/52).
@@ -352,4 +352,4 @@ across the network (name + cookie as above). `recon` is available directly in
 - **Requirements & install:** `README.md` → *Running the Project*.
 - **This dev environment was built** across [map #27](https://github.com/openkazoo/kazoo/issues/27);
   each closed ticket records the decision behind a piece of it.
-- **Domain vocabulary** (whapp, `ecallmgr`, SUP, `kazoo_data`): `CONTEXT.md`.
+- **Domain vocabulary** (kapp, `ecallmgr`, SUP, `kazoo_data`): `CONTEXT.md`.

@@ -50,7 +50,7 @@
 -setcookie kazoo_dev_cookie
 
 ## Kazoo is heavy on both -- the defaults (262144 / 1024) are reached by a
-## single node running all whapps plus ecallmgr.
+## single node running all kapps plus ecallmgr.
 +P 1048576
 +Q 65536
 
