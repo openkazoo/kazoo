@@ -63,6 +63,8 @@ register_views() ->
     kz_datamgr:register_views_from_folder('cdr').
 
 -spec check_media_names(list()|kz_term:api_binary()| 'undefined') -> list() | 'undefined'.
+check_media_names([MediaName]) ->
+    re:split(MediaName, ",");
 check_media_names([HeadMN | TailMN]) ->
     re:split(HeadMN, ",") ++ check_last_media_name(TailMN);
 check_media_names('undefined') ->
