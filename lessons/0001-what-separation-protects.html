@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What Separation Protects</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><main>
+<h1>What a separate ecallmgr node actually protects</h1>
+<p class="sub">Lesson 1 · about 12 minutes · tied to the PR #76 review · revised after a full survey of ecallmgr's AMQP requests</p>
+
+<h2>Predict first</h2>
+<p>Before reading on, write down from memory: <em>what does ecallmgr do on its own, with no kapp answering?</em> List as much as you can.</p>
+<textarea aria-label="Your prediction"></textarea>
+
+<h2>Two things you said, both right</h2>
+<p><b>"Restarting ecallmgr won't end in-progress calls."</b> Correct. Bridged audio lives in FreeSWITCH, a separate OS process. When ecallmgr comes back, <code>ecallmgr_fs_node:init/1</code> calls <code>sync_channels</code> and rebuilds its channel table from FreeSWITCH <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_fs_node.erl">ecallmgr_fs_node.erl:288</a>)</span>.</p>
+<p><b>"ecallmgr can't do much without callflow."</b> Mostly correct, and more than the first version of this lesson admitted. Every new call needs a kapp's route response, and most per-call decisions are AMQP requests to a kapp.</p>
+
+<div class="callout">Note the direction, though. ruhnet isn't claiming an ecallmgr restart drops calls. The claim is the reverse: restarting or breaking the <em>kapps</em> should leave ecallmgr alone. So ask what <b>state</b> ecallmgr holds that a combined restart would throw away, not whether calls survive.</div>
+
+<h2>What ecallmgr owns and does alone</h2>
+<p>Needs only FreeSWITCH, AMQP and CouchDB, with no kapp in the loop:</p>
+<ol>
+<li><b>The registration table.</b> This is the decisive one. Which phone is registered at which contact lives in an ETS table inside ecallmgr <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_registrar.erl">ecallmgr_registrar.erl:382</a>)</span>, filled from <code>reg_success</code> events. When a kapp bridges to a device, ecallmgr resolves the contact from that table <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_util.erl">ecallmgr_util.erl:1182</a> → <a href="../applications/ecallmgr/src/ecallmgr_registrar.erl">ecallmgr_registrar.erl:189</a>)</span>. On a miss it asks only <em>other ecallmgrs</em> (<code>{'ecallmgr', 'true'}</code>, <span class="cite">ecallmgr_registrar.erl:561</span>). It also answers everyone else's <code>reg_query</code>, e.g. Crossbar's registrations API <span class="cite">(ecallmgr_registrar.erl:46–60)</span>. I found no code that refills the table from FreeSWITCH on boot. The boot-time sync <span class="cite">(:451, :400)</span> only flushes FreeSWITCH's XML cache. So <b>when ecallmgr restarts, the table is empty until each phone re-registers</b>.</li>
+<li><b>Cached SIP auth.</b> <code>maybe_query_registrar</code> checks <code>ecallmgr_auth_cache</code> before going to the registrar kapp <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_fs_authn.erl">ecallmgr_fs_authn.erl:295–299</a>)</span>.</li>
+<li><b>FreeSWITCH config.</b> It serves <code>acl.conf</code> and <code>sofia.conf</code> from system config and the DB <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_fs_config.erl">ecallmgr_fs_config.erl:162–183</a>)</span>.</li>
+<li><b>Channel state and queries.</b> It tracks every channel and answers <code>channel_status_req</code>, <code>query_channels_req</code> and similar queries for the kapps <span class="cite">(<a href="../applications/ecallmgr/src/ecallmgr_fs_channels.erl">ecallmgr_fs_channels.erl:56–68</a>)</span>.</li>
+<li><b>The FreeSWITCH connections themselves:</b> connecting, pinging, reconnecting.</li>
+</ol>
+
+<h2>What ecallmgr needs a kapp for</h2>
+<div class="wrap"><table>
+<tr><th>Job</th><th>Asks</th><th>Code</th></tr>
+<tr><td>Route every new call</td><td>callflow / trunkstore / …</td><td><code>ecallmgr_fs_router_util.erl:44</code></td></tr>
+<tr><td>Per-call authz and rating</td><td>jonny5, hotornot</td><td><code>ecallmgr_fs_authz.erl:158, 291</code></td></tr>
+<tr><td>Balance crawler disconnects</td><td>jonny5</td><td><code>ecallmgr_balance_crawler_worker.erl:32</code></td></tr>
+<tr><td>SIP auth on a cache miss</td><td>registrar</td><td><code>ecallmgr_fs_authn.erl:323</code></td></tr>
+<tr><td>Media URLs (prompts, voicemail)</td><td>media_mgr</td><td><code>ecallmgr_util.erl:1479</code></td></tr>
+<tr><td>Conference profiles</td><td>conference</td><td><code>ecallmgr_fs_config.erl:456</code></td></tr>
+<tr><td>Any in-call command</td><td>issued by the controlling kapp</td><td><code>ecallmgr_call_control.erl</code></td></tr>
+</table></div>
+<p class="cite">Correction: the first version said the balance crawler runs on its own. It doesn't. It sends <code>balance_check_req</code> to jonny5.</p>
+
+<h2>Putting it together</h2>
+<p>Take a single-server install where callflow is back up 30 seconds after a restart:</p>
+<ul>
+<li><b>ecallmgr on its own node, only the kapps restarted:</b> the registration table survived, so calls to desk phones ring the moment callflow answers routes again.</li>
+<li><b>Combined node restarted:</b> callflow is back, but the registration table is empty. Calls to phones fail until each one re-registers, which can take up to its registration expiry: minutes, or up to an hour with long expiries.</li>
+</ul>
+<p>That is the concrete version of ruhnet's argument. Two things soften it. With several ecallmgrs, a restarted one can fetch contacts from its peers (:561), so the gap only exists if every ecallmgr restarts at once. And a plain kapp <em>crash</em> doesn't restart the node: kapps start via <code>application:ensure_all_started/1</code> <span class="cite">(<a href="../core/kazoo_apps/src/kapps_controller.erl">kapps_controller.erl:98</a>)</span> and are <code>temporary</code> apps <span class="cite">(<a href="https://www.erlang.org/doc/apps/kernel/application.html">OTP application docs</a>)</span>, and you can restart one in place with <code>restart_app/1</code> <span class="cite">(:139)</span>. The node does go down on a full restart (upgrades), or on a VM-wide fault: OOM, the atom table or process limit <span class="cite">(<a href="https://www.erlang.org/doc/system/system_limits.html">system limits</a>)</span>, a wedged VM.</p>
+
+<div class="callout"><b>Takeaway:</b> on its own, ecallmgr can't put a new call anywhere. What it <em>holds</em> is the registration table: the only record of where every phone is. A separate node keeps that table through kapp restarts and VM-wide faults in the kapps. A combined node loses it, and phones can't be reached until they re-register. Full table in the <a href="../reference/ecallmgr-failure-matrix.html">failure matrix</a>.</div>
+
+<h2>Practice</h2>
+<p>"Combined node" means ecallmgr and the kapps in one BEAM VM.</p>
+
+<div class="quiz" data-answer="0" data-why="FreeSWITCH carries the media. ecallmgr re-syncs channels on boot (<code>ecallmgr_fs_node.erl:288</code>).">
+<p class="q">1. A combined node restarts while two phones are bridged. Their audio?</p>
+<button>It continues; FreeSWITCH holds the media.</button>
+<button>It drops; ecallmgr carried the media.</button>
+<button>It pauses until callflow finishes booting.</button></div>
+
+<div class="quiz" data-answer="1" data-why="<code>maybe_query_registrar</code> peeks the local cache before any AMQP request (<code>ecallmgr_fs_authn.erl:295</code>).">
+<p class="q">2. Only the kazoo_apps node restarts. A phone whose creds ecallmgr cached re-registers. Result?</p>
+<button>Rejected, because the registrar kapp is down.</button>
+<button>Accepted, answered from ecallmgr's local auth cache.</button>
+<button>Queued in AMQP until the registrar returns.</button></div>
+
+<div class="quiz" data-answer="2" data-why="Contacts live only in ecallmgr's ETS table (<code>ecallmgr_registrar.erl:382</code>). Nothing refills it on boot, so the phone can't be reached until it re-registers.">
+<p class="q">3. A single combined node restarts and callflow is back in 30 s. Someone calls a desk phone with a 3600 s expiry. Result?</p>
+<button>Rings; ecallmgr reloads registrations from FreeSWITCH on boot.</button>
+<button>Rings; the registrar kapp stores contacts in CouchDB.</button>
+<button>Fails until the phone registers again with ecallmgr.</button></div>
+
+<div class="quiz" data-answer="1" data-why="<code>ensure_all_started/1</code> uses the <code>temporary</code> restart type, and a temporary app terminating doesn't stop the node.">
+<p class="q">4. In a combined node, a kapp's top supervisor dies. Does ecallmgr go down?</p>
+<button>Yes: any app crashing halts the VM.</button>
+<button>No: kapps are started as temporary applications.</button>
+<button>Yes: callflow's supervisor tree also owns ecallmgr.</button></div>
+
+<div class="quiz" data-answer="0" data-why="OTP isolation is between processes inside one OS process. The OOM killer ends the whole BEAM, ecallmgr and its registration table included.">
+<p class="q">5. In a combined node, a kapp leaks memory until the OOM killer fires. What survives?</p>
+<button>Nothing in the VM; it's one process.</button>
+<button>ecallmgr, since OTP isolates each app's memory.</button>
+<button>ecallmgr, because supervisors restart it automatically afterward.</button></div>
+
+<div class="quiz" data-answer="2" data-why="Bridged calls survive in both layouts. The other two are the real benefits.">
+<p class="q">6. Which claimed benefit of a separate ecallmgr node is <em>not</em> real?</p>
+<button>Restarting kapps keeps ecallmgr's registrations and FS link.</button>
+<button>A VM-wide fault in the kapps spares ecallmgr.</button>
+<button>Bridged calls survive only when nodes are separate.</button></div>
+
+<div class="quiz" data-answer="1" data-why="<code>ecallmgr_fs_config.erl:162–183</code> builds these locally. Routing needs callflow and friends, and the balance crawler asks jonny5.">
+<p class="q">7. Which of these does ecallmgr do with no kapp running?</p>
+<button>Disconnects calls when an account balance runs out.</button>
+<button>Serves acl.conf and sofia.conf to FreeSWITCH from config.</button>
+<button>Picks the route for a new inbound call.</button></div>
+<p class="quiz-score"></p>
+
+<h2>Back to the PR</h2>
+<p>PR #76 changes only the <em>fallback</em> default. Kapp-named nodes and nodes with their own <code>kapps</code> list are unaffected, so a production layout with a separate ecallmgr is still fully supported. The question for ruhnet is narrower than "separate or not": <em>which layout should a fresh install get when nobody chose one?</em> If the answer stays "combined", the registration-table gap is the caveat to write down for production operators.</p>
+
+<h2>Read next</h2>
+<p><b>Primary source:</b> <a href="../applications/ecallmgr/src/ecallmgr_registrar.erl">ecallmgr_registrar.erl</a>: <code>init/1</code>, <code>lookup_contact/2</code> and <code>fetch_contact/2</code>. That's where the state worth protecting lives. Then the <a href="https://www.erlang.org/doc/apps/kernel/application.html">OTP <code>application</code> docs</a> on restart types.</p>
+
+<div class="callout">Something unclear, or want to pressure-test a reply to ruhnet? Ask your teacher (the agent) a follow-up question.</div>
+
+<nav class="course">Reference: <a href="../reference/ecallmgr-failure-matrix.html">failure matrix &amp; glossary</a></nav>
+</main><script src="../assets/quiz.js"></script></body></html>
