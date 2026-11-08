@@ -1,6 +1,8 @@
 #!/bin/sh
 
 # Find the Kazoo release root directory
+# This copy of sup may ship inside a release, at <root>/lib/sup-*/priv/sup
+SELF_ROOT="$(CDPATH= cd -- "$(dirname -- "$0")/../../.." 2>/dev/null && pwd)"
 DEFAULT_ROOT=${KAZOO_ROOT:-prod/rel/kazoo}
 if [ -d "$DEFAULT_ROOT/prod/rel/kazoo" ]; then
     DEFAULT_ROOT="$DEFAULT_ROOT/prod/rel/kazoo"
@@ -10,9 +12,11 @@ elif [ -d /usr/local/kazoo/bin ]; then
     DEFAULT_ROOT="/usr/local/kazoo"
 elif [ -d /opt/kazoo/bin ]; then
     DEFAULT_ROOT="/opt/kazoo"
+elif [ -n "$SELF_ROOT" ] && [ -x "$SELF_ROOT/bin/kazoo" ]; then
+    DEFAULT_ROOT="$SELF_ROOT"
 else
-    echo "Can't find the Kazoo release root directory, is the release built?"
-    exit -1
+    echo "Can't find the Kazoo release root directory, is the release built? Set KAZOO_ROOT to the release root."
+    exit 1
 fi
 
 while getopts "n:c:" optname
@@ -38,7 +42,7 @@ elif [ -f "/etc/kazoo/kazoo_apps.vm.args" ]; then
     VMARGS_PATH="/etc/kazoo/kazoo_apps.vm.args"
 else
     echo "Can't find kazoo_apps.vm.args, are the Kazoo configs installed?"
-    exit -1
+    exit 1
 fi
 export VMARGS_PATH
 
@@ -49,7 +53,7 @@ KAZOO_COOKIE=${SUP_COOKIE_ARG:-${KAZOO_COOKIE:-change_me}}
 SUP_ESCRIPT="$(ls -t "${DEFAULT_ROOT}"/lib/sup-*/priv/sup.escript 2>/dev/null | head -n 1)"
 if [ -z "${SUP_ESCRIPT}" ] || [ ! -f "${SUP_ESCRIPT}" ]; then
     echo "Can't find sup.escript under ${DEFAULT_ROOT}/lib/sup-*/priv/, is sup installed in this release?"
-    exit -1
+    exit 1
 fi
 
 VMARGS_PATH="${VMARGS_PATH}" exec "${DEFAULT_ROOT}/bin/kazoo" escript "${SUP_ESCRIPT#${DEFAULT_ROOT}/}" -n "${KAZOO_NODE}" -c "${KAZOO_COOKIE}" "$@"
