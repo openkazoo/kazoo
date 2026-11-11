@@ -12,11 +12,15 @@
 -define(KAPPS_CONFIG_CACHE, 'kapps_config_cache').
 -define(KAPPS_GETBY_CACHE, 'kapps_getby_cache').
 
+%% The last-resort kapp set in kapps_controller:start_which_kapps/0. It is the
+%% single-node set: it includes ecallmgr, which upstream ran on its own node.
+%% ecallmgr boots idle with no FreeSWITCH media server configured.
 -define(DEFAULT_KAPPS, ['blackhole'
                        ,'callflow'
                        ,'cdr'
                        ,'conference'
                        ,'crossbar'
+                       ,'ecallmgr'
                        ,'fax'
                        ,'hangups'
                        ,'media_mgr'

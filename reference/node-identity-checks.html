@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Node Identity Checks</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><main>
+<h1>Node-identity checks for ecallmgr</h1>
+<p class="sub">Code that works out a node's role by inspecting the node, and what each check does on a combined <code>kazoo_apps@host</code> node.</p>
+
+<div class="wrap"><table>
+<tr><th>Where</th><th>Test</th><th>Combined node</th><th>Fix</th></tr>
+<tr><td><code>core/kazoo_stats/src/kazoo_stats.erl:206</code></td><td>name <code>"ecallmgr@"</code></td><td class="n">ecallmgr stats not sent; SNMP ecallmgr table empty</td><td>gate on the running app; scope <code>processes</code> to <code>ecallmgr_sup</code></td></tr>
+<tr><td><code>core/kazoo_telemetry/src/extractors/kztm_nodes_extractor.erl:69</code></td><td>kapp list has ecallmgr</td><td class="n">labelled ecallmgr; kapps node count 0</td><td>emit both types, or a <code>combined</code> type</td></tr>
+<tr><td><code>core/kazoo_telemetry/src/reducers/waveguide_reducer.erl:285</code></td><td>type = ecallmgr</td><td class="y">media-server dedupe still works</td><td>none</td></tr>
+<tr><td><code>applications/jonny5/src/j5_channels.erl:653</code></td><td>kapp list has ecallmgr</td><td class="y">correct: re-syncs channels when it expires</td><td>none</td></tr>
+<tr><td><code>core/kazoo_apps/src/kapps_controller.erl:89–91</code></td><td>none: starts <code>?DEFAULT_KAPPS</code> directly</td><td>in a split layout, starts a second ecallmgr</td><td>route through <code>start_which_kapps</code></td></tr>
+</table></div>
+
+<h2>kazoo_stats ecallmgr fields</h2>
+<ul>
+<li><b>reduction</b>: sum over <code>ecallmgr_sup</code> children (:221). Correctly scoped.</li>
+<li><b>processes</b>: <code>length(processes())</code> (:230). Whole VM.</li>
+<li><b>register-fail</b>: always 0. Nothing increments <code>register-attempt</code>/<code>register-success</code>.</li>
+<li>Consumer: the <code>stats</code> kapp's SNMP table (<code>applications/stats/src/stats_handler.erl:162</code>, <code>KAZOO-MIB.mib</code>).</li>
+</ul>
+
+<h2>Kapp selection order</h2>
+<p><code>kapps_controller:start_which_kapps/1</code> (:201): the first match wins.</p>
+<ol><li><code>KAZOO_APPS</code> env</li><li>node-level <code>kapps</code> in <code>system_config/kapps_controller</code></li><li>node name, if it names a kapp (just that one)</li><li><code>default.kapps</code>, seeded from <code>?DEFAULT_KAPPS</code></li></ol>
+
+<h2>Glossary additions</h2>
+<dl>
+<dt><b>Name test</b></dt><dd>Inferring a node's role from <code>node()</code>'s prefix. A combined node fails it.</dd>
+<dt><b>Kapp-list test</b></dt><dd>Inferring a role from the kapps a node advertises (<code>#kz_node.kapps</code>). A combined node passes it, but carries extra kapps.</dd>
+</dl>
+<nav class="course"><a href="../lessons/0002-code-that-asks-what-node-am-i.html">Lesson 2</a> · <a href="ecallmgr-failure-matrix.html">Failure matrix</a></nav>
+</main></body></html>

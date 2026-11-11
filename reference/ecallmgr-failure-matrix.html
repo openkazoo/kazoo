@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ecallmgr Failure Matrix</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><main>
+<h1>ecallmgr failure matrix</h1>
+<p class="sub">What keeps working under each failure, in a combined node vs. a separate ecallmgr node. Code refs are relative to <code>applications/ecallmgr/src/</code> unless noted.</p>
+
+<div class="wrap"><table>
+<tr><th>Failure</th><th>Bridged audio</th><th>Registration table</th><th>Cached SIP auth</th><th>New calls</th></tr>
+<tr><td>One kapp crashes (either layout)</td><td class="y">kept</td><td class="y">kept</td><td class="y">kept</td><td>only that kapp's work fails</td></tr>
+<tr><td>kazoo_apps node restarts, ecallmgr separate</td><td class="y">kept</td><td class="y">kept, so phones ring once callflow is up</td><td class="y">kept</td><td class="n">fail until callflow is up</td></tr>
+<tr><td>Combined node restarts</td><td class="y">kept (FS holds it)</td><td class="n">emptied; phones unreachable until they re-register (unless a peer ecallmgr has them)</td><td class="n">lost</td><td class="n">fail</td></tr>
+<tr><td>VM-wide fault in kapps (OOM, system limits, wedged VM), combined</td><td class="y">kept</td><td class="n">emptied</td><td class="n">lost</td><td class="n">fail</td></tr>
+<tr><td>Same fault, ecallmgr separate</td><td class="y">kept</td><td class="y">kept</td><td class="y">kept</td><td class="n">fail</td></tr>
+</table></div>
+
+<h2>ecallmgr alone (FS + AMQP + DB)</h2>
+<ul>
+<li><b>Registration table.</b> ETS (<code>ecallmgr_registrar.erl:382</code>), used for device bridges (<code>ecallmgr_util.erl:1182</code> → <code>ecallmgr_registrar.erl:189</code>), misses go to peer ecallmgrs only (<code>:561</code>), serves <code>reg_query</code> (<code>:46–60</code>). Not refilled from FS on boot.</li>
+<li><b>SIP auth cache.</b> <code>ecallmgr_fs_authn.erl:295</code>.</li>
+<li><b>acl.conf / sofia.conf.</b> <code>ecallmgr_fs_config.erl:162–183</code>.</li>
+<li><b>Channel tracking and queries.</b> <code>ecallmgr_fs_channels.erl:56–68</code>; re-sync on connect, <code>ecallmgr_fs_node.erl:288</code>.</li>
+<li><b>FS connection management.</b></li>
+</ul>
+
+<h2>ecallmgr needs a kapp for</h2>
+<ul>
+<li>Routing (<code>ecallmgr_fs_router_util.erl:44</code>), authz/rating via jonny5 and hotornot (<code>ecallmgr_fs_authz.erl:158, 291</code>), the balance crawler via jonny5 (<code>ecallmgr_balance_crawler_worker.erl:32</code>), auth cache misses via registrar (<code>ecallmgr_fs_authn.erl:323</code>), media URLs via media_mgr (<code>ecallmgr_util.erl:1479</code>), conference config (<code>ecallmgr_fs_config.erl:456</code>), and every in-call command.</li>
+</ul>
+
+<h2>OTP facts</h2>
+<ul>
+<li>Kapps are started with <code>application:ensure_all_started/1</code>, which makes them <code>temporary</code> (<code>core/kazoo_apps/src/kapps_controller.erl:98</code>; <a href="https://www.erlang.org/doc/apps/kernel/application.html">docs</a>). A kapp dying doesn't stop the node.</li>
+<li><code>kapps_controller:restart_app/1</code> restarts one kapp in place (<code>:139</code>).</li>
+<li>Memory, atoms, processes and ETS are shared per node (<a href="https://www.erlang.org/doc/system/system_limits.html">system limits</a>).</li>
+</ul>
+
+<h2>Glossary</h2>
+<dl>
+<dt><b>Node</b></dt><dd>One BEAM VM, which is one OS process, e.g. <code>ecallmgr@host</code>.</dd>
+<dt><b>Kapp</b></dt><dd>A Kazoo OTP application started by <code>kapps_controller</code> (callflow, registrar, jonny5, …).</dd>
+<dt><b>Combined node</b></dt><dd>A node running ecallmgr plus the other kapps, which is what PR #76's default produces.</dd>
+<dt><b>Registration table</b></dt><dd>ecallmgr's ETS table of contacts: the only record of where each phone can be reached.</dd>
+<dt><b>Blast radius</b></dt><dd>Everything that stops when one thing fails or restarts.</dd>
+<dt><b>VM-wide fault</b></dt><dd>A failure of shared VM resources that OTP supervision can't contain.</dd>
+</dl>
+<nav class="course"><a href="../lessons/0001-what-separation-protects.html">Lesson 1</a> · <a href="../lessons/0002-code-that-asks-what-node-am-i.html">Lesson 2</a> · <a href="node-identity-checks.html">Node-identity checks</a></nav>
+</main></body></html>
