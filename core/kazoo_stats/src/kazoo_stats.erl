@@ -2,7 +2,7 @@
 %%% @copyright (C) 2010-2022, 2600Hz
 %%% @doc This process runs on each node in the Kazoo cluster. It collects information
 %%% on each node, and regularly sends the information the stats application.
-%%% For `ecallmgr' nodes, it also collects `ecallmgr' information, and
+%%% For nodes running `ecallmgr', it also collects `ecallmgr' information, and
 %%% sip events statistics.
 %%%
 %%% @author Stephen Gibberd <stephen.gibberd@2600hz.com>
@@ -26,6 +26,10 @@
         ,stop/0
         ,getdb/0
         ]).
+
+-ifdef(TEST).
+-export([get_ecallmgr_values/1]).
+-endif.
 
 -include_lib("kazoo_stdlib/include/kz_log.hrl").
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
@@ -201,14 +205,25 @@ get_sip_values([]) -> [];
 get_sip_values(SipList) ->
     [{<<"sip">>, SipList}].
 
+%% Sent by any node running ecallmgr, whatever the node is called, so a node
+%% that runs ecallmgr alongside other kapps reports them too.
+-spec get_ecallmgr_values(kz_term:proplist()) -> kz_term:proplist().
 get_ecallmgr_values(VarList) ->
-    case atom_to_list(node()) of
-        "ecallmgr@" ++ _ ->
-            get_ecallmgr_values2(VarList);
-        _ -> []
+    case whereis('ecallmgr_sup') of
+        'undefined' -> [];
+        Sup ->
+            %% ecallmgr can be stopped on a running node; skip its fields
+            %% rather than crash if its supervisor goes away mid-collection.
+            try get_ecallmgr_values2(VarList, Sup)
+            catch
+                'exit':{'noproc', _} ->
+                    lager:debug("ecallmgr_sup went away while collecting stats"),
+                    []
+            end
     end.
 
-get_ecallmgr_values2(VarList) ->
+-spec get_ecallmgr_values2(kz_term:proplist(), pid()) -> kz_term:proplist().
+get_ecallmgr_values2(VarList, Sup) ->
     RegFail = case {props:get_value("register-attempt",VarList),
                     props:get_value("register-success",VarList)}
               of
@@ -218,7 +233,7 @@ get_ecallmgr_values2(VarList) ->
               end,
     %% Sums the total reductions for all ecallmgr processes.
     Procs = [process_info(X) ||
-                {_, X, _ ,_} <- supervisor:which_children('ecallmgr_sup')
+                {_, X, _ ,_} <- supervisor:which_children(Sup)
                     ,is_pid(X)
             ],
     Reduction = lists:sum([props:get_value('reductions', X)
@@ -227,8 +242,24 @@ get_ecallmgr_values2(VarList) ->
                           ]),
     [{'reduction',Reduction}
     ,{'register-fail',RegFail}
-    ,{'processes', length(processes())}
+    ,{'processes', ecallmgr_process_count(Sup)}
     ].
+
+%% Counts the processes spawned from ecallmgr's own tree, which inherit the
+%% group leader its application master set. That excludes processes other
+%% applications run for ecallmgr (AMQP channels, pool workers), and on a node
+%% running other kapps it excludes theirs, which the old whole-VM count
+%% included.
+-spec ecallmgr_process_count(pid()) -> non_neg_integer().
+ecallmgr_process_count(Sup) ->
+    case erlang:process_info(Sup, 'group_leader') of
+        {'group_leader', GroupLeader} ->
+            length([Pid
+                    || Pid <- processes()
+                           ,{'group_leader', GroupLeader} =:= erlang:process_info(Pid, 'group_leader')
+                   ]);
+        'undefined' -> 0
+    end.
 
 send(RawPayload) ->
 %%%   lager:debug("trying to convert to json ~n~p",[RawPayload]),
