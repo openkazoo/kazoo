@@ -126,6 +126,14 @@ One Erlang VM running Kazoo, named `<kapp>@<host>`. A node and a cluster
 member are the same thing; a FreeSWITCH box is a media server, never a node.
 _Avoid_: server, instance, box
 
+**Combined node**:
+A node running ecallmgr alongside other kapps. It is what a node runs when
+nothing more specific picks its kapps. Its name (for example `kazoo_apps@…`)
+doesn't say it runs ecallmgr, so code asks whether ecallmgr is running, not
+what the node is called. A node running only ecallmgr is a *dedicated ecallmgr
+node*.
+_Avoid_: all-in-one node, single node
+
 **Node registry**:
 Every node's view of cluster membership, built from heartbeats over the AMQP
 bus and pruned by an expiry sweep. Membership *is* liveness: a node is up
