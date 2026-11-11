@@ -160,6 +160,11 @@ _Avoid_: ORM, DAL
 The underlying document database.
 _Avoid_: the DB
 
+**System DB**:
+One of CouchDB's own `_`-prefixed databases (`_users`, `_replicator`,
+`_global_changes`). CouchDB needs them to run; Kazoo does not own them.
+_Avoid_: internal db
+
 **Account DB**:
 The per-account database holding that account's documents.
 _Avoid_: tenant db
