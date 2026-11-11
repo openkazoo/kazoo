@@ -23,6 +23,10 @@
         ,unbinding_fetch_app/2, unbinding_fetch_app/3
         ]).
 
+-ifdef(TEST).
+-export([default_apps_to_start/0]).
+-endif.
+
 -include("kazoo_apps.hrl").
 
 %%%=============================================================================
@@ -86,9 +90,20 @@ ready(Verbose) ->
                          )
            ).
 
--spec start_default_apps() -> [{atom(), 'ok' | {'error', any()}}].
+-spec start_default_apps() -> [{atom(), {'ok', kz_term:atoms()} | {'error', any()}}].
 start_default_apps() ->
-    [{App, start_app(App)} || App <- ?DEFAULT_KAPPS].
+    [{App, start_app(App)} || App <- default_apps_to_start()].
+
+%% The kapps this node starts at boot, in start order: whatever
+%% `start_which_kapps' selects, not `?DEFAULT_KAPPS' directly. A node whose
+%% KAZOO_APPS or node config leaves out a kapp (say ecallmgr, when another
+%% node runs it) never starts it from here.
+-spec default_apps_to_start() -> kz_term:atoms().
+default_apps_to_start() ->
+    lists:sort(fun sysconf_first/2
+              ,[kz_term:to_atom(KApp, 'true')
+                || KApp <- start_which_kapps()
+               ]).
 
 -spec start_app(atom() | nonempty_string() | kz_term:ne_binary()) ->
           {'ok', kz_term:atoms()} |
@@ -185,11 +200,7 @@ initialize_kapps() ->
     kz_util:put_callid(?DEFAULT_LOG_SYSTEM_ID),
     _ = kapps_maintenance:init_system(),
     kapps_config:migrate(),
-    ToStart = lists:sort(fun sysconf_first/2
-                        ,[kz_term:to_atom(KApp, 'true')
-                          || KApp <- start_which_kapps()
-                         ]),
-    Started = [KApp || KApp <- ToStart,
+    Started = [KApp || KApp <- default_apps_to_start(),
                        {'ok',_} <- [start_app(KApp)]
               ],
     lager:notice("auto-started kapps ~p", [lists:sort(Started)]).
