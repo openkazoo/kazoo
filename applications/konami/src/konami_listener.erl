@@ -69,9 +69,12 @@ handle_metaflow(JObj, Props) ->
     Call = kapps_call:from_json(kz_json:get_value(<<"Call">>, JObj)),
     kapps_call:put_callid(Call),
 
-    _ = konami_code_statem:start(kapps_call:kvs_store('consumer_pid', props:get_value('server', Props), Call)
-                                ,JObj
-                                ),
+    konami_leader:cache_or_fail({'call_id', kapps_call:call_id(Call)})
+        andalso konami_code_statem:start(kapps_call:kvs_store('consumer_pid'
+                                                             ,props:get_value('server', Props)
+                                                             ,Call)
+                                        ,JObj
+                                        ),
     'ok'.
 
 -spec handle_route_req(kz_json:object(), kz_term:proplist()) -> 'ok'.

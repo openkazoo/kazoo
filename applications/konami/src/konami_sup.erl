@@ -15,7 +15,9 @@
 -define(SERVER, ?MODULE).
 
 %% Helper macro for declaring children of supervisor
--define(CHILDREN, [?WORKER('konami_listener')
+-define(CHILDREN, [konami_cache:spec()
+                  ,konami_leader:spec()
+                  ,?WORKER('konami_listener')
                   ,?WORKER('konami_event_listener')
                   ,?WORKER('konami_init')
                   ]).
