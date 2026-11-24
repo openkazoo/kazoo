@@ -16,6 +16,7 @@
         ,patch/1, patch/2, patch/3, patch/4
         ,put/1, put/2, put/3, put/4
         ,delete/1, delete/2, delete/3, delete/4
+        ,default_ssl_options/0
         ]).
 
 -include("kz_web.hrl").
@@ -72,6 +73,23 @@
              ]).
 
 -define(REQ_URL_INDEX, 1).
+
+%%------------------------------------------------------------------------------
+%% @doc Secure TLS defaults (what httpc applies on OTP 26 when no `ssl' option
+%% is given), for callers that pass their own `ssl' option.
+%%
+%% If the OS CA bundle can't be loaded, fall back to `verify_peer' alone so the
+%% request fails inside httpc with an error tuple instead of raising here.
+%% @end
+%%------------------------------------------------------------------------------
+-spec default_ssl_options() -> kz_term:proplist().
+default_ssl_options() ->
+    try httpc:ssl_verify_host_options('true')
+    catch
+        'error':Reason ->
+            lager:error("failed to load OS CA certificates: ~p", [Reason]),
+            [{'verify', 'verify_peer'}]
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Send synchronous request.

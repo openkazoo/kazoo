@@ -67,9 +67,9 @@ access_code(#{code := Code
             Map1 = maps:merge(Token, Map),
             Map2 = Map1#{original => kz_json:merge_jobjs(JObj, CodeJObj)},
             maybe_fix_token_type(Map2);
-        _Else ->
-            lager:error("not expected ~p", [_Else]),
-            Token
+        Error ->
+            lager:error("failed to exchange the access code: ~p", [Error]),
+            Token#{access_code_error => Error}
     end;
 access_code(#{} = Token) -> Token.
 

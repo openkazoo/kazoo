@@ -92,11 +92,11 @@ maybe_load_profile(#{auth_provider := #{profile_url := _ProfileURL} = Provider
                     ,access_token := AccessToken
                     } = Token) ->
     Options = [{'headers_as_is', 'true'}
-              ,{'ssl', [{'versions', ['tlsv1.2']}]}
+              ,{'ssl', [{'versions', ['tlsv1.2']} | kz_http:default_ssl_options()]}
               ],
     URL = kz_term:to_list(profile_url(Token)),
     Verb = profile_access_verb(Provider),
-    {'ok',{_,_, Host, _, _, _}} = kz_http_util:uri_parse(URL),
+    {'ok', _Scheme, Host, _Port, _Path} = kz_http_util:uri_parse(URL),
     Headers = [{<<"host">>, Host}
                | profile_authorization_headers(Token, AccessToken)
               ],
@@ -231,6 +231,9 @@ maybe_add_user_identity(#{auth_provider := #{profile_identity_fields := Fields}
     end;
 maybe_add_user_identity(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
     Token;
+maybe_add_user_identity(#{auth_provider := #{profile_identity_field := _}} = Token) ->
+    lager:debug("no profile to read the user identity from"),
+    Token;
 maybe_add_user_identity(#{auth_provider := Provider} = Token) ->
     maybe_add_user_identity(Token#{auth_provider => Provider#{profile_identity_field => <<"sub">>}}).
 
@@ -250,6 +253,8 @@ maybe_add_display_name(#{auth_provider := #{profile_displayName_field := Field}
     end;
 maybe_add_display_name(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
     Token;
+maybe_add_display_name(#{auth_provider := #{profile_displayName_field := _}} = Token) ->
+    Token;
 maybe_add_display_name(#{auth_provider := Provider} = Token) ->
     maybe_add_display_name(Token#{auth_provider => Provider#{profile_displayName_field => <<"name">>}}).
 
@@ -268,6 +273,8 @@ maybe_add_photo_url(#{auth_provider := #{profile_photo_url_field := Field}
             Token#{photo_url => PhotoUrl}
     end;
 maybe_add_photo_url(#{auth_provider := #{name := <<"kazoo">>}}=Token) ->
+    Token;
+maybe_add_photo_url(#{auth_provider := #{profile_photo_url_field := _}} = Token) ->
     Token;
 maybe_add_photo_url(#{auth_provider := Provider} = Token) ->
     maybe_add_photo_url(Token#{auth_provider => Provider#{profile_photo_url_field => <<"picture">>}}).

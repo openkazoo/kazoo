@@ -68,6 +68,9 @@
                                                                   ,Cidrs
                                                                   )).
 
+-define(HTTP_DEFAULT_PORT, 80).
+-define(HTTPS_DEFAULT_PORT, 443).
+
 -spec urldecode(kz_term:text()) -> kz_term:text().
 urldecode(URL) -> urldecode(URL, 'legacy').
 
@@ -164,9 +167,28 @@ urlencode_plus(<<C, R/binary>>, Acc) ->
             urlencode_plus(R, <<Acc/binary, "%", SafeChar/binary>>)
     end.
 
+-spec uri_parse(uri_string:uri_string()) ->
+          {'ok', uri_string:uri_string(), uri_string:uri_string(), inet:port_number() | 'undefined', uri_string:uri_string()}.
 uri_parse(URL) ->
-    #{scheme := Scheme, host := Host, port := Port, path := Path} = uri_string:parse(URL),
-    {ok, Scheme, Host, Port, Path}.
+    #{'scheme' := Scheme, 'host' := Host} = Map = uri_string:parse(URL),
+    Port = uri_port(maps:get('port', Map, 'undefined'), Scheme),
+    Path = default_path(maps:get('path', Map, "")),
+    {'ok', Scheme, Host, Port, Path}.
+
+-spec uri_port(inet:port_number() | 'undefined', uri_string:uri_string()) -> inet:port_number() | 'undefined'.
+uri_port('undefined', Scheme) ->
+    default_port(string:lowercase(Scheme));
+uri_port(Port, _Scheme) -> Port.
+
+-spec default_port(uri_string:uri_string()) -> inet:port_number() | 'undefined'.
+default_port(Scheme) when Scheme =:= "https"; Scheme =:= <<"https">> -> ?HTTPS_DEFAULT_PORT;
+default_port(Scheme) when Scheme =:= "http"; Scheme =:= <<"http">> -> ?HTTP_DEFAULT_PORT;
+default_port(_) -> 'undefined'.
+
+-spec default_path(uri_string:uri_string()) -> uri_string:uri_string().
+default_path("") -> "/";
+default_path(<<>>) -> <<"/">>;
+default_path(Path) -> Path.
 
 %%------------------------------------------------------------------------------
 %% @doc Converts a single character to its base-16 %-encoded form.
