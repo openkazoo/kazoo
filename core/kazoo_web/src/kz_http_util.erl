@@ -50,6 +50,8 @@
              ,ftp_url/0
              ]).
 
+-define(FTP_DEFAULT_PORT, 21).
+
 -define(INVALID_HOSTS, kapps_config:get(?APP_NAME
                                        ,[<<"client">>, <<"blacklist">>, <<"hosts">>]
                                        ,[<<"localhost">>]
@@ -181,7 +183,7 @@ uri_parse(URL) ->
 -spec parse_ftp_url(string()) -> {'ok', ftp_url()} | {'error', any()}.
 parse_ftp_url(URL) ->
     case uri_string:parse(URL) of
-        #{scheme := Scheme, host := [_|_] = Host} = Map ->
+        #{'scheme' := Scheme, 'host' := [_|_] = Host} = Map ->
             parse_ftp_url(ftp_scheme(string:lowercase(Scheme)), Host, Map);
         {'error', Reason, Term} ->
             {'error', {Reason, Term}};
@@ -206,7 +208,7 @@ ftp_scheme("ftps") -> 'ftps';
 ftp_scheme(_) -> 'undefined'.
 
 -spec ftp_port(inet:port_number() | 'undefined') -> inet:port_number().
-ftp_port('undefined') -> 21;
+ftp_port('undefined') -> ?FTP_DEFAULT_PORT;
 ftp_port(Port) -> Port.
 
 -spec ftp_path(string()) -> string().
