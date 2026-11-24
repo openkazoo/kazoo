@@ -14,6 +14,8 @@
         ,urlencode/1, urlencode/2
         ,uri/2
         ,uri_parse/1
+        ,parse_ftp_url/1
+        ,ftp_user_pass/1
         ,resolve_uri/2
         ,parse_query_string/1
         ,urlsplit/1
@@ -45,7 +47,10 @@
              ,resource_path/0
              ,querystring/0
              ,fragment/0
+             ,ftp_url/0
              ]).
+
+-define(FTP_DEFAULT_PORT, 21).
 
 -define(INVALID_HOSTS, kapps_config:get(?APP_NAME
                                        ,[<<"client">>, <<"blacklist">>, <<"hosts">>]
@@ -169,6 +174,71 @@ uri_parse(URL) ->
     {ok, Scheme, Host, Port, Path}.
 
 %%------------------------------------------------------------------------------
+%% @doc Parse an `ftp://' or `ftps://' URL into the tuple `http_uri:parse/1'
+%% used to return, defaulting the port to 21 and the path to `/'.
+%% `ftps' defaults to 21 too: `kz_att_ftp' connects with explicit TLS
+%% (AUTH TLS on the control port), not implicit TLS on 990.
+%% @end
+%%------------------------------------------------------------------------------
+-spec parse_ftp_url(string()) -> {'ok', ftp_url()} | {'error', any()}.
+parse_ftp_url(URL) ->
+    case uri_string:parse(URL) of
+        #{'scheme' := Scheme, 'host' := [_|_] = Host} = Map ->
+            parse_ftp_url(ftp_scheme(string:lowercase(Scheme)), Host, Map);
+        {'error', Reason, Term} ->
+            {'error', {Reason, Term}};
+        _ -> {'error', 'invalid_ftp_url'}
+    end.
+
+-spec parse_ftp_url('ftp' | 'ftps' | 'undefined', string(), map()) -> {'ok', ftp_url()} | {'error', any()}.
+parse_ftp_url('undefined', _Host, _Map) ->
+    {'error', 'invalid_ftp_url'};
+parse_ftp_url(Scheme, Host, Map) ->
+    {'ok', {Scheme
+           ,maps:get('userinfo', Map, "")
+           ,Host
+           ,ftp_port(maps:get('port', Map, 'undefined'))
+           ,ftp_path(maps:get('path', Map, ""))
+           ,ftp_query(maps:get('query', Map, ""))
+           }}.
+
+-spec ftp_scheme(string()) -> 'ftp' | 'ftps' | 'undefined'.
+ftp_scheme("ftp") -> 'ftp';
+ftp_scheme("ftps") -> 'ftps';
+ftp_scheme(_) -> 'undefined'.
+
+-spec ftp_port(inet:port_number() | 'undefined') -> inet:port_number().
+ftp_port('undefined') -> ?FTP_DEFAULT_PORT;
+ftp_port(Port) -> Port.
+
+-spec ftp_path(string()) -> string().
+ftp_path("") -> "/";
+ftp_path(Path) -> Path.
+
+-spec ftp_query(string()) -> string().
+ftp_query("") -> "";
+ftp_query(Query) -> [$? | Query].
+
+%%------------------------------------------------------------------------------
+%% @doc Split the userinfo of an FTP URL into a percent-decoded user and
+%% password, so credentials with reserved characters (`p%40ss' for `p@ss')
+%% can be expressed. Both must be non-empty.
+%% @end
+%%------------------------------------------------------------------------------
+-spec ftp_user_pass(string()) -> {'ok', string(), string()} | 'error'.
+ftp_user_pass(UserInfo) ->
+    case string:split(UserInfo, ":") of
+        [[_|_] = User, [_|_] = Pass] ->
+            ftp_user_pass(uri_string:percent_decode(User), uri_string:percent_decode(Pass));
+        _ -> 'error'
+    end.
+
+-spec ftp_user_pass(string() | {'error', atom(), term()}, string() | {'error', atom(), term()}) ->
+          {'ok', string(), string()} | 'error'.
+ftp_user_pass([_|_] = User, [_|_] = Pass) -> {'ok', User, Pass};
+ftp_user_pass(_User, _Pass) -> 'error'.
+
+%%------------------------------------------------------------------------------
 %% @doc Converts a single character to its base-16 %-encoded form.
 %% @end
 %%------------------------------------------------------------------------------
@@ -249,6 +319,7 @@ parse_query_string('val', <<C, R/binary>>, KeyAcc, ValAcc, RetAcc) ->
 -type resource_path() :: binary().
 -type querystring() :: iodata().
 -type fragment() :: binary().
+-type ftp_url() :: {'ftp' | 'ftps', string(), string(), inet:port_number(), string(), string()}.
 
 -spec location_host(location()) -> binary().
 location_host(<<Host/binary>>) -> Host;

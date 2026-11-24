@@ -9,6 +9,8 @@
                  , stdlib
                  , crypto
                  , public_key
+                 , ssl
+                 , ftp
                  , lager
                  , erlcloud
                  , erlazure
