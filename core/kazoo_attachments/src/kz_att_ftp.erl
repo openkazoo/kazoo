@@ -13,6 +13,10 @@
 -export([put_attachment/6]).
 -export([fetch_attachment/4]).
 
+-ifdef(TEST).
+-export([get_options/3]).
+-endif.
+
 %%%=============================================================================
 %%% gen_attachment behaviour callbacks (API)
 %%%=============================================================================
@@ -79,7 +83,7 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec send_request(kz_term:ne_binary(), kz_term:ne_binary()) ->
-          'ok' | {'error', binary(), binary() | atom() | term()}.
+          'ok' | {'error', binary() | atom() | term()}.
 send_request(Url, Contents) ->
     case kz_http_util:parse_ftp_url(kz_term:to_list(Url)) of
         {'ok',{Scheme, UserPass, Host, Port, FullPath,_Query}} ->
@@ -90,14 +94,14 @@ send_request(Url, Contents) ->
 -spec send_request('ftp' | 'ftps', string(), inet:port_number(), string(), string(), binary()) ->
           'ok' | {'error', binary() | atom() | term()}.
 send_request(Scheme, Host, Port, UserPass, FullPath, Contents) ->
-    {User, Pass} = case string:tokens(UserPass, ":") of
-                       [U, P] -> {U, P};
-                       _ -> ftp_anonymous_user_pass()
+    {User, Pass} = case kz_http_util:ftp_user_pass(UserPass) of
+                       {'ok', U, P} -> {U, P};
+                       'error' -> ftp_anonymous_user_pass()
                    end,
     Dir = filename:dirname(FullPath),
     File = filename:basename(FullPath),
     try
-        case ftp:open(Host, get_options(Scheme, Port)) of
+        case ftp:open(Host, get_options(Scheme, Host, Port)) of
             {'ok', Pid} ->
                 Routines = [fun() -> ftp:user(Pid, User, Pass) end
                            ,fun() -> ftp:type(Pid, 'binary') end
@@ -118,11 +122,23 @@ send_request(Scheme, Host, Port, UserPass, FullPath, Contents) ->
             {'error', Err}
     end.
 
-get_options('ftp', Port) ->
+-spec get_options('ftp' | 'ftps', string(), inet:port_number()) -> kz_term:proplist().
+get_options('ftp', _Host, Port) ->
     [{'port', Port}];
-get_options('ftps', Port) ->
+get_options('ftps', Host, Port) ->
     [{'port', Port}
-    ,{'tls', []}
+    ,{'tls', tls_options(Host)}
+    ].
+
+%% Since OTP 26 ssl verifies peers by default and fails without cacerts.
+-spec tls_options(string()) -> kz_term:proplist().
+tls_options(Host) ->
+    [{'verify', 'verify_peer'}
+    ,{'cacerts', public_key:cacerts_get()}
+    ,{'server_name_indication', Host}
+    ,{'customize_hostname_check'
+     ,[{'match_fun', public_key:pkix_verify_hostname_match_fun('https')}]
+     }
     ].
 
 -spec ftp_cmds(list()) -> 'ok' | {'error', any()}.

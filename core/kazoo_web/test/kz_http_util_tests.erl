@@ -211,4 +211,18 @@ parse_ftp_url_test_() ->
     ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("https://example.com/a"))
     ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("ftp:///no-host"))
     ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("ftp://exa mple.com/a"))
+    ,?_assertEqual({'ok', {'ftp', "", "::1", 21, "/a", ""}}
+                  ,kz_http_util:parse_ftp_url("ftp://[::1]/a")
+                  )
+    ].
+
+ftp_user_pass_test_() ->
+    [?_assertEqual({'ok', "user", "pass"}, kz_http_util:ftp_user_pass("user:pass"))
+    ,?_assertEqual({'ok', "user", "p@ss:w/rd"}, kz_http_util:ftp_user_pass("user:p%40ss%3Aw%2Frd"))
+    ,?_assertEqual({'ok', "user", "pa:ss"}, kz_http_util:ftp_user_pass("user:pa:ss"))
+    ,?_assertEqual('error', kz_http_util:ftp_user_pass(""))
+    ,?_assertEqual('error', kz_http_util:ftp_user_pass("user"))
+    ,?_assertEqual('error', kz_http_util:ftp_user_pass("user:"))
+    ,?_assertEqual('error', kz_http_util:ftp_user_pass(":pass"))
+    ,?_assertEqual('error', kz_http_util:ftp_user_pass("user:p%zzss"))
     ].
