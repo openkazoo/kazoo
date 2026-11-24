@@ -18,6 +18,10 @@
         ,unlink/1
         ]).
 
+-ifdef(TEST).
+-export([authenticate_fold/2]).
+-endif.
+
 -include("kazoo_auth.hrl").
 
 -spec create_token(kz_term:proplist()) -> {'ok', kz_term:ne_binary()} |
