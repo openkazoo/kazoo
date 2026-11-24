@@ -16,6 +16,7 @@
         ,patch/1, patch/2, patch/3, patch/4
         ,put/1, put/2, put/3, put/4
         ,delete/1, delete/2, delete/3, delete/4
+        ,default_ssl_options/0
         ]).
 
 -include("kz_web.hrl").
@@ -72,6 +73,20 @@
              ]).
 
 -define(REQ_URL_INDEX, 1).
+
+%%------------------------------------------------------------------------------
+%% @doc Secure TLS defaults (what httpc applies on OTP 26 when no `ssl' option
+%% is given), for callers that pass their own `ssl' option.
+%% @end
+%%------------------------------------------------------------------------------
+-spec default_ssl_options() -> kz_term:proplist().
+default_ssl_options() ->
+    [{'verify', 'verify_peer'}
+    ,{'cacerts', public_key:cacerts_get()}
+    ,{'customize_hostname_check'
+     ,[{'match_fun', public_key:pkix_verify_hostname_match_fun('https')}]
+     }
+    ].
 
 %%------------------------------------------------------------------------------
 %% @doc Send synchronous request.

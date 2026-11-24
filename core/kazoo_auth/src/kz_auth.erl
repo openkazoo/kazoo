@@ -187,6 +187,7 @@ ensure_issuer(Claims) ->
 -spec authenticate_fold(map(), list()) -> map().
 authenticate_fold(Token, []) -> Token;
 authenticate_fold(#{key := _Key}=Token, _) -> Token;
+authenticate_fold(#{access_code_error := _}=Token, _) -> Token;
 authenticate_fold(Token, [Fun | Routines]) ->
     try Fun(Token) of
         NewToken -> authenticate_fold(NewToken, Routines)

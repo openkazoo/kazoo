@@ -21,7 +21,7 @@ get_json_from_url(Url) ->
 
 -spec get_json_from_url(kz_term:ne_binary(), kz_term:proplist()) -> {'ok', kz_json:object()} | {'error', any()}.
 get_json_from_url(Url, ReqHeaders) ->
-    case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
+    case kz_http:get(kz_term:to_list(Url), ReqHeaders, [{'ssl', [{'versions', ['tlsv1.2']} | kz_http:default_ssl_options()]}]) of
         {'ok', 200, _RespHeaders, Body} ->
             JObj = kz_json:decode(Body),
             case kz_term:is_empty(JObj) of
@@ -68,7 +68,7 @@ fetch_access_code(#{auth_app := #{name := ClientId
              ],
     Body = string:join(lists:append(lists:map(fun({K,V}) -> [string:join([K, kz_term:to_list(V)], "=") ] end, Fields)),"&"),
     lager:debug("POST ~s: ~s", [URL, Body]),
-    case kz_http:post(kz_term:to_list(URL), Headers, Body, [{'ssl', [{'versions', ['tlsv1.2']}]}]) of
+    case kz_http:post(kz_term:to_list(URL), Headers, Body, [{'ssl', [{'versions', ['tlsv1.2']} | kz_http:default_ssl_options()]}]) of
         {'ok', 200, _RespHeaders, RespJSON} ->
             {'ok', kz_json:decode(RespJSON)};
         Else ->

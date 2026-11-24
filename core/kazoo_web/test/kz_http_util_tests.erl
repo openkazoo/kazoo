@@ -194,3 +194,29 @@ resolve_uri_path_test_() ->
     [?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, Relative))
     ,?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, <<"/", Relative/binary>>))
     ].
+
+%% Regression: uri_string:parse omits the port (and returns an empty path) when
+%% the URL doesn't spell them out, which used to crash uri_parse with a badmatch.
+uri_parse_test_() ->
+    [?_assertEqual({'ok', "https", "auth.example.com", 443, "/"}
+                  ,kz_http_util:uri_parse("https://auth.example.com")
+                  )
+    ,?_assertEqual({'ok', "http", "example.com", 80, "/"}
+                  ,kz_http_util:uri_parse("http://example.com")
+                  )
+    ,?_assertEqual({'ok', "https", "auth.example.com", 443, "/oauth2/v1/userinfo"}
+                  ,kz_http_util:uri_parse("https://auth.example.com/oauth2/v1/userinfo")
+                  )
+    ,?_assertEqual({'ok', "https", "idp.example.com", 8443, "/"}
+                  ,kz_http_util:uri_parse("https://idp.example.com:8443")
+                  )
+    ,?_assertEqual({'ok', "http", "idp.example.com", 8080, "/realms/x/userinfo"}
+                  ,kz_http_util:uri_parse("http://idp.example.com:8080/realms/x/userinfo")
+                  )
+    ,?_assertEqual({'ok', <<"https">>, <<"auth.example.com">>, 443, <<"/">>}
+                  ,kz_http_util:uri_parse(<<"https://auth.example.com">>)
+                  )
+    ,?_assertEqual({'ok', <<"https">>, <<"auth.example.com">>, 443, <<"/oauth2">>}
+                  ,kz_http_util:uri_parse(<<"https://auth.example.com/oauth2">>)
+                  )
+    ].

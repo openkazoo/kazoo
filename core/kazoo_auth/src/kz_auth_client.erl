@@ -321,10 +321,10 @@ request(URL, Token) ->
 -spec request(atom(), kz_term:ne_binary(), binary(), map()) -> {'ok', binary()} | {'error', any()}.
 request(Verb, URL, Body, #{token := #{authorization := Authorization}}) ->
     Options = [{'headers_as_is', 'true'}
-              ,{'ssl', [{'versions', ['tlsv1.2']}]}
+              ,{'ssl', [{'versions', ['tlsv1.2']} | kz_http:default_ssl_options()]}
               ],
-    {'ok',{_,_, Host, _, _, _}} = kz_http_util:uri_parse(URL),
-    Headers = [{<<"host">>, maps:get('host', Host)}
+    {'ok', _Scheme, Host, _Port, _Path} = kz_http_util:uri_parse(URL),
+    Headers = [{<<"host">>, Host}
               ,{<<"Content-Type">>, <<"application/json">>}
               ,{"Authorization", kz_term:to_list(Authorization)}
               ],

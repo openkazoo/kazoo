@@ -165,8 +165,17 @@ urlencode_plus(<<C, R/binary>>, Acc) ->
     end.
 
 uri_parse(URL) ->
-    #{scheme := Scheme, host := Host, port := Port, path := Path} = uri_string:parse(URL),
+    #{scheme := Scheme, host := Host} = Map = uri_string:parse(URL),
+    Port = maps:get(port, Map, default_port(Scheme)),
+    Path = default_path(maps:get(path, Map, "")),
     {ok, Scheme, Host, Port, Path}.
+
+default_port(Scheme) when Scheme =:= "https"; Scheme =:= <<"https">> -> 443;
+default_port(_) -> 80.
+
+default_path("") -> "/";
+default_path(<<>>) -> <<"/">>;
+default_path(Path) -> Path.
 
 %%------------------------------------------------------------------------------
 %% @doc Converts a single character to its base-16 %-encoded form.
