@@ -129,14 +129,13 @@ export RELX_CONFIG_PATH="${RELX_CONFIG_PATH:-${ROOT}/config/sys-dev.config}"
 # node name), so setting it here is deterministic on the very first boot, before
 # any database bootstrap has run.
 #
-# This dev node runs ALL kapps on one node -- including `ecallmgr', which the
-# production default set (?DEFAULT_KAPPS) omits because upstream runs it on its
-# own node, and which is the reason a bare boot did not satisfy the destination.
+# This dev node runs ALL kapps on one node, a superset of the default set
+# (?DEFAULT_KAPPS) a release boots with, so that every app in the tree is
+# loaded, started and debuggable.
 # "Every kapp" is not a hand-kept list that would drift as apps come and go: a
 # kapp is exactly an application whose .app.src marks {is_kazoo_app, true} --
 # the same predicate kapps_controller:is_kapp/1 uses at runtime -- so derive it
-# from the tree. `ecallmgr' boots idle when it finds no FreeSWITCH (out of scope
-# for this dev env); it does not require a switch to start.
+# from the tree.
 if [ -z "${KAZOO_APPS:-}" ]; then
     KAZOO_APPS="$(
         for app_src in "${ROOT}"/applications/*/src/*.app.src; do

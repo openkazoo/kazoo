@@ -14,6 +14,10 @@
         ,ping/0, ping/1
         ]).
 
+-ifdef(TEST).
+-export([dedupe_media_servers/1]).
+-endif.
+
 -include("waveguide.hrl").
 
 -define(RT_STATS_KEY, <<"runtime_stats.">>).
@@ -280,15 +284,13 @@ calculate_aggregate(_K, _V, Acc) -> Acc.
 dedupe_media_servers(Nodes) ->
     dedupe_media_servers(Nodes, kz_json:new()).
 
+%% Media servers come from whichever nodes run ecallmgr, which includes kapps
+%% nodes that run it alongside other kapps, so take them from every node.
 -spec dedupe_media_servers(kz_json:objects(), kz_json:object()) -> kz_json:object().
 dedupe_media_servers([], Acc) -> Acc;
 dedupe_media_servers([Node | Nodes], Acc) ->
-    case kz_json:get_ne_binary_value(<<"type">>, Node) of
-        <<"ecallmgr">> ->
-            MediaServers = kz_json:get_value([<<"metadata">>, <<"media_servers">>], Node, kz_json:new()),
-            dedupe_media_servers(Nodes, kz_json:merge(MediaServers, Acc));
-        _ -> dedupe_media_servers(Nodes, Acc)
-    end.
+    MediaServers = kz_json:get_value([<<"metadata">>, <<"media_servers">>], Node, kz_json:new()),
+    dedupe_media_servers(Nodes, kz_json:merge(MediaServers, Acc)).
 
 %%------------------------------------------------------------------------------
 %% @doc

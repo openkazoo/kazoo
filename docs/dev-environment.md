@@ -191,8 +191,9 @@ source of truth** so no VSCode task, launch config, or shell has to restate it:
   because the release defaults to `embedded` mode where `code:ensure_loaded(int)`
   answers `{error,embedded}` and `els_dap` dies with a bare `undef`.
 - **`KAZOO_APPS`** — the kapps to start. A bare boot lists every kapp as
-  `{App, none}` (on the code path, not started) and the production default set
-  omits `ecallmgr`. Setting `KAZOO_APPS` is `kapps_controller`'s highest-priority
+  `{App, none}` (on the code path, not started), and the default set
+  (`?DEFAULT_KAPPS`) starts only a subset of them. The dev node runs every kapp.
+  Setting `KAZOO_APPS` is `kapps_controller`'s highest-priority
   selector, so it is deterministic on the very first boot before any DB
   bootstrap. The list is **derived from the tree** — every app whose `.app.src`
   marks `{is_kazoo_app, true}` — so it is all kapps and self-maintaining.

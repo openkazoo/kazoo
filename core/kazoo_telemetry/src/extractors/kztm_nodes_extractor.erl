@@ -12,6 +12,10 @@
 
 -export([extract/0]).
 
+-ifdef(TEST).
+-export([normalize_kz_nodes/1]).
+-endif.
+
 -include_lib("kazoo_stdlib/include/kz_records.hrl").
 
 %%------------------------------------------------------------------------------
@@ -65,11 +69,10 @@ extract_node_metadata(#kz_node{node=NodeName, version=Version, zone=Zone}=Node, 
 %%------------------------------------------------------------------------------
 -spec node_type(kz_types:kz_node()) -> kz_term:ne_binary().
 node_type(#kz_node{kapps=[{<<"kamailio">>=NodeType, _}]}) -> NodeType;
-node_type(#kz_node{kapps=Kapps}) ->
-    case proplists:is_defined(<<"ecallmgr">>, Kapps) of
-        'true' -> <<"ecallmgr">>;
-        _ -> <<"kapps">>
-    end.
+%% Only a node running ecallmgr alone is an ecallmgr node; a combined node
+%% running other kapps too counts as a kapps node.
+node_type(#kz_node{kapps=[{<<"ecallmgr">>=NodeType, _}]}) -> NodeType;
+node_type(#kz_node{}) -> <<"kapps">>.
 
 %%------------------------------------------------------------------------------
 %% @doc

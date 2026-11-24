@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What Node Am I</title><link rel="stylesheet" href="../assets/course.css"></head>
+<body><main>
+<h1>Code that asks “what node am I?”</h1>
+<p class="sub">Lesson 2 · about 10 minutes · answers rdnn's review comment on PR #76</p>
+
+<h2>Warm-up from lesson 1</h2>
+<p>Answer from memory before scrolling. Don't look back at <a href="0001-what-separation-protects.html">lesson 1</a>.</p>
+<div class="quiz" data-answer="1" data-why="It's the ETS table at <code>ecallmgr_registrar.erl:382</code>. Nothing refills it from FreeSWITCH on boot, so phones can't be reached until they re-register.">
+<p class="q">0. Which piece of ecallmgr state does a combined-node restart throw away?</p>
+<button>The bridged calls' media streams inside FreeSWITCH.</button>
+<button>The registration table of device contacts in ETS.</button>
+<button>The sofia.conf profile that FreeSWITCH loaded.</button></div>
+
+<h2>The claim</h2>
+<p>rdnn wrote: <em>“There are also statistics that depend on <code>ecallmgr</code> running separately”</em> <span class="cite">(<a href="https://github.com/openkazoo/kazoo/pull/76#issuecomment-6751246185">PR #76 comment</a>)</span>. Lesson 1 asked what a separate node <em>protects</em>. This claim is a different kind: some code works out a node's role by inspecting the node itself, and a combined node gives it an answer it wasn't written for.</p>
+
+<p>The tree uses two ways to tell. Learn to spot both:</p>
+<div class="wrap"><table>
+<tr><th>Test</th><th>Looks like</th><th>A combined <code>kazoo_apps@host</code> node</th></tr>
+<tr><td><b>By node name</b></td><td><code>"ecallmgr@" ++ _</code></td><td><span class="n">fails</span>: the name says kazoo_apps</td></tr>
+<tr><td><b>By kapp list</b></td><td><code>is_defined(&lt;&lt;"ecallmgr"&gt;&gt;, Kapps)</code></td><td><span class="y">passes</span>, but it now <em>also</em> runs every other kapp</td></tr>
+</table></div>
+<p>A name test drops a combined node entirely. A kapp-list test counts it, but only as an ecallmgr node, so anything that assumes "ecallmgr node ⇒ only ecallmgr" gets mislabelled data.</p>
+
+<h2>Case 1: <code>kazoo_stats</code>, a name test</h2>
+<p><code>kazoo_stats</code> runs on every node: it's a plain, always-started app in the release <span class="cite">(<a href="../rebar.config">rebar.config:84</a>)</span>. Every node publishes VM memory figures. Only nodes <em>named</em> <code>ecallmgr@…</code> add three more:</p>
+<pre><code>get_ecallmgr_values(VarList) ->
+    case atom_to_list(node()) of
+        "ecallmgr@" ++ _ -> get_ecallmgr_values2(VarList);
+        _ -> []
+    end.</code></pre>
+<p class="cite"><a href="../core/kazoo_stats/src/kazoo_stats.erl">kazoo_stats.erl:204–209</a></p>
+<ul>
+<li><b><code>reduction</code></b>: summed over <code>ecallmgr_sup</code>'s children <span class="cite">(:221)</span>. This one is properly scoped to ecallmgr.</li>
+<li><b><code>processes</code></b>: <code>length(processes())</code> <span class="cite">(:230)</span>. That's the <em>whole VM's</em> process count. It reads as ecallmgr's count only on a dedicated node.</li>
+<li><b><code>register-fail</code></b>: attempts minus successes. But nothing in the tree ever increments <code>register-attempt</code> or <code>register-success</code>. A grep finds only the reader <span class="cite">(:212)</span>, the SNMP table definition and the MIB. So this is always 0, in any layout.</li>
+</ul>
+<p>The consumer is the <code>stats</code> kapp's SNMP agent. Its <code>ecallmgr</code> table expects exactly these fields <span class="cite">(<a href="../applications/stats/src/stats_handler.erl">stats_handler.erl:162–169</a>; <a href="../applications/stats/KAZOO-MIB.mib">KAZOO-MIB.mib:357</a>)</span>.</p>
+
+<div class="callout"><b>What a combined node does to it:</b> named <code>kazoo_apps@host</code>, the node sends no ecallmgr row, so the SNMP ecallmgr table is empty. You can't fix that by naming the node <code>ecallmgr@host</code>. A node named after a kapp starts <em>only</em> that kapp, unless <code>KAZOO_APPS</code> or a node-level <code>kapps</code> list overrides it, since name lookup is third in the order <span class="cite">(<a href="../core/kazoo_apps/src/kapps_controller.erl">kapps_controller.erl:201–212</a>)</span>. Even with an override, <code>processes</code> would then count every kapp's processes.</div>
+
+<h2>Case 2: telemetry, a kapp-list test</h2>
+<p>The telemetry extractor labels each node <code>kamailio</code>, <code>ecallmgr</code> or <code>kapps</code>. Having ecallmgr anywhere in the kapp list wins <span class="cite">(<a href="../core/kazoo_telemetry/src/extractors/kztm_nodes_extractor.erl">kztm_nodes_extractor.erl:68–72</a>)</span>. The reducer then counts nodes and versions by that label <span class="cite">(<a href="../core/kazoo_telemetry/src/reducers/waveguide_reducer.erl">waveguide_reducer.erl:147, 158</a>)</span>. So a one-node combined install reports <b>1 ecallmgr node, 0 kapps nodes</b>. Media-server dedupe keys on the same label <span class="cite">(:285)</span> and keeps working.</p>
+
+<h2>Case 3: jonny5, a kapp-list test that's fine</h2>
+<p>When a node expires, <code>j5_channels</code> re-syncs its channel table if that node listed ecallmgr <span class="cite">(<a href="../applications/jonny5/src/j5_channels.erl">j5_channels.erl:653</a>)</span>. It only asks "did ecallmgr go away?", which is true for a combined node too. Use it as the control case: a kapp-list test is only a problem when the code also assumes the node runs nothing else.</p>
+
+<h2>rdnn's other point, briefly</h2>
+<p><code>start_default_apps/0</code> starts <code>?DEFAULT_KAPPS</code> directly and skips the <code>start_which_kapps</code> lookup <span class="cite">(<a href="../core/kazoo_apps/src/kapps_controller.erl">kapps_controller.erl:89–91</a>)</span>. Run it from <code>sup</code> on a <code>kazoo_apps@</code> node in a split layout and you get a second ecallmgr. The PR body already flags this function. rdnn's point is that an operator could actually call it.</p>
+
+<div class="callout"><b>Takeaway:</b> “statistics depend on ecallmgr running separately” is true, but narrow. One <code>kazoo_stats</code> code path checks the node name. It feeds an SNMP table that only the optional <code>stats</code> kapp serves, and one of its three fields is dead. Telemetry mislabels a combined node rather than losing it. Both are fixable in code: check <code>application:which_applications()</code> instead of the name, and count only ecallmgr's processes. Neither is a reason a fresh install <em>must</em> split.</div>
+
+<h2>Practice</h2>
+<div class="quiz" data-answer="2" data-why="The test is the node-name prefix (<code>kazoo_stats.erl:206</code>), not which apps are running.">
+<p class="q">1. A combined node named <code>kazoo_apps@host</code> runs ecallmgr. Does it publish <code>reduction</code>?</p>
+<button>Yes; it checks the running applications list.</button>
+<button>Yes; every node publishes the ecallmgr fields.</button>
+<button>No; it checks for an ecallmgr@ node name.</button></div>
+
+<div class="quiz" data-answer="0" data-why="No code increments either counter, so <code>RegFail</code> takes the <code>undefined</code> branch and is 0 (<code>kazoo_stats.erl:212–216</code>).">
+<p class="q">2. On a dedicated <code>ecallmgr@</code> node, what does <code>register-fail</code> report?</p>
+<button>Always zero; nothing increments its two input counters.</button>
+<button>Failed REGISTERs counted by the ecallmgr_registrar module.</button>
+<button>Failed REGISTERs reported back by the registrar kapp.</button></div>
+
+<div class="quiz" data-answer="1" data-why="Any node whose kapp list includes ecallmgr gets type ecallmgr (<code>kztm_nodes_extractor.erl:69</code>).">
+<p class="q">3. Telemetry sees one combined node. How does it label it?</p>
+<button>As a kapps node, because it runs callflow.</button>
+<button>As an ecallmgr node, because ecallmgr is listed.</button>
+<button>As both kinds, counted once under each.</button></div>
+
+<div class="quiz" data-answer="2" data-why="Lookup order is env, node config, node name, then the default (<code>kapps_controller.erl:202–205</code>). A kapp name gives just <code>[ecallmgr]</code>.">
+<p class="q">4. You rename the combined node <code>ecallmgr@host</code>, with no <code>KAZOO_APPS</code> and no node config. What starts?</p>
+<button>Every kapp in ?DEFAULT_KAPPS, including ecallmgr.</button>
+<button>Nothing; the node name doesn't match any kapp.</button>
+<button>Only ecallmgr, chosen from the node's name.</button></div>
+
+<div class="quiz" data-answer="0" data-why="It only asks whether ecallmgr went away. A combined node expiring takes ecallmgr with it, so the re-sync is still correct (<code>j5_channels.erl:653</code>).">
+<p class="q">5. Which ecallmgr check works correctly in a combined node?</p>
+<button>jonny5 re-syncing channels when an ecallmgr node expires.</button>
+<button>kazoo_stats publishing per-node ecallmgr process counts to SNMP.</button>
+<button>Telemetry counting kapps nodes apart from ecallmgr nodes.</button></div>
+<p class="quiz-score"></p>
+
+<h2>Apply it: draft your reply</h2>
+<p>In two or three sentences, answer rdnn's stats point. Say which stats, what happens in a combined node, and whether you'd fix the code, document it, or take the <code>KAZOO_APPS</code>-only route. Then ask your teacher to critique it.</p>
+<textarea aria-label="Your draft reply"></textarea>
+<details><summary>One possible answer</summary>
+<p>“The dependent stats are <code>kazoo_stats</code>' ecallmgr fields, gated on an <code>ecallmgr@</code> node name (kazoo_stats.erl:206). On a combined node the SNMP ecallmgr table goes empty. <code>register-fail</code> is already always 0, and <code>processes</code> is VM-wide. I can switch the gate to a running-app check in this PR, scope <code>processes</code> to ecallmgr, and make <code>start_default_apps</code> go through <code>start_which_kapps</code>. Would that address it, or do you still prefer keeping the default split?”</p></details>
+
+<h2>Read next</h2>
+<p><b>Primary source:</b> <a href="../core/kazoo_stats/src/kazoo_stats.erl">kazoo_stats.erl</a>, lines 184–231 (<code>send_stats</code> through <code>get_ecallmgr_values2</code>). It's short, and every claim here traces back to it. Then <a href="../core/kazoo_telemetry/src/extractors/kztm_nodes_extractor.erl"><code>kztm_nodes_extractor:node_type/1</code></a>.</p>
+
+<div class="callout">Unsure about any of this, or want a second opinion on your reply to rdnn? Ask your teacher (the agent) a follow-up.</div>
+
+<nav class="course">← <a href="0001-what-separation-protects.html">Lesson 1</a> · Reference: <a href="../reference/node-identity-checks.html">node-identity checks</a> · <a href="../reference/ecallmgr-failure-matrix.html">failure matrix &amp; glossary</a></nav>
+</main><script src="../assets/quiz.js"></script></body></html>

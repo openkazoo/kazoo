@@ -7,6 +7,7 @@
 -module(kazoo_apps_tests).
 
 -include_lib("eunit/include/eunit.hrl").
+-include("kazoo_apps.hrl").
 
 get_views_json_test_() ->
     ViewListing = kapps_util:get_views_json(kazoo_apps, "views"),
@@ -15,6 +16,14 @@ get_views_json_test_() ->
     ,?_assert(lists:all(fun verify_listing/1, ViewListing))
     ,?_assertMatch({<<"_design/accounts">>,_}, AccountView)
     ,?_assert(verify_listing(AccountView))
+    ].
+
+%% One node runs everything out of the box: a release with no KAZOO_APPS, no
+%% node-specific kapps and no kapp-named node falls back to this list, so
+%% ecallmgr must be in it (issue #74).
+default_kapps_test_() ->
+    [?_assert(lists:member('ecallmgr', ?DEFAULT_KAPPS))
+    ,?_assertEqual(length(?DEFAULT_KAPPS), length(lists:usort(?DEFAULT_KAPPS)))
     ].
 
 verify_listing({Name, View}) ->
