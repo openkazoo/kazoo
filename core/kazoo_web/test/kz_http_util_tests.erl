@@ -199,7 +199,7 @@ parse_ftp_url_test_() ->
     [?_assertEqual({'ok', {'ftp', "", "ftp.example.com", 21, "/", ""}}
                   ,kz_http_util:parse_ftp_url("ftp://ftp.example.com")
                   )
-    ,?_assertEqual({'ok', {'ftps', "user:pass", "ftp.example.com", 990, "/recordings", ""}}
+    ,?_assertEqual({'ok', {'ftps', "user:pass", "ftp.example.com", 21, "/recordings", ""}}
                   ,kz_http_util:parse_ftp_url("ftps://user:pass@ftp.example.com/recordings")
                   )
     ,?_assertEqual({'ok', {'ftp', "user:pass", "10.0.0.1", 2121, "/a/b.mp3", "?x=1"}}

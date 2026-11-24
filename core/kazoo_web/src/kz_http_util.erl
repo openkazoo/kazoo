@@ -171,7 +171,9 @@ uri_parse(URL) ->
 
 %%------------------------------------------------------------------------------
 %% @doc Parse an `ftp://' or `ftps://' URL into the tuple `http_uri:parse/1'
-%% used to return, defaulting the port (21/990) and path (`/').
+%% used to return, defaulting the port to 21 and the path to `/'.
+%% `ftps' defaults to 21 too: `kz_att_ftp' connects with explicit TLS
+%% (AUTH TLS on the control port), not implicit TLS on 990.
 %% @end
 %%------------------------------------------------------------------------------
 -type ftp_url() :: {'ftp' | 'ftps', string(), string(), inet:port_number(), string(), string()}.
@@ -193,7 +195,7 @@ parse_ftp_url(Scheme, Host, Map) ->
     {'ok', {Scheme
            ,maps:get('userinfo', Map, "")
            ,Host
-           ,ftp_port(Scheme, maps:get('port', Map, 'undefined'))
+           ,ftp_port(maps:get('port', Map, 'undefined'))
            ,ftp_path(maps:get('path', Map, ""))
            ,ftp_query(maps:get('query', Map, ""))
            }}.
@@ -202,9 +204,8 @@ ftp_scheme("ftp") -> 'ftp';
 ftp_scheme("ftps") -> 'ftps';
 ftp_scheme(_) -> 'undefined'.
 
-ftp_port('ftp', 'undefined') -> 21;
-ftp_port('ftps', 'undefined') -> 990;
-ftp_port(_Scheme, Port) -> Port.
+ftp_port('undefined') -> 21;
+ftp_port(Port) -> Port.
 
 ftp_path("") -> "/";
 ftp_path(Path) -> Path.
