@@ -77,16 +77,19 @@
 %%------------------------------------------------------------------------------
 %% @doc Secure TLS defaults (what httpc applies on OTP 26 when no `ssl' option
 %% is given), for callers that pass their own `ssl' option.
+%%
+%% If the OS CA bundle can't be loaded, fall back to `verify_peer' alone so the
+%% request fails inside httpc with an error tuple instead of raising here.
 %% @end
 %%------------------------------------------------------------------------------
 -spec default_ssl_options() -> kz_term:proplist().
 default_ssl_options() ->
-    [{'verify', 'verify_peer'}
-    ,{'cacerts', public_key:cacerts_get()}
-    ,{'customize_hostname_check'
-     ,[{'match_fun', public_key:pkix_verify_hostname_match_fun('https')}]
-     }
-    ].
+    try httpc:ssl_verify_host_options('true')
+    catch
+        'error':Reason ->
+            lager:error("failed to load OS CA certificates: ~p", [Reason]),
+            [{'verify', 'verify_peer'}]
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc Send synchronous request.

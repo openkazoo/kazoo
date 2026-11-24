@@ -219,4 +219,13 @@ uri_parse_test_() ->
     ,?_assertEqual({'ok', <<"https">>, <<"auth.example.com">>, 443, <<"/oauth2">>}
                   ,kz_http_util:uri_parse(<<"https://auth.example.com/oauth2">>)
                   )
+    ,?_assertEqual({'ok', "HTTPS", "auth.example.com", 443, "/"}
+                  ,kz_http_util:uri_parse("HTTPS://auth.example.com")
+                  )
+    ,?_assertEqual({'ok', "https", "auth.example.com", 443, "/"}
+                  ,kz_http_util:uri_parse("https://auth.example.com:")
+                  )
+    ,?_assertEqual({'ok', "ws", "example.com", 'undefined', "/"}
+                  ,kz_http_util:uri_parse("ws://example.com")
+                  )
     ].

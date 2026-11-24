@@ -164,15 +164,25 @@ urlencode_plus(<<C, R/binary>>, Acc) ->
             urlencode_plus(R, <<Acc/binary, "%", SafeChar/binary>>)
     end.
 
+-spec uri_parse(uri_string:uri_string()) ->
+          {'ok', uri_string:uri_string(), uri_string:uri_string(), inet:port_number() | 'undefined', uri_string:uri_string()}.
 uri_parse(URL) ->
-    #{scheme := Scheme, host := Host} = Map = uri_string:parse(URL),
-    Port = maps:get(port, Map, default_port(Scheme)),
-    Path = default_path(maps:get(path, Map, "")),
-    {ok, Scheme, Host, Port, Path}.
+    #{'scheme' := Scheme, 'host' := Host} = Map = uri_string:parse(URL),
+    Port = uri_port(maps:get('port', Map, 'undefined'), Scheme),
+    Path = default_path(maps:get('path', Map, "")),
+    {'ok', Scheme, Host, Port, Path}.
 
+-spec uri_port(inet:port_number() | 'undefined', uri_string:uri_string()) -> inet:port_number() | 'undefined'.
+uri_port('undefined', Scheme) ->
+    default_port(string:lowercase(Scheme));
+uri_port(Port, _Scheme) -> Port.
+
+-spec default_port(uri_string:uri_string()) -> inet:port_number() | 'undefined'.
 default_port(Scheme) when Scheme =:= "https"; Scheme =:= <<"https">> -> 443;
-default_port(_) -> 80.
+default_port(Scheme) when Scheme =:= "http"; Scheme =:= <<"http">> -> 80;
+default_port(_) -> 'undefined'.
 
+-spec default_path(uri_string:uri_string()) -> uri_string:uri_string().
 default_path("") -> "/";
 default_path(<<>>) -> <<"/">>;
 default_path(Path) -> Path.
