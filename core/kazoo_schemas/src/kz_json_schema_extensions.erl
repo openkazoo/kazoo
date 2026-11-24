@@ -7,6 +7,10 @@
 
 -export([extra_validator/3]).
 
+-ifdef(TEST).
+-export([is_valid_ftp_url/1]).
+-endif.
+
 -include_lib("kazoo_stdlib/include/kz_types.hrl").
 
 -define(INVALID_STORAGE_ATTACHMENT_REFERENCE(R), <<"invalid reference '", R/binary, "' to attachments">>).
@@ -248,7 +252,7 @@ is_valid_ftp_url({'ok',{'ftps', UserPass, Host, _Port, _FullPath, _Query}}) ->
               ]
              );
 is_valid_ftp_url(<<URL/binary>>) ->
-    is_valid_ftp_url(kz_http_util:uri_parse(kz_term:to_list(URL)));
+    is_valid_ftp_url(kz_http_util:parse_ftp_url(kz_term:to_list(URL)));
 is_valid_ftp_url(_URL) ->
     'false'.
 

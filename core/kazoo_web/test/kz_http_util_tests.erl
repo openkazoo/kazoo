@@ -194,3 +194,21 @@ resolve_uri_path_test_() ->
     [?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, Relative))
     ,?_assertEqual(RawPathList, kz_http_util:resolve_uri_path(RawPath, <<"/", Relative/binary>>))
     ].
+
+parse_ftp_url_test_() ->
+    [?_assertEqual({'ok', {'ftp', "", "ftp.example.com", 21, "/", ""}}
+                  ,kz_http_util:parse_ftp_url("ftp://ftp.example.com")
+                  )
+    ,?_assertEqual({'ok', {'ftps', "user:pass", "ftp.example.com", 990, "/recordings", ""}}
+                  ,kz_http_util:parse_ftp_url("ftps://user:pass@ftp.example.com/recordings")
+                  )
+    ,?_assertEqual({'ok', {'ftp', "user:pass", "10.0.0.1", 2121, "/a/b.mp3", "?x=1"}}
+                  ,kz_http_util:parse_ftp_url("FTP://user:pass@10.0.0.1:2121/a/b.mp3?x=1")
+                  )
+    ,?_assertEqual({'ok', {'ftp', "", "ftp.example.com", 21, "/a", ""}}
+                  ,kz_http_util:parse_ftp_url("ftp://ftp.example.com:/a")
+                  )
+    ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("https://example.com/a"))
+    ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("ftp:///no-host"))
+    ,?_assertMatch({'error', _}, kz_http_util:parse_ftp_url("ftp://exa mple.com/a"))
+    ].

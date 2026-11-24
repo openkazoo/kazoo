@@ -14,6 +14,7 @@
         ,urlencode/1, urlencode/2
         ,uri/2
         ,uri_parse/1
+        ,parse_ftp_url/1
         ,resolve_uri/2
         ,parse_query_string/1
         ,urlsplit/1
@@ -167,6 +168,49 @@ urlencode_plus(<<C, R/binary>>, Acc) ->
 uri_parse(URL) ->
     #{scheme := Scheme, host := Host, port := Port, path := Path} = uri_string:parse(URL),
     {ok, Scheme, Host, Port, Path}.
+
+%%------------------------------------------------------------------------------
+%% @doc Parse an `ftp://' or `ftps://' URL into the tuple `http_uri:parse/1'
+%% used to return, defaulting the port (21/990) and path (`/').
+%% @end
+%%------------------------------------------------------------------------------
+-type ftp_url() :: {'ftp' | 'ftps', string(), string(), inet:port_number(), string(), string()}.
+
+-spec parse_ftp_url(string()) -> {'ok', ftp_url()} | {'error', any()}.
+parse_ftp_url(URL) ->
+    case uri_string:parse(URL) of
+        #{scheme := Scheme, host := [_|_] = Host} = Map ->
+            parse_ftp_url(ftp_scheme(string:lowercase(Scheme)), Host, Map);
+        {'error', _, _} = Error ->
+            {'error', Error};
+        _ -> {'error', 'invalid_ftp_url'}
+    end.
+
+-spec parse_ftp_url('ftp' | 'ftps' | 'undefined', string(), map()) -> {'ok', ftp_url()} | {'error', any()}.
+parse_ftp_url('undefined', _Host, _Map) ->
+    {'error', 'invalid_ftp_url'};
+parse_ftp_url(Scheme, Host, Map) ->
+    {'ok', {Scheme
+           ,maps:get('userinfo', Map, "")
+           ,Host
+           ,ftp_port(Scheme, maps:get('port', Map, 'undefined'))
+           ,ftp_path(maps:get('path', Map, ""))
+           ,ftp_query(maps:get('query', Map, ""))
+           }}.
+
+ftp_scheme("ftp") -> 'ftp';
+ftp_scheme("ftps") -> 'ftps';
+ftp_scheme(_) -> 'undefined'.
+
+ftp_port('ftp', 'undefined') -> 21;
+ftp_port('ftps', 'undefined') -> 990;
+ftp_port(_Scheme, Port) -> Port.
+
+ftp_path("") -> "/";
+ftp_path(Path) -> Path.
+
+ftp_query("") -> "";
+ftp_query(Query) -> [$? | Query].
 
 %%------------------------------------------------------------------------------
 %% @doc Converts a single character to its base-16 %-encoded form.

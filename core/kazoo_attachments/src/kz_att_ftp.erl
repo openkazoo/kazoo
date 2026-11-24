@@ -81,13 +81,13 @@ fetch_attachment(HandlerProps, DbName, DocId, AName) ->
 -spec send_request(kz_term:ne_binary(), kz_term:ne_binary()) ->
           'ok' | {'error', binary(), binary() | atom() | term()}.
 send_request(Url, Contents) ->
-    case kz_http_util:uri_parse(kz_term:to_list(Url)) of
+    case kz_http_util:parse_ftp_url(kz_term:to_list(Url)) of
         {'ok',{Scheme, UserPass, Host, Port, FullPath,_Query}} ->
             send_request(Scheme, Host, Port, UserPass, FullPath, Contents);
         _ -> {'error', <<"error parsing url: ", Url/binary>>}
     end.
 
--spec send_request(string(), string(), integer(), string(), string(), binary()) ->
+-spec send_request('ftp' | 'ftps', string(), inet:port_number(), string(), string(), binary()) ->
           'ok' | {'error', binary() | atom() | term()}.
 send_request(Scheme, Host, Port, UserPass, FullPath, Contents) ->
     {User, Pass} = case string:tokens(UserPass, ":") of
